@@ -8,6 +8,7 @@ import IssueApproval from './pages/IssueApproval';
 import Setup from './pages/Setup';
 import AdminMachines from './pages/AdminMachines';
 import AdminControlPoints from './pages/AdminControlPoints';
+import AdminCompanies from './pages/AdminCompanies';
 import Layout from './Layout.jsx';
 
 
@@ -22,6 +23,7 @@ export const PAGES = {
     "Setup": Setup,
     "AdminMachines": AdminMachines,
     "AdminControlPoints": AdminControlPoints,
+    "AdminCompanies": AdminCompanies,
 }
 
 export const pagesConfig = {

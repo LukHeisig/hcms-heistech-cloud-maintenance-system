@@ -1,9 +1,9 @@
 {
   "type": "object",
   "properties": {
-    "customer_id": {
+    "company_id": {
       "type": "string",
-      "description": "ID z\u00e1kazn\u00edka, kter\u00e9mu u\u017eivatel pat\u0159\u00ed"
+      "description": "ID podniku, kter\u00e9mu u\u017eivatel pat\u0159\u00ed"
     },
     "user_type": {
       "type": "string",
@@ -19,5 +19,8 @@
       "type": "string"
     }
   },
-  "name": "User"
+  "name": "User",
+  "required": [
+    "phone"
+  ]
 }

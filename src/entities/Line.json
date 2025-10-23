@@ -2,9 +2,9 @@
   "name": "Line",
   "type": "object",
   "properties": {
-    "customer_id": {
+    "company_id": {
       "type": "string",
-      "description": "ID z\u00e1kazn\u00edka"
+      "description": "ID podniku"
     },
     "name": {
       "type": "string",
@@ -20,7 +20,7 @@
     }
   },
   "required": [
-    "customer_id",
+    "company_id",
     "name"
   ]
 }

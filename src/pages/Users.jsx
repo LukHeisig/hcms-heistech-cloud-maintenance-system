@@ -45,6 +45,7 @@ export default function Users() {
   const [formData, setFormData] = useState({
     user_type: "technician",
     phone: "",
+    company_id: null, // Added company_id to formData
   });
 
   useEffect(() => {
@@ -66,6 +67,11 @@ export default function Users() {
     queryFn: () => base44.entities.Customer.list(),
   });
 
+  const { data: companies = [] } = useQuery({ // Fetch companies
+    queryKey: ["companies"],
+    queryFn: () => base44.entities.Company.list(),
+  });
+
   const updateUserMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onSuccess: () => {
@@ -80,6 +86,7 @@ export default function Users() {
     setFormData({
       user_type: user.user_type || "technician",
       phone: user.phone || "",
+      company_id: user.company_id || null, // Initialize company_id from user
     });
     setShowEditDialog(true);
   };
@@ -347,6 +354,32 @@ export default function Users() {
                 <p className="text-xs text-slate-500 mt-1">Email nelze měnit</p>
               </div>
 
+              {currentUser?.user_type === "admin" && (
+                <div>
+                  <Label htmlFor="company_id">Podnik *</Label>
+                  <Select
+                    value={formData.company_id || ""}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, company_id: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte podnik" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Uživatel uvidí pouze linky a stroje tohoto podniku
+                  </p>
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="user_type">Role v systému *</Label>
                 <Select
@@ -374,7 +407,7 @@ export default function Users() {
                     <SelectItem value="admin">
                       <div className="flex items-center gap-2">
                         <Crown className="w-4 h-4" />
-                        Administrátor (plný přístup)
+                        Administrátor (plný přístup ke všem podnikům)
                       </div>
                     </SelectItem>
                   </SelectContent>

@@ -41,12 +41,12 @@ export default function Lines() {
   };
 
   const { data: lines = [] } = useQuery({
-    queryKey: ["lines", user?.customer_id],
+    queryKey: ["lines", user?.company_id],
     queryFn: () =>
-      user?.customer_id
-        ? base44.entities.Line.filter({ customer_id: user.customer_id }, "order_index")
+      user?.company_id
+        ? base44.entities.Line.filter({ company_id: user.company_id }, "order_index")
         : [],
-    enabled: !!user?.customer_id,
+    enabled: !!user?.company_id,
   });
 
   // Načíst VŠECHNY stroje (ne jen pro vybranou linku)

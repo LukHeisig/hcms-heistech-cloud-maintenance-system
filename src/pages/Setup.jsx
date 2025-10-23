@@ -17,14 +17,14 @@ export default function Setup() {
     try {
       const user = await base44.auth.me();
 
-      // 1. Vytvořit zákazníka
-      let customer;
-      const existingCustomers = await base44.entities.Customer.list();
-      if (existingCustomers.length > 0) {
-        customer = existingCustomers[0];
+      // 1. Vytvořit podnik
+      let company;
+      const existingCompanies = await base44.entities.Company.list();
+      if (existingCompanies.length > 0) {
+        company = existingCompanies[0];
       } else {
-        customer = await base44.entities.Customer.create({
-          name: "Demo zákazník",
+        company = await base44.entities.Company.create({
+          name: "Demo podnik",
           contact_person: user.full_name || "Uživatel",
           email: user.email,
           phone: "+420 123 456 789",
@@ -33,22 +33,22 @@ export default function Setup() {
         });
       }
 
-      // Aktualizovat uživatele s customer_id
+      // Aktualizovat uživatele s company_id
       await base44.auth.updateMe({
-        customer_id: customer.id,
+        company_id: company.id,
         user_type: "admin",
       });
 
       // 2. Vytvořit linky
       const line1 = await base44.entities.Line.create({
-        customer_id: customer.id,
+        company_id: company.id,
         name: "Linka 1 - Lisovna",
         description: "Hlavní výrobní linka pro lisování",
         order_index: 1,
       });
 
       const line2 = await base44.entities.Line.create({
-        customer_id: customer.id,
+        company_id: company.id,
         name: "Linka 2 - Montáž",
         description: "Montážní linka",
         order_index: 2,
@@ -215,6 +215,10 @@ export default function Setup() {
                 Co vytvoříme:
               </h3>
               <ul className="space-y-2 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <span>Jeden demo podnik</span>
+                </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                   <span>2 výrobní linky s ukázkovými stroji</span>

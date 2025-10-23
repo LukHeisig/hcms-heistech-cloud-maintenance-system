@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,6 +41,9 @@ import { createPageUrl } from "@/utils";
 export default function AdminLines() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const urlParams = new URLSearchParams(window.location.search);
+  const companyId = urlParams.get("company");
+  
   const [user, setUser] = useState(null);
   const [editingLine, setEditingLine] = useState(null);
   const [showLineDialog, setShowLineDialog] = useState(false);
@@ -55,13 +59,23 @@ export default function AdminLines() {
     setUser(currentUser);
   };
 
+  const { data: company } = useQuery({
+    queryKey: ["company", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const companies = await base44.entities.Company.list(); // Assuming list() returns all companies for the current user's customer_id
+      return companies.find((c) => c.id === companyId);
+    },
+    enabled: !!companyId,
+  });
+
   const { data: lines = [], isLoading } = useQuery({
-    queryKey: ["lines", user?.customer_id],
+    queryKey: ["lines", companyId],
     queryFn: () =>
-      user?.customer_id
-        ? base44.entities.Line.filter({ customer_id: user.customer_id }, "order_index")
+      companyId
+        ? base44.entities.Line.filter({ company_id: companyId }, "order_index")
         : [],
-    enabled: !!user?.customer_id,
+    enabled: !!companyId,
   });
 
   const { data: machines = [] } = useQuery({
@@ -118,7 +132,7 @@ export default function AdminLines() {
     } else {
       await createLineMutation.mutateAsync({
         ...formData,
-        customer_id: user.customer_id,
+        company_id: companyId,
         order_index: lines.length,
       });
     }
@@ -140,6 +154,11 @@ export default function AdminLines() {
     );
   }
 
+  if (!companyId) {
+    navigate(createPageUrl("AdminCompanies"));
+    return null;
+  }
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -147,13 +166,15 @@ export default function AdminLines() {
           <div>
             <Button
               variant="ghost"
-              onClick={() => navigate(createPageUrl("Admin"))}
+              onClick={() => navigate(createPageUrl("AdminCompanies"))}
               className="mb-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Zpět na administraci
+              Zpět na podniky
             </Button>
-            <h1 className="text-3xl font-bold text-slate-900">Správa linek</h1>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Správa linek: {company?.name}
+            </h1>
             <p className="text-slate-600 mt-1">{lines.length} linek</p>
           </div>
           <Button

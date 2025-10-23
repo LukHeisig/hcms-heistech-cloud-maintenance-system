@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -34,12 +35,12 @@ export default function Dashboard() {
   };
 
   const { data: lines = [] } = useQuery({
-    queryKey: ["lines", user?.customer_id],
+    queryKey: ["lines", user?.company_id],
     queryFn: () =>
-      user?.customer_id
-        ? base44.entities.Line.filter({ customer_id: user.customer_id }, "order_index")
+      user?.company_id
+        ? base44.entities.Line.filter({ company_id: user.company_id }, "order_index")
         : [],
-    enabled: !!user?.customer_id,
+    enabled: !!user?.company_id,
   });
 
   const { data: machines = [] } = useQuery({
@@ -62,11 +63,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
   });
 
-  // Pokud uživatel nemá customer_id nebo nejsou žádné linky, přesměrovat na setup
+  // Pokud uživatel nemá company_id nebo nejsou žádné linky, přesměrovat na setup
   useEffect(() => {
-    if (user && !user.customer_id) {
+    if (user && !user.company_id) {
       navigate(createPageUrl("Setup"));
-    } else if (user && lines.length === 0 && !user.customer_id) {
+    } else if (user && lines.length === 0 && !user.company_id) {
       navigate(createPageUrl("Setup"));
     }
   }, [user, lines, navigate]);
@@ -96,7 +97,7 @@ export default function Dashboard() {
   }).length;
 
   // Pokud nejsou žádná data, zobrazit Setup tlačítko
-  if (lines.length === 0 && user?.customer_id) {
+  if (lines.length === 0 && user?.company_id) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-3xl mx-auto">
@@ -138,8 +139,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* ... zbytek kódu zůstává stejný ... */}
-        
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-shadow">

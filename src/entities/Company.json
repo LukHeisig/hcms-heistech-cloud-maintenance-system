@@ -1,0 +1,32 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev podniku"
+    },
+    "address": {
+      "type": "string",
+      "description": "Adresa podniku"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Kontaktn\u00ed osoba"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
