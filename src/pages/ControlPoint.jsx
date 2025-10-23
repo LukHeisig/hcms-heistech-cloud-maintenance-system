@@ -1,9 +1,20 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   Droplet,
@@ -25,6 +36,9 @@ export default function ControlPoint() {
   const urlParams = new URLSearchParams(window.location.search);
   const pointId = urlParams.get("id");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showIssueDialog, setShowIssueDialog] = useState(false);
+  const [issueDescription, setIssueDescription] = useState("");
+  const [isReportingIssue, setIsReportingIssue] = useState(false);
 
   const { data: point } = useQuery({
     queryKey: ["controlPoint", pointId],
@@ -73,6 +87,19 @@ export default function ControlPoint() {
     },
   });
 
+  const issueMutation = useMutation({
+    mutationFn: (data) => base44.entities.Issue.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      setShowIssueDialog(false);
+      setIssueDescription("");
+      setIsReportingIssue(false);
+    },
+    onError: () => {
+      setIsReportingIssue(false);
+    },
+  });
+
   const getPointStatus = () => {
     if (records.length === 0) return "overdue";
 
@@ -108,6 +135,17 @@ export default function ControlPoint() {
       control_point_id: point.id,
       record_type: recordType,
       performed_at: new Date().toISOString(),
+    });
+  };
+
+  const handleReportIssue = async () => {
+    if (!issueDescription.trim() || !point) return;
+    setIsReportingIssue(true);
+
+    await issueMutation.mutateAsync({
+      control_point_id: point.id,
+      description: issueDescription,
+      status: "reported",
     });
   };
 
@@ -331,12 +369,12 @@ export default function ControlPoint() {
               </div>
             </div>
 
-            {/* Tlačítko pro potvrzení */}
-            <div className="mb-8">
+            {/* Tlačítka pro akce */}
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button
                 onClick={handleConfirmRecord}
                 disabled={isProcessing}
-                className={`w-full h-14 text-lg shadow-lg ${
+                className={`h-14 text-lg shadow-lg ${
                   point.type === "inspection"
                     ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
                     : point.type === "auto_lubricator"
@@ -369,6 +407,15 @@ export default function ControlPoint() {
                     )}
                   </>
                 )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setShowIssueDialog(true)}
+                className="h-14 text-lg border-2 border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800 hover:border-orange-400"
+              >
+                <AlertTriangle className="w-5 h-5 mr-2" />
+                Nahlásit závadu
               </Button>
             </div>
 
@@ -433,6 +480,69 @@ export default function ControlPoint() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dialog pro hlášení závady */}
+        <Dialog open={showIssueDialog} onOpenChange={setShowIssueDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-orange-700">
+                <AlertTriangle className="w-5 h-5" />
+                Nahlásit závadu
+              </DialogTitle>
+              <DialogDescription>
+                Popište zjištěnou závadu na kontrolním bodě "{point?.name || ''}"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="description">Popis závady *</Label>
+                <Textarea
+                  id="description"
+                  value={issueDescription}
+                  onChange={(e) => setIssueDescription(e.target.value)}
+                  placeholder="Popište podrobně zjištěnou závadu..."
+                  rows={5}
+                  className="mt-2"
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <strong>Tip:</strong> Uveďte co nejvíce detailů - co jste zjistili, 
+                  jaký je stav, co je potřeba opravit, atd.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowIssueDialog(false);
+                  setIssueDescription("");
+                }}
+                disabled={isReportingIssue}
+              >
+                Zrušit
+              </Button>
+              <Button
+                onClick={handleReportIssue}
+                disabled={!issueDescription.trim() || isReportingIssue}
+                className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
+              >
+                {isReportingIssue ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Ukládání...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    Nahlásit závadu
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
