@@ -159,18 +159,15 @@ export default function Lines() {
                 companyPoints.some((p) => p.id === issue.control_point_id)
               ).length;
 
-              // Určit celkový stav podniku
-              const hasIssues = companyIssues > 0;
+              // Určit celkový stav podniku (bez oranžové)
               const hasOverdue = companyOverdue > 0;
-              const companyStatus = hasIssues ? "issue" : hasOverdue ? "overdue" : "ok";
+              const companyStatus = hasOverdue ? "overdue" : "ok";
 
               return (
                 <Card
                   key={company.id}
                   className={`hover:shadow-lg transition-all cursor-pointer border-2 ${
-                    companyStatus === "issue"
-                      ? "border-orange-300 bg-orange-50 hover:border-orange-400"
-                      : companyStatus === "overdue"
+                    companyStatus === "overdue"
                       ? "border-yellow-300 bg-yellow-50 hover:border-yellow-400"
                       : "border-transparent hover:border-red-200"
                   }`}
@@ -180,9 +177,7 @@ export default function Lines() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
-                          companyStatus === "issue"
-                            ? "bg-gradient-to-br from-orange-600 to-orange-700"
-                            : companyStatus === "overdue"
+                          companyStatus === "overdue"
                             ? "bg-gradient-to-br from-yellow-600 to-yellow-700"
                             : "bg-gradient-to-br from-red-600 to-red-700"
                         }`}>
@@ -200,7 +195,7 @@ export default function Lines() {
                               </Badge>
                             )}
                             {companyIssues > 0 && (
-                              <Badge className="bg-orange-100 text-orange-700 gap-1">
+                              <Badge className="bg-orange-500 text-white gap-1">
                                 <AlertTriangle className="w-3 h-3" />
                                 {companyIssues}
                               </Badge>
@@ -224,9 +219,7 @@ export default function Lines() {
                       </div>
                       <div className="flex items-center gap-3">
                         <div className={`w-4 h-4 rounded-full ${
-                          companyStatus === "issue"
-                            ? "bg-orange-500"
-                            : companyStatus === "overdue"
+                          companyStatus === "overdue"
                             ? "bg-yellow-500"
                             : "bg-green-500"
                         }`} />
