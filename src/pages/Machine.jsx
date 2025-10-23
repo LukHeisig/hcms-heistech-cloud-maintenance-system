@@ -1,19 +1,12 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react"; // Removed useState, useEffect
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query"; // Removed useMutation, useQueryClient
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+// Removed Dialog related imports: Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 import {
   ArrowLeft,
   Droplet,
@@ -21,8 +14,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Image as ImageIcon,
-  MessageSquare,
-  Plus,
   FileText,
   Loader2,
   ClipboardCheck,
@@ -35,12 +26,10 @@ import { createPageUrl } from "@/utils";
 
 export default function Machine() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  // Removed queryClient as useMutation and its onSuccess/onError are removed
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
-  const [processingPoints, setProcessingPoints] = useState(new Set());
-  const [selectedPoint, setSelectedPoint] = useState(null);
-  const [showPointDialog, setShowPointDialog] = useState(false);
+  // Removed state related to dialog: processingPoints, selectedPoint, showPointDialog
 
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
@@ -95,28 +84,7 @@ export default function Machine() {
     enabled: !!machineId,
   });
 
-  const recordMutation = useMutation({
-    mutationFn: (data) => base44.entities.ControlRecord.create(data),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["records"] });
-      
-      setProcessingPoints(prev => {
-        const next = new Set(prev);
-        next.delete(variables.control_point_id);
-        return next;
-      });
-      
-      setShowPointDialog(false);
-      setSelectedPoint(null);
-    },
-    onError: (error, variables) => {
-      setProcessingPoints(prev => {
-        const next = new Set(prev);
-        next.delete(variables.control_point_id);
-        return next;
-      });
-    },
-  });
+  // Removed recordMutation and its handlers
 
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
@@ -130,20 +98,8 @@ export default function Machine() {
     return hoursSince > (point.interval_hours || 0) ? "overdue" : "ok";
   };
 
-  const handleConfirmRecord = async (pointId, recordType) => {
-    setProcessingPoints(prev => new Set(prev).add(pointId));
-    
-    await recordMutation.mutateAsync({
-      control_point_id: pointId,
-      record_type: recordType,
-      performed_at: new Date().toISOString(),
-    });
-  };
-
-  const handleOpenPointDialog = (point) => {
-    setSelectedPoint(point);
-    setShowPointDialog(true);
-  };
+  // Removed handleConfirmRecord function
+  // Removed handleOpenPointDialog function
 
   const lubricationPoints = controlPoints.filter(p => p.type === "lubrication");
   const inspectionPoints = controlPoints.filter(p => p.type === "inspection");
@@ -166,9 +122,8 @@ export default function Machine() {
       return (
         <Card>
           <CardContent className="p-12 text-center">
-            {type === "lubrication" && <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />}
-            {type === "inspection" && <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />}
-            {type === "lubricator" && <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />}
+            {/* The outline suggests always using Droplet here, instead of conditional icons */}
+            <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" /> 
             <p className="text-slate-500">
               {type === "lubrication" ? "Nejsou definovány žádné mazací body" :
                type === "inspection" ? "Nejsou definovány žádné inspekční body" :
@@ -185,7 +140,7 @@ export default function Machine() {
           const status = getPointStatus(point);
           const pointRecords = records.filter(r => r.control_point_id === point.id);
           const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
-          const isProcessing = processingPoints.has(point.id);
+          // Removed isProcessing as dialog and its related state are removed
 
           return (
             <Card
@@ -194,7 +149,7 @@ export default function Machine() {
                 status === "overdue" ? "border-l-yellow-500 bg-yellow-50/50" :
                 "border-l-green-500 bg-green-50/50"
               }`}
-              onClick={() => handleOpenPointDialog(point)}
+              onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))} // Changed to navigation
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -245,7 +200,7 @@ export default function Machine() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
-                      isProcessing ? "bg-blue-500 animate-pulse" :
+                      // isProcessing removed here
                       status === "overdue" ? "bg-yellow-500" : "bg-green-500"
                     }`} />
                     <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -348,152 +303,7 @@ export default function Machine() {
           </TabsContent>
         </Tabs>
 
-        {/* Dialog s detailem kontrolního bodu */}
-        <Dialog open={showPointDialog} onOpenChange={setShowPointDialog}>
-          <DialogContent className="max-w-2xl">
-            {selectedPoint && (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-3">
-                    {selectedPoint.number && `${selectedPoint.number} - `}{selectedPoint.name}
-                    {getPointStatus(selectedPoint) === "overdue" && (
-                      <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
-                        <Clock className="w-3 h-3" />
-                        Po termínu
-                      </Badge>
-                    )}
-                    {getPointStatus(selectedPoint) === "ok" && (
-                      <Badge variant="outline" className="gap-1 bg-green-100 text-green-800 border-green-300">
-                        <CheckCircle className="w-3 h-3" />
-                        V pořádku
-                      </Badge>
-                    )}
-                  </DialogTitle>
-                  {selectedPoint.description && (
-                    <DialogDescription className="text-base mt-2">
-                      {selectedPoint.description}
-                    </DialogDescription>
-                  )}
-                </DialogHeader>
-
-                <div className="space-y-4 py-4">
-                  {selectedPoint.type === "lubrication" && (
-                    <>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Mazivo</p>
-                          <p className="font-semibold">{selectedPoint.lubricant_type || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Množství</p>
-                          <p className="font-semibold">{selectedPoint.lubricant_amount ? `${selectedPoint.lubricant_amount} g` : "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Interval</p>
-                          <p className="font-semibold">{selectedPoint.interval_hours ? `${selectedPoint.interval_hours} h` : "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Poslední mazání</p>
-                          <p className="font-semibold">
-                            {records.filter(r => r.control_point_id === selectedPoint.id).length > 0
-                              ? format(new Date(records.filter(r => r.control_point_id === selectedPoint.id)[0].performed_at), "d. M. yyyy HH:mm", { locale: cs })
-                              : "-"}
-                          </p>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {selectedPoint.type === "inspection" && (
-                    <>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Interval</p>
-                          <p className="font-semibold">{selectedPoint.interval_hours ? `${selectedPoint.interval_hours} h` : "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Poslední kontrola</p>
-                          <p className="font-semibold">
-                            {records.filter(r => r.control_point_id === selectedPoint.id).length > 0
-                              ? format(new Date(records.filter(r => r.control_point_id === selectedPoint.id)[0].performed_at), "d. M. yyyy HH:mm", { locale: cs })
-                              : "-"}
-                          </p>
-                        </div>
-                      </div>
-                      {selectedPoint.inspection_tasks && (
-                        <div className="mt-4">
-                          <p className="text-sm text-slate-600 mb-1">Úkoly k provedení</p>
-                          <p className="text-sm">{selectedPoint.inspection_tasks}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {selectedPoint.type === "auto_lubricator" && (
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">Poslední výměna</p>
-                      <p className="font-semibold">
-                        {records.filter(r => r.control_point_id === selectedPoint.id).length > 0
-                          ? format(new Date(records.filter(r => r.control_point_id === selectedPoint.id)[0].performed_at), "d. M. yyyy", { locale: cs })
-                          : "-"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowPointDialog(false)}
-                  >
-                    Zavřít
-                  </Button>
-                  <Button
-                    onClick={() => handleConfirmRecord(
-                      selectedPoint.id,
-                      selectedPoint.type === "auto_lubricator" ? "lubricator_change" :
-                      selectedPoint.type === "inspection" ? "inspection" : "lubrication"
-                    )}
-                    disabled={processingPoints.has(selectedPoint.id)}
-                    className={
-                      selectedPoint.type === "inspection"
-                        ? "bg-purple-600 hover:bg-purple-700"
-                        : selectedPoint.type === "auto_lubricator"
-                        ? "bg-blue-600 hover:bg-blue-700"
-                        : "bg-green-600 hover:bg-green-700"
-                    }
-                  >
-                    {processingPoints.has(selectedPoint.id) ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Ukládání...
-                      </>
-                    ) : (
-                      <>
-                        {selectedPoint.type === "inspection" ? (
-                          <>
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Potvrdit inspekci
-                          </>
-                        ) : selectedPoint.type === "auto_lubricator" ? (
-                          <>
-                            <Droplet className="w-4 h-4 mr-2" />
-                            Potvrdit výměnu maznice
-                          </>
-                        ) : (
-                          <>
-                            <Droplet className="w-4 h-4 mr-2" />
-                            Potvrdit mazání
-                          </>
-                        )}
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Dialog with control point details is completely removed */}
       </div>
     </div>
   );

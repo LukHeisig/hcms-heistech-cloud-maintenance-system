@@ -9,6 +9,7 @@ import Setup from './pages/Setup';
 import AdminMachines from './pages/AdminMachines';
 import AdminControlPoints from './pages/AdminControlPoints';
 import AdminCompanies from './pages/AdminCompanies';
+import ControlPoint from './pages/ControlPoint';
 import Layout from './Layout.jsx';
 
 
@@ -24,6 +25,7 @@ export const PAGES = {
     "AdminMachines": AdminMachines,
     "AdminControlPoints": AdminControlPoints,
     "AdminCompanies": AdminCompanies,
+    "ControlPoint": ControlPoint,
 }
 
 export const pagesConfig = {
