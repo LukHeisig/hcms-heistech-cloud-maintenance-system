@@ -1,0 +1,56 @@
+{
+  "name": "ControlPoint",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "lubrication",
+        "inspection",
+        "auto_lubricator"
+      ],
+      "description": "Typ kontroln\u00edho bodu"
+    },
+    "number": {
+      "type": "string",
+      "description": "\u010c\u00edslo/ozna\u010den\u00ed bodu"
+    },
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev bodu"
+    },
+    "description": {
+      "type": "string"
+    },
+    "lubricant_type": {
+      "type": "string",
+      "description": "Typ maziva"
+    },
+    "lubricant_amount": {
+      "type": "number",
+      "description": "Mno\u017estv\u00ed maziva v gramech"
+    },
+    "interval_hours": {
+      "type": "number",
+      "description": "Interval v hodin\u00e1ch"
+    },
+    "nfc_chip_id": {
+      "type": "string",
+      "description": "ID NFC \u010dipu"
+    },
+    "inspection_tasks": {
+      "type": "string",
+      "description": "Popis inspek\u010dn\u00edch \u010dinnost\u00ed"
+    }
+  },
+  "required": [
+    "machine_id",
+    "type",
+    "number",
+    "name"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Line",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "ID z\u00e1kazn\u00edka"
+    },
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev linky"
+    },
+    "description": {
+      "type": "string"
+    },
+    "order_index": {
+      "type": "number",
+      "description": "Po\u0159ad\u00ed zobrazen\u00ed",
+      "default": 0
+    }
+  },
+  "required": [
+    "customer_id",
+    "name"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "ID z\u00e1kazn\u00edka, kter\u00e9mu u\u017eivatel pat\u0159\u00ed"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "technician",
+        "manager",
+        "admin"
+      ],
+      "default": "technician",
+      "description": "Typ u\u017eivatele"
+    },
+    "phone": {
+      "type": "string"
+    }
+  },
+  "name": "User"
+}

@@ -1,0 +1,47 @@
+{
+  "name": "Issue",
+  "type": "object",
+  "properties": {
+    "control_point_id": {
+      "type": "string",
+      "description": "ID kontroln\u00edho bodu"
+    },
+    "description": {
+      "type": "string",
+      "description": "Popis z\u00e1vady"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "reported",
+        "pending_approval",
+        "approved",
+        "rejected"
+      ],
+      "default": "reported",
+      "description": "Stav z\u00e1vady"
+    },
+    "submitted_for_approval_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "submitted_by": {
+      "type": "string",
+      "description": "Email u\u017eivatele, kter\u00fd odeslal ke schv\u00e1len\u00ed"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "control_point_id",
+    "description"
+  ]
+}

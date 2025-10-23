@@ -1,0 +1,25 @@
+{
+  "name": "Machine",
+  "type": "object",
+  "properties": {
+    "line_id": {
+      "type": "string",
+      "description": "ID linky"
+    },
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev stroje"
+    },
+    "description": {
+      "type": "string"
+    },
+    "order_index": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "line_id",
+    "name"
+  ]
+}

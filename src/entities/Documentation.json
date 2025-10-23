@@ -1,0 +1,29 @@
+{
+  "name": "Documentation",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL souboru"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "file_type": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "schema",
+        "document"
+      ]
+    }
+  },
+  "required": [
+    "machine_id",
+    "file_url"
+  ]
+}
