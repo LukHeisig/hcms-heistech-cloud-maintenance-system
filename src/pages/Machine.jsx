@@ -14,18 +14,22 @@ import {
   Image as ImageIcon,
   MessageSquare,
   Plus,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Machine() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
+  const [processingPoints, setProcessingPoints] = useState(new Set());
 
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
@@ -53,13 +57,26 @@ export default function Machine() {
   });
 
   const { data: records = [] } = useQuery({
-    queryKey: ["records"],
-    queryFn: () => base44.entities.ControlRecord.list("-performed_at"),
+    queryKey: ["records", machineId],
+    queryFn: async () => {
+      const allRecords = await base44.entities.ControlRecord.list("-performed_at");
+      // Filtrovat pouze záznamy pro body tohoto stroje
+      return allRecords.filter(record => 
+        controlPoints.some(point => point.id === record.control_point_id)
+      );
+    },
+    enabled: !!machineId && controlPoints.length > 0,
   });
 
   const { data: issues = [] } = useQuery({
-    queryKey: ["issues"],
-    queryFn: () => base44.entities.Issue.list(),
+    queryKey: ["issues", machineId],
+    queryFn: async () => {
+      const allIssues = await base44.entities.Issue.list();
+      return allIssues.filter(issue =>
+        controlPoints.some(point => point.id === issue.control_point_id)
+      );
+    },
+    enabled: controlPoints.length > 0,
   });
 
   const { data: documentation = [] } = useQuery({
@@ -70,8 +87,35 @@ export default function Machine() {
 
   const recordMutation = useMutation({
     mutationFn: (data) => base44.entities.ControlRecord.create(data),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Invalidovat všechny dotazy pro záznamy
       queryClient.invalidateQueries({ queryKey: ["records"] });
+      
+      // Odstranit bod z processing
+      setProcessingPoints(prev => {
+        const next = new Set(prev);
+        next.delete(variables.control_point_id);
+        return next;
+      });
+
+      toast({
+        title: "✓ Záznam potvrzen",
+        description: "Mazání/kontrola byla úspěšně zaznamenána",
+        className: "bg-green-50 border-green-200",
+      });
+    },
+    onError: (error, variables) => {
+      setProcessingPoints(prev => {
+        const next = new Set(prev);
+        next.delete(variables.control_point_id);
+        return next;
+      });
+
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se zaznamenat úkon",
+        variant: "destructive",
+      });
     },
   });
 
@@ -84,10 +128,12 @@ export default function Machine() {
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
-    return hoursSince > point.interval_hours ? "overdue" : "ok";
+    return hoursSince > (point.interval_hours || 0) ? "overdue" : "ok";
   };
 
   const handleConfirmRecord = async (pointId, recordType) => {
+    setProcessingPoints(prev => new Set(prev).add(pointId));
+    
     await recordMutation.mutateAsync({
       control_point_id: pointId,
       record_type: recordType,
@@ -103,7 +149,9 @@ export default function Machine() {
     return (
       <div className="p-8">
         <div className="max-w-7xl mx-auto">
-          <p className="text-center text-slate-500">Načítání...</p>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+          </div>
         </div>
       </div>
     );
@@ -150,172 +198,245 @@ export default function Machine() {
           {/* Mazací body */}
           <TabsContent value="lubrication">
             <div className="grid gap-4">
-              {lubricationPoints.map((point) => {
-                const status = getPointStatus(point);
-                const pointRecords = records.filter(r => r.control_point_id === point.id);
-                const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
+              {lubricationPoints.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">Nejsou definovány žádné mazací body</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                lubricationPoints.map((point) => {
+                  const status = getPointStatus(point);
+                  const pointRecords = records.filter(r => r.control_point_id === point.id);
+                  const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
+                  const isProcessing = processingPoints.has(point.id);
 
-                return (
-                  <Card key={point.id} className={`border-2 ${
-                    pointIssues.length > 0 ? "border-orange-300 bg-orange-50" :
-                    status === "overdue" ? "border-red-300 bg-red-50" :
-                    "border-green-300 bg-green-50"
-                  }`}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="flex items-center gap-3">
-                            {point.number} {point.name}
-                            {status === "overdue" && (
-                              <Badge variant="destructive" className="gap-1">
-                                <Clock className="w-3 h-3" />
-                                Po termínu
-                              </Badge>
+                  return (
+                    <Card key={point.id} className={`border-2 transition-all ${
+                      pointIssues.length > 0 ? "border-orange-300 bg-orange-50" :
+                      status === "overdue" ? "border-yellow-300 bg-yellow-50" :
+                      "border-green-300 bg-green-50"
+                    }`}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="flex items-center gap-3">
+                              {point.number} {point.name}
+                              {status === "overdue" && !isProcessing && (
+                                <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
+                                  <Clock className="w-3 h-3" />
+                                  Po termínu
+                                </Badge>
+                              )}
+                              {status === "ok" && !isProcessing && (
+                                <Badge variant="outline" className="gap-1 bg-green-100 text-green-800 border-green-300">
+                                  <CheckCircle className="w-3 h-3" />
+                                  V pořádku
+                                </Badge>
+                              )}
+                              {pointIssues.length > 0 && (
+                                <Badge className="bg-orange-500 gap-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  {pointIssues.length}
+                                </Badge>
+                              )}
+                            </CardTitle>
+                            {point.description && (
+                              <p className="text-sm text-slate-600 mt-2">{point.description}</p>
                             )}
-                            {pointIssues.length > 0 && (
-                              <Badge className="bg-orange-500 gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                {pointIssues.length}
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          {point.description && (
-                            <p className="text-sm text-slate-600 mt-2">{point.description}</p>
+                          </div>
+                          <div className={`w-4 h-4 rounded-full ${
+                            isProcessing ? "bg-blue-500 animate-pulse" :
+                            pointIssues.length > 0 ? "bg-orange-500" :
+                            status === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                          }`} />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <p className="text-sm text-slate-600 mb-1">Mazivo</p>
+                            <p className="font-semibold">{point.lubricant_type || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600 mb-1">Množství</p>
+                            <p className="font-semibold">{point.lubricant_amount ? `${point.lubricant_amount} g` : "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600 mb-1">Interval</p>
+                            <p className="font-semibold">{point.interval_hours ? `${point.interval_hours} h` : "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600 mb-1">Poslední mazání</p>
+                            <p className="font-semibold">
+                              {pointRecords.length > 0
+                                ? format(new Date(pointRecords[0].performed_at), "d. M. yyyy HH:mm", { locale: cs })
+                                : "-"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <Button
+                          onClick={() => handleConfirmRecord(point.id, "lubrication")}
+                          disabled={isProcessing}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Ukládání...
+                            </>
+                          ) : (
+                            <>
+                              <Droplet className="w-4 h-4 mr-2" />
+                              Potvrdit mazání
+                            </>
                           )}
-                        </div>
-                        <div className={`w-4 h-4 rounded-full ${
-                          pointIssues.length > 0 ? "bg-orange-500" :
-                          status === "overdue" ? "bg-red-500" : "bg-green-500"
-                        }`} />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Mazivo</p>
-                          <p className="font-semibold">{point.lubricant_type || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Množství</p>
-                          <p className="font-semibold">{point.lubricant_amount ? `${point.lubricant_amount} g` : "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Interval</p>
-                          <p className="font-semibold">{point.interval_hours ? `${point.interval_hours} h` : "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Poslední mazání</p>
-                          <p className="font-semibold">
-                            {pointRecords.length > 0
-                              ? format(new Date(pointRecords[0].performed_at), "d. M. yyyy HH:mm", { locale: cs })
-                              : "-"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={() => handleConfirmRecord(point.id, "lubrication")}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        <Droplet className="w-4 h-4 mr-2" />
-                        Potvrdit mazání
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
           </TabsContent>
 
           {/* Inspekční body */}
           <TabsContent value="inspection">
             <div className="grid gap-4">
-              {inspectionPoints.map((point) => {
-                const status = getPointStatus(point);
-                const pointRecords = records.filter(r => r.control_point_id === point.id);
+              {inspectionPoints.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">Nejsou definovány žádné inspekční body</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                inspectionPoints.map((point) => {
+                  const status = getPointStatus(point);
+                  const pointRecords = records.filter(r => r.control_point_id === point.id);
+                  const isProcessing = processingPoints.has(point.id);
 
-                return (
-                  <Card key={point.id} className={`border-2 ${
-                    status === "overdue" ? "border-red-300 bg-red-50" : "border-green-300 bg-green-50"
-                  }`}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-3">
-                        {point.number} {point.name}
-                        {status === "overdue" && (
-                          <Badge variant="destructive" className="gap-1">
-                            <Clock className="w-3 h-3" />
-                            Po termínu
-                          </Badge>
+                  return (
+                    <Card key={point.id} className={`border-2 ${
+                      status === "overdue" ? "border-yellow-300 bg-yellow-50" : "border-green-300 bg-green-50"
+                    }`}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3">
+                          {point.number} {point.name}
+                          {status === "overdue" && !isProcessing && (
+                            <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
+                              <Clock className="w-3 h-3" />
+                              Po termínu
+                            </Badge>
+                          )}
+                          {status === "ok" && !isProcessing && (
+                            <Badge variant="outline" className="gap-1 bg-green-100 text-green-800 border-green-300">
+                              <CheckCircle className="w-3 h-3" />
+                              V pořádku
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        {point.inspection_tasks && (
+                          <p className="text-sm text-slate-600 mt-2">{point.inspection_tasks}</p>
                         )}
-                      </CardTitle>
-                      {point.inspection_tasks && (
-                        <p className="text-sm text-slate-600 mt-2">{point.inspection_tasks}</p>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Interval</p>
-                          <p className="font-semibold">{point.interval_hours ? `${point.interval_hours} h` : "-"}</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <p className="text-sm text-slate-600 mb-1">Interval</p>
+                            <p className="font-semibold">{point.interval_hours ? `${point.interval_hours} h` : "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600 mb-1">Poslední kontrola</p>
+                            <p className="font-semibold">
+                              {pointRecords.length > 0
+                                ? format(new Date(pointRecords[0].performed_at), "d. M. yyyy HH:mm", { locale: cs })
+                                : "-"}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Poslední kontrola</p>
-                          <p className="font-semibold">
-                            {pointRecords.length > 0
-                              ? format(new Date(pointRecords[0].performed_at), "d. M. yyyy HH:mm", { locale: cs })
-                              : "-"}
-                          </p>
-                        </div>
-                      </div>
 
-                      <Button
-                        onClick={() => handleConfirmRecord(point.id, "inspection")}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Potvrdit inspekci
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        <Button
+                          onClick={() => handleConfirmRecord(point.id, "inspection")}
+                          disabled={isProcessing}
+                          className="w-full bg-purple-600 hover:bg-purple-700"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Ukládání...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Potvrdit inspekci
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
           </TabsContent>
 
           {/* Automatické maznice */}
           <TabsContent value="lubricators">
             <div className="grid gap-4">
-              {lubricatorPoints.map((point) => {
-                const pointRecords = records.filter(r => r.control_point_id === point.id);
+              {lubricatorPoints.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">Nejsou definovány žádné automatické maznice</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                lubricatorPoints.map((point) => {
+                  const pointRecords = records.filter(r => r.control_point_id === point.id);
+                  const isProcessing = processingPoints.has(point.id);
 
-                return (
-                  <Card key={point.id} className="border-2 border-blue-300 bg-blue-50">
-                    <CardHeader>
-                      <CardTitle>{point.number} {point.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-slate-600 mb-1">Poslední výměna</p>
-                          <p className="font-semibold">
-                            {pointRecords.length > 0
-                              ? format(new Date(pointRecords[0].performed_at), "d. M. yyyy", { locale: cs })
-                              : "-"}
-                          </p>
+                  return (
+                    <Card key={point.id} className="border-2 border-blue-300 bg-blue-50">
+                      <CardHeader>
+                        <CardTitle>{point.number} {point.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <p className="text-sm text-slate-600 mb-1">Poslední výměna</p>
+                            <p className="font-semibold">
+                              {pointRecords.length > 0
+                                ? format(new Date(pointRecords[0].performed_at), "d. M. yyyy", { locale: cs })
+                                : "-"}
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      <Button
-                        onClick={() => handleConfirmRecord(point.id, "lubricator_change")}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Droplet className="w-4 h-4 mr-2" />
-                        Potvrdit výměnu maznice
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        <Button
+                          onClick={() => handleConfirmRecord(point.id, "lubricator_change")}
+                          disabled={isProcessing}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Ukládání...
+                            </>
+                          ) : (
+                            <>
+                              <Droplet className="w-4 h-4 mr-2" />
+                              Potvrdit výměnu maznice
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
           </TabsContent>
 
