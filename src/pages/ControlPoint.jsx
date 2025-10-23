@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -130,7 +129,7 @@ export default function ControlPoint() {
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
@@ -140,31 +139,26 @@ export default function ControlPoint() {
           Zpět na {machine.name}
         </Button>
 
-        {/* Header Card */}
-        <Card className="mb-6 shadow-lg">
-          <CardContent className="p-8">
+        {/* Hlavní karta s vším obsahem */}
+        <Card className="shadow-xl">
+          {/* Header s ikonou a názvem */}
+          <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white pb-6">
             <div className="flex items-start gap-6">
               <div
-                className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  status === "overdue" ? "bg-yellow-100" : "bg-green-100"
+                className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                  status === "overdue" 
+                    ? "bg-gradient-to-br from-yellow-500 to-yellow-600" 
+                    : "bg-gradient-to-br from-green-500 to-green-600"
                 }`}
               >
                 {point.type === "inspection" ? (
-                  <ClipboardCheck
-                    className={`w-8 h-8 ${
-                      status === "overdue" ? "text-yellow-700" : "text-green-700"
-                    }`}
-                  />
+                  <ClipboardCheck className="w-8 h-8 text-white" />
                 ) : (
-                  <Droplet
-                    className={`w-8 h-8 ${
-                      status === "overdue" ? "text-yellow-700" : "text-green-700"
-                    }`}
-                  />
+                  <Droplet className="w-8 h-8 text-white" />
                 )}
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
                   <h1 className="text-2xl font-bold text-slate-900">
                     {point.number && `${point.number} - `}
                     {point.name}
@@ -189,9 +183,9 @@ export default function ControlPoint() {
                   )}
                 </div>
                 {point.description && (
-                  <p className="text-slate-600 mb-4">{point.description}</p>
+                  <p className="text-slate-600 mb-3">{point.description}</p>
                 )}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline">{machine.name}</Badge>
                   <Badge variant="outline">
                     {point.type === "lubrication"
@@ -203,288 +197,240 @@ export default function ControlPoint() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Parametry */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Parametry</CardTitle>
           </CardHeader>
-          <CardContent>
-            {point.type === "lubrication" && (
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Mazivo</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {point.lubricant_type || "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Množství</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {point.lubricant_amount
-                      ? `${point.lubricant_amount} g`
-                      : "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Interval</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {point.interval_hours ? `${point.interval_hours} h` : "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Poslední mazání</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {records.length > 0
-                      ? format(
-                          new Date(records[0].performed_at),
-                          "d. M. yyyy HH:mm",
-                          { locale: cs }
-                        )
-                      : "-"}
-                  </p>
-                </div>
-                {nextDate && (
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-slate-600 mb-1">Následující mazání</p>
-                    <p className={`text-lg font-semibold ${
-                      status === "overdue" ? "text-yellow-700" : "text-slate-900"
-                    }`}>
-                      {format(nextDate, "d. M. yyyy", { locale: cs })}
-                      {status === "overdue" && (
-                        <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
-                          Po termínu
-                        </Badge>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
 
-            {point.type === "inspection" && (
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Interval</p>
-                    <p className="text-lg font-semibold text-slate-900">
-                      {point.interval_hours ? `${point.interval_hours} h` : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">
-                      Poslední kontrola
-                    </p>
-                    <p className="text-lg font-semibold text-slate-900">
-                      {records.length > 0
-                        ? format(
-                            new Date(records[0].performed_at),
-                            "d. M. yyyy HH:mm",
-                            { locale: cs }
-                          )
-                        : "-"}
-                    </p>
-                  </div>
-                  {nextDate && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-slate-600 mb-1">Následující kontrola</p>
-                      <p className={`text-lg font-semibold ${
-                        status === "overdue" ? "text-yellow-700" : "text-slate-900"
-                      }`}>
-                        {format(nextDate, "d. M. yyyy", { locale: cs })}
-                        {status === "overdue" && (
-                          <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
-                            Po termínu
-                          </Badge>
-                        )}
+          <CardContent className="p-8">
+            {/* Aktivní závady - hned nahoře pokud existují */}
+            {activeIssues.length > 0 && (
+              <div className="mb-8 p-6 rounded-xl bg-orange-50 border-2 border-orange-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="w-5 h-5 text-orange-700" />
+                  <h3 className="text-lg font-bold text-orange-900">
+                    Aktivní závady ({activeIssues.length})
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  {activeIssues.map((issue) => (
+                    <div
+                      key={issue.id}
+                      className="p-4 rounded-lg bg-white border border-orange-200"
+                    >
+                      <p className="text-sm text-slate-900 mb-2">
+                        {issue.description}
                       </p>
-                    </div>
-                  )}
-                </div>
-                {point.inspection_tasks && (
-                  <div>
-                    <p className="text-sm text-slate-600 mb-2">
-                      Úkoly k provedení
-                    </p>
-                    <p className="text-slate-900 whitespace-pre-wrap">
-                      {point.inspection_tasks}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {point.type === "auto_lubricator" && (
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Poslední výměna</p>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {records.length > 0
-                      ? format(new Date(records[0].performed_at), "d. M. yyyy", {
-                          locale: cs,
-                        })
-                      : "-"}
-                  </p>
-                </div>
-                {nextDate && (
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Následující výměna</p>
-                    <p className={`text-lg font-semibold ${
-                      status === "overdue" ? "text-yellow-700" : "text-slate-900"
-                    }`}>
-                      {format(nextDate, "d. M. yyyy", { locale: cs })}
-                      {status === "overdue" && (
-                        <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
-                          Po termínu
-                        </Badge>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Aktivní závady */}
-        {activeIssues.length > 0 && (
-          <Card className="mb-6 border-l-4 border-l-orange-500">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-orange-700">
-                <AlertTriangle className="w-5 h-5" />
-                Aktivní závady ({activeIssues.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {activeIssues.map((issue) => (
-                  <div
-                    key={issue.id}
-                    className="p-4 rounded-lg bg-orange-50 border border-orange-200"
-                  >
-                    <p className="text-sm text-slate-900 mb-2">
-                      {issue.description}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Nahlášeno:{" "}
-                      {format(new Date(issue.created_date), "d. M. yyyy HH:mm", {
-                        locale: cs,
-                      })}
-                    </p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      {issue.created_by}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Akce */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <Button
-              onClick={handleConfirmRecord}
-              disabled={isProcessing}
-              className={`w-full h-14 text-lg ${
-                point.type === "inspection"
-                  ? "bg-purple-600 hover:bg-purple-700"
-                  : point.type === "auto_lubricator"
-                  ? "bg-blue-600 hover:bg-blue-700"
-                  : "bg-green-600 hover:bg-green-700"
-              }`}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Ukládání...
-                </>
-              ) : (
-                <>
-                  {point.type === "inspection" ? (
-                    <>
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      Potvrdit inspekci
-                    </>
-                  ) : point.type === "auto_lubricator" ? (
-                    <>
-                      <Droplet className="w-5 h-5 mr-2" />
-                      Potvrdit výměnu maznice
-                    </>
-                  ) : (
-                    <>
-                      <Droplet className="w-5 h-5 mr-2" />
-                      Potvrdit mazání
-                    </>
-                  )}
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Historie */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5" />
-              Historie záznamů
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {records.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-slate-500">Zatím nejsou žádné záznamy</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {records.map((record) => (
-                  <div
-                    key={record.id}
-                    className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200"
-                  >
-                    <div className="flex-shrink-0 mt-1">
-                      {record.record_type === "lubrication" ? (
-                        <Droplet className="w-5 h-5 text-blue-600" />
-                      ) : record.record_type === "inspection" ? (
-                        <ClipboardCheck className="w-5 h-5 text-purple-600" />
-                      ) : (
-                        <Droplet className="w-5 h-5 text-green-600" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-slate-900">
-                          {record.record_type === "lubrication"
-                            ? "Mazání provedeno"
-                            : record.record_type === "inspection"
-                            ? "Inspekce provedena"
-                            : "Výměna maznice"}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {format(
-                            new Date(record.performed_at),
-                            "d. M. yyyy HH:mm",
-                            { locale: cs }
-                          )}
-                        </Badge>
-                      </div>
-                      {record.note && (
-                        <p className="text-sm text-slate-600 mb-1">
-                          {record.note}
-                        </p>
-                      )}
                       <p className="text-xs text-slate-500">
-                        {record.created_by}
+                        Nahlášeno:{" "}
+                        {format(new Date(issue.created_date), "d. M. yyyy HH:mm", {
+                          locale: cs,
+                        })}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">
+                        {issue.created_by}
                       </p>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* Parametry a informace */}
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              {/* Levý sloupec */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+                    Parametry
+                  </h3>
+                  <div className="space-y-4">
+                    {point.type === "lubrication" && (
+                      <>
+                        <div>
+                          <p className="text-xs text-slate-500 mb-1">Mazivo</p>
+                          <p className="text-lg font-semibold text-slate-900">
+                            {point.lubricant_type || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500 mb-1">Množství</p>
+                          <p className="text-lg font-semibold text-slate-900">
+                            {point.lubricant_amount
+                              ? `${point.lubricant_amount} g`
+                              : "-"}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Interval</p>
+                      <p className="text-lg font-semibold text-slate-900">
+                        {point.interval_hours ? `${point.interval_hours} h` : "-"}
+                      </p>
+                    </div>
+                    {point.type === "inspection" && point.inspection_tasks && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-2">
+                          Úkoly k provedení
+                        </p>
+                        <p className="text-sm text-slate-900 whitespace-pre-wrap bg-slate-50 p-3 rounded-lg">
+                          {point.inspection_tasks}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Pravý sloupec */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+                    Plán kontrol
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">
+                        {point.type === "auto_lubricator" 
+                          ? "Poslední výměna" 
+                          : point.type === "inspection"
+                          ? "Poslední kontrola"
+                          : "Poslední mazání"}
+                      </p>
+                      <p className="text-lg font-semibold text-slate-900">
+                        {records.length > 0
+                          ? format(
+                              new Date(records[0].performed_at),
+                              "d. M. yyyy HH:mm",
+                              { locale: cs }
+                            )
+                          : "Dosud neprovedeno"}
+                      </p>
+                    </div>
+                    {nextDate && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-1">
+                          {point.type === "auto_lubricator" 
+                            ? "Následující výměna" 
+                            : point.type === "inspection"
+                            ? "Následující kontrola"
+                            : "Následující mazání"}
+                        </p>
+                        <p className={`text-lg font-semibold ${
+                          status === "overdue" ? "text-yellow-700" : "text-slate-900"
+                        }`}>
+                          {format(nextDate, "d. M. yyyy", { locale: cs })}
+                          {status === "overdue" && (
+                            <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
+                              Po termínu
+                            </Badge>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tlačítko pro potvrzení */}
+            <div className="mb-8">
+              <Button
+                onClick={handleConfirmRecord}
+                disabled={isProcessing}
+                className={`w-full h-14 text-lg shadow-lg ${
+                  point.type === "inspection"
+                    ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                    : point.type === "auto_lubricator"
+                    ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                    : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                }`}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Ukládání...
+                  </>
+                ) : (
+                  <>
+                    {point.type === "inspection" ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Potvrdit inspekci
+                      </>
+                    ) : point.type === "auto_lubricator" ? (
+                      <>
+                        <Droplet className="w-5 h-5 mr-2" />
+                        Potvrdit výměnu maznice
+                      </>
+                    ) : (
+                      <>
+                        <Droplet className="w-5 h-5 mr-2" />
+                        Potvrdit mazání
+                      </>
+                    )}
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Historie záznamů */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <CalendarIcon className="w-5 h-5 text-slate-600" />
+                <h3 className="text-lg font-bold text-slate-900">
+                  Historie záznamů
+                </h3>
+              </div>
+              {records.length === 0 ? (
+                <div className="text-center py-8 bg-slate-50 rounded-lg">
+                  <p className="text-slate-500">Zatím nejsou žádné záznamy</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {records.map((record) => (
+                    <div
+                      key={record.id}
+                      className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        {record.record_type === "lubrication" ? (
+                          <Droplet className="w-5 h-5 text-blue-600" />
+                        ) : record.record_type === "inspection" ? (
+                          <ClipboardCheck className="w-5 h-5 text-purple-600" />
+                        ) : (
+                          <Droplet className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-slate-900">
+                            {record.record_type === "lubrication"
+                              ? "Mazání provedeno"
+                              : record.record_type === "inspection"
+                              ? "Inspekce provedena"
+                              : "Výměna maznice"}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {format(
+                              new Date(record.performed_at),
+                              "d. M. yyyy HH:mm",
+                              { locale: cs }
+                            )}
+                          </Badge>
+                        </div>
+                        {record.note && (
+                          <p className="text-sm text-slate-600 mb-1">
+                            {record.note}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-500">
+                          {record.created_by}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
