@@ -159,7 +159,7 @@ export default function Lines() {
                 companyPoints.some((p) => p.id === issue.control_point_id)
               ).length;
 
-              // Určit celkový stav podniku (bez oranžové)
+              // Určit celkový stav podniku (bez oranžové) - keeping original logic for company status
               const hasOverdue = companyOverdue > 0;
               const companyStatus = hasOverdue ? "overdue" : "ok";
 
@@ -266,20 +266,31 @@ export default function Lines() {
               );
               
               const hasOverdue = linePoints.some((p) => getPointStatus(p) === "overdue");
-              const lineIssues = issues.filter((issue) =>
+              const lineIssuesCount = issues.filter((issue) =>
                 linePoints.some((p) => p.id === issue.control_point_id)
-              );
+              ).length;
+
+              // Určit stav linky podle bodů
+              const lineStatus = hasOverdue ? "overdue" : "ok";
 
               return (
                 <Card
                   key={line.id}
-                  className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-red-200"
+                  className={`hover:shadow-lg transition-all cursor-pointer border-2 ${
+                    lineStatus === "overdue"
+                      ? "border-yellow-300 bg-yellow-50 hover:border-yellow-400"
+                      : "border-transparent hover:border-red-200"
+                  }`}
                   onClick={() => setSelectedLine(line.id)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
+                          lineStatus === "overdue"
+                            ? "bg-gradient-to-br from-yellow-600 to-yellow-700"
+                            : "bg-gradient-to-br from-red-600 to-red-700"
+                        }`}>
                           <Factory className="w-7 h-7 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -293,10 +304,10 @@ export default function Lines() {
                                 Po termínu
                               </Badge>
                             )}
-                            {lineIssues.length > 0 && (
-                              <Badge className="bg-orange-500">
+                            {lineIssuesCount > 0 && (
+                              <Badge className="bg-orange-500 text-white">
                                 <AlertTriangle className="w-3 h-3 mr-1" />
-                                {lineIssues.length}
+                                {lineIssuesCount}
                               </Badge>
                             )}
                           </div>
@@ -317,7 +328,14 @@ export default function Lines() {
                           </div>
                         </div>
                       </div>
-                      <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full ${
+                          lineStatus === "overdue"
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
+                        }`} />
+                        <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0" />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -390,7 +408,7 @@ export default function Lines() {
                     status === "issue"
                       ? "border-orange-300 bg-orange-50"
                       : status === "overdue"
-                      ? "border-red-300 bg-red-50"
+                      ? "border-yellow-300 bg-yellow-50" // Changed from red to yellow for overdue
                       : "border-transparent hover:border-slate-200"
                   }`}
                 >
@@ -408,7 +426,7 @@ export default function Lines() {
                             </Badge>
                           )}
                           {issueCount > 0 && (
-                            <Badge className="bg-orange-100 text-orange-700 gap-1">
+                            <Badge className="bg-orange-500 text-white gap-1">
                               <AlertTriangle className="w-3 h-3" />
                               {issueCount}
                             </Badge>
@@ -419,7 +437,7 @@ export default function Lines() {
                         {status === "issue" ? (
                           <div className="w-4 h-4 rounded-full bg-orange-500" />
                         ) : status === "overdue" ? (
-                          <div className="w-4 h-4 rounded-full bg-red-500" />
+                          <div className="w-4 h-4 rounded-full bg-yellow-500" /> // Changed from red to yellow for overdue
                         ) : (
                           <div className="w-4 h-4 rounded-full bg-green-500" />
                         )}
