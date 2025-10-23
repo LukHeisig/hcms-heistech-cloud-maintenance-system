@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // Added useNavigate
 import { createPageUrl } from "@/utils";
 import {
   Factory,
@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   ChevronRight,
   Filter,
-  Building2
+  Building2,
+  ClipboardCheck // Added ClipboardCheck icon
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +24,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"; // Added Dialog components
+import { format } from "date-fns"; // Added format for date formatting
+import { cs } from "date-fns/locale"; // Added Czech locale
 
 export default function Lines() {
   const [user, setUser] = useState(null);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedLine, setSelectedLine] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedMachine, setSelectedMachine] = useState(null); // New state for selected machine in dialog
+  const [showMachineDialog, setShowMachineDialog] = useState(false); // New state for dialog visibility
+
+  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     loadUser();
@@ -381,13 +396,13 @@ export default function Lines() {
           </Select>
         </div>
 
-        {/* Stroje */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Stroje - miniaturní zobrazení */}
+        <div className="space-y-2">
           {filteredMachines.map((machine) => {
             const machinePoints = controlPoints.filter(
               (p) => p.machine_id === machine.id
             );
-            const status = getMachineStatus(machine); // Will be "overdue" or "ok"
+            const status = getMachineStatus(machine);
             const overdueCount = machinePoints.filter(
               (p) => getPointStatus(p) === "overdue"
             ).length;
@@ -396,63 +411,298 @@ export default function Lines() {
             ).length;
 
             return (
-              <Link
+              <Card
                 key={machine.id}
-                to={createPageUrl(`Machine?id=${machine.id}`)}
+                className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
+                  status === "overdue" 
+                    ? "border-l-yellow-500 bg-yellow-50/50"
+                    : "border-l-green-500 bg-green-50/50"
+                }`}
+                onClick={() => {
+                  setSelectedMachine(machine);
+                  setShowMachineDialog(true);
+                }}
               >
-                <Card
-                  className={`hover:shadow-lg transition-all border-2 ${
-                    status === "overdue" // Only "overdue" status affects card styling
-                      ? "border-yellow-300 bg-yellow-50"
-                      : "border-transparent hover:border-slate-200" // "ok" status (including with issues)
-                  }`}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-slate-900 mb-2">
-                          {machine.name}
-                        </h3>
-                        <div className="flex items-center gap-2 flex-wrap">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        status === "overdue" ? "bg-yellow-100" : "bg-green-100"
+                      }`}>
+                        <Factory className={`w-5 h-5 ${status === "overdue" ? "text-yellow-700" : "text-green-700"}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-slate-900 text-base">
+                            {machine.name}
+                          </h3>
                           {overdueCount > 0 && (
                             <Badge variant="destructive" className="gap-1">
                               <Clock className="w-3 h-3" />
                               {overdueCount}
                             </Badge>
                           )}
-                          {issueCount > 0 && ( // Issue badge remains
+                          {issueCount > 0 && (
                             <Badge className="bg-orange-500 text-white gap-1">
                               <AlertTriangle className="w-3 h-3" />
                               {issueCount}
                             </Badge>
                           )}
                         </div>
-                      </div>
-                      <div className="flex-shrink-0">
-                        {/* Status circle only reflects overdue or ok */}
-                        <div className={`w-4 h-4 rounded-full ${
-                          status === "overdue" ? "bg-yellow-500" : "bg-green-500"
-                        }`} />
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <span className="flex items-center gap-1">
+                            <Droplet className="w-4 h-4" />
+                            {machinePoints.filter((p) => p.type === "lubrication").length} mazání
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Droplet className="w-4 h-4" />
+                            {machinePoints.filter((p) => p.type === "inspection").length} inspekcí
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-600">
-                      <span className="flex items-center gap-1">
-                        <Droplet className="w-4 h-4" />
-                        {machinePoints.filter((p) => p.type === "lubrication").length}{" "}
-                        mazání
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Droplet className="w-4 h-4" />
-                        {machinePoints.filter((p) => p.type === "inspection").length}{" "}
-                        inspekcí
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        status === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                      }`} />
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
+
+        {/* Dialog s detailem stroje */}
+        <Dialog open={showMachineDialog} onOpenChange={setShowMachineDialog}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            {selectedMachine && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3 text-2xl">
+                    <Factory className="w-6 h-6" />
+                    {selectedMachine.name}
+                  </DialogTitle>
+                  {selectedMachine.description && (
+                    <DialogDescription className="text-base">
+                      {selectedMachine.description}
+                    </DialogDescription>
+                  )}
+                </DialogHeader>
+
+                <div className="space-y-6 py-4">
+                  {/* Kontrolní body stroje */}
+                  {(() => {
+                    const machinePoints = controlPoints.filter(
+                      (p) => p.machine_id === selectedMachine.id
+                    );
+                    const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
+                    const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
+                    const lubricatorPoints = machinePoints.filter(p => p.type === "auto_lubricator");
+
+                    return (
+                      <>
+                        {/* Mazací body */}
+                        {lubricationPoints.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                              <Droplet className="w-5 h-5 text-blue-600" />
+                              Mazání ({lubricationPoints.length})
+                            </h3>
+                            <div className="space-y-2">
+                              {lubricationPoints.map((point) => {
+                                const status = getPointStatus(point);
+                                const pointRecords = records.filter(r => r.control_point_id === point.id);
+                                const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
+
+                                return (
+                                  <div
+                                    key={point.id}
+                                    className={`p-3 rounded-lg border-l-4 ${
+                                      status === "overdue" 
+                                        ? "border-l-yellow-500 bg-yellow-50"
+                                        : "border-l-green-500 bg-green-50"
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <p className="font-semibold text-slate-900">
+                                            {point.number && `${point.number} - `}{point.name}
+                                          </p>
+                                          {status === "overdue" && (
+                                            <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                                              <Clock className="w-3 h-3" />
+                                              Po termínu
+                                            </Badge>
+                                          )}
+                                          {pointIssues.length > 0 && (
+                                            <Badge className="bg-orange-500 gap-1 text-xs">
+                                              <AlertTriangle className="w-3 h-3" />
+                                              {pointIssues.length}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-slate-600">
+                                          {point.lubricant_type && (
+                                            <span>Mazivo: {point.lubricant_type}</span>
+                                          )}
+                                          {point.lubricant_amount && (
+                                            <span>· {point.lubricant_amount}g</span>
+                                          )}
+                                          {point.interval_hours && (
+                                            <span>· {point.interval_hours}h</span>
+                                          )}
+                                        </div>
+                                        {pointRecords.length > 0 && (
+                                          <p className="text-xs text-slate-500 mt-1">
+                                            Poslední: {format(new Date(pointRecords[0].performed_at), "d.M. HH:mm", { locale: cs })}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                                        status === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                                      }`} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Inspekční body */}
+                        {inspectionPoints.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                              <ClipboardCheck className="w-5 h-5 text-purple-600" />
+                              Inspekce ({inspectionPoints.length})
+                            </h3>
+                            <div className="space-y-2">
+                              {inspectionPoints.map((point) => {
+                                const status = getPointStatus(point);
+                                const pointRecords = records.filter(r => r.control_point_id === point.id);
+                                const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
+
+                                return (
+                                  <div
+                                    key={point.id}
+                                    className={`p-3 rounded-lg border-l-4 ${
+                                      status === "overdue" 
+                                        ? "border-l-yellow-500 bg-yellow-50"
+                                        : "border-l-green-500 bg-green-50"
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <p className="font-semibold text-slate-900">
+                                            {point.number && `${point.number} - `}{point.name}
+                                          </p>
+                                          {status === "overdue" && (
+                                            <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                                              <Clock className="w-3 h-3" />
+                                              Po termínu
+                                            </Badge>
+                                          )}
+                                          {pointIssues.length > 0 && (
+                                            <Badge className="bg-orange-500 gap-1 text-xs">
+                                              <AlertTriangle className="w-3 h-3" />
+                                              {pointIssues.length}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {point.interval_hours && (
+                                          <p className="text-xs text-slate-600">
+                                            Interval: {point.interval_hours}h
+                                          </p>
+                                        )}
+                                        {pointRecords.length > 0 && (
+                                          <p className="text-xs text-slate-500 mt-1">
+                                            Poslední: {format(new Date(pointRecords[0].performed_at), "d.M. HH:mm", { locale: cs })}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                                        status === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                                      }`} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Maznice */}
+                        {lubricatorPoints.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                              <Droplet className="w-5 h-5 text-indigo-600" />
+                              Automatické maznice ({lubricatorPoints.length})
+                            </h3>
+                            <div className="space-y-2">
+                              {lubricatorPoints.map((point) => {
+                                const status = getPointStatus(point);
+                                const pointRecords = records.filter(r => r.control_point_id === point.id);
+
+                                return (
+                                  <div
+                                    key={point.id}
+                                    className={`p-3 rounded-lg border-l-4 ${
+                                      status === "overdue" 
+                                        ? "border-l-yellow-500 bg-yellow-50"
+                                        : "border-l-green-500 bg-green-50"
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <p className="font-semibold text-slate-900 mb-1">
+                                          {point.number && `${point.number} - `}{point.name}
+                                        </p>
+                                        {pointRecords.length > 0 && (
+                                          <p className="text-xs text-slate-500">
+                                            Poslední výměna: {format(new Date(pointRecords[0].performed_at), "d.M. yyyy", { locale: cs })}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                                        status === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                                      }`} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowMachineDialog(false)}
+                  >
+                    Zavřít
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate(createPageUrl(`Machine?id=${selectedMachine.id}`));
+                    }}
+                    className="bg-gradient-to-r from-red-600 to-red-700"
+                  >
+                    <Factory className="w-4 h-4 mr-2" />
+                    Detail stroje
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
