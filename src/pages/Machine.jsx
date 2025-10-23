@@ -200,7 +200,7 @@ export default function Machine() {
                         </div>
                         {nextDate && (
                           <span className={status === "overdue" ? "text-yellow-700 font-medium" : "text-slate-600"}>
-                            Následující: {format(nextDate, "d.M. yyyy HH:mm", { locale: cs })}
+                            Následující: {format(nextDate, "d.M. yyyy", { locale: cs })}
                           </span>
                         )}
                       </div>

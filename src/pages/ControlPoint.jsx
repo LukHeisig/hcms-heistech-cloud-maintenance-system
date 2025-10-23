@@ -249,10 +249,10 @@ export default function ControlPoint() {
                 {nextDate && (
                   <div className="md:col-span-2">
                     <p className="text-sm text-slate-600 mb-1">Následující mazání</p>
-                    <p className={`text-lg font-semibold flex items-center ${
+                    <p className={`text-lg font-semibold ${
                       status === "overdue" ? "text-yellow-700" : "text-slate-900"
                     }`}>
-                      {format(nextDate, "d. M. yyyy HH:mm", { locale: cs })}
+                      {format(nextDate, "d. M. yyyy", { locale: cs })}
                       {status === "overdue" && (
                         <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
                           Po termínu
@@ -290,10 +290,10 @@ export default function ControlPoint() {
                   {nextDate && (
                     <div className="md:col-span-2">
                       <p className="text-sm text-slate-600 mb-1">Následující kontrola</p>
-                      <p className={`text-lg font-semibold flex items-center ${
+                      <p className={`text-lg font-semibold ${
                         status === "overdue" ? "text-yellow-700" : "text-slate-900"
                       }`}>
-                        {format(nextDate, "d. M. yyyy HH:mm", { locale: cs })}
+                        {format(nextDate, "d. M. yyyy", { locale: cs })}
                         {status === "overdue" && (
                           <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
                             Po termínu
@@ -331,10 +331,10 @@ export default function ControlPoint() {
                 {nextDate && (
                   <div>
                     <p className="text-sm text-slate-600 mb-1">Následující výměna</p>
-                    <p className={`text-lg font-semibold flex items-center ${
+                    <p className={`text-lg font-semibold ${
                       status === "overdue" ? "text-yellow-700" : "text-slate-900"
                     }`}>
-                      {format(nextDate, "d. M. yyyy HH:mm", { locale: cs })}
+                      {format(nextDate, "d. M. yyyy", { locale: cs })}
                       {status === "overdue" && (
                         <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
                           Po termínu
