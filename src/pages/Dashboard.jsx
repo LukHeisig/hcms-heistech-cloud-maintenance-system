@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
   Factory,
@@ -11,15 +11,18 @@ import {
   CheckCircle,
   Clock,
   TrendingUp,
-  Calendar
+  Calendar,
+  Plus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadUser();
@@ -59,6 +62,15 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
   });
 
+  // Pokud uživatel nemá customer_id nebo nejsou žádné linky, přesměrovat na setup
+  useEffect(() => {
+    if (user && !user.customer_id) {
+      navigate(createPageUrl("Setup"));
+    } else if (user && lines.length === 0 && !user.customer_id) {
+      navigate(createPageUrl("Setup"));
+    }
+  }, [user, lines, navigate]);
+
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
@@ -83,6 +95,36 @@ export default function Dashboard() {
     );
   }).length;
 
+  // Pokud nejsou žádná data, zobrazit Setup tlačítko
+  if (lines.length === 0 && user?.customer_id) {
+    return (
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-3xl mx-auto">
+          <Card className="shadow-xl">
+            <CardContent className="p-12 text-center">
+              <Factory className="w-20 h-20 text-slate-300 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-slate-900 mb-4">
+                Začněte s DEMIP
+              </h2>
+              <p className="text-slate-600 mb-8">
+                Zatím nemáte vytvořené žádné linky. Vytvořte demo data nebo začněte s vlastní strukturou.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  onClick={() => navigate(createPageUrl("Setup"))}
+                  className="bg-gradient-to-r from-red-600 to-red-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Vytvořit demo data
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -96,6 +138,8 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {/* ... zbytek kódu zůstává stejný ... */}
+        
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-shadow">
@@ -167,82 +211,67 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                {lines.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Factory className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 mb-4">Zatím nejsou přidány žádné linky</p>
-                    {user?.user_type === "admin" && (
-                      <Link
-                        to={createPageUrl("Admin")}
-                        className="text-red-600 hover:text-red-700 font-medium"
-                      >
-                        Přidat první linku →
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid gap-4">
-                    {lines.map((line) => {
-                      const lineMachines = machines.filter((m) => m.line_id === line.id);
-                      const linePoints = controlPoints.filter((p) =>
-                        lineMachines.some((m) => m.id === p.machine_id)
-                      );
-                      const lineOverdue = linePoints.filter(
-                        (p) => getPointStatus(p) === "overdue"
-                      ).length;
-                      const lineIssues = issues.filter((issue) =>
-                        linePoints.some((p) => p.id === issue.control_point_id)
-                      ).length;
+                <div className="grid gap-4">
+                  {lines.map((line) => {
+                    const lineMachines = machines.filter((m) => m.line_id === line.id);
+                    const linePoints = controlPoints.filter((p) =>
+                      lineMachines.some((m) => m.id === p.machine_id)
+                    );
+                    const lineOverdue = linePoints.filter(
+                      (p) => getPointStatus(p) === "overdue"
+                    ).length;
+                    const lineIssues = issues.filter((issue) =>
+                      linePoints.some((p) => p.id === issue.control_point_id)
+                    ).length;
 
-                      return (
-                        <Link key={line.id} to={createPageUrl(`Lines?line=${line.id}`)}>
-                          <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
-                            <CardContent className="p-5">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-lg font-bold text-slate-900">
-                                      {line.name}
-                                    </h3>
-                                    {lineOverdue > 0 && (
-                                      <Badge variant="destructive" className="gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {lineOverdue}
-                                      </Badge>
-                                    )}
-                                    {lineIssues > 0 && (
-                                      <Badge className="bg-orange-100 text-orange-700 gap-1">
-                                        <AlertTriangle className="w-3 h-3" />
-                                        {lineIssues}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-4 text-sm text-slate-600">
-                                    <span className="flex items-center gap-1">
-                                      <Factory className="w-4 h-4" />
-                                      {lineMachines.length} strojů
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <Droplet className="w-4 h-4" />
-                                      {linePoints.length} bodů
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex-shrink-0">
-                                  {lineOverdue > 0 ? (
-                                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                                  ) : (
-                                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    return (
+                      <Link key={line.id} to={createPageUrl(`Lines?line=${line.id}`)}>
+                        <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
+                          <CardContent className="p-5">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-lg font-bold text-slate-900">
+                                    {line.name}
+                                  </h3>
+                                  {lineOverdue > 0 && (
+                                    <Badge variant="destructive" className="gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {lineOverdue}
+                                    </Badge>
+                                  )}
+                                  {lineIssues > 0 && (
+                                    <Badge className="bg-orange-100 text-orange-700 gap-1">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      {lineIssues}
+                                    </Badge>
                                   )}
                                 </div>
+                                <div className="flex items-center gap-4 text-sm text-slate-600">
+                                  <span className="flex items-center gap-1">
+                                    <Factory className="w-4 h-4" />
+                                    {lineMachines.length} strojů
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Droplet className="w-4 h-4" />
+                                    {linePoints.length} bodů
+                                  </span>
+                                </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                              <div className="flex-shrink-0">
+                                {lineOverdue > 0 ? (
+                                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                                ) : (
+                                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -338,7 +367,7 @@ export default function Dashboard() {
                       );
                     })}
                   </div>
-                  {issues.length > 3 && (
+                  {issues.length > 3 && user?.user_type !== "technician" && (
                     <Link
                       to={createPageUrl("IssueApproval")}
                       className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
