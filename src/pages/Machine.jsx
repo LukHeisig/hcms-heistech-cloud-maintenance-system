@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -195,7 +196,6 @@ export default function Machine() {
 
                   return (
                     <Card key={point.id} className={`border-2 transition-all ${
-                      pointIssues.length > 0 ? "border-orange-300 bg-orange-50" :
                       status === "overdue" ? "border-yellow-300 bg-yellow-50" :
                       "border-green-300 bg-green-50"
                     }`}>
@@ -229,7 +229,6 @@ export default function Machine() {
                           </div>
                           <div className={`w-4 h-4 rounded-full ${
                             isProcessing ? "bg-blue-500 animate-pulse" :
-                            pointIssues.length > 0 ? "bg-orange-500" :
                             status === "overdue" ? "bg-yellow-500" : "bg-green-500"
                           }`} />
                         </div>
