@@ -31,7 +31,8 @@ import {
   Trash2,
   Settings,
   Factory,
-  Loader2
+  Loader2,
+  Copy
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -45,6 +46,9 @@ export default function AdminMachines() {
   const [editingMachine, setEditingMachine] = useState(null);
   const [showMachineDialog, setShowMachineDialog] = useState(false);
   const [deleteMachineId, setDeleteMachineId] = useState(null);
+  const [copyingMachine, setCopyingMachine] = useState(null);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyName, setCopyName] = useState("");
   const [formData, setFormData] = useState({ name: "", description: "" });
 
   const { data: line } = useQuery({
@@ -126,6 +130,58 @@ export default function AdminMachines() {
   const handleDeleteMachine = async () => {
     if (deleteMachineId) {
       await deleteMachineMutation.mutateAsync(deleteMachineId);
+    }
+  };
+
+  const handleOpenCopyDialog = (machine) => {
+    setCopyingMachine(machine);
+    setCopyName(`${machine.name} - Kopie`);
+    setShowCopyDialog(true);
+  };
+
+  const handleCopyMachine = async () => {
+    if (!copyName.trim() || !copyingMachine) return;
+
+    try {
+      // 1. Vytvořit nový stroj
+      const newMachine = await base44.entities.Machine.create({
+        name: copyName,
+        description: copyingMachine.description || "",
+        line_id: copyingMachine.line_id,
+        order_index: machines.length,
+      });
+
+      // 2. Najít všechny kontrolní body původního stroje
+      const machinePoints = controlPoints.filter(
+        (p) => p.machine_id === copyingMachine.id
+      );
+
+      // 3. Vytvořit kopie kontrolních bodů
+      for (const point of machinePoints) {
+        await base44.entities.ControlPoint.create({
+          machine_id: newMachine.id,
+          type: point.type,
+          number: point.number || "",
+          name: point.name,
+          description: point.description || "",
+          lubricant_type: point.lubricant_type || "",
+          lubricant_amount: point.lubricant_amount || null,
+          interval_hours: point.interval_hours || null,
+          nfc_chip_id: point.nfc_chip_id || "",
+          inspection_tasks: point.inspection_tasks || "",
+        });
+      }
+
+      // Refresh dat
+      queryClient.invalidateQueries({ queryKey: ["machines"] });
+      queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+
+      setShowCopyDialog(false);
+      setCopyingMachine(null);
+      setCopyName("");
+    } catch (error) {
+      console.error("Error copying machine:", error);
+      alert("Chyba při kopírování stroje: " + error.message);
     }
   };
 
@@ -229,6 +285,14 @@ export default function AdminMachines() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => handleOpenCopyDialog(machine)}
+                          title="Kopírovat stroj"
+                        >
+                          <Copy className="w-4 h-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleOpenDialog(machine)}
                         >
                           <Pencil className="w-4 h-4 text-slate-600" />
@@ -299,6 +363,58 @@ export default function AdminMachines() {
                 className="bg-gradient-to-r from-red-600 to-red-700"
               >
                 {editingMachine ? "Uložit změny" : "Vytvořit stroj"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog pro kopírování stroje */}
+        <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Kopírovat stroj</DialogTitle>
+              <DialogDescription>
+                Vytvoří se kopie stroje "{copyingMachine?.name}" včetně všech kontrolních bodů
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="copyName">Název nového stroje *</Label>
+                <Input
+                  id="copyName"
+                  value={copyName}
+                  onChange={(e) => setCopyName(e.target.value)}
+                  placeholder="např. Lis LH-501"
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <strong>Co se zkopíruje:</strong>
+                </p>
+                <ul className="text-sm text-blue-800 mt-2 space-y-1 list-disc list-inside">
+                  <li>Všechny kontrolní body stroje</li>
+                  <li>Nastavení mazání a intervalů</li>
+                  <li>NFC čipy a inspekční úkoly</li>
+                </ul>
+                <p className="text-xs text-blue-700 mt-2">
+                  Poznámka: Historie záznamů, závady a dokumentace se nekopírují
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowCopyDialog(false)}
+              >
+                Zrušit
+              </Button>
+              <Button
+                onClick={handleCopyMachine}
+                disabled={!copyName.trim()}
+                className="bg-gradient-to-r from-blue-600 to-blue-700"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Zkopírovat stroj
               </Button>
             </DialogFooter>
           </DialogContent>
