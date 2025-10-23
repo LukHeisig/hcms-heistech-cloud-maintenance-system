@@ -6,6 +6,8 @@ import AdminLines from './pages/AdminLines';
 import Users from './pages/Users';
 import IssueApproval from './pages/IssueApproval';
 import Setup from './pages/Setup';
+import AdminMachines from './pages/AdminMachines';
+import AdminControlPoints from './pages/AdminControlPoints';
 import Layout from './Layout.jsx';
 
 
@@ -18,6 +20,8 @@ export const PAGES = {
     "Users": Users,
     "IssueApproval": IssueApproval,
     "Setup": Setup,
+    "AdminMachines": AdminMachines,
+    "AdminControlPoints": AdminControlPoints,
 }
 
 export const pagesConfig = {
