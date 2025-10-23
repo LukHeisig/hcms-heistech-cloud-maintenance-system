@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -78,7 +79,7 @@ export default function Layout({ children }) {
       icon: LayoutDashboard,
     },
     {
-      title: "Linky a stroje",
+      title: "Přehled výroby", // Changed from "Linky a stroje"
       url: createPageUrl("Lines"),
       icon: Factory,
     },

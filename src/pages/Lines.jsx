@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +9,8 @@ import {
   Clock,
   AlertTriangle,
   ChevronRight,
-  Filter
+  Filter,
+  Building2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,37 +25,50 @@ import {
 
 export default function Lines() {
   const [user, setUser] = useState(null);
+  const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedLine, setSelectedLine] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
     loadUser();
     const urlParams = new URLSearchParams(window.location.search);
+    const companyParam = urlParams.get("company");
     const lineParam = urlParams.get("line");
+    if (companyParam) setSelectedCompany(companyParam);
     if (lineParam) setSelectedLine(lineParam);
   }, []);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
+    
+    // Pro non-admin uživatele nastavit company_id automaticky
+    if (currentUser && currentUser.company_id && currentUser.user_type !== "admin") {
+      setSelectedCompany(currentUser.company_id);
+    }
   };
 
-  const { data: lines = [] } = useQuery({
-    queryKey: ["lines", user?.company_id],
-    queryFn: () =>
-      user?.company_id
-        ? base44.entities.Line.filter({ company_id: user.company_id }, "order_index")
-        : [],
-    enabled: !!user?.company_id,
+  // Pro admina načíst všechny podniky
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies"],
+    queryFn: () => base44.entities.Company.list("name"),
+    enabled: user?.user_type === "admin",
   });
 
-  // Načíst VŠECHNY stroje (ne jen pro vybranou linku)
+  const { data: lines = [] } = useQuery({
+    queryKey: ["lines", selectedCompany],
+    queryFn: () =>
+      selectedCompany
+        ? base44.entities.Line.filter({ company_id: selectedCompany }, "order_index")
+        : [],
+    enabled: !!selectedCompany,
+  });
+
   const { data: allMachines = [] } = useQuery({
     queryKey: ["allMachines"],
     queryFn: () => base44.entities.Machine.list("order_index"),
   });
 
-  // Filtrované stroje pro vybranou linku
   const machines = selectedLine 
     ? allMachines.filter(m => m.line_id === selectedLine)
     : [];
@@ -104,23 +117,111 @@ export default function Lines() {
     return getMachineStatus(machine) === filterStatus;
   });
 
-  if (!selectedLine) {
+  // Admin - výběr podniku
+  if (user?.user_type === "admin" && !selectedCompany) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr linky</h1>
+          <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku</h1>
+          <div className="space-y-4">
+            {companies.map((company) => {
+              const companyLines = lines.filter((l) => l.company_id === company.id);
+              const companyMachines = allMachines.filter((m) =>
+                companyLines.some((l) => l.id === m.line_id)
+              );
+              const companyPoints = controlPoints.filter((p) =>
+                companyMachines.some((m) => m.id === p.machine_id)
+              );
+              const companyOverdue = companyPoints.filter(
+                (p) => getPointStatus(p) === "overdue"
+              ).length;
+              const companyIssues = issues.filter((issue) =>
+                companyPoints.some((p) => p.id === issue.control_point_id)
+              ).length;
+
+              return (
+                <Card
+                  key={company.id}
+                  className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-red-200"
+                  onClick={() => setSelectedCompany(company.id)}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                          <Building2 className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-bold text-slate-900">
+                              {company.name}
+                            </h3>
+                            {companyOverdue > 0 && (
+                              <Badge variant="destructive" className="gap-1">
+                                <Clock className="w-3 h-3" />
+                                {companyOverdue}
+                              </Badge>
+                            )}
+                            {companyIssues > 0 && (
+                              <Badge className="bg-orange-100 text-orange-700 gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                {companyIssues}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-slate-600">
+                            <span className="flex items-center gap-1">
+                              <Factory className="w-4 h-4" />
+                              {companyLines.length} linek
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Droplet className="w-4 h-4" />
+                              {companyPoints.length} bodů
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Výběr linky (pro všechny po výběru podniku)
+  if (!selectedLine) {
+    const currentCompany = companies.find((c) => c.id === selectedCompany);
+    
+    return (
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          {user?.user_type === "admin" && (
+            <Button
+              variant="ghost"
+              onClick={() => setSelectedCompany(null)}
+              className="mb-4"
+            >
+              ← Zpět na podniky
+            </Button>
+          )}
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Výběr linky</h1>
+          {currentCompany && (
+            <p className="text-slate-600 mb-6">{currentCompany.name}</p>
+          )}
           <div className="space-y-4">
             {lines.map((line) => {
-              // Spočítat stroje pro tuto linku z VŠECH strojů
               const lineMachines = allMachines.filter((m) => m.line_id === line.id);
               const lineMachineIds = lineMachines.map(m => m.id);
               
-              // Kontrolní body pro stroje této linky
               const linePoints = controlPoints.filter((p) =>
                 lineMachineIds.includes(p.machine_id)
               );
               
-              // Kontrola stavu
               const hasOverdue = linePoints.some((p) => getPointStatus(p) === "overdue");
               const lineIssues = issues.filter((issue) =>
                 linePoints.some((p) => p.id === issue.control_point_id)
