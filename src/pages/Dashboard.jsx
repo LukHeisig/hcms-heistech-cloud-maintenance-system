@@ -51,30 +51,36 @@ export default function Dashboard() {
     enabled: !!user?.company_id && user?.user_type !== "admin",
   });
 
+  // 'allLines' query is now enabled for all users once 'user' is loaded
+  // to ensure data availability for calculations, regardless of user type.
   const { data: allLines = [] } = useQuery({
     queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list(),
-    enabled: user?.user_type === "admin",
+    enabled: !!user, // Ensure user is loaded before fetching
   });
 
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
     queryFn: () => base44.entities.Machine.list("order_index"),
+    enabled: !!user, // Ensure user is loaded before fetching
   });
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(),
+    enabled: !!user, // Ensure user is loaded before fetching
   });
 
   const { data: records = [] } = useQuery({
     queryKey: ["records"],
     queryFn: () => base44.entities.ControlRecord.list("-performed_at", 10),
+    enabled: !!user, // Ensure user is loaded before fetching
   });
 
   const { data: issues = [] } = useQuery({
     queryKey: ["issues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
+    enabled: !!user, // Ensure user is loaded before fetching
   });
 
   // Pokud uživatel nemá company_id a není admin, přesměrovat na setup
@@ -86,8 +92,28 @@ export default function Dashboard() {
     }
   }, [user, lines, navigate]);
 
+  // Define user-relevant data based on user type for accurate statistics
+  // For non-admins, filter data to their company's scope.
+  // For admins, all fetched data is considered relevant.
+  const userRelevantMachines = user?.user_type === "admin"
+    ? machines
+    : machines.filter(m => lines.some(l => l.id === m.line_id));
+
+  const userRelevantControlPoints = user?.user_type === "admin"
+    ? controlPoints
+    : controlPoints.filter(cp => userRelevantMachines.some(m => m.id === cp.machine_id));
+
+  const userRelevantRecords = user?.user_type === "admin"
+    ? records
+    : records.filter(r => userRelevantControlPoints.some(cp => cp.id === r.control_point_id));
+
+  const userRelevantIssues = user?.user_type === "admin"
+    ? issues
+    : issues.filter(i => userRelevantControlPoints.some(cp => cp.id === i.control_point_id));
+
   const getPointStatus = (point) => {
-    const pointRecords = records.filter((r) => r.control_point_id === point.id);
+    // Use userRelevantRecords to determine point status
+    const pointRecords = userRelevantRecords.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
 
     const latestRecord = pointRecords[0];
@@ -98,11 +124,14 @@ export default function Dashboard() {
     return hoursSince > point.interval_hours ? "overdue" : "ok";
   };
 
-  const overduePoints = controlPoints.filter(
+  // Calculations for dashboard stats
+  const activeCompanies = companies.filter(c => c.is_active !== false);
+  const totalLinesCount = user?.user_type === "admin" ? allLines.length : lines.length;
+  const overduePointsCount = userRelevantControlPoints.filter(
     (point) => getPointStatus(point) === "overdue"
   ).length;
 
-  const totalRecordsThisMonth = records.filter((r) => {
+  const totalRecordsThisMonthCount = userRelevantRecords.filter((r) => {
     const date = new Date(r.performed_at);
     const now = new Date();
     return (
@@ -131,8 +160,8 @@ export default function Dashboard() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-blue-100 text-sm font-medium mb-1">Celkem podniků</p>
-                    <p className="text-4xl font-bold">{companies.length}</p>
+                    <p className="text-blue-100 text-sm font-medium mb-1">Aktivní podniky</p>
+                    <p className="text-4xl font-bold">{activeCompanies.length}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <Building2 className="w-6 h-6" />
@@ -146,7 +175,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-purple-100 text-sm font-medium mb-1">Celkem linek</p>
-                    <p className="text-4xl font-bold">{allLines.length}</p>
+                    <p className="text-4xl font-bold">{totalLinesCount}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <Factory className="w-6 h-6" />
@@ -160,7 +189,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
-                    <p className="text-4xl font-bold">{overduePoints}</p>
+                    <p className="text-4xl font-bold">{overduePointsCount}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <AlertTriangle className="w-6 h-6" />
@@ -174,7 +203,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
-                    <p className="text-4xl font-bold">{totalRecordsThisMonth}</p>
+                    <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <ClipboardCheck className="w-6 h-6" />
@@ -306,14 +335,14 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  {records.length === 0 ? (
+                  {userRelevantRecords.length === 0 ? (
                     <p className="text-center text-slate-500 py-8 text-sm">
                       Zatím nejsou žádné záznamy
                     </p>
                   ) : (
                     <div className="space-y-3">
-                      {records.slice(0, 5).map((record) => {
-                        const point = controlPoints.find(
+                      {userRelevantRecords.slice(0, 5).map((record) => {
+                        const point = userRelevantControlPoints.find(
                           (p) => p.id === record.control_point_id
                         );
                         return (
@@ -352,7 +381,7 @@ export default function Dashboard() {
               </Card>
 
               {/* Nahlášené závady */}
-              {issues.length > 0 && (
+              {userRelevantIssues.length > 0 && (
                 <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                   <CardHeader className="border-b border-slate-100">
                     <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
@@ -362,8 +391,8 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      {issues.slice(0, 3).map((issue) => {
-                        const point = controlPoints.find(
+                      {userRelevantIssues.slice(0, 3).map((issue) => {
+                        const point = userRelevantControlPoints.find(
                           (p) => p.id === issue.control_point_id
                         );
                         return (
@@ -386,7 +415,7 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
-                    {issues.length > 3 && (
+                    {userRelevantIssues.length > 3 && (
                       <Link
                         to={createPageUrl("IssueApproval")}
                         className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
@@ -455,7 +484,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-blue-100 text-sm font-medium mb-1">Celkem linek</p>
-                  <p className="text-4xl font-bold">{lines.length}</p>
+                  <p className="text-4xl font-bold">{totalLinesCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Factory className="w-6 h-6" />
@@ -469,7 +498,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-purple-100 text-sm font-medium mb-1">Kontrolní body</p>
-                  <p className="text-4xl font-bold">{controlPoints.length}</p>
+                  <p className="text-4xl font-bold">{userRelevantControlPoints.length}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Droplet className="w-6 h-6" />
@@ -483,7 +512,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
-                  <p className="text-4xl font-bold">{overduePoints}</p>
+                  <p className="text-4xl font-bold">{overduePointsCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <AlertTriangle className="w-6 h-6" />
@@ -497,7 +526,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
-                  <p className="text-4xl font-bold">{totalRecordsThisMonth}</p>
+                  <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <ClipboardCheck className="w-6 h-6" />
@@ -595,14 +624,14 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                {records.length === 0 ? (
+                {userRelevantRecords.length === 0 ? (
                   <p className="text-center text-slate-500 py-8 text-sm">
                     Zatím nejsou žádné záznamy
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {records.slice(0, 5).map((record) => {
-                      const point = controlPoints.find(
+                    {userRelevantRecords.slice(0, 5).map((record) => {
+                      const point = userRelevantControlPoints.find(
                         (p) => p.id === record.control_point_id
                       );
                       return (
@@ -641,7 +670,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Nahlášené závady */}
-            {issues.length > 0 && user?.user_type !== "technician" && (
+            {userRelevantIssues.length > 0 && user?.user_type !== "technician" && (
               <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
@@ -651,8 +680,8 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="space-y-3">
-                    {issues.slice(0, 3).map((issue) => {
-                      const point = controlPoints.find(
+                    {userRelevantIssues.slice(0, 3).map((issue) => {
+                      const point = userRelevantControlPoints.find(
                         (p) => p.id === issue.control_point_id
                       );
                       return (
@@ -675,7 +704,7 @@ export default function Dashboard() {
                       );
                     })}
                   </div>
-                  {issues.length > 3 && (
+                  {userRelevantIssues.length > 3 && (
                     <Link
                       to={createPageUrl("IssueApproval")}
                       className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
