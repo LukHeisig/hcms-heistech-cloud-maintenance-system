@@ -1,12 +1,11 @@
 
-import React from "react"; // Removed useState, useEffect
+import React from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query"; // Removed useMutation, useQueryClient
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// Removed Dialog related imports: Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 import {
   ArrowLeft,
   Droplet,
@@ -26,10 +25,8 @@ import { createPageUrl } from "@/utils";
 
 export default function Machine() {
   const navigate = useNavigate();
-  // Removed queryClient as useMutation and its onSuccess/onError are removed
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
-  // Removed state related to dialog: processingPoints, selectedPoint, showPointDialog
 
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
@@ -60,7 +57,7 @@ export default function Machine() {
     queryKey: ["records", machineId],
     queryFn: async () => {
       const allRecords = await base44.entities.ControlRecord.list("-performed_at");
-      return allRecords.filter(record => 
+      return allRecords.filter(record =>
         controlPoints.some(point => point.id === record.control_point_id)
       );
     },
@@ -84,8 +81,6 @@ export default function Machine() {
     enabled: !!machineId,
   });
 
-  // Removed recordMutation and its handlers
-
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
@@ -98,8 +93,15 @@ export default function Machine() {
     return hoursSince > (point.interval_hours || 0) ? "overdue" : "ok";
   };
 
-  // Removed handleConfirmRecord function
-  // Removed handleOpenPointDialog function
+  const getNextControlDate = (point) => {
+    const pointRecords = records.filter(r => r.control_point_id === point.id);
+    if (pointRecords.length === 0 || !point.interval_hours) return null;
+
+    const latestRecord = pointRecords[0];
+    const lastPerformed = new Date(latestRecord.performed_at);
+    const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
+    return nextDate;
+  };
 
   const lubricationPoints = controlPoints.filter(p => p.type === "lubrication");
   const inspectionPoints = controlPoints.filter(p => p.type === "inspection");
@@ -122,8 +124,7 @@ export default function Machine() {
       return (
         <Card>
           <CardContent className="p-12 text-center">
-            {/* The outline suggests always using Droplet here, instead of conditional icons */}
-            <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" /> 
+            <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-500">
               {type === "lubrication" ? "Nejsou definovány žádné mazací body" :
                type === "inspection" ? "Nejsou definovány žádné inspekční body" :
@@ -140,7 +141,7 @@ export default function Machine() {
           const status = getPointStatus(point);
           const pointRecords = records.filter(r => r.control_point_id === point.id);
           const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
-          // Removed isProcessing as dialog and its related state are removed
+          const nextDate = getNextControlDate(point);
 
           return (
             <Card
@@ -149,7 +150,7 @@ export default function Machine() {
                 status === "overdue" ? "border-l-yellow-500 bg-yellow-50/50" :
                 "border-l-green-500 bg-green-50/50"
               }`}
-              onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))} // Changed to navigation
+              onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))}
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -183,16 +184,23 @@ export default function Machine() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
-                        {point.interval_hours && (
-                          <span>Interval: {point.interval_hours}h</span>
-                        )}
-                        {pointRecords.length > 0 && (
-                          <span className="hidden sm:inline">·</span>
-                        )}
-                        {pointRecords.length > 0 && (
-                          <span>
-                            Poslední: {format(new Date(pointRecords[0].performed_at), "d.M. HH:mm", { locale: cs })}
+                      <div className="flex flex-col gap-1 text-sm text-slate-600">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          {point.interval_hours && (
+                            <span>Interval: {point.interval_hours}h</span>
+                          )}
+                          {pointRecords.length > 0 && (
+                            <>
+                              <span className="hidden sm:inline">·</span>
+                              <span>
+                                Poslední: {format(new Date(pointRecords[0].performed_at), "d.M. HH:mm", { locale: cs })}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {nextDate && (
+                          <span className={status === "overdue" ? "text-yellow-700 font-medium" : "text-slate-600"}>
+                            Následující: {format(nextDate, "d.M. yyyy HH:mm", { locale: cs })}
                           </span>
                         )}
                       </div>
@@ -200,7 +208,6 @@ export default function Machine() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
-                      // isProcessing removed here
                       status === "overdue" ? "bg-yellow-500" : "bg-green-500"
                     }`} />
                     <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -302,8 +309,6 @@ export default function Machine() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Dialog with control point details is completely removed */}
       </div>
     </div>
   );

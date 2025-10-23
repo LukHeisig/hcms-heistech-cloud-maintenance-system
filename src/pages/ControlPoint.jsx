@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -84,6 +85,15 @@ export default function ControlPoint() {
     return hoursSince > (point?.interval_hours || 0) ? "overdue" : "ok";
   };
 
+  const getNextControlDate = () => {
+    if (records.length === 0 || !point?.interval_hours) return null;
+    
+    const latestRecord = records[0];
+    const lastPerformed = new Date(latestRecord.performed_at);
+    const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
+    return nextDate;
+  };
+
   const handleConfirmRecord = async () => {
     if (!point) return;
     setIsProcessing(true);
@@ -116,6 +126,7 @@ export default function ControlPoint() {
 
   const status = getPointStatus();
   const activeIssues = issues.filter((i) => i.status === "reported");
+  const nextDate = getNextControlDate();
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -235,6 +246,21 @@ export default function ControlPoint() {
                       : "-"}
                   </p>
                 </div>
+                {nextDate && (
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-slate-600 mb-1">Následující mazání</p>
+                    <p className={`text-lg font-semibold flex items-center ${
+                      status === "overdue" ? "text-yellow-700" : "text-slate-900"
+                    }`}>
+                      {format(nextDate, "d. M. yyyy HH:mm", { locale: cs })}
+                      {status === "overdue" && (
+                        <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
+                          Po termínu
+                        </Badge>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -261,6 +287,21 @@ export default function ControlPoint() {
                         : "-"}
                     </p>
                   </div>
+                  {nextDate && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-slate-600 mb-1">Následující kontrola</p>
+                      <p className={`text-lg font-semibold flex items-center ${
+                        status === "overdue" ? "text-yellow-700" : "text-slate-900"
+                      }`}>
+                        {format(nextDate, "d. M. yyyy HH:mm", { locale: cs })}
+                        {status === "overdue" && (
+                          <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
+                            Po termínu
+                          </Badge>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 {point.inspection_tasks && (
                   <div>
@@ -276,15 +317,32 @@ export default function ControlPoint() {
             )}
 
             {point.type === "auto_lubricator" && (
-              <div>
-                <p className="text-sm text-slate-600 mb-1">Poslední výměna</p>
-                <p className="text-lg font-semibold text-slate-900">
-                  {records.length > 0
-                    ? format(new Date(records[0].performed_at), "d. M. yyyy", {
-                        locale: cs,
-                      })
-                    : "-"}
-                </p>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Poslední výměna</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {records.length > 0
+                      ? format(new Date(records[0].performed_at), "d. M. yyyy", {
+                          locale: cs,
+                        })
+                      : "-"}
+                  </p>
+                </div>
+                {nextDate && (
+                  <div>
+                    <p className="text-sm text-slate-600 mb-1">Následující výměna</p>
+                    <p className={`text-lg font-semibold flex items-center ${
+                      status === "overdue" ? "text-yellow-700" : "text-slate-900"
+                    }`}>
+                      {format(nextDate, "d. M. yyyy HH:mm", { locale: cs })}
+                      {status === "overdue" && (
+                        <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
+                          Po termínu
+                        </Badge>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
