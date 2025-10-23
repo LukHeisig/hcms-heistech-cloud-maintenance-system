@@ -146,6 +146,12 @@ export default function Users() {
     return customer?.name || "-";
   };
 
+  const getCompanyName = (companyId) => {
+    if (!companyId) return "-";
+    const company = companies.find((c) => c.id === companyId);
+    return company?.name || "-";
+  };
+
   if (isLoading) {
     return (
       <div className="p-8">
@@ -283,8 +289,8 @@ export default function Users() {
                     <TableHead>Jméno</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Podnik</TableHead>
                     <TableHead>Telefon</TableHead>
-                    <TableHead>Zákazník</TableHead>
                     <TableHead>Registrace</TableHead>
                     <TableHead className="text-right">Akce</TableHead>
                   </TableRow>
@@ -303,10 +309,13 @@ export default function Users() {
                       <TableCell className="text-slate-600">{user.email}</TableCell>
                       <TableCell>{getUserTypeBadge(user.user_type)}</TableCell>
                       <TableCell className="text-slate-600">
-                        {user.phone || "-"}
+                        {user.user_type === "admin"
+                          ? <span className="text-slate-400 italic">Všechny podniky</span>
+                          : getCompanyName(user.company_id)
+                        }
                       </TableCell>
                       <TableCell className="text-slate-600">
-                        {getCustomerName(user.customer_id)}
+                        {user.phone || "-"}
                       </TableCell>
                       <TableCell className="text-slate-600">
                         {format(new Date(user.created_date), "d. M. yyyy", {
@@ -428,8 +437,7 @@ export default function Users() {
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
-                  <strong>Poznámka:</strong> Přiřazení k zákazníkovi se provádí
-                  automaticky při prvním použití aplikace.
+                  <strong>Poznámka:</strong> Při změně role na "Administrátor" bude uživatel mít přístup ke všem podnikům.
                 </p>
               </div>
             </div>
