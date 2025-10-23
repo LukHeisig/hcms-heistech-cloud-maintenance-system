@@ -52,8 +52,25 @@ export default function Layout({ children }) {
 
   const loadPendingIssues = async () => {
     try {
-      const issues = await base44.entities.Issue.filter({ status: "pending_approval" });
-      setPendingIssuesCount(issues.length);
+      const currentUser = await base44.auth.me();
+      const allIssues = await base44.entities.Issue.filter({ status: "reported" });
+      
+      if (currentUser.user_type === "admin") {
+        setPendingIssuesCount(allIssues.length);
+      } else {
+        // Filtrovat podle company_id
+        const lines = await base44.entities.Line.filter({ company_id: currentUser.company_id });
+        const lineIds = lines.map(l => l.id);
+        const machines = await base44.entities.Machine.list();
+        const companyMachines = machines.filter(m => lineIds.includes(m.line_id));
+        const machineIds = companyMachines.map(m => m.id);
+        const controlPoints = await base44.entities.ControlPoint.list();
+        const companyControlPoints = controlPoints.filter(cp => machineIds.includes(cp.machine_id));
+        const controlPointIds = companyControlPoints.map(cp => cp.id);
+        
+        const companyIssues = allIssues.filter(issue => controlPointIds.includes(issue.control_point_id));
+        setPendingIssuesCount(companyIssues.length);
+      }
     } catch (error) {
       console.error("Error loading issues:", error);
     }

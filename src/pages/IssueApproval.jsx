@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,12 +37,12 @@ export default function IssueApproval() {
     setUser(currentUser);
   };
 
-  const { data: reportedIssues = [] } = useQuery({
+  const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }, "-created_date"),
   });
 
-  const { data: resolvedIssues = [] } = useQuery({
+  const { data: allResolvedIssues = [] } = useQuery({
     queryKey: ["resolvedIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "resolved" }, "-resolved_at"),
   });
@@ -60,6 +61,37 @@ export default function IssueApproval() {
     queryKey: ["lines"],
     queryFn: () => base44.entities.Line.list(),
   });
+
+  // Filtrování závad podle podniku uživatele
+  const reportedIssues = React.useMemo(() => {
+    if (!user || controlPoints.length === 0 || machines.length === 0 || lines.length === 0) return [];
+    if (user.user_type === "admin") return allReportedIssues;
+
+    // Pro non-admin: filtrovat podle company_id
+    const companyLines = lines.filter(l => l.company_id === user.company_id);
+    const companyLineIds = companyLines.map(l => l.id);
+    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+    const companyMachineIds = companyMachines.map(m => m.id);
+    const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
+    const companyControlPointIds = companyControlPoints.map(cp => cp.id);
+
+    return allReportedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+  }, [allReportedIssues, user, lines, machines, controlPoints]);
+
+  const resolvedIssues = React.useMemo(() => {
+    if (!user || controlPoints.length === 0 || machines.length === 0 || lines.length === 0) return [];
+    if (user.user_type === "admin") return allResolvedIssues;
+
+    // Pro non-admin: filtrovat podle company_id
+    const companyLines = lines.filter(l => l.company_id === user.company_id);
+    const companyLineIds = companyLines.map(l => l.id);
+    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+    const companyMachineIds = companyMachines.map(m => m.id);
+    const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
+    const companyControlPointIds = companyControlPoints.map(cp => cp.id);
+
+    return allResolvedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+  }, [allResolvedIssues, user, lines, machines, controlPoints]);
 
   const resolveIssueMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Issue.update(id, data),
@@ -213,7 +245,10 @@ export default function IssueApproval() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Správa závad</h1>
           <p className="text-slate-600">
-            Přehled všech nahlášených a vyřešených závad
+            {user?.user_type === "admin" 
+              ? "Přehled všech nahlášených a vyřešených závad" 
+              : "Přehled nahlášených a vyřešených závad vašeho podniku"
+            }
           </p>
         </div>
 
