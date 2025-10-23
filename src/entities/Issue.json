@@ -17,27 +17,23 @@
       "type": "string",
       "enum": [
         "reported",
-        "pending_approval",
-        "approved",
-        "rejected"
+        "resolved"
       ],
       "default": "reported",
       "description": "Stav z\u00e1vady"
     },
-    "submitted_for_approval_at": {
+    "resolved_at": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "Datum vy\u0159e\u0161en\u00ed"
     },
-    "submitted_by": {
+    "resolved_by": {
       "type": "string",
-      "description": "Email u\u017eivatele, kter\u00fd odeslal ke schv\u00e1len\u00ed"
+      "description": "Email u\u017eivatele, kter\u00fd vy\u0159e\u0161il z\u00e1vadu"
     },
-    "approved_at": {
+    "resolution_note": {
       "type": "string",
-      "format": "date-time"
-    },
-    "approved_by": {
-      "type": "string"
+      "description": "Pozn\u00e1mka k vy\u0159e\u0161en\u00ed"
     }
   },
   "required": [

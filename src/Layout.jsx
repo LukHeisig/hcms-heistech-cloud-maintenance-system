@@ -79,14 +79,14 @@ export default function Layout({ children }) {
       icon: LayoutDashboard,
     },
     {
-      title: "Přehled výroby", // Changed from "Linky a stroje"
+      title: "Přehled výroby",
       url: createPageUrl("Lines"),
       icon: Factory,
     },
     ...(user?.user_type === "manager" || user?.user_type === "admin"
       ? [
           {
-            title: "Závady ke schválení",
+            title: "Správa závad", // Changed from "Závady ke schválení"
             url: createPageUrl("IssueApproval"),
             icon: AlertTriangle,
             badge: pendingIssuesCount,

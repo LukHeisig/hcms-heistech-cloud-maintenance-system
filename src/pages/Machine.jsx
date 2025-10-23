@@ -65,9 +65,9 @@ export default function Machine() {
   });
 
   const { data: issues = [] } = useQuery({
-    queryKey: ["issues", machineId],
+    queryKey: ["issues"],
     queryFn: async () => {
-      const allIssues = await base44.entities.Issue.list();
+      const allIssues = await base44.entities.Issue.filter({ status: "reported" });
       return allIssues.filter(issue =>
         controlPoints.some(point => point.id === issue.control_point_id)
       );
