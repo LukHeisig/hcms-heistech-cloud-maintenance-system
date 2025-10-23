@@ -15,18 +15,17 @@ import {
   MessageSquare,
   Plus,
   FileText,
-  Loader2
+  Loader2,
+  ClipboardCheck
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function Machine() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
   const [processingPoints, setProcessingPoints] = useState(new Set());
@@ -60,7 +59,6 @@ export default function Machine() {
     queryKey: ["records", machineId],
     queryFn: async () => {
       const allRecords = await base44.entities.ControlRecord.list("-performed_at");
-      // Filtrovat pouze záznamy pro body tohoto stroje
       return allRecords.filter(record => 
         controlPoints.some(point => point.id === record.control_point_id)
       );
@@ -88,20 +86,12 @@ export default function Machine() {
   const recordMutation = useMutation({
     mutationFn: (data) => base44.entities.ControlRecord.create(data),
     onSuccess: (data, variables) => {
-      // Invalidovat všechny dotazy pro záznamy
       queryClient.invalidateQueries({ queryKey: ["records"] });
       
-      // Odstranit bod z processing
       setProcessingPoints(prev => {
         const next = new Set(prev);
         next.delete(variables.control_point_id);
         return next;
-      });
-
-      toast({
-        title: "✓ Záznam potvrzen",
-        description: "Mazání/kontrola byla úspěšně zaznamenána",
-        className: "bg-green-50 border-green-200",
       });
     },
     onError: (error, variables) => {
@@ -109,12 +99,6 @@ export default function Machine() {
         const next = new Set(prev);
         next.delete(variables.control_point_id);
         return next;
-      });
-
-      toast({
-        title: "Chyba",
-        description: "Nepodařilo se zaznamenat úkon",
-        variant: "destructive",
       });
     },
   });
@@ -160,7 +144,6 @@ export default function Machine() {
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -174,7 +157,6 @@ export default function Machine() {
           <p className="text-slate-600 mt-1">{controlPoints.length} kontrolních bodů</p>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="lubrication" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-white shadow-sm">
             <TabsTrigger value="lubrication" className="gap-2">
@@ -195,7 +177,6 @@ export default function Machine() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Mazací body */}
           <TabsContent value="lubrication">
             <div className="grid gap-4">
               {lubricationPoints.length === 0 ? (
@@ -302,7 +283,6 @@ export default function Machine() {
             </div>
           </TabsContent>
 
-          {/* Inspekční body */}
           <TabsContent value="inspection">
             <div className="grid gap-4">
               {inspectionPoints.length === 0 ? (
@@ -383,7 +363,6 @@ export default function Machine() {
             </div>
           </TabsContent>
 
-          {/* Automatické maznice */}
           <TabsContent value="lubricators">
             <div className="grid gap-4">
               {lubricatorPoints.length === 0 ? (
@@ -440,7 +419,6 @@ export default function Machine() {
             </div>
           </TabsContent>
 
-          {/* Dokumentace */}
           <TabsContent value="docs">
             <Card>
               <CardHeader>
