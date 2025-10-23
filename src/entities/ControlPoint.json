@@ -17,7 +17,7 @@
     },
     "number": {
       "type": "string",
-      "description": "\u010c\u00edslo/ozna\u010den\u00ed bodu"
+      "description": "\u010c\u00edslo/ozna\u010den\u00ed bodu (voliteln\u00e9)"
     },
     "name": {
       "type": "string",
@@ -50,7 +50,6 @@
   "required": [
     "machine_id",
     "type",
-    "number",
     "name"
   ]
 }

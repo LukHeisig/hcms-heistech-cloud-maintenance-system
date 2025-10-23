@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,6 @@ export default function Setup() {
       // 4. Vytvořit kontrolní body
       const point1 = await base44.entities.ControlPoint.create({
         machine_id: machine1.id,
-        number: "1",
         name: "Hlavní ložisko",
         type: "lubrication",
         description: "Mazání hlavního ložiska lisu",
@@ -89,7 +89,6 @@ export default function Setup() {
 
       const point2 = await base44.entities.ControlPoint.create({
         machine_id: machine1.id,
-        number: "2",
         name: "Vedení válce",
         type: "lubrication",
         description: "Mazání vedení hydraulického válce",
@@ -100,7 +99,6 @@ export default function Setup() {
 
       const point3 = await base44.entities.ControlPoint.create({
         machine_id: machine1.id,
-        number: "I1",
         name: "Kontrola úniku oleje",
         type: "inspection",
         description: "Vizuální kontrola těsnosti hydraulického systému",
@@ -110,7 +108,6 @@ export default function Setup() {
 
       await base44.entities.ControlPoint.create({
         machine_id: machine2.id,
-        number: "D1",
         name: "Ložisko motoru",
         type: "lubrication",
         lubricant_type: "Shell Gadus S2",
@@ -120,7 +117,6 @@ export default function Setup() {
 
       await base44.entities.ControlPoint.create({
         machine_id: machine3.id,
-        number: "M1",
         name: "Vedení rotační osy",
         type: "lubrication",
         lubricant_type: "SKF LGWA 2",
@@ -130,7 +126,6 @@ export default function Setup() {
 
       await base44.entities.ControlPoint.create({
         machine_id: machine3.id,
-        number: "I2",
         name: "Kontrola pneumatiky",
         type: "inspection",
         inspection_tasks: "Zkontrolovat tlak vzduchu, těsnost spojů",

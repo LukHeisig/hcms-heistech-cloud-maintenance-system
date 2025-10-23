@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -55,7 +56,6 @@ export default function AdminControlPoints() {
   const [deletePointId, setDeletePointId] = useState(null);
   const [formData, setFormData] = useState({
     type: "lubrication",
-    number: "",
     name: "",
     description: "",
     lubricant_type: "",
@@ -110,7 +110,6 @@ export default function AdminControlPoints() {
   const resetForm = () => {
     setFormData({
       type: "lubrication",
-      number: "",
       name: "",
       description: "",
       lubricant_type: "",
@@ -126,7 +125,6 @@ export default function AdminControlPoints() {
       setEditingPoint(point);
       setFormData({
         type: point.type,
-        number: point.number,
         name: point.name,
         description: point.description || "",
         lubricant_type: point.lubricant_type || "",
@@ -143,11 +141,10 @@ export default function AdminControlPoints() {
   };
 
   const handleSavePoint = async () => {
-    if (!formData.number.trim() || !formData.name.trim()) return;
+    if (!formData.name.trim()) return;
 
     const dataToSave = {
       type: formData.type,
-      number: formData.number,
       name: formData.name,
       description: formData.description || undefined,
       interval_hours: formData.interval_hours ? parseInt(formData.interval_hours) : undefined,
@@ -290,7 +287,7 @@ export default function AdminControlPoints() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-bold text-slate-900">
-                          {point.number} - {point.name}
+                          {point.name}
                         </h3>
                         <Badge
                           className={
@@ -399,29 +396,16 @@ export default function AdminControlPoints() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="number">Číslo bodu *</Label>
-                  <Input
-                    id="number"
-                    value={formData.number}
-                    onChange={(e) =>
-                      setFormData({ ...formData, number: e.target.value })
-                    }
-                    placeholder="např. 1, I1, M1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="name">Název *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="např. Hlavní ložisko"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="name">Název bodu *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="např. Hlavní ložisko"
+                />
               </div>
 
               <div>
@@ -525,7 +509,7 @@ export default function AdminControlPoints() {
               </Button>
               <Button
                 onClick={handleSavePoint}
-                disabled={!formData.number.trim() || !formData.name.trim()}
+                disabled={!formData.name.trim()}
                 className="bg-gradient-to-r from-red-600 to-red-700"
               >
                 {editingPoint ? "Uložit změny" : "Vytvořit bod"}
