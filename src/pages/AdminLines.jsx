@@ -1,9 +1,8 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,7 +32,8 @@ import {
   GripVertical,
   Factory,
   ChevronRight,
-  Loader2
+  Loader2,
+  Copy
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -48,6 +48,9 @@ export default function AdminLines() {
   const [editingLine, setEditingLine] = useState(null);
   const [showLineDialog, setShowLineDialog] = useState(false);
   const [deleteLineId, setDeleteLineId] = useState(null);
+  const [copyingLine, setCopyingLine] = useState(null);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyName, setCopyName] = useState("");
   const [formData, setFormData] = useState({ name: "", description: "" });
 
   React.useEffect(() => {
@@ -63,7 +66,7 @@ export default function AdminLines() {
     queryKey: ["company", companyId],
     queryFn: async () => {
       if (!companyId) return null;
-      const companies = await base44.entities.Company.list(); // Assuming list() returns all companies for the current user's customer_id
+      const companies = await base44.entities.Company.list();
       return companies.find((c) => c.id === companyId);
     },
     enabled: !!companyId,
@@ -81,6 +84,11 @@ export default function AdminLines() {
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
     queryFn: () => base44.entities.Machine.list(),
+  });
+
+  const { data: controlPoints = [] } = useQuery({
+    queryKey: ["controlPoints"],
+    queryFn: () => base44.entities.ControlPoint.list(),
   });
 
   const createLineMutation = useMutation({
@@ -141,6 +149,73 @@ export default function AdminLines() {
   const handleDeleteLine = async () => {
     if (deleteLineId) {
       await deleteLineMutation.mutateAsync(deleteLineId);
+    }
+  };
+
+  const handleOpenCopyDialog = (line) => {
+    setCopyingLine(line);
+    setCopyName(`${line.name} - Kopie`);
+    setShowCopyDialog(true);
+  };
+
+  const handleCopyLine = async () => {
+    if (!copyName.trim() || !copyingLine) return;
+
+    try {
+      // 1. Vytvořit novou linku
+      const newLine = await base44.entities.Line.create({
+        name: copyName,
+        description: copyingLine.description || "",
+        company_id: copyingLine.company_id,
+        order_index: lines.length,
+      });
+
+      // 2. Najít všechny stroje původní linky
+      const lineMachines = machines.filter((m) => m.line_id === copyingLine.id);
+
+      // 3. Vytvořit kopie strojů a kontrolních bodů
+      for (const machine of lineMachines) {
+        // Vytvořit nový stroj
+        const newMachine = await base44.entities.Machine.create({
+          name: machine.name,
+          description: machine.description || "",
+          line_id: newLine.id,
+          order_index: machine.order_index,
+        });
+
+        // Najít všechny kontrolní body tohoto stroje
+        const machinePoints = controlPoints.filter(
+          (p) => p.machine_id === machine.id
+        );
+
+        // Vytvořit kopie kontrolních bodů
+        for (const point of machinePoints) {
+          await base44.entities.ControlPoint.create({
+            machine_id: newMachine.id,
+            type: point.type,
+            number: point.number || "",
+            name: point.name,
+            description: point.description || "",
+            lubricant_type: point.lubricant_type || "",
+            lubricant_amount: point.lubricant_amount || null,
+            interval_hours: point.interval_hours || null,
+            nfc_chip_id: point.nfc_chip_id || "",
+            inspection_tasks: point.inspection_tasks || "",
+          });
+        }
+      }
+
+      // Refresh dat
+      queryClient.invalidateQueries({ queryKey: ["lines"] });
+      queryClient.invalidateQueries({ queryKey: ["machines"] });
+      queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+
+      setShowCopyDialog(false);
+      setCopyingLine(null);
+      setCopyName("");
+    } catch (error) {
+      console.error("Error copying line:", error);
+      alert("Chyba při kopírování linky: " + error.message);
     }
   };
 
@@ -209,6 +284,11 @@ export default function AdminLines() {
           <div className="grid gap-4">
             {lines.map((line) => {
               const lineMachines = machines.filter((m) => m.line_id === line.id);
+              const lineMachineIds = lineMachines.map(m => m.id);
+              const linePoints = controlPoints.filter((p) => 
+                lineMachineIds.includes(p.machine_id)
+              );
+
               return (
                 <Card
                   key={line.id}
@@ -233,6 +313,14 @@ export default function AdminLines() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => handleOpenCopyDialog(line)}
+                              title="Kopírovat linku se stroji"
+                            >
+                              <Copy className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleOpenDialog(line)}
                             >
                               <Pencil className="w-4 h-4 text-slate-600" />
@@ -247,9 +335,11 @@ export default function AdminLines() {
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <p className="text-sm text-slate-600">
-                            {lineMachines.length} strojů
-                          </p>
+                          <div className="flex items-center gap-4 text-sm text-slate-600">
+                            <span>{lineMachines.length} strojů</span>
+                            <span>·</span>
+                            <span>{linePoints.length} kontrolních bodů</span>
+                          </div>
                           <Button
                             variant="outline"
                             onClick={() =>
@@ -320,6 +410,58 @@ export default function AdminLines() {
                 className="bg-gradient-to-r from-red-600 to-red-700"
               >
                 {editingLine ? "Uložit změny" : "Vytvořit linku"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog pro kopírování linky */}
+        <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Kopírovat linku</DialogTitle>
+              <DialogDescription>
+                Vytvoří se kopie linky "{copyingLine?.name}" včetně všech strojů a kontrolních bodů
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="copyName">Název nové linky *</Label>
+                <Input
+                  id="copyName"
+                  value={copyName}
+                  onChange={(e) => setCopyName(e.target.value)}
+                  placeholder="např. Linka 2 - Lisování"
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <strong>Co se zkopíruje:</strong>
+                </p>
+                <ul className="text-sm text-blue-800 mt-2 space-y-1 list-disc list-inside">
+                  <li>Všechny stroje linky</li>
+                  <li>Všechny kontrolní body strojů</li>
+                  <li>Nastavení mazání a intervalů</li>
+                </ul>
+                <p className="text-xs text-blue-700 mt-2">
+                  Poznámka: Historie záznamů a závady se nekopírují
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowCopyDialog(false)}
+              >
+                Zrušit
+              </Button>
+              <Button
+                onClick={handleCopyLine}
+                disabled={!copyName.trim()}
+                className="bg-gradient-to-r from-blue-600 to-blue-700"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Zkopírovat linku
               </Button>
             </DialogFooter>
           </DialogContent>
