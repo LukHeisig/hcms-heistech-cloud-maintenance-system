@@ -111,18 +111,15 @@ export default function Lines() {
 
   const getMachineStatus = (machine) => {
     const machinePoints = controlPoints.filter((p) => p.machine_id === machine.id);
-    const machineIssues = issues.filter((issue) =>
-      machinePoints.some((p) => p.id === issue.control_point_id)
-    );
-
-    if (machineIssues.length > 0) return "issue";
-
+    // Removed the "issue" status as per requirement to not color based on it
     const overdue = machinePoints.some((p) => getPointStatus(p) === "overdue");
     return overdue ? "overdue" : "ok";
   };
 
   const filteredMachines = machines.filter((machine) => {
     if (filterStatus === "all") return true;
+    // The `issue` status is no longer returned by getMachineStatus, so this implicitly handles it.
+    // If a machine has issues but is not overdue, its status will be 'ok'.
     return getMachineStatus(machine) === filterStatus;
   });
 
@@ -270,7 +267,7 @@ export default function Lines() {
                 linePoints.some((p) => p.id === issue.control_point_id)
               ).length;
 
-              // Určit stav linky podle bodů
+              // Určit stav linky podle bodů - lineStatus only reflects overdue or ok, not issues
               const lineStatus = hasOverdue ? "overdue" : "ok";
 
               return (
@@ -304,7 +301,7 @@ export default function Lines() {
                                 Po termínu
                               </Badge>
                             )}
-                            {lineIssuesCount > 0 && (
+                            {lineIssuesCount > 0 && ( // Issue badge remains
                               <Badge className="bg-orange-500 text-white">
                                 <AlertTriangle className="w-3 h-3 mr-1" />
                                 {lineIssuesCount}
@@ -378,7 +375,7 @@ export default function Lines() {
             <SelectContent>
               <SelectItem value="all">Vše</SelectItem>
               <SelectItem value="overdue">Po termínu</SelectItem>
-              <SelectItem value="issue">Se závadou</SelectItem>
+              {/* Removed "Se závadou" filter option as card styling no longer depends on it directly */}
               <SelectItem value="ok">V pořádku</SelectItem>
             </SelectContent>
           </Select>
@@ -390,7 +387,7 @@ export default function Lines() {
             const machinePoints = controlPoints.filter(
               (p) => p.machine_id === machine.id
             );
-            const status = getMachineStatus(machine);
+            const status = getMachineStatus(machine); // Will be "overdue" or "ok"
             const overdueCount = machinePoints.filter(
               (p) => getPointStatus(p) === "overdue"
             ).length;
@@ -405,11 +402,9 @@ export default function Lines() {
               >
                 <Card
                   className={`hover:shadow-lg transition-all border-2 ${
-                    status === "issue"
-                      ? "border-orange-300 bg-orange-50"
-                      : status === "overdue"
-                      ? "border-yellow-300 bg-yellow-50" // Changed from red to yellow for overdue
-                      : "border-transparent hover:border-slate-200"
+                    status === "overdue" // Only "overdue" status affects card styling
+                      ? "border-yellow-300 bg-yellow-50"
+                      : "border-transparent hover:border-slate-200" // "ok" status (including with issues)
                   }`}
                 >
                   <CardContent className="p-6">
@@ -425,7 +420,7 @@ export default function Lines() {
                               {overdueCount}
                             </Badge>
                           )}
-                          {issueCount > 0 && (
+                          {issueCount > 0 && ( // Issue badge remains
                             <Badge className="bg-orange-500 text-white gap-1">
                               <AlertTriangle className="w-3 h-3" />
                               {issueCount}
@@ -434,13 +429,10 @@ export default function Lines() {
                         </div>
                       </div>
                       <div className="flex-shrink-0">
-                        {status === "issue" ? (
-                          <div className="w-4 h-4 rounded-full bg-orange-500" />
-                        ) : status === "overdue" ? (
-                          <div className="w-4 h-4 rounded-full bg-yellow-500" /> // Changed from red to yellow for overdue
-                        ) : (
-                          <div className="w-4 h-4 rounded-full bg-green-500" />
-                        )}
+                        {/* Status circle only reflects overdue or ok */}
+                        <div className={`w-4 h-4 rounded-full ${
+                          status === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                        }`} />
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-600">
