@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   Factory,
@@ -31,13 +32,11 @@ import {
 export default function Layout({ children }) {
   const location = useLocation();
   const [user, setUser] = useState(null);
-  const [pendingIssuesCount, setPendingIssuesCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
 
   useEffect(() => {
     loadUser();
-    loadPendingIssues();
     checkData();
   }, []);
 
@@ -50,31 +49,47 @@ export default function Layout({ children }) {
     }
   };
 
-  const loadPendingIssues = async () => {
-    try {
-      const currentUser = await base44.auth.me();
-      const allIssues = await base44.entities.Issue.filter({ status: "reported" });
-      
-      if (currentUser.user_type === "admin") {
-        setPendingIssuesCount(allIssues.length);
-      } else {
-        // Filtrovat podle company_id
-        const lines = await base44.entities.Line.filter({ company_id: currentUser.company_id });
-        const lineIds = lines.map(l => l.id);
-        const machines = await base44.entities.Machine.list();
-        const companyMachines = machines.filter(m => lineIds.includes(m.line_id));
-        const machineIds = companyMachines.map(m => m.id);
-        const controlPoints = await base44.entities.ControlPoint.list();
-        const companyControlPoints = controlPoints.filter(cp => machineIds.includes(cp.machine_id));
-        const controlPointIds = companyControlPoints.map(cp => cp.id);
-        
-        const companyIssues = allIssues.filter(issue => controlPointIds.includes(issue.control_point_id));
-        setPendingIssuesCount(companyIssues.length);
-      }
-    } catch (error) {
-      console.error("Error loading issues:", error);
-    }
-  };
+  // Použít useQuery pro automatickou aktualizaci počtu závad
+  const { data: allReportedIssues = [] } = useQuery({
+    queryKey: ["reportedIssues"],
+    queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
+    enabled: !!user,
+  });
+
+  const { data: lines = [] } = useQuery({
+    queryKey: ["lines", user?.company_id],
+    queryFn: () => user?.company_id 
+      ? base44.entities.Line.filter({ company_id: user.company_id })
+      : [],
+    enabled: !!user && user.user_type !== "admin",
+  });
+
+  const { data: machines = [] } = useQuery({
+    queryKey: ["machines"],
+    queryFn: () => base44.entities.Machine.list(),
+    enabled: !!user && user.user_type !== "admin",
+  });
+
+  const { data: controlPoints = [] } = useQuery({
+    queryKey: ["controlPoints"],
+    queryFn: () => base44.entities.ControlPoint.list(),
+    enabled: !!user && user.user_type !== "admin",
+  });
+
+  // Vypočítat počet závad podle uživatele
+  const pendingIssuesCount = React.useMemo(() => {
+    if (!user) return 0;
+    if (user.user_type === "admin") return allReportedIssues.length;
+
+    // Pro non-admin: filtrovat podle company_id
+    const companyLineIds = lines.map(l => l.id);
+    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+    const companyMachineIds = companyMachines.map(m => m.id);
+    const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
+    const companyControlPointIds = companyControlPoints.map(cp => cp.id);
+    
+    return allReportedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id)).length;
+  }, [allReportedIssues, user, lines, machines, controlPoints]);
 
   const checkData = async () => {
     try {
