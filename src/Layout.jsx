@@ -10,7 +10,8 @@ import {
   AlertTriangle,
   LogOut,
   Menu,
-  X
+  X,
+  Rocket
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,10 +32,12 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [pendingIssuesCount, setPendingIssuesCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasData, setHasData] = useState(true);
 
   useEffect(() => {
     loadUser();
     loadPendingIssues();
+    checkData();
   }, []);
 
   const loadUser = async () => {
@@ -52,6 +55,15 @@ export default function Layout({ children }) {
       setPendingIssuesCount(issues.length);
     } catch (error) {
       console.error("Error loading issues:", error);
+    }
+  };
+
+  const checkData = async () => {
+    try {
+      const lines = await base44.entities.Line.list();
+      setHasData(lines.length > 0);
+    } catch (error) {
+      setHasData(false);
     }
   };
 
@@ -96,6 +108,16 @@ export default function Layout({ children }) {
       : []),
   ];
 
+  // Přidat Setup do menu pokud nejsou data
+  if (!hasData) {
+    navigationItems.unshift({
+      title: "🚀 Vytvořit demo data",
+      url: createPageUrl("Setup"),
+      icon: Rocket,
+      highlight: true,
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header pro mobilní */}
@@ -133,7 +155,9 @@ export default function Layout({ children }) {
                 to={item.url}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center justify-between p-4 rounded-xl transition-all ${
-                  location.pathname === item.url
+                  item.highlight
+                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg"
+                    : location.pathname === item.url
                     ? "bg-red-50 text-red-700"
                     : "hover:bg-slate-100"
                 }`}
@@ -189,7 +213,9 @@ export default function Layout({ children }) {
                           <SidebarMenuButton
                             asChild
                             className={`hover:bg-slate-100 rounded-xl mb-1 transition-all ${
-                              location.pathname === item.url
+                              item.highlight
+                                ? "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
+                                : location.pathname === item.url
                                 ? "bg-red-50 text-red-700"
                                 : ""
                             }`}
