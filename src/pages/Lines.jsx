@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -106,9 +107,9 @@ export default function Lines() {
   if (!selectedLine) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr linky</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-4">
             {lines.map((line) => {
               // Spočítat stroje pro tuto linku z VŠECH strojů
               const lineMachines = allMachines.filter((m) => m.line_id === line.id);
@@ -132,40 +133,44 @@ export default function Lines() {
                   onClick={() => setSelectedLine(line.id)}
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Factory className="w-8 h-8 text-red-600" />
-                          {hasOverdue && (
-                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                              <Clock className="w-3 h-3 mr-1" />
-                              Po termínu
-                            </Badge>
-                          )}
-                          {lineIssues.length > 0 && (
-                            <Badge className="bg-orange-500">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              {lineIssues.length}
-                            </Badge>
-                          )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                          <Factory className="w-7 h-7 text-white" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">
-                          {line.name}
-                        </h3>
-                        {line.description && (
-                          <p className="text-sm text-slate-600 mb-3">
-                            {line.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                          <span className="flex items-center gap-1">
-                            <Factory className="w-4 h-4" />
-                            {lineMachines.length} strojů
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Droplet className="w-4 h-4" />
-                            {linePoints.length} bodů
-                          </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="text-xl font-bold text-slate-900">
+                              {line.name}
+                            </h3>
+                            {hasOverdue && (
+                              <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Po termínu
+                              </Badge>
+                            )}
+                            {lineIssues.length > 0 && (
+                              <Badge className="bg-orange-500">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                {lineIssues.length}
+                              </Badge>
+                            )}
+                          </div>
+                          {line.description && (
+                            <p className="text-sm text-slate-600 mb-2">
+                              {line.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 text-sm text-slate-600">
+                            <span className="flex items-center gap-1">
+                              <Factory className="w-4 h-4" />
+                              {lineMachines.length} strojů
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Droplet className="w-4 h-4" />
+                              {linePoints.length} bodů
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
