@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -55,6 +56,14 @@ export default function Lines() {
     enabled: user?.user_type === "admin",
   });
 
+  // Načíst VŠECHNY linky pro admina (pro statistiky)
+  const { data: allLines = [] } = useQuery({
+    queryKey: ["allLines"],
+    queryFn: () => base44.entities.Line.list(),
+    enabled: user?.user_type === "admin",
+  });
+
+  // Linky pro vybraný podnik
   const { data: lines = [] } = useQuery({
     queryKey: ["lines", selectedCompany],
     queryFn: () =>
@@ -125,30 +134,58 @@ export default function Lines() {
           <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku</h1>
           <div className="space-y-4">
             {companies.map((company) => {
-              const companyLines = lines.filter((l) => l.company_id === company.id);
+              // Použít allLines místo lines
+              const companyLines = allLines.filter((l) => l.company_id === company.id);
+              const companyLineIds = companyLines.map(l => l.id);
+              
+              // Stroje z těchto linek
               const companyMachines = allMachines.filter((m) =>
-                companyLines.some((l) => l.id === m.line_id)
+                companyLineIds.includes(m.line_id)
               );
+              const companyMachineIds = companyMachines.map(m => m.id);
+              
+              // Kontrolní body z těchto strojů
               const companyPoints = controlPoints.filter((p) =>
-                companyMachines.some((m) => m.id === p.machine_id)
+                companyMachineIds.includes(p.machine_id)
               );
+              
+              // Počítat po termínu
               const companyOverdue = companyPoints.filter(
                 (p) => getPointStatus(p) === "overdue"
               ).length;
+              
+              // Počítat závady
               const companyIssues = issues.filter((issue) =>
                 companyPoints.some((p) => p.id === issue.control_point_id)
               ).length;
 
+              // Určit celkový stav podniku
+              const hasIssues = companyIssues > 0;
+              const hasOverdue = companyOverdue > 0;
+              const companyStatus = hasIssues ? "issue" : hasOverdue ? "overdue" : "ok";
+
               return (
                 <Card
                   key={company.id}
-                  className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-red-200"
+                  className={`hover:shadow-lg transition-all cursor-pointer border-2 ${
+                    companyStatus === "issue"
+                      ? "border-orange-300 bg-orange-50 hover:border-orange-400"
+                      : companyStatus === "overdue"
+                      ? "border-yellow-300 bg-yellow-50 hover:border-yellow-400"
+                      : "border-transparent hover:border-red-200"
+                  }`}
                   onClick={() => setSelectedCompany(company.id)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
+                          companyStatus === "issue"
+                            ? "bg-gradient-to-br from-orange-600 to-orange-700"
+                            : companyStatus === "overdue"
+                            ? "bg-gradient-to-br from-yellow-600 to-yellow-700"
+                            : "bg-gradient-to-br from-red-600 to-red-700"
+                        }`}>
                           <Building2 className="w-7 h-7 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -175,13 +212,26 @@ export default function Lines() {
                               {companyLines.length} linek
                             </span>
                             <span className="flex items-center gap-1">
+                              <Factory className="w-4 h-4" />
+                              {companyMachines.length} strojů
+                            </span>
+                            <span className="flex items-center gap-1">
                               <Droplet className="w-4 h-4" />
                               {companyPoints.length} bodů
                             </span>
                           </div>
                         </div>
                       </div>
-                      <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full ${
+                          companyStatus === "issue"
+                            ? "bg-orange-500"
+                            : companyStatus === "overdue"
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
+                        }`} />
+                        <ChevronRight className="w-6 h-6 text-slate-400" />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
