@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -167,6 +168,48 @@ export default function Users() {
             </div>
           </div>
         </div>
+
+        {/* Návod pro přidání uživatelů - pouze pro adminy */}
+        {currentUser?.user_type === "admin" && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <UsersIcon className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Jak přidat nového uživatele?
+                  </h3>
+                  <p className="text-sm text-blue-800 mb-3">
+                    Nové uživatele musíte pozvat přes systémový dashboard:
+                  </p>
+                  <ol className="text-sm text-blue-800 space-y-2 mb-4">
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">1.</span>
+                      <span>Klikněte na <strong>"Dashboard"</strong> v horní liště aplikace</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">2.</span>
+                      <span>Vyberte <strong>"Data"</strong> → <strong>"Users"</strong></span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">3.</span>
+                      <span>Klikněte na tlačítko <strong>"Invite User"</strong></span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">4.</span>
+                      <span>Zadejte email nového uživatele a odešlete pozvánku</span>
+                    </li>
+                  </ol>
+                  <p className="text-xs text-blue-700">
+                    💡 Po první přihlášení můžete uživateli nastavit roli a telefon zde na této stránce.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
