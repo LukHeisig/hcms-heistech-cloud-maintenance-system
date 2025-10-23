@@ -48,14 +48,16 @@ export default function Lines() {
     enabled: !!user?.customer_id,
   });
 
-  const { data: machines = [] } = useQuery({
-    queryKey: ["machines", selectedLine],
-    queryFn: () =>
-      selectedLine
-        ? base44.entities.Machine.filter({ line_id: selectedLine }, "order_index")
-        : [],
-    enabled: !!selectedLine,
+  // Načíst VŠECHNY stroje (ne jen pro vybranou linku)
+  const { data: allMachines = [] } = useQuery({
+    queryKey: ["allMachines"],
+    queryFn: () => base44.entities.Machine.list("order_index"),
   });
+
+  // Filtrované stroje pro vybranou linku
+  const machines = selectedLine 
+    ? allMachines.filter(m => m.line_id === selectedLine)
+    : [];
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints"],
@@ -103,12 +105,26 @@ export default function Lines() {
 
   if (!selectedLine) {
     return (
-      <div className="p-4 md:p-8">
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr linky</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {lines.map((line) => {
-              const lineMachines = machines.filter((m) => m.line_id === line.id);
+              // Spočítat stroje pro tuto linku z VŠECH strojů
+              const lineMachines = allMachines.filter((m) => m.line_id === line.id);
+              const lineMachineIds = lineMachines.map(m => m.id);
+              
+              // Kontrolní body pro stroje této linky
+              const linePoints = controlPoints.filter((p) =>
+                lineMachineIds.includes(p.machine_id)
+              );
+              
+              // Kontrola stavu
+              const hasOverdue = linePoints.some((p) => getPointStatus(p) === "overdue");
+              const lineIssues = issues.filter((issue) =>
+                linePoints.some((p) => p.id === issue.control_point_id)
+              );
+
               return (
                 <Card
                   key={line.id}
@@ -116,16 +132,44 @@ export default function Lines() {
                   onClick={() => setSelectedLine(line.id)}
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <Factory className="w-8 h-8 text-red-600" />
-                      <ChevronRight className="w-5 h-5 text-slate-400" />
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Factory className="w-8 h-8 text-red-600" />
+                          {hasOverdue && (
+                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Po termínu
+                            </Badge>
+                          )}
+                          {lineIssues.length > 0 && (
+                            <Badge className="bg-orange-500">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              {lineIssues.length}
+                            </Badge>
+                          )}
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">
+                          {line.name}
+                        </h3>
+                        {line.description && (
+                          <p className="text-sm text-slate-600 mb-3">
+                            {line.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <span className="flex items-center gap-1">
+                            <Factory className="w-4 h-4" />
+                            {lineMachines.length} strojů
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Droplet className="w-4 h-4" />
+                            {linePoints.length} bodů
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">
-                      {line.name}
-                    </h3>
-                    <p className="text-sm text-slate-600">
-                      {lineMachines.length} strojů
-                    </p>
                   </CardContent>
                 </Card>
               );
@@ -139,7 +183,7 @@ export default function Lines() {
   const currentLine = lines.find((l) => l.id === selectedLine);
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
