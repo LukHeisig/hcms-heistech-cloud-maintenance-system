@@ -18,6 +18,7 @@
       "type": "string",
       "enum": [
         "preventive",
+        "corrective",
         "predictive",
         "inspection"
       ],

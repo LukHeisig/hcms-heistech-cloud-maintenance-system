@@ -34,7 +34,7 @@ import {
   FileImage,
   FileJson,
   Plus,
-  Calendar, // Added by outline to replace CalendarClock
+  Calendar,
   UserCheck,
   Send
 } from "lucide-react";
@@ -1403,10 +1403,12 @@ export default function Machine() {
                                       <h3 className="font-bold text-slate-900 text-lg">{task.title}</h3>
                                       <Badge className={
                                         task.maintenance_type === "preventive" ? "bg-green-100 text-green-800" :
+                                        task.maintenance_type === "corrective" ? "bg-orange-100 text-orange-800" :
                                         task.maintenance_type === "predictive" ? "bg-blue-100 text-blue-800" :
                                         "bg-purple-100 text-purple-800"
                                       }>
                                         {task.maintenance_type === "preventive" ? "Preventivní" :
+                                         task.maintenance_type === "corrective" ? "Korektivní" :
                                          task.maintenance_type === "predictive" ? "Prediktivní" :
                                          "Inspekce"}
                                       </Badge>
@@ -2375,9 +2377,30 @@ export default function Machine() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="preventive">Preventivní</SelectItem>
-                      <SelectItem value="predictive">Prediktivní</SelectItem>
-                      <SelectItem value="inspection">Inspekce</SelectItem>
+                      <SelectItem value="preventive">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span>Preventivní údržba</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="corrective">
+                        <div className="flex items-center gap-2">
+                          <Wrench className="w-4 h-4 text-orange-600" />
+                          <span>Reaktivní údržba (oprava)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="predictive">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-blue-600" />
+                          <span>Prediktivní údržba</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="inspection">
+                        <div className="flex items-center gap-2">
+                          <ClipboardCheck className="w-4 h-4 text-purple-600" />
+                          <span>Inspekce</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
