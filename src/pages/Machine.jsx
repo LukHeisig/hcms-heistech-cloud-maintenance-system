@@ -1,7 +1,7 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +25,8 @@ import {
   FileText,
   Wrench,
   Activity,
-  Building2, // Added Building2 icon
-  Factory // Added Factory icon, although not directly used in breadcrumbs, it was in the initial outline. I'll include it for consistency with the provided outline, but it could be removed if not used elsewhere.
+  Building2,
+  Factory
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
