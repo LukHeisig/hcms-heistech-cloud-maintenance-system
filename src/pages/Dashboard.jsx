@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   const { data: records = [] } = useQuery({
     queryKey: ["records"],
-    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 10),
+    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 100),
     enabled: !!user,
   });
 
@@ -91,11 +91,10 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Pokud uživatel nemá company_id a není admin, přesměrovat na setup
   useEffect(() => {
     if (user && !user.company_id && user.user_type !== "admin" && user.user_type !== "superAdmin") {
       navigate(createPageUrl("Setup"));
-    } else if (user && user.user_type !== "admin" && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
+    } else if (user && user.user_type !== "admin"  && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
       navigate(createPageUrl("Setup"));
     }
   }, [user, lines, navigate]);
@@ -114,12 +113,12 @@ export default function Dashboard() {
 
   // Výpočet skutečných hodnot
   const activeCompanies = companies.filter(c => c.is_active !== false);
-  const totalLines = (user?.user_type === "admin" || user?.user_type === "superAdmin") ? allLines.length : lines.length;
-  const overduePoints = controlPoints.filter(
+  const totalLinesCount = (user?.user_type === "admin" || user?.user_type === "superAdmin") ? allLines.length : lines.length;
+  const overduePointsCount = controlPoints.filter(
     (point) => getPointStatus(point) === "overdue"
   ).length;
 
-  const totalRecordsThisMonth = records.filter((r) => {
+  const totalRecordsThisMonthCount = records.filter((r) => {
     const date = new Date(r.performed_at);
     const now = new Date();
     return (
@@ -132,7 +131,6 @@ export default function Dashboard() {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
               Dashboard
@@ -145,7 +143,6 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-shadow">
               <CardContent className="p-6">
@@ -166,7 +163,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-purple-100 text-sm font-medium mb-1">Celkem linek</p>
-                    <p className="text-4xl font-bold">{totalLines}</p>
+                    <p className="text-4xl font-bold">{totalLinesCount}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <Factory className="w-6 h-6" />
@@ -180,7 +177,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
-                    <p className="text-4xl font-bold">{overduePoints}</p>
+                    <p className="text-4xl font-bold">{overduePointsCount}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <AlertTriangle className="w-6 h-6" />
@@ -194,7 +191,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
-                    <p className="text-4xl font-bold">{totalRecordsThisMonth}</p>
+                    <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <ClipboardCheck className="w-6 h-6" />
@@ -204,9 +201,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Podniky */}
             <div className="lg:col-span-2">
               <Card className="border-none shadow-lg">
                 <CardHeader className="border-b border-slate-100">
@@ -273,7 +268,7 @@ export default function Dashboard() {
                         return (
                           <Link
                             key={company.id}
-                            to={createPageUrl(`Lines?company=${company.id}`)}
+                            to={createPageUrl(`AdminLines?company=${company.id}`)}
                           >
                             <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                               <CardContent className="p-5">
@@ -325,9 +320,7 @@ export default function Dashboard() {
               </Card>
             </div>
 
-            {/* Poslední záznamy a závady */}
             <div className="space-y-6">
-              {/* Poslední záznamy */}
               <Card className="border-none shadow-lg">
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -344,7 +337,7 @@ export default function Dashboard() {
                     <div className="space-y-3">
                       {records.slice(0, 5).map((record) => {
                         const point = controlPoints.find(
-                          (p) => p.id === record.control_point_id
+                          (cp) => cp.id === record.control_point_id
                         );
                         return (
                           <div
@@ -381,7 +374,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Nahlášené závady */}
               {issues.length > 0 && (
                 <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                   <CardHeader className="border-b border-slate-100">
@@ -394,7 +386,7 @@ export default function Dashboard() {
                     <div className="space-y-3">
                       {issues.slice(0, 3).map((issue) => {
                         const point = controlPoints.find(
-                          (p) => p.id === issue.control_point_id
+                          (cp) => cp.id === issue.control_point_id
                         );
                         return (
                           <div
@@ -434,8 +426,7 @@ export default function Dashboard() {
     );
   }
 
-  // Dashboard pro vedoucí a techniky - zobrazení linek
-  // Pokud nejsou žádná data, zobrazit Setup tlačítko
+  // Dashboard pro vedoucí a techniky
   if (lines.length === 0 && user?.company_id) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -468,7 +459,6 @@ export default function Dashboard() {
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
             Dashboard
@@ -478,14 +468,13 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-blue-100 text-sm font-medium mb-1">Celkem linek</p>
-                  <p className="text-4xl font-bold">{totalLines}</p>
+                  <p className="text-4xl font-bold">{totalLinesCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Factory className="w-6 h-6" />
@@ -513,7 +502,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
-                  <p className="text-4xl font-bold">{overduePoints}</p>
+                  <p className="text-4xl font-bold">{overduePointsCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <AlertTriangle className="w-6 h-6" />
@@ -527,7 +516,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
-                  <p className="text-4xl font-bold">{totalRecordsThisMonth}</p>
+                  <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <ClipboardCheck className="w-6 h-6" />
@@ -537,9 +526,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Linky */}
           <div className="lg:col-span-2">
             <Card className="border-none shadow-lg">
               <CardHeader className="border-b border-slate-100">
@@ -614,9 +601,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Poslední záznamy a závady */}
           <div className="space-y-6">
-            {/* Poslední záznamy */}
             <Card className="border-none shadow-lg">
               <CardHeader className="border-b border-slate-100">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -633,7 +618,7 @@ export default function Dashboard() {
                   <div className="space-y-3">
                     {records.slice(0, 5).map((record) => {
                       const point = controlPoints.find(
-                        (p) => p.id === record.control_point_id
+                        (cp) => cp.id === record.control_point_id
                       );
                       return (
                         <div
@@ -670,7 +655,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Nahlášené závady */}
             {issues.length > 0 && user?.user_type !== "technician" && (
               <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                 <CardHeader className="border-b border-slate-100">
@@ -683,7 +667,7 @@ export default function Dashboard() {
                   <div className="space-y-3">
                     {issues.slice(0, 3).map((issue) => {
                       const point = controlPoints.find(
-                        (p) => p.id === issue.control_point_id
+                        (cp) => cp.id === issue.control_point_id
                       );
                       return (
                         <div
