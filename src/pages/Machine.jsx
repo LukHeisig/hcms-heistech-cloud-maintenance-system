@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -80,7 +81,7 @@ export default function Machine() {
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
 
-  const queryClient = useQueryClient(); // Přesunuto sem
+  const queryClient = useQueryClient();
 
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [uploadingCategory, setUploadingCategory] = useState("drawing");
@@ -197,6 +198,71 @@ export default function Machine() {
     enabled: !!machineId,
   });
 
+  // Načíst inspekční záznamy pro tento stroj
+  const inspectionRecords = React.useMemo(() => {
+    // controlPoints might be empty if not yet loaded, handle gracefully
+    if (!controlPoints || controlPoints.length === 0) return [];
+
+    const machineControlPoints = controlPoints.filter(cp => cp.machine_id === machineId);
+    const machineControlPointIds = machineControlPoints.map(cp => cp.id);
+    return records.filter(r => r.record_type === "inspection" && machineControlPointIds.includes(r.control_point_id));
+  }, [records, controlPoints, machineId]);
+
+  // Statistiky pro náklady
+  const totalMaintenanceCost = maintenanceRecords.reduce((sum, r) => sum + (r.cost || 0), 0);
+  
+  // Rozdělení nákladů podle typu údržby
+  const costByType = React.useMemo(() => {
+    const costs = {
+      preventive: 0,
+      corrective: 0,
+      predictive: 0,
+      inspection: 0,
+    };
+    maintenanceRecords.forEach(record => {
+      if (record.cost && record.maintenance_type) {
+        costs[record.maintenance_type] = (costs[record.maintenance_type] || 0) + record.cost;
+      }
+    });
+    return costs;
+  }, [maintenanceRecords]);
+
+  // Data pro graf nákladů podle typu
+  const costByTypeData = [
+    { name: "Preventivní", value: costByType.preventive, color: "#10b981" },
+    { name: "Korektivní", value: costByType.corrective, color: "#f59e0b" },
+    { name: "Prediktivní", value: costByType.predictive, color: "#3b82f6" },
+    { name: "Inspekce", value: costByType.inspection, color: "#8b5cf6" },
+  ].filter(item => item.value > 0);
+
+  // Náklady podle měsíců (posledních 6 měsíců)
+  const costByMonthData = React.useMemo(() => {
+    const monthsData = {};
+    const now = new Date();
+    // Initialize monthsData for the last 6 months with 0 cost
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthsData[format(d, "MM/yyyy", { locale: cs })] = 0;
+    }
+
+    maintenanceRecords.forEach(record => {
+      if (record.cost && record.performed_at) {
+        const monthYear = format(new Date(record.performed_at), "MM/yyyy", { locale: cs });
+        if (monthsData.hasOwnProperty(monthYear)) { // Only add to the last 6 months data
+          monthsData[monthYear] = (monthsData[monthYear] || 0) + record.cost;
+        }
+      }
+    });
+
+    return Object.entries(monthsData)
+      .sort((a, b) => {
+        const [monthA, yearA] = a[0].split('/');
+        const [monthB, yearB] = b[0].split('/');
+        return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+      })
+      .map(([month, cost]) => ({ month: format(new Date(month.split('/')[1], month.split('/')[0] - 1), "MM/yy", { locale: cs }), cost }));
+  }, [maintenanceRecords]);
+
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
@@ -239,7 +305,7 @@ export default function Machine() {
 
   // Statistiky
   const lowStockParts = spareParts.filter(p => p.quantity_in_stock <= (p.minimum_stock || 0));
-  const totalMaintenanceCost = maintenanceRecords.reduce((sum, r) => sum + (r.cost || 0), 0);
+  // totalMaintenanceCost is already defined above
 
   // Data pro grafy
   const vibrationTrendData = vibrationMeasurements.slice(0, 10).reverse().map(m => ({
@@ -429,9 +495,9 @@ export default function Machine() {
       if (selectedUploadFile.type.startsWith("image/")) {
         detectedFileType = "photo";
       } else if (selectedUploadFile.type === "application/pdf") {
-        detectedFileType = "document"; // PDFs often considered documents
+        detectedFileType = "document";
       } else if (selectedUploadFile.name.toLowerCase().endsWith(".dwg") || selectedUploadFile.name.toLowerCase().endsWith(".dxf")) {
-          detectedFileType = "schema"; // CAD files
+          detectedFileType = "schema";
       } else if (selectedUploadFile.type.includes("word") || selectedUploadFile.type.includes("excel")) {
           detectedFileType = "document";
       }
@@ -463,7 +529,6 @@ export default function Machine() {
       setDeleteDocId(null);
     }
   };
-
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -1066,73 +1131,410 @@ export default function Machine() {
             </Card>
           </TabsContent>
 
-          {/* Údržba a servis */}
+          {/* Údržba a servis - ROZŠÍŘENÁ VERZE */}
           <TabsContent value="maintenance">
-            <Card className="border-none shadow-lg">
-              <CardHeader className="border-b border-slate-100">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench className="w-5 h-5 text-green-600" />
-                    Historie údržby a servisu
-                  </CardTitle>
-                  <div className="text-sm text-slate-600">
-                    Celkové náklady: <span className="font-bold text-green-600">{totalMaintenanceCost.toLocaleString()} Kč</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {maintenanceRecords.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 mb-2">Zatím nejsou záznamy o údržbě</p>
-                    <p className="text-sm text-slate-400">První záznam můžete přidat v administraci</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {maintenanceRecords.map((record) => (
-                      <Card key={record.id} className="border border-slate-200">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge className={
-                                  record.maintenance_type === "preventive" ? "bg-green-100 text-green-800" :
-                                  record.maintenance_type === "corrective" ? "bg-orange-100 text-orange-800" :
-                                  record.maintenance_type === "predictive" ? "bg-blue-100 text-blue-800" :
-                                  "bg-purple-100 text-purple-800"
-                                }>
-                                  {record.maintenance_type === "preventive" ? "Preventivní" :
-                                   record.maintenance_type === "corrective" ? "Korektivní" :
-                                   record.maintenance_type === "predictive" ? "Prediktivní" :
-                                   "Inspekce"}
-                                </Badge>
-                                <h3 className="font-bold text-slate-900">{record.title}</h3>
+            <Tabs defaultValue="history" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4 bg-white shadow-sm">
+                <TabsTrigger value="history" className="gap-2">
+                  <Wrench className="w-4 h-4" />
+                  Historie údržby
+                </TabsTrigger>
+                <TabsTrigger value="active-issues" className="gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Aktivní závady ({issues.length})
+                </TabsTrigger>
+                <TabsTrigger value="inspections" className="gap-2">
+                  <ClipboardCheck className="w-4 h-4" />
+                  Inspekce ({inspectionRecords.length})
+                </TabsTrigger>
+                <TabsTrigger value="costs" className="gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Náklady
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Historie pracovních příkazů */}
+              <TabsContent value="history">
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Wrench className="w-5 h-5 text-green-600" />
+                        Historie pracovních příkazů (WO)
+                      </CardTitle>
+                      <Badge variant="outline" className="text-sm">
+                        {maintenanceRecords.length} záznamů
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {maintenanceRecords.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500 mb-2">Zatím nejsou záznamy o údržbě</p>
+                        <p className="text-sm text-slate-400">První záznam můžete přidat v administraci</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {maintenanceRecords.map((record) => (
+                          <Card key={record.id} className="border border-slate-200">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                    <Badge className={
+                                      record.maintenance_type === "preventive" ? "bg-green-100 text-green-800" :
+                                      record.maintenance_type === "corrective" ? "bg-orange-100 text-orange-800" :
+                                      record.maintenance_type === "predictive" ? "bg-blue-100 text-blue-800" :
+                                      "bg-purple-100 text-purple-800"
+                                    }>
+                                      {record.maintenance_type === "preventive" ? "Preventivní" :
+                                       record.maintenance_type === "corrective" ? "Korektivní" :
+                                       record.maintenance_type === "predictive" ? "Prediktivní" :
+                                       "Inspekce"}
+                                    </Badge>
+                                    <h3 className="font-bold text-slate-900">{record.title}</h3>
+                                  </div>
+                                  <p className="text-sm text-slate-600 mb-2">{record.description}</p>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                                    <div className="bg-slate-50 rounded-lg p-2">
+                                      <p className="text-xs text-slate-500">Datum provedení</p>
+                                      <p className="text-sm font-medium text-slate-900">
+                                        {format(new Date(record.performed_at), "d.M. yyyy HH:mm", { locale: cs })}
+                                      </p>
+                                    </div>
+                                    {record.duration_hours && (
+                                      <div className="bg-slate-50 rounded-lg p-2">
+                                        <p className="text-xs text-slate-500">Doba trvání</p>
+                                        <p className="text-sm font-medium text-slate-900">{record.duration_hours}h</p>
+                                      </div>
+                                    )}
+                                    {record.technician && (
+                                      <div className="bg-slate-50 rounded-lg p-2">
+                                        <p className="text-xs text-slate-500">Technik</p>
+                                        <p className="text-sm font-medium text-slate-900">{getUserDisplayName(record.technician)}</p>
+                                      </div>
+                                    )}
+                                    {record.cost && (
+                                      <div className="bg-green-50 rounded-lg p-2">
+                                        <p className="text-xs text-green-700">Náklady</p>
+                                        <p className="text-sm font-bold text-green-900">
+                                          {record.cost.toLocaleString()} Kč
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {record.notes && (
+                                    <p className="text-xs text-slate-500 mt-2 italic bg-slate-50 p-2 rounded">{record.notes}</p>
+                                  )}
+                                </div>
                               </div>
-                              <p className="text-sm text-slate-600 mb-2">{record.description}</p>
-                              <div className="flex items-center gap-4 text-xs text-slate-500">
-                                <span>{format(new Date(record.performed_at), "d.M. yyyy HH:mm", { locale: cs })}</span>
-                                {record.duration_hours && <span>• {record.duration_hours}h</span>}
-                                {record.technician && <span>• {getUserDisplayName(record.technician)}</span>}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Aktivní závady / Otevřené WO */}
+              <TabsContent value="active-issues">
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-orange-600" />
+                        Aktuální otevřené závady / WO
+                      </CardTitle>
+                      {issues.length > 0 && (
+                        <Badge variant="destructive">
+                          {issues.length} aktivních
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {issues.length === 0 ? (
+                      <div className="text-center py-12">
+                        <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                          Žádné aktivní závady
+                        </h3>
+                        <p className="text-slate-500">
+                          Stroj je v dobrém stavu, žádné nahlášené problémy
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {issues.map((issue) => {
+                          const point = controlPoints.find(p => p.id === issue.control_point_id);
+                          return (
+                            <Card key={issue.id} className="border-l-4 border-l-orange-500 bg-orange-50/30">
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                      <h3 className="font-bold text-slate-900">
+                                        {point?.name || "Neznámý bod"}
+                                      </h3>
+                                      <Badge className="bg-orange-500 text-white">
+                                        Aktivní
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-slate-700 bg-white p-3 rounded-lg border border-orange-200 mb-2">
+                                      {issue.description}
+                                    </p>
+                                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                                      <span>
+                                        Nahlášeno: {format(new Date(issue.created_date), "d. M. yyyy HH:mm", { locale: cs })}
+                                      </span>
+                                      <span>•</span>
+                                      <span>{getUserDisplayName(issue.created_by)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Záznamy o kontrolách / inspekcích */}
+              <TabsContent value="inspections">
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <ClipboardCheck className="w-5 h-5 text-purple-600" />
+                        Záznamy o kontrolách a inspekcích
+                      </CardTitle>
+                      <Badge variant="outline">
+                        {inspectionRecords.length} záznamů
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {inspectionRecords.length === 0 ? (
+                      <div className="text-center py-12">
+                        <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500 mb-2">Zatím nebyly provedeny žádné inspekce</p>
+                        <p className="text-sm text-slate-400">Inspekce se provádějí na kontrolních bodech typu "Inspekce"</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {inspectionRecords.map((record) => {
+                          const point = controlPoints.find(p => p.id === record.control_point_id);
+                          return (
+                            <div key={record.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-200">
+                              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                <ClipboardCheck className="w-5 h-5 text-purple-600" />
                               </div>
-                              {record.notes && (
-                                <p className="text-xs text-slate-500 mt-2 italic">{record.notes}</p>
-                              )}
-                            </div>
-                            {record.cost && (
-                              <div className="text-right">
-                                <p className="text-lg font-bold text-green-600">
-                                  {record.cost.toLocaleString()} Kč
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 truncate">
+                                  {point?.name || "Neznámý bod"}
                                 </p>
+                                <p className="text-xs text-slate-500">
+                                  {format(new Date(record.performed_at), "d.M. yyyy HH:mm", { locale: cs })} • {getUserDisplayName(record.created_by)}
+                                </p>
+                                {record.note && (
+                                  <p className="text-xs text-slate-600 mt-1 italic">{record.note}</p>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                Provedeno
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Náklady na údržbu */}
+              <TabsContent value="costs" className="space-y-6">
+                {/* Celkové náklady a statistiky */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-green-100 text-sm font-medium mb-1">Celkové náklady</p>
+                          <p className="text-3xl font-bold">{totalMaintenanceCost.toLocaleString()} Kč</p>
+                          <p className="text-green-100 text-xs mt-2">
+                            Z {maintenanceRecords.length} zásahů
+                          </p>
+                        </div>
+                        <TrendingUp className="w-8 h-8 text-white/80" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-none shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                    <CardContent className="p-6">
+                      <div>
+                        <p className="text-emerald-100 text-sm font-medium mb-1">Preventivní</p>
+                        <p className="text-2xl font-bold">{costByType.preventive.toLocaleString()} Kč</p>
+                        <p className="text-emerald-100 text-xs mt-2">
+                          {maintenanceRecords.filter(r => r.maintenance_type === "preventive").length} zásahů
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-none shadow-lg bg-gradient-to-br from-amber-500 to-amber-600 text-white">
+                    <CardContent className="p-6">
+                      <div>
+                        <p className="text-amber-100 text-sm font-medium mb-1">Korektivní</p>
+                        <p className="text-2xl font-bold">{costByType.corrective.toLocaleString()} Kč</p>
+                        <p className="text-amber-100 text-xs mt-2">
+                          {maintenanceRecords.filter(r => r.maintenance_type === "corrective").length} zásahů
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                    <CardContent className="p-6">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium mb-1">Průměrné náklady</p>
+                        <p className="text-2xl font-bold">
+                          {maintenanceRecords.length > 0 
+                            ? Math.round(totalMaintenanceCost / maintenanceRecords.length).toLocaleString() 
+                            : 0} Kč
+                        </p>
+                        <p className="text-blue-100 text-xs mt-2">
+                          Na jeden zásah
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Grafy */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Graf nákladů podle typu */}
+                  <Card className="border-none shadow-lg">
+                    <CardHeader className="border-b border-slate-100">
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart2 className="w-5 h-5 text-green-600" />
+                        Náklady podle typu údržby
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {costByTypeData.length === 0 ? (
+                        <p className="text-center text-slate-500 py-8">Zatím nejsou data o nákladech</p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={250}>
+                          <PieChart>
+                            <Pie
+                              data={costByTypeData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, value }) => `${name}: ${value.toLocaleString()} Kč`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {costByTypeData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => `${value.toLocaleString()} Kč`} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Graf nákladů v čase */}
+                  <Card className="border-none shadow-lg">
+                    <CardHeader className="border-b border-slate-100">
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                        Vývoj nákladů v čase
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {costByMonthData.length === 0 || costByMonthData.every(d => d.cost === 0) ? (
+                        <p className="text-center text-slate-500 py-8">Zatím nejsou data o nákladech</p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={250}>
+                          <BarChart data={costByMonthData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="month" stroke="#64748b" />
+                            <YAxis stroke="#64748b" />
+                            <Tooltip formatter={(value) => `${value.toLocaleString()} Kč`} />
+                            <Bar dataKey="cost" fill="#10b981" name="Náklady (Kč)" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Detailní přehled nákladů */}
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="border-b border-slate-100">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-slate-600" />
+                      Detailní přehled nákladů
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {maintenanceRecords.filter(r => r.cost).length === 0 ? (
+                      <p className="text-center text-slate-500 py-8">Zatím nejsou záznamy s vyplněnými náklady</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                              <th className="text-left p-3 text-sm font-semibold text-slate-700">Datum</th>
+                              <th className="text-left p-3 text-sm font-semibold text-slate-700">Název</th>
+                              <th className="text-left p-3 text-sm font-semibold text-slate-700">Typ</th>
+                              <th className="text-right p-3 text-sm font-semibold text-slate-700">Náklady</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {maintenanceRecords
+                              .filter(r => r.cost)
+                              .map((record) => (
+                                <tr key={record.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                  <td className="p-3 text-sm text-slate-600">
+                                    {format(new Date(record.performed_at), "d.M. yyyy", { locale: cs })}
+                                  </td>
+                                  <td className="p-3 text-sm text-slate-900 font-medium">
+                                    {record.title}
+                                  </td>
+                                  <td className="p-3">
+                                    <Badge variant="outline" className="text-xs">
+                                      {record.maintenance_type === "preventive" ? "Preventivní" :
+                                       record.maintenance_type === "corrective" ? "Korektivní" :
+                                       record.maintenance_type === "predictive" ? "Prediktivní" :
+                                       "Inspekce"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-sm text-right font-bold text-green-700">
+                                    {record.cost.toLocaleString()} Kč
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Náhradní díly */}
