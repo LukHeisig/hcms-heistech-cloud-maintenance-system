@@ -22,7 +22,7 @@ import {
   TrendingUp,
   Users,
   BarChart2,
-  FileText, // General file with text
+  FileText,
   Wrench,
   Activity,
   Building2,
@@ -30,13 +30,13 @@ import {
   Camera,
   Upload,
   X,
-  FileIcon, // General file icon
-  FileImage, // Image file icon
-  FileJson, // JSON file icon
-  CalendarClock, // Replaced Calendar as CalendarIcon, used for planned maintenance
-  Plus, // Added for adding new tasks
-  UserCheck, // Added for assigned user status
-  Send, // Added for sending notifications
+  FileIcon,
+  FileImage,
+  FileJson,
+  Plus,
+  Calendar, // Added by outline to replace CalendarClock
+  UserCheck,
+  Send
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -78,7 +78,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea"; // Added for description/notes
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Machine() {
   const navigate = useNavigate();
@@ -1333,7 +1333,7 @@ export default function Machine() {
             <Tabs defaultValue="planned" className="space-y-6">
               <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm">
                 <TabsTrigger value="planned" className="gap-2">
-                  <CalendarClock className="w-4 h-4" />
+                  <Calendar className="w-4 h-4" />
                   Plánovaná údržba ({activePlannedTasks.length})
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-2">
@@ -1360,7 +1360,7 @@ export default function Machine() {
                   <CardHeader className="border-b border-slate-100">
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
-                        <CalendarClock className="w-5 h-5 text-blue-600" />
+                        <Calendar className="w-5 h-5 text-blue-600" />
                         Plánovaná údržba
                       </CardTitle>
                       {canManagePlannedMaintenance && (
@@ -1377,7 +1377,7 @@ export default function Machine() {
                   <CardContent className="p-6">
                     {activePlannedTasks.length === 0 ? (
                       <div className="text-center py-12">
-                        <CalendarClock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-500 mb-2">Zatím nejsou naplánované žádné úkoly údržby</p>
                         {canManagePlannedMaintenance && (
                           <p className="text-sm text-slate-400">Klikněte na "Přidat plánovaný úkol" pro vytvoření nového</p>
