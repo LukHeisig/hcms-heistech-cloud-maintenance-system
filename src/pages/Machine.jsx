@@ -375,12 +375,13 @@ export default function Machine() {
     temp: m.temperature || 0,
   }));
 
+  // Data pro koláčový graf - typy údržby
   const maintenanceTypeData = [
     { name: "Preventivní", value: maintenanceRecords.filter(r => r.maintenance_type === "preventive").length, color: "#10b981" },
-    { name: "Korektivní", value: maintenanceRecords.filter(r => r.maintenance_type === "corrective").length, color: "#f59e0b" },
+    { name: "Reaktivní", value: maintenanceRecords.filter(r => r.maintenance_type === "corrective").length, color: "#f59e0b" },
     { name: "Prediktivní", value: maintenanceRecords.filter(r => r.maintenance_type === "predictive").length, color: "#3b82f6" },
     { name: "Inspekce", value: maintenanceRecords.filter(r => r.maintenance_type === "inspection").length, color: "#8b5cf6" },
-  ];
+  ].filter(item => item.value > 0);
 
   // Mutace pro plánovanou údržbu
   const createPlannedMaintenanceMutation = useMutation({
@@ -977,7 +978,7 @@ export default function Machine() {
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className={`text-sm font-medium ${status === "overdue" ? "text-yellow-700" : "text-slate-900"}`}>
+                                <p className={`text-sm font-medium ${status === "overdue" ? "text-red-700" : "text-slate-900"}`}>
                                   {format(nextDate, "d.M. yyyy", { locale: cs })}
                                 </p>
                                 {status === "overdue" && (
