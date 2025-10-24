@@ -24,7 +24,9 @@ import {
   BarChart2,
   FileText,
   Wrench,
-  Activity
+  Activity,
+  Building2, // Added Building2 icon
+  Factory // Added Factory icon, although not directly used in breadcrumbs, it was in the initial outline. I'll include it for consistency with the provided outline, but it could be removed if not used elsewhere.
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -68,6 +70,16 @@ export default function Machine() {
       return lines.find(l => l.id === machine.line_id);
     },
     enabled: !!machine?.line_id,
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ["company", line?.company_id],
+    queryFn: async () => {
+      if (!line?.company_id) return null;
+      const companies = await base44.entities.Company.list();
+      return companies.find(c => c.id === line.company_id);
+    },
+    enabled: !!line?.company_id,
   });
 
   const { data: controlPoints = [] } = useQuery({
@@ -297,14 +309,25 @@ export default function Machine() {
       <div className="max-w-7xl mx-auto">
         {/* Hlavička stroje */}
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(createPageUrl(`Lines?company=${line?.company_id}&line=${machine.line_id}`))}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Zpět na {line?.name}
-          </Button>
+          {/* Breadcrumbs - Replaces the old "Zpět na {line?.name}" button */}
+          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
+            <Building2 className="w-4 h-4 text-slate-500" />
+            <button
+              onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}`))}
+              className="hover:text-slate-900 transition-colors"
+            >
+              {company?.name || "Podnik"}
+            </button>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <button
+              onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}&line=${line?.id}`))}
+              className="hover:text-slate-900 transition-colors"
+            >
+              {line?.name || "Linka"}
+            </button>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <span className="font-semibold text-slate-900">{machine.name}</span>
+          </div>
           
           <Card className="border-none shadow-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white overflow-hidden">
             <CardContent className="p-8">

@@ -37,7 +37,12 @@ import {
   Camera,
   Upload,
   Image as ImageIcon,
-  X
+  X,
+  Plus, // Added from outline
+  ChevronRight, // Added from outline
+  Building2, // Added from outline
+  Factory, // Added from outline
+  Settings // Added from outline
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -77,6 +82,26 @@ export default function ControlPoint() {
       return machines.find((m) => m.id === point.machine_id);
     },
     enabled: !!point?.machine_id,
+  });
+
+  const { data: line } = useQuery({
+    queryKey: ["line", machine?.line_id],
+    queryFn: async () => {
+      if (!machine?.line_id) return null;
+      const lines = await base44.entities.Line.list();
+      return lines.find((l) => l.id === machine.line_id);
+    },
+    enabled: !!machine?.line_id,
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ["company", line?.company_id],
+    queryFn: async () => {
+      if (!line?.company_id) return null;
+      const companies = await base44.entities.Company.list();
+      return companies.find((c) => c.id === line.company_id);
+    },
+    enabled: !!line?.company_id,
   });
 
   const { data: records = [] } = useQuery({
@@ -224,7 +249,7 @@ export default function ControlPoint() {
     await uploadPhotoMutation.mutateAsync(file);
   };
 
-  if (!point || !machine) {
+  if (!point) {
     return (
       <div className="p-8">
         <div className="max-w-7xl mx-auto">
@@ -242,15 +267,44 @@ export default function ControlPoint() {
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <Button
           variant="ghost"
-          onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
+          onClick={() => navigate(createPageUrl(`Machine?id=${point.machine_id}`))}
           className="mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Zpět na {machine.name}
+          Zpět na stroj
         </Button>
+
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-sm text-slate-600 mb-6 flex-wrap">
+          <Building2 className="w-4 h-4" />
+          <button
+            onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}`))}
+            className="hover:text-slate-900 transition-colors"
+          >
+            {company?.name || "Podnik"}
+          </button>
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+          <button
+            onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}&line=${line?.id}`))}
+            className="hover:text-slate-900 transition-colors"
+          >
+            {line?.name || "Linka"}
+          </button>
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+          <button
+            onClick={() => navigate(createPageUrl(`Machine?id=${machine?.id}`))}
+            className="hover:text-slate-900 transition-colors"
+          >
+            {machine?.name || "Stroj"}
+          </button>
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+          <span className="font-semibold text-slate-900">
+            {point.number && `${point.number} - `}{point.name}
+          </span>
+        </div>
 
         {/* Hlavní karta s vším obsahem */}
         <Card className="shadow-xl">
@@ -299,7 +353,7 @@ export default function ControlPoint() {
                   <p className="text-slate-600 mb-3">{point.description}</p>
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline">{machine.name}</Badge>
+                  <Badge variant="outline">{machine?.name || "Stroj"}</Badge>
                   <Badge variant="outline">
                     {point.type === "lubrication"
                       ? "Mazání"

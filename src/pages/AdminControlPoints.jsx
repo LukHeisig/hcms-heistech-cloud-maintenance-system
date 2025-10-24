@@ -37,9 +37,14 @@ import {
   Plus,
   Pencil,
   Trash2,
+  GripVertical,
   Droplet,
   CheckCircle,
-  Loader2
+  Loader2,
+  ChevronRight,
+  Building2,
+  Factory,
+  Settings
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -72,6 +77,26 @@ export default function AdminControlPoints() {
       return machines.find((m) => m.id === machineId);
     },
     enabled: !!machineId,
+  });
+
+  const { data: line } = useQuery({
+    queryKey: ["line", machine?.line_id],
+    queryFn: async () => {
+      if (!machine?.line_id) return null;
+      const lines = await base44.entities.Line.list();
+      return lines.find((l) => l.id === machine.line_id);
+    },
+    enabled: !!machine?.line_id,
+  });
+
+  const { data: company } = useQuery({
+    queryKey: ["company", line?.company_id],
+    queryFn: async () => {
+      if (!line?.company_id) return null;
+      const companies = await base44.entities.Company.list();
+      return companies.find((c) => c.id === line.company_id);
+    },
+    enabled: !!line?.company_id,
   });
 
   const { data: controlPoints = [], isLoading } = useQuery({
@@ -190,70 +215,58 @@ export default function AdminControlPoints() {
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate(-1)}
-              className="mb-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Zpět
-            </Button>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Kontrolní body: {machine?.name}
-            </h1>
-            <p className="text-slate-600 mt-1">{controlPoints.length} bodů</p>
-          </div>
+        <div className="mb-8">
           <Button
-            onClick={() => handleOpenDialog()}
-            className="bg-gradient-to-r from-red-600 to-red-700"
+            variant="ghost"
+            onClick={() => navigate(createPageUrl(`AdminMachines?line=${machine?.line_id}`))}
+            className="mb-4"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Přidat bod
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Zpět na stroje
           </Button>
-        </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Droplet className="w-5 h-5 text-blue-600" />
-                Mazací body
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-slate-900">
-                {lubricationPoints.length}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CheckCircle className="w-5 h-5 text-purple-600" />
-                Inspekční body
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-slate-900">
-                {inspectionPoints.length}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Droplet className="w-5 h-5 text-green-600" />
-                Automatické maznice
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-slate-900">
-                {lubricatorPoints.length}
-              </p>
-            </CardContent>
-          </Card>
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
+            <Building2 className="w-4 h-4" />
+            <button
+              onClick={() => navigate(createPageUrl("AdminCompanies"))}
+              className="hover:text-slate-900 transition-colors"
+            >
+              {company?.name || "Podnik"}
+            </button>
+            <ChevronRight className="w-4 h-4" />
+            <button
+              onClick={() => navigate(createPageUrl(`AdminLines?company=${line?.company_id}`))}
+              className="hover:text-slate-900 transition-colors"
+            >
+              {line?.name || "Linka"}
+            </button>
+            <ChevronRight className="w-4 h-4" />
+            <button
+              onClick={() => navigate(createPageUrl(`AdminMachines?line=${machine?.line_id}`))}
+              className="hover:text-slate-900 transition-colors"
+            >
+              {machine?.name || "Stroj"}
+            </button>
+            <ChevronRight className="w-4 h-4" />
+            <span className="font-semibold text-slate-900">Kontrolní body</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Kontrolní body: {machine?.name}
+              </h1>
+              <p className="text-slate-600 mt-1">{controlPoints.length} kontrolních bodů</p>
+            </div>
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="bg-gradient-to-r from-red-600 to-red-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Přidat bod
+            </Button>
+          </div>
         </div>
 
         {controlPoints.length === 0 ? (

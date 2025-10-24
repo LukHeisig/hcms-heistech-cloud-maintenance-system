@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,7 +34,8 @@ import {
   Factory,
   ChevronRight,
   Loader2,
-  Copy
+  Copy,
+  Building2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -237,28 +239,43 @@ export default function AdminLines() {
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate(createPageUrl("AdminCompanies"))}
-              className="mb-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Zpět na podniky
-            </Button>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Správa linek: {company?.name}
-            </h1>
-            <p className="text-slate-600 mt-1">{lines.length} linek</p>
-          </div>
+        <div className="mb-8">
           <Button
-            onClick={() => handleOpenDialog()}
-            className="bg-gradient-to-r from-red-600 to-red-700"
+            variant="ghost"
+            onClick={() => navigate(createPageUrl("AdminCompanies"))}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Přidat linku
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Zpět na podniky
           </Button>
+
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 mt-4">
+            <Building2 className="w-4 h-4" />
+            <button
+              onClick={() => navigate(createPageUrl("AdminCompanies"))}
+              className="hover:text-slate-900 transition-colors"
+            >
+              Správa podniků
+            </button>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <span className="font-semibold text-slate-900">{company?.name}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Správa linek: {company?.name}
+              </h1>
+              <p className="text-slate-600 mt-1">{lines.length} linek</p>
+            </div>
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="bg-gradient-to-r from-red-600 to-red-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Přidat linku
+            </Button>
+          </div>
         </div>
 
         {lines.length === 0 ? (

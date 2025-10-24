@@ -355,28 +355,54 @@ export default function Lines() {
   }
 
   const currentLine = lines.find((l) => l.id === selectedLine);
+  const currentCompany = companies.find((c) => c.id === selectedCompany);
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => setSelectedLine(null)}
-              className="mb-2"
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => setSelectedLine(null)}
+            className="mb-4"
+          >
+            ← Zpět na linky
+          </Button>
+
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
+            <Building2 className="w-4 h-4" />
+            <button
+              onClick={() => {
+                setSelectedLine(null);
+                setSelectedCompany(null);
+              }}
+              className="hover:text-slate-900 transition-colors"
             >
-              ← Zpět na linky
-            </Button>
-            <h1 className="text-3xl font-bold text-slate-900">
-              {currentLine?.name}
-            </h1>
-            <p className="text-slate-600 mt-1">
-              {filteredMachines.length} strojů
-            </p>
+              {currentCompany?.name || "Podnik"}
+            </button>
+            <ChevronRight className="w-4 h-4" />
+            <button
+              onClick={() => setSelectedLine(null)}
+              className="hover:text-slate-900 transition-colors"
+            >
+              {currentLine?.name || "Linka"}
+            </button>
+            <ChevronRight className="w-4 h-4" />
+            <span className="font-semibold text-slate-900">Stroje</span>
           </div>
 
+          <h1 className="text-3xl font-bold text-slate-900">
+            {currentLine?.name}
+          </h1>
+          <p className="text-slate-600 mt-1">
+            {filteredMachines.length} strojů
+          </p>
+        </div>
+
+        {/* Filter */}
+        <div className="flex items-center justify-end mb-6">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-48">
               <Filter className="w-4 h-4 mr-2" />
