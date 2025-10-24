@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,9 @@ import {
   X,
   FileIcon, // General file icon
   FileImage, // Image file icon
-  FileJson // JSON file icon
+  FileJson, // JSON file icon
+  Calendar as CalendarIcon, // Added for planned maintenance
+  Plus, // Added for adding new tasks
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -74,7 +76,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { Textarea } from "@/components/ui/textarea"; // Added for description/notes
 
 export default function Machine() {
   const navigate = useNavigate();
@@ -82,6 +84,7 @@ export default function Machine() {
   const machineId = urlParams.get("id");
 
   const queryClient = useQueryClient();
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [uploadingCategory, setUploadingCategory] = useState("drawing");
@@ -93,6 +96,43 @@ export default function Machine() {
   const [deleteDocId, setDeleteDocId] = useState(null);
   const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
   const [selectedDocPreview, setSelectedDocPreview] = useState(null);
+
+  // Nové stavy pro plánovanou údržbu
+  const [showAddPlannedMaintenanceDialog, setShowAddPlannedMaintenanceDialog] = useState(false);
+  const [showCompleteMaintenanceDialog, setShowCompleteMaintenanceDialog] = useState(false);
+  const [selectedPlannedTask, setSelectedPlannedTask] = useState(null);
+  const [plannedMaintenanceForm, setPlannedMaintenanceForm] = useState({
+    title: "",
+    description: "",
+    maintenance_type: "preventive",
+    planned_date: "",
+    assigned_to: "",
+    priority: "medium",
+    estimated_duration_hours: null,
+    estimated_cost: null,
+    interval_days: null,
+    notes: "",
+  });
+  const [completionForm, setCompletionForm] = useState({
+    duration_hours: null,
+    cost: null,
+    notes: "",
+  });
+
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const user = await base44.auth.me();
+      setCurrentUser(user);
+    } catch (error) {
+      console.error("Failed to load current user:", error);
+      // Handle cases where user might not be logged in, or token is invalid
+      setCurrentUser(null);
+    }
+  };
 
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
@@ -177,6 +217,13 @@ export default function Machine() {
   const { data: maintenanceRecords = [] } = useQuery({
     queryKey: ["maintenanceRecords", machineId],
     queryFn: () => base44.entities.MaintenanceRecord.filter({ machine_id: machineId }, "-performed_at"),
+    enabled: !!machineId,
+  });
+
+  // Nový query pro plánované úkoly údržby
+  const { data: plannedMaintenance = [] } = useQuery({
+    queryKey: ["plannedMaintenance", machineId],
+    queryFn: () => base44.entities.PlannedMaintenance.filter({ machine_id: machineId }, "planned_date"),
     enabled: !!machineId,
   });
 
@@ -321,6 +368,117 @@ export default function Machine() {
     { name: "Prediktivní", value: maintenanceRecords.filter(r => r.maintenance_type === "predictive").length, color: "#3b82f6" },
     { name: "Inspekce", value: maintenanceRecords.filter(r => r.maintenance_type === "inspection").length, color: "#8b5cf6" },
   ];
+
+  // Mutace pro plánovanou údržbu
+  const createPlannedMaintenanceMutation = useMutation({
+    mutationFn: (data) => base44.entities.PlannedMaintenance.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["plannedMaintenance"] });
+      setShowAddPlannedMaintenanceDialog(false);
+      setPlannedMaintenanceForm({
+        title: "",
+        description: "",
+        maintenance_type: "preventive",
+        planned_date: "",
+        assigned_to: "",
+        priority: "medium",
+        estimated_duration_hours: null,
+        estimated_cost: null,
+        interval_days: null,
+        notes: "",
+      });
+    },
+    onError: (error) => {
+      console.error("Error creating planned maintenance:", error);
+      alert("Chyba při vytváření plánovaného úkolu: " + error.message);
+    }
+  });
+
+  const createWorkOrderMutation = useMutation({
+    mutationFn: async ({ taskId, task }) => {
+      // Změnit status na "assigned" a poslat notifikaci
+      await base44.entities.PlannedMaintenance.update(taskId, {
+        status: "assigned",
+        work_order_created_at: new Date().toISOString(),
+      });
+      
+      // Poslat email notifikaci technikovi
+      if (task.assigned_to) {
+        const assignedUserName = getUserDisplayName(task.assigned_to);
+        
+        await base44.integrations.Core.SendEmail({
+          to: task.assigned_to,
+          subject: `Nový pracovní příkaz: ${task.title}`,
+          body: `Dobrý den ${assignedUserName},\n\nByl vám přiřazen nový pracovní příkaz:\n\nStroj: ${machine.name}\nÚkol: ${task.title}\nPopis: ${task.description || "Bez popisu"}\nPlánované datum: ${format(new Date(task.planned_date), "d. M. yyyy", { locale: cs })}\nPriorita: ${task.priority === "high" ? "Vysoká" : task.priority === "medium" ? "Střední" : "Nízká"}\n\nProsím přihlaste se do systému a potvrďte provedení po dokončení.\n\nS pozdravem,\nDEMIP systém`,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["plannedMaintenance"] });
+    },
+    onError: (error) => {
+      console.error("Error creating work order:", error);
+      alert("Chyba při vytváření pracovního příkazu: " + error.message);
+    }
+  });
+
+  const completeMaintenanceMutation = useMutation({
+    mutationFn: async ({ taskId, task, completionData }) => {
+      // Vytvořit MaintenanceRecord
+      const maintenanceRecord = await base44.entities.MaintenanceRecord.create({
+        machine_id: machineId,
+        maintenance_type: task.maintenance_type,
+        title: task.title,
+        description: task.description,
+        performed_at: new Date().toISOString(),
+        duration_hours: completionData.duration_hours,
+        cost: completionData.cost,
+        technician: currentUser?.email,
+        notes: completionData.notes,
+      });
+
+      // Aktualizovat plánovaný úkol
+      await base44.entities.PlannedMaintenance.update(taskId, {
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        maintenance_record_id: maintenanceRecord.id,
+      });
+
+      return maintenanceRecord;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["plannedMaintenance"] });
+      queryClient.invalidateQueries({ queryKey: ["maintenanceRecords"] });
+      setShowCompleteMaintenanceDialog(false);
+      setSelectedPlannedTask(null);
+      setCompletionForm({
+        duration_hours: null,
+        cost: null,
+        notes: "",
+      });
+    },
+    onError: (error) => {
+      console.error("Error completing maintenance:", error);
+      alert("Chyba při potvrzování provedení údržby: " + error.message);
+    }
+  });
+
+  const cancelPlannedMaintenanceMutation = useMutation({
+    mutationFn: (taskId) => base44.entities.PlannedMaintenance.update(taskId, { status: "cancelled" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["plannedMaintenance"] });
+    },
+    onError: (error) => {
+      console.error("Error cancelling planned maintenance:", error);
+      alert("Chyba při rušení plánovaného úkolu: " + error.message);
+    }
+  });
+
+  const canManagePlannedMaintenance = currentUser && (
+    currentUser.user_type === "manager" ||
+    currentUser.user_type === "admin" ||
+    currentUser.user_type === "superAdmin"
+  );
 
   const renderPointsList = (points, type) => {
     if (points.length === 0) {
@@ -529,6 +687,32 @@ export default function Machine() {
       setDeleteDocId(null);
     }
   };
+
+  const handleAddPlannedMaintenance = async () => {
+    await createPlannedMaintenanceMutation.mutateAsync({
+      machine_id: machineId,
+      ...plannedMaintenanceForm,
+    });
+  };
+
+  const handleCreateWorkOrder = async (task) => {
+    if (window.confirm(`Opravdu chcete vytvořit pracovní příkaz a přiřadit ho technikovi ${getUserDisplayName(task.assigned_to)}? Technik obdrží emailovou notifikaci.`)) {
+      await createWorkOrderMutation.mutateAsync({ taskId: task.id, task });
+    }
+  };
+
+  const handleCompleteMaintenance = async () => {
+    await completeMaintenanceMutation.mutateAsync({
+      taskId: selectedPlannedTask.id,
+      task: selectedPlannedTask,
+      completionData: completionForm,
+    });
+  };
+
+  // Filtrovat plánované úkoly podle statusu
+  const activePlannedTasks = plannedMaintenance.filter(t => t.status === "planned" || t.status === "assigned");
+  const completedPlannedTasks = plannedMaintenance.filter(t => t.status === "completed");
+
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -1133,8 +1317,12 @@ export default function Machine() {
 
           {/* Údržba a servis - ROZŠÍŘENÁ VERZE */}
           <TabsContent value="maintenance">
-            <Tabs defaultValue="history" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 bg-white shadow-sm">
+            <Tabs defaultValue="planned" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm">
+                <TabsTrigger value="planned" className="gap-2">
+                  <CalendarIcon className="w-4 h-4" />
+                  Plánovaná údržba ({activePlannedTasks.length})
+                </TabsTrigger>
                 <TabsTrigger value="history" className="gap-2">
                   <Wrench className="w-4 h-4" />
                   Historie údržby
@@ -1152,6 +1340,164 @@ export default function Machine() {
                   Náklady
                 </TabsTrigger>
               </TabsList>
+
+              {/* Plánovaná údržba */}
+              <TabsContent value="planned">
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <CalendarIcon className="w-5 h-5 text-blue-600" />
+                        Plánovaná údržba
+                      </CardTitle>
+                      {canManagePlannedMaintenance && (
+                        <Button
+                          onClick={() => setShowAddPlannedMaintenanceDialog(true)}
+                          className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Přidat plánovaný úkol
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {activePlannedTasks.length === 0 ? (
+                      <div className="text-center py-12">
+                        <CalendarIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500 mb-2">Zatím nejsou naplánované žádné úkoly údržby</p>
+                        {canManagePlannedMaintenance && (
+                          <p className="text-sm text-slate-400">Klikněte na "Přidat plánovaný úkol" pro vytvoření nového</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {activePlannedTasks.map((task) => {
+                          const isOverdue = new Date(task.planned_date) < new Date() && task.status === "planned";
+                          const isAssigned = task.status === "assigned";
+                          const canComplete = isAssigned && (currentUser?.email === task.assigned_to || canManagePlannedMaintenance);
+
+                          return (
+                            <Card key={task.id} className={`border-l-4 ${
+                              isOverdue ? "border-l-red-500 bg-red-50/30" :
+                              isAssigned ? "border-l-blue-500 bg-blue-50/30" :
+                              "border-l-green-500 bg-green-50/30"
+                            }`}>
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                      <h3 className="font-bold text-slate-900 text-lg">{task.title}</h3>
+                                      <Badge className={
+                                        task.maintenance_type === "preventive" ? "bg-green-100 text-green-800" :
+                                        task.maintenance_type === "predictive" ? "bg-blue-100 text-blue-800" :
+                                        "bg-purple-100 text-purple-800"
+                                      }>
+                                        {task.maintenance_type === "preventive" ? "Preventivní" :
+                                         task.maintenance_type === "predictive" ? "Prediktivní" :
+                                         "Inspekce"}
+                                      </Badge>
+                                      {task.priority === "high" && (
+                                        <Badge variant="destructive">Vysoká priorita</Badge>
+                                      )}
+                                      {isOverdue && (
+                                        <Badge className="bg-red-500 text-white">Po termínu</Badge>
+                                      )}
+                                      {isAssigned && (
+                                        <Badge className="bg-blue-500 text-white">Pracovní příkaz vytvořen</Badge>
+                                      )}
+                                    </div>
+                                    {task.description && (
+                                      <p className="text-sm text-slate-600 mb-3">{task.description}</p>
+                                    )}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                      <div className="bg-white rounded-lg p-2 border border-slate-200">
+                                        <p className="text-xs text-slate-500">Plánované datum</p>
+                                        <p className={`text-sm font-medium ${isOverdue ? "text-red-700" : "text-slate-900"}`}>
+                                          {format(new Date(task.planned_date), "d. M. yyyy", { locale: cs })}
+                                        </p>
+                                      </div>
+                                      {task.assigned_to && (
+                                        <div className="bg-white rounded-lg p-2 border border-slate-200">
+                                          <p className="text-xs text-slate-500">Přiřazeno</p>
+                                          <p className="text-sm font-medium text-slate-900">
+                                            {getUserDisplayName(task.assigned_to)}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {task.estimated_duration_hours && (
+                                        <div className="bg-white rounded-lg p-2 border border-slate-200">
+                                          <p className="text-xs text-slate-500">Odhad. čas</p>
+                                          <p className="text-sm font-medium text-slate-900">{task.estimated_duration_hours}h</p>
+                                        </div>
+                                      )}
+                                      {task.estimated_cost && (
+                                        <div className="bg-white rounded-lg p-2 border border-slate-200">
+                                          <p className="text-xs text-slate-500">Odhad. náklady</p>
+                                          <p className="text-sm font-medium text-slate-900">{task.estimated_cost.toLocaleString()} Kč</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {task.notes && (
+                                      <p className="text-xs text-slate-500 italic bg-slate-50 p-2 rounded">{task.notes}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {canManagePlannedMaintenance && !isAssigned && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleCreateWorkOrder(task)}
+                                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                                      disabled={!task.assigned_to || createWorkOrderMutation.isLoading}
+                                    >
+                                      {createWorkOrderMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                      Vytvořit pracovní příkaz
+                                    </Button>
+                                  )}
+                                  {canComplete && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedPlannedTask(task);
+                                        setCompletionForm({
+                                          duration_hours: task.estimated_duration_hours || null,
+                                          cost: task.estimated_cost || null,
+                                          notes: "",
+                                        });
+                                        setShowCompleteMaintenanceDialog(true);
+                                      }}
+                                      className="gap-2 bg-green-600 hover:bg-green-700"
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                      Potvrdit provedení
+                                    </Button>
+                                  )}
+                                  {canManagePlannedMaintenance && task.status === "planned" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        if (window.confirm("Opravdu chcete zrušit tento plánovaný úkol?")) {
+                                          cancelPlannedMaintenanceMutation.mutate(task.id);
+                                        }
+                                      }}
+                                      className="gap-2 text-red-600 hover:text-red-700"
+                                    >
+                                      <X className="w-4 h-4" />
+                                      Zrušit
+                                    </Button>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               {/* Historie pracovních příkazů */}
               <TabsContent value="history">
@@ -1750,9 +2096,9 @@ export default function Machine() {
                             )}
                             {measurement.a_envelope !== null && (
                               <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                <p className="text-xs text-slate-500 mb-1">aENVELOP</p>
-                                <p className="text-lg font-bold text-slate-900">{measurement.a_envelope}</p>
-                                <p className="text-xs text-slate-500">g</p>
+                                <p className="text-xs text-slate-500 mb-1">OA</p>
+                                <p className="text-lg font-bold text-slate-900">{measurement.overall_acceleration}</p>
+                                <p className="text-xs text-slate-500">m/s²</p>
                               </div>
                             )}
                             {measurement.overall_acceleration !== null && (
@@ -1973,74 +2319,247 @@ export default function Machine() {
           </TabsContent>
         </Tabs>
 
-        {/* Dialog pro nahrávání souboru */}
-        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-          <DialogContent>
+        {/* Dialog pro přidání plánované údržby */}
+        <Dialog open={showAddPlannedMaintenanceDialog} onOpenChange={setShowAddPlannedMaintenanceDialog}>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Nahrát dokumentaci</DialogTitle>
+              <DialogTitle>Přidat plánovaný úkol údržby</DialogTitle>
               <DialogDescription>
-                Vyberte typ a soubor pro nahrání dokumentace stroje.
+                Vytvořte nový plánovaný úkol údržby pro stroj {machine.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div>
+                <Label htmlFor="title">Název úkolu *</Label>
+                <Input
+                  id="title"
+                  value={plannedMaintenanceForm.title}
+                  onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, title: e.target.value })}
+                  placeholder="Např. Výměna oleje, Kontrola ložisek..."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Popis</Label>
+                <Textarea
+                  id="description"
+                  value={plannedMaintenanceForm.description}
+                  onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, description: e.target.value })}
+                  placeholder="Detailní popis práce..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <Label htmlFor="uploadCategory">Kategorie dokumentace *</Label>
-                    <Select
-                        value={uploadingCategory}
-                        onValueChange={setUploadingCategory}
-                    >
-                        <SelectTrigger id="uploadCategory">
-                            <SelectValue placeholder="Vyberte kategorii" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="drawing">Výkresová dokumentace</SelectItem>
-                            <SelectItem value="operational">Provozní dokumentace</SelectItem>
-                            <SelectItem value="other">Ostatní</SelectItem>
-                        </SelectContent>
-                    </Select>
+                  <Label htmlFor="maintenance_type">Typ údržby *</Label>
+                  <Select
+                    value={plannedMaintenanceForm.maintenance_type}
+                    onValueChange={(value) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, maintenance_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="preventive">Preventivní</SelectItem>
+                      <SelectItem value="predictive">Prediktivní</SelectItem>
+                      <SelectItem value="inspection">Inspekce</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div>
-                    <Label htmlFor="fileName">Název souboru *</Label>
-                    <Input
-                        id="fileName"
-                        value={uploadFileName}
-                        onChange={(e) => setUploadFileName(e.target.value)}
-                        placeholder="Např. Elektrické schéma_v1"
-                    />
+                  <Label htmlFor="priority">Priorita</Label>
+                  <Select
+                    value={plannedMaintenanceForm.priority}
+                    onValueChange={(value) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, priority: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Nízká</SelectItem>
+                      <SelectItem value="medium">Střední</SelectItem>
+                      <SelectItem value="high">Vysoká</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <Label htmlFor="fileInput">Vybrat soubor *</Label>
-                    <Input
-                        id="fileInput"
-                        type="file"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            setSelectedUploadFile(file);
-                            if (!uploadFileName && file) {
-                                setUploadFileName(file.name.split('.').slice(0, -1).join('.'));
-                            }
-                        }}
-                    />
+                  <Label htmlFor="planned_date">Plánované datum *</Label>
+                  <Input
+                    id="planned_date"
+                    type="date"
+                    value={plannedMaintenanceForm.planned_date}
+                    onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, planned_date: e.target.value })}
+                  />
                 </div>
+
+                <div>
+                  <Label htmlFor="assigned_to">Přiřadit technikovi</Label>
+                  <Select
+                    value={plannedMaintenanceForm.assigned_to}
+                    onValueChange={(value) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, assigned_to: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte technika" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allUsers
+                        .filter(u => u.user_type === "technician" || u.user_type === "manager")
+                        .map((user) => (
+                          <SelectItem key={user.id} value={user.email}>
+                            {getUserDisplayName(user.email)}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="estimated_duration">Odhadovaná doba (hodiny)</Label>
+                  <Input
+                    id="estimated_duration"
+                    type="number"
+                    step="0.5"
+                    value={plannedMaintenanceForm.estimated_duration_hours || ""}
+                    onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, estimated_duration_hours: e.target.value ? parseFloat(e.target.value) : null })}
+                    placeholder="Např. 2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="estimated_cost">Odhadované náklady (Kč)</Label>
+                  <Input
+                    id="estimated_cost"
+                    type="number"
+                    value={plannedMaintenanceForm.estimated_cost || ""}
+                    onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, estimated_cost: e.target.value ? parseFloat(e.target.value) : null })}
+                    placeholder="Např. 5000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="interval_days">Interval opakování (dny)</Label>
+                <Input
+                  id="interval_days"
+                  type="number"
+                  value={plannedMaintenanceForm.interval_days || ""}
+                  onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, interval_days: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="Např. 30 (pro měsíční opakování)"
+                />
+                <p className="text-xs text-slate-500 mt-1">Pokud nevyplníte, úkol se nebude opakovat</p>
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Poznámky</Label>
+                <Textarea
+                  id="notes"
+                  value={plannedMaintenanceForm.notes}
+                  onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, notes: e.target.value })}
+                  placeholder="Další poznámky..."
+                  rows={2}
+                />
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
+              <Button variant="outline" onClick={() => setShowAddPlannedMaintenanceDialog(false)}>
                 Zrušit
               </Button>
               <Button
-                onClick={handleFileUpload}
-                disabled={isUploading || !selectedUploadFile || !uploadFileName.trim()}
+                onClick={handleAddPlannedMaintenance}
+                disabled={!plannedMaintenanceForm.title || !plannedMaintenanceForm.planned_date || createPlannedMaintenanceMutation.isLoading}
                 className="bg-gradient-to-r from-blue-600 to-blue-700"
               >
-                {isUploading ? (
+                {createPlannedMaintenanceMutation.isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Nahrávám...
+                    Přidávám...
                   </>
                 ) : (
                   <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Nahrát
+                    <Plus className="w-4 h-4 mr-2" />
+                    Přidat úkol
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog pro potvrzení provedení údržby */}
+        <Dialog open={showCompleteMaintenanceDialog} onOpenChange={setShowCompleteMaintenanceDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Potvrdit provedení údržby</DialogTitle>
+              <DialogDescription>
+                Vyplňte skutečné údaje o provedené údržbě: {selectedPlannedTask?.title}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="duration">Skutečná doba trvání (hodiny) *</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  step="0.5"
+                  value={completionForm.duration_hours || ""}
+                  onChange={(e) => setCompletionForm({ ...completionForm, duration_hours: e.target.value ? parseFloat(e.target.value) : null })}
+                  placeholder="Např. 2.5"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cost">Skutečné náklady (Kč)</Label>
+                <Input
+                  id="cost"
+                  type="number"
+                  value={completionForm.cost || ""}
+                  onChange={(e) => setCompletionForm({ ...completionForm, cost: e.target.value ? parseFloat(e.target.value) : null })}
+                  placeholder="Např. 5000"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="completion_notes">Poznámky k provedení *</Label>
+                <Textarea
+                  id="completion_notes"
+                  value={completionForm.notes}
+                  onChange={(e) => setCompletionForm({ ...completionForm, notes: e.target.value })}
+                  placeholder="Co bylo provedeno, jaké díly byly vyměněny, případné problémy..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-900">
+                  Po potvrzení se vytvoří záznam v historii údržby a úkol bude označen jako dokončený.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCompleteMaintenanceDialog(false)}>
+                Zrušit
+              </Button>
+              <Button
+                onClick={handleCompleteMaintenance}
+                disabled={!completionForm.duration_hours || !completionForm.notes || completeMaintenanceMutation.isLoading}
+                className="bg-gradient-to-r from-green-600 to-green-700"
+              >
+                {completeMaintenanceMutation.isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Dokončuji...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Potvrdit provedení
                   </>
                 )}
               </Button>
