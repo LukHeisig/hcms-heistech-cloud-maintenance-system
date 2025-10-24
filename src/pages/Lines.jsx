@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// Removed Dialog components imports as they are no longer used
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
@@ -129,15 +128,12 @@ export default function Lines() {
 
   const getMachineStatus = (machine) => {
     const machinePoints = controlPoints.filter((p) => p.machine_id === machine.id);
-    // Removed the "issue" status as per requirement to not color based on it
     const overdue = machinePoints.some((p) => getPointStatus(p) === "overdue");
     return overdue ? "overdue" : "ok";
   };
 
   const filteredMachines = machines.filter((machine) => {
     if (filterStatus === "all") return true;
-    // The `issue` status is no longer returned by getMachineStatus, so this implicitly handles it.
-    // If a machine has issues but is not overdue, its status will be 'ok'.
     return getMachineStatus(machine) === filterStatus;
   });
 
@@ -181,10 +177,10 @@ export default function Lines() {
               return (
                 <Card
                   key={company.id}
-                  className={`hover:shadow-lg transition-all cursor-pointer border-2 ${
+                  className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
                     companyStatus === "overdue"
-                      ? "border-yellow-300 bg-yellow-50 hover:border-yellow-400"
-                      : "border-transparent hover:border-red-200"
+                      ? "border-l-yellow-500 bg-yellow-50/50"
+                      : "border-l-green-500 bg-green-50/50"
                   }`}
                   onClick={() => setSelectedCompany(company.id)}
                 >
@@ -194,7 +190,7 @@ export default function Lines() {
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
                           companyStatus === "overdue"
                             ? "bg-gradient-to-br from-yellow-600 to-yellow-700"
-                            : "bg-gradient-to-br from-red-600 to-red-700"
+                            : "bg-gradient-to-br from-green-600 to-green-700"
                         }`}>
                           <Building2 className="w-7 h-7 text-white" />
                         </div>
@@ -291,10 +287,10 @@ export default function Lines() {
               return (
                 <Card
                   key={line.id}
-                  className={`hover:shadow-lg transition-all cursor-pointer border-2 ${
+                  className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
                     lineStatus === "overdue"
-                      ? "border-yellow-300 bg-yellow-50 hover:border-yellow-400"
-                      : "border-transparent hover:border-red-200"
+                      ? "border-l-yellow-500 bg-yellow-50/50"
+                      : "border-l-green-500 bg-green-50/50"
                   }`}
                   onClick={() => setSelectedLine(line.id)}
                 >
@@ -304,7 +300,7 @@ export default function Lines() {
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
                           lineStatus === "overdue"
                             ? "bg-gradient-to-br from-yellow-600 to-yellow-700"
-                            : "bg-gradient-to-br from-red-600 to-red-700"
+                            : "bg-gradient-to-br from-green-600 to-green-700"
                         }`}>
                           <Factory className="w-7 h-7 text-white" />
                         </div>
@@ -319,7 +315,7 @@ export default function Lines() {
                                 Po termínu
                               </Badge>
                             )}
-                            {lineIssuesCount > 0 && ( // Issue badge remains
+                            {lineIssuesCount > 0 && (
                               <Badge className="bg-orange-500 text-white">
                                 <AlertTriangle className="w-3 h-3 mr-1" />
                                 {lineIssuesCount}
@@ -393,7 +389,6 @@ export default function Lines() {
             <SelectContent>
               <SelectItem value="all">Vše</SelectItem>
               <SelectItem value="overdue">Po termínu</SelectItem>
-              {/* Removed "Se závadou" filter option as card styling no longer depends on it directly */}
               <SelectItem value="ok">V pořádku</SelectItem>
             </SelectContent>
           </Select>
@@ -421,7 +416,7 @@ export default function Lines() {
                     ? "border-l-yellow-500 bg-yellow-50/50"
                     : "border-l-green-500 bg-green-50/50"
                 }`}
-                onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))} // Changed to direct navigation
+                onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -473,8 +468,6 @@ export default function Lines() {
             );
           })}
         </div>
-
-        {/* Removed Dialog with machine details */}
       </div>
     </div>
   );
