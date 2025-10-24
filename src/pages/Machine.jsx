@@ -121,6 +121,17 @@ export default function Machine() {
 
   useEffect(() => {
     loadCurrentUser();
+    
+    // Automaticky přepnout na záložku údržba, pokud je v URL hash #maintenance
+    if (window.location.hash === "#maintenance") {
+      // Scroll na záložku nebo změnit aktivní záložku
+      setTimeout(() => {
+        const maintenanceTab = document.querySelector('[data-state="inactive"][value="maintenance"]');
+        if (maintenanceTab) {
+          maintenanceTab.click();
+        }
+      }, 100);
+    }
   }, []);
 
   const loadCurrentUser = async () => {
@@ -810,9 +821,9 @@ export default function Machine() {
                   </div>
                 </div>
                 <div className={`w-24 h-24 rounded-full flex items-center justify-center border-8 ${
-                  machineStatus === "warning" ? "border-yellow-500 bg-yellow-500/20" :
-                  machineStatus === "issues" ? "border-orange-500 bg-orange-500/20" :
-                  "border-green-500 bg-green-500/20"
+                  machineStatus === "warning" ? "border-yellow-500 bg-yellow-50/20" :
+                  machineStatus === "issues" ? "border-orange-500 bg-orange-50/20" :
+                  "border-green-500 bg-green-50/20"
                 }`}>
                   <span className="text-3xl font-bold">
                     {machineStatus === "ok" ? "✓" : machineStatus === "issues" ? "!" : "⏰"}

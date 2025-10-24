@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from '@tanstack/react-query';
@@ -12,7 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  Rocket
+  Rocket,
+  Bell
 } from "lucide-react";
 import {
   Sidebar,
@@ -27,9 +28,19 @@ import {
   SidebarFooter,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { cs } from "date-fns/locale";
 
 export default function Layout({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
@@ -92,6 +103,28 @@ export default function Layout({ children }) {
     enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
+  // Načíst pracovní příkazy přiřazené aktuálnímu uživateli
+  const { data: myWorkOrders = [] } = useQuery({
+    queryKey: ["myWorkOrders", user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      const allOrders = await base44.entities.PlannedMaintenance.filter({ 
+        assigned_to: user.email,
+        status: "assigned"
+      }, "planned_date");
+      return allOrders;
+    },
+    enabled: !!user?.email,
+    refetchInterval: 30000, // Aktualizovat každých 30 sekund
+  });
+
+  // Načíst stroje pro notifikace
+  const { data: allMachines = [] } = useQuery({
+    queryKey: ["allMachinesForNotifications"],
+    queryFn: () => base44.entities.Machine.list(),
+    enabled: myWorkOrders.length > 0,
+  });
+
   // Vypočítat počet závad podle uživatele
   const pendingIssuesCount = React.useMemo(() => {
     if (!user) return 0;
@@ -118,6 +151,10 @@ export default function Layout({ children }) {
 
   const handleLogout = async () => {
     await base44.auth.logout();
+  };
+
+  const handleNotificationClick = (workOrder) => {
+    navigate(createPageUrl(`Machine?id=${workOrder.machine_id}#maintenance`));
   };
 
   const navigationItems = [
@@ -181,16 +218,64 @@ export default function Layout({ children }) {
               <p className="text-xs text-slate-500">Správa mazání</p>
             </div>
           </div>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-lg hover:bg-slate-100"
-          >
-            {mobileOpen ? (
-              <X className="w-6 h-6 text-slate-600" />
-            ) : (
-              <Menu className="w-6 h-6 text-slate-600" />
+          <div className="flex items-center gap-2">
+            {/* Notifikace - Mobilní */}
+            {myWorkOrders.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <Bell className="w-5 h-5 text-slate-600" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {myWorkOrders.length}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <div className="p-3 border-b border-slate-200">
+                    <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
+                    <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {myWorkOrders.map((order) => {
+                      const machine = allMachines.find(m => m.id === order.machine_id);
+                      const isOverdue = new Date(order.planned_date) < new Date();
+                      
+                      return (
+                        <DropdownMenuItem
+                          key={order.id}
+                          className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                          onClick={() => handleNotificationClick(order)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                              {isOverdue && (
+                                <Badge variant="destructive" className="text-xs">Po termínu</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
+                            <p className="text-xs text-slate-500">
+                              Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-          </button>
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="p-2 rounded-lg hover:bg-slate-100"
+            >
+              {mobileOpen ? (
+                <X className="w-6 h-6 text-slate-600" />
+              ) : (
+                <Menu className="w-6 h-6 text-slate-600" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -239,14 +324,63 @@ export default function Layout({ children }) {
           <div className="flex min-h-screen w-full">
             <Sidebar className="border-r border-slate-200 bg-white">
               <SidebarHeader className="border-b border-slate-200 p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
-                    <Factory className="w-7 h-7 text-white" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
+                      <Factory className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">DEMIP</h2>
+                      <p className="text-sm text-slate-500">Správa mazání</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900">DEMIP</h2>
-                    <p className="text-sm text-slate-500">Správa mazání</p>
-                  </div>
+                  
+                  {/* Notifikace - Desktop */}
+                  {myWorkOrders.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                          <Bell className="w-5 h-5 text-slate-600" />
+                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                            {myWorkOrders.length}
+                          </span>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-80">
+                        <div className="p-3 border-b border-slate-200">
+                          <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
+                          <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {myWorkOrders.map((order) => {
+                            const machine = allMachines.find(m => m.id === order.machine_id);
+                            const isOverdue = new Date(order.planned_date) < new Date();
+                            
+                            return (
+                              <DropdownMenuItem
+                                key={order.id}
+                                className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                                onClick={() => handleNotificationClick(order)}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                                    {isOverdue && (
+                                      <Badge variant="destructive" className="text-xs">Po termínu</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
+                                  <p className="text-xs text-slate-500">
+                                    Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                                  </p>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </SidebarHeader>
 
