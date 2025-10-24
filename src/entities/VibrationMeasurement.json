@@ -1,0 +1,75 @@
+{
+  "name": "VibrationMeasurement",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "measurement_type": {
+      "type": "string",
+      "enum": [
+        "online",
+        "offline"
+      ],
+      "description": "Typ m\u011b\u0159en\u00ed"
+    },
+    "measurement_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Datum a \u010das m\u011b\u0159en\u00ed"
+    },
+    "measuring_point": {
+      "type": "string",
+      "description": "M\u00edsto m\u011b\u0159en\u00ed (nap\u0159. lo\u017eisko A, motor B)"
+    },
+    "v_rms": {
+      "type": "number",
+      "description": "Rychlost vibrac\u00ed RMS v mm/s"
+    },
+    "a_rms": {
+      "type": "number",
+      "description": "Zrychlen\u00ed vibrac\u00ed RMS v m/s\u00b2"
+    },
+    "a_envelope": {
+      "type": "number",
+      "description": "Ob\u00e1lka zrychlen\u00ed v g"
+    },
+    "overall_acceleration": {
+      "type": "number",
+      "description": "Celkov\u00e9 zrychlen\u00ed (OA) v m/s\u00b2"
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Teplota v \u00b0C"
+    },
+    "condition_rating": {
+      "type": "string",
+      "enum": [
+        "good",
+        "acceptable",
+        "unsatisfactory",
+        "unacceptable"
+      ],
+      "description": "Hodnocen\u00ed stavu"
+    },
+    "findings": {
+      "type": "string",
+      "description": "Zji\u0161t\u011bn\u00ed a poznatky"
+    },
+    "recommendations": {
+      "type": "string",
+      "description": "Doporu\u010den\u00ed"
+    },
+    "measured_by": {
+      "type": "string",
+      "description": "Kdo prov\u00e1d\u011bl m\u011b\u0159en\u00ed"
+    }
+  },
+  "required": [
+    "machine_id",
+    "measurement_type",
+    "measurement_date",
+    "measuring_point"
+  ]
+}
