@@ -15,8 +15,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, CheckCircle, Clock, Factory, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, Factory, Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
@@ -27,6 +37,7 @@ export default function IssueApproval() {
   const [showResolveDialog, setShowResolveDialog] = useState(false);
   const [resolutionNote, setResolutionNote] = useState("");
   const [isResolving, setIsResolving] = useState(false);
+  const [deleteIssueId, setDeleteIssueId] = useState(null);
 
   useEffect(() => {
     loadUser();
@@ -140,6 +151,16 @@ export default function IssueApproval() {
     },
   });
 
+  const deleteIssueMutation = useMutation({
+    mutationFn: (id) => base44.entities.Issue.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reportedIssues"] });
+      queryClient.invalidateQueries({ queryKey: ["resolvedIssues"] });
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      setDeleteIssueId(null);
+    },
+  });
+
   const handleOpenResolveDialog = (issue) => {
     setSelectedIssue(issue);
     setResolutionNote("");
@@ -179,6 +200,7 @@ export default function IssueApproval() {
   };
 
   const canResolveIssues = user?.user_type === "admin" || user?.user_type === "manager" || user?.user_type === "superAdmin";
+  const canDeleteIssues = user?.user_type === "admin" || user?.user_type === "manager" || user?.user_type === "superAdmin";
 
   const renderIssueCard = (issue, isResolved = false) => {
     const { pointName, pointNumber, machineName, lineName, companyName } = getPointInfo(issue.control_point_id);
@@ -221,15 +243,27 @@ export default function IssueApproval() {
                 <span>{machineName}</span>
               </div>
             </div>
-            {!isResolved && canResolveIssues && (
-              <Button
-                onClick={() => handleOpenResolveDialog(issue)}
-                className="bg-gradient-to-r from-green-600 to-green-700"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Vyřešit
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {!isResolved && canResolveIssues && (
+                <Button
+                  onClick={() => handleOpenResolveDialog(issue)}
+                  className="bg-gradient-to-r from-green-600 to-green-700"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Vyřešit
+                </Button>
+              )}
+              {isResolved && canDeleteIssues && (
+                <Button
+                  onClick={() => setDeleteIssueId(issue.id)}
+                  variant="ghost"
+                  size="icon"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -429,6 +463,46 @@ export default function IssueApproval() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Alert dialog pro smazání vyřešené závady */}
+        <AlertDialog
+          open={!!deleteIssueId}
+          onOpenChange={() => setDeleteIssueId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Opravdu smazat vyřešenou závadu?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tato akce je nevratná. Záznam o vyřešené závadě bude trvale odstraněn z databáze.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => setDeleteIssueId(null)}
+                disabled={deleteIssueMutation.isLoading}
+              >
+                Zrušit
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteIssueMutation.mutate(deleteIssueId)}
+                className="bg-red-600 hover:bg-red-700"
+                disabled={deleteIssueMutation.isLoading}
+              >
+                {deleteIssueMutation.isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Smazávám...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Smazat
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
