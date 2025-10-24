@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft,
   Droplet,
   Clock,
@@ -23,7 +33,11 @@ import {
   CheckCircle,
   Loader2,
   ClipboardCheck,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Camera,
+  Upload,
+  Image as ImageIcon,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -39,6 +53,12 @@ export default function ControlPoint() {
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
   const [isReportingIssue, setIsReportingIssue] = useState(false);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [deletePhotoId, setDeletePhotoId] = useState(null);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const { data: point } = useQuery({
     queryKey: ["controlPoint", pointId],
@@ -76,6 +96,12 @@ export default function ControlPoint() {
     enabled: !!pointId,
   });
 
+  const { data: documentation = [] } = useQuery({
+    queryKey: ["documentation", pointId],
+    queryFn: () => base44.entities.Documentation.filter({ control_point_id: pointId }),
+    enabled: !!pointId,
+  });
+
   const recordMutation = useMutation({
     mutationFn: (data) => base44.entities.ControlRecord.create(data),
     onSuccess: () => {
@@ -97,6 +123,34 @@ export default function ControlPoint() {
     },
     onError: () => {
       setIsReportingIssue(false);
+    },
+  });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: async (file) => {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      return base44.entities.Documentation.create({
+        control_point_id: pointId,
+        file_url,
+        file_name: file.name,
+        file_type: "photo",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documentation"] });
+      setIsUploading(false);
+    },
+    onError: () => {
+      setIsUploading(false);
+      alert("Chyba při nahrávání fotografie");
+    },
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: (id) => base44.entities.Documentation.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documentation"] });
+      setDeletePhotoId(null);
     },
   });
 
@@ -147,6 +201,27 @@ export default function ControlPoint() {
       description: issueDescription,
       status: "reported",
     });
+  };
+
+  const handleFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Prosím vyberte pouze obrázkové soubory");
+      return;
+    }
+
+    setIsUploading(true);
+    await uploadPhotoMutation.mutateAsync(file);
+  };
+
+  const handleCameraCapture = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    await uploadPhotoMutation.mutateAsync(file);
   };
 
   if (!point || !machine) {
@@ -419,6 +494,109 @@ export default function ControlPoint() {
               </Button>
             </div>
 
+            {/* Fotodokumentace */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-slate-600" />
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Fotodokumentace
+                  </h3>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleCameraCapture}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Vyfotit
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Nahrát foto
+                  </Button>
+                </div>
+              </div>
+
+              {isUploading && (
+                <div className="flex items-center justify-center py-8 bg-slate-50 rounded-lg mb-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-400 mr-2" />
+                  <span className="text-slate-600">Nahrávání fotografie...</span>
+                </div>
+              )}
+
+              {documentation.length === 0 && !isUploading ? (
+                <div className="text-center py-12 bg-slate-50 rounded-lg">
+                  <ImageIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 mb-2">Zatím nejsou žádné fotografie</p>
+                  <p className="text-sm text-slate-400">
+                    Použijte tlačítka výše pro přidání dokumentace
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {documentation.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-slate-400 transition-all cursor-pointer"
+                      onClick={() => {
+                        setSelectedPhoto(doc);
+                        setShowPhotoDialog(true);
+                      }}
+                    >
+                      <img
+                        src={doc.file_url}
+                        alt={doc.file_name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletePhotoId(doc.id);
+                          }}
+                        >
+                          <X className="w-5 h-5" />
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                        <p className="text-xs text-white truncate">{doc.file_name}</p>
+                        <p className="text-xs text-white/70">
+                          {format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Historie záznamů */}
             <div>
               <div className="flex items-center gap-2 mb-4">
@@ -480,6 +658,68 @@ export default function ControlPoint() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dialog pro zobrazení fotografie */}
+        <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{selectedPhoto?.file_name}</DialogTitle>
+              <DialogDescription>
+                Nahráno {selectedPhoto && format(new Date(selectedPhoto.created_date), "d. M. yyyy HH:mm", { locale: cs })}
+                {selectedPhoto?.created_by && ` • ${selectedPhoto.created_by}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <img
+                src={selectedPhoto?.file_url}
+                alt={selectedPhoto?.file_name}
+                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => window.open(selectedPhoto?.file_url, "_blank")}
+              >
+                Otevřít v nové záložce
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setShowPhotoDialog(false);
+                  setDeletePhotoId(selectedPhoto?.id);
+                }}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Smazat
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Alert dialog pro smazání fotografie */}
+        <AlertDialog
+          open={!!deletePhotoId}
+          onOpenChange={() => setDeletePhotoId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Opravdu smazat fotografii?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tato akce je nevratná. Fotografie bude trvale odstraněna.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Zrušit</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deletePhotoMutation.mutate(deletePhotoId)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Smazat
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Dialog pro hlášení závady */}
         <Dialog open={showIssueDialog} onOpenChange={setShowIssueDialog}>
