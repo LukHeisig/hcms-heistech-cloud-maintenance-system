@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -77,6 +76,23 @@ export default function IssueApproval() {
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list(),
   });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsers"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const userMap = React.useMemo(() => {
+    return allUsers.reduce((acc, u) => {
+      acc[u.email] = u;
+      return acc;
+    }, {});
+  }, [allUsers]);
+
+  const getUserDisplayName = (email) => {
+    const u = userMap[email];
+    return u ? (u.custom_display_name || u.full_name || u.email) : email;
+  };
 
   // Filtrování závad podle podniku uživatele
   const reportedIssues = React.useMemo(() => {
@@ -283,7 +299,7 @@ export default function IssueApproval() {
                 </span>
               </div>
               <span>•</span>
-              <span>{issue.created_by}</span>
+              <span>{getUserDisplayName(issue.created_by)}</span>
             </div>
 
             {isResolved && (
@@ -303,7 +319,7 @@ export default function IssueApproval() {
                       {format(new Date(issue.resolved_at), "d. M. yyyy HH:mm", { locale: cs })}
                     </span>
                     <span>•</span>
-                    <span>{issue.resolved_by}</span>
+                    <span>{getUserDisplayName(issue.resolved_by)}</span>
                   </div>
                 </div>
               </>

@@ -41,6 +41,23 @@ export default function Dashboard() {
     enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsers"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const userMap = React.useMemo(() => {
+    return allUsers.reduce((acc, u) => {
+      acc[u.email] = u;
+      return acc;
+    }, {});
+  }, [allUsers]);
+
+  const getUserDisplayName = (email) => {
+    const u = userMap[email];
+    return u ? (u.custom_display_name || u.full_name || u.email) : email;
+  };
+
   // Filtrovat podniky podle přístupových práv
   const companies = React.useMemo(() => {
     if (!user) return [];
@@ -363,7 +380,7 @@ export default function Dashboard() {
                                 )}
                               </p>
                               <p className="text-xs text-slate-600 mt-1">
-                                {record.created_by}
+                                {getUserDisplayName(record.created_by)}
                               </p>
                             </div>
                           </div>
@@ -402,7 +419,7 @@ export default function Dashboard() {
                             <p className="text-xs text-slate-500 mt-2">
                               {format(new Date(issue.created_date), "d. M. yyyy", {
                                 locale: cs,
-                              })}
+                              })} • {getUserDisplayName(issue.created_by)}
                             </p>
                           </div>
                         );
@@ -610,49 +627,49 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                {records.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8 text-sm">
-                    Zatím nejsou žádné záznamy
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {records.slice(0, 5).map((record) => {
-                      const point = controlPoints.find(
-                        (cp) => cp.id === record.control_point_id
-                      );
-                      return (
-                        <div
-                          key={record.id}
-                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                          <div className="flex-shrink-0 mt-1">
-                            {record.record_type === "lubrication" ? (
-                              <Droplet className="w-4 h-4 text-blue-600" />
-                            ) : (
-                              <ClipboardCheck className="w-4 h-4 text-purple-600" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 truncate">
-                              {point?.name || "Neznámý bod"}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">
-                              {format(
-                                new Date(record.performed_at),
-                                "d. M. yyyy HH:mm",
-                                { locale: cs }
+                  {records.length === 0 ? (
+                    <p className="text-center text-slate-500 py-8 text-sm">
+                      Zatím nejsou žádné záznamy
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {records.slice(0, 5).map((record) => {
+                        const point = controlPoints.find(
+                          (cp) => cp.id === record.control_point_id
+                        );
+                        return (
+                          <div
+                            key={record.id}
+                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors"
+                          >
+                            <div className="flex-shrink-0 mt-1">
+                              {record.record_type === "lubrication" ? (
+                                <Droplet className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <ClipboardCheck className="w-4 h-4 text-purple-600" />
                               )}
-                            </p>
-                            <p className="text-xs text-slate-600 mt-1">
-                              {record.created_by}
-                            </p>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-900 truncate">
+                                {point?.name || "Neznámý bod"}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {format(
+                                  new Date(record.performed_at),
+                                  "d. M. yyyy HH:mm",
+                                  { locale: cs }
+                                )}
+                              </p>
+                              <p className="text-xs text-slate-600 mt-1">
+                                {getUserDisplayName(record.created_by)}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
             </Card>
 
             {issues.length > 0 && user?.user_type !== "technician" && (
@@ -683,7 +700,7 @@ export default function Dashboard() {
                           <p className="text-xs text-slate-500 mt-2">
                             {format(new Date(issue.created_date), "d. M. yyyy", {
                               locale: cs,
-                            })}
+                            })} • {getUserDisplayName(issue.created_by)}
                           </p>
                         </div>
                       );

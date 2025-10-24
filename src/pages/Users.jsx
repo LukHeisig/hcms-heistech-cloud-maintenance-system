@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,6 +45,7 @@ export default function Users() {
     user_type: "technician",
     phone: "",
     company_id: null, // Added company_id to formData
+    custom_display_name: "", // Nové pole pro vlastní zobrazované jméno
   });
 
   useEffect(() => {
@@ -100,6 +100,7 @@ export default function Users() {
       phone: user.phone || "",
       company_id: user.company_id || null,
       assigned_company_ids: user.assigned_company_ids || [],
+      custom_display_name: user.custom_display_name || user.full_name || "", // Předvyplnit existujícím jménem
     });
     setShowEditDialog(true);
   };
@@ -338,9 +339,9 @@ export default function Users() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            {user.full_name?.[0] || "?"}
+                            {(user.custom_display_name || user.full_name)?.[0] || "?"}
                           </div>
-                          {user.full_name || "Bez jména"}
+                          {user.custom_display_name || user.full_name || "Bez jména"}
                         </div>
                       </TableCell>
                       <TableCell className="text-slate-600">{user.email}</TableCell>
@@ -400,6 +401,21 @@ export default function Users() {
                 <Label>Email</Label>
                 <Input value={editingUser?.email || ""} disabled className="bg-slate-50" />
                 <p className="text-xs text-slate-500 mt-1">Email nelze měnit</p>
+              </div>
+
+              <div>
+                <Label htmlFor="custom_display_name">Zobrazované jméno</Label>
+                <Input
+                  id="custom_display_name"
+                  value={formData.custom_display_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, custom_display_name: e.target.value })
+                  }
+                  placeholder="Např. Jan Novák (pro zobrazení v aplikaci)"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Pokud je pole prázdné, použije se výchozí jméno ({editingUser?.full_name || "nenastaveno"}).
+                </p>
               </div>
 
               <div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -55,6 +54,23 @@ export default function Layout({ children }) {
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
     enabled: !!user,
   });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsers"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const userMap = React.useMemo(() => {
+    return allUsers.reduce((acc, u) => {
+      acc[u.email] = u;
+      return acc;
+    }, {});
+  }, [allUsers]);
+
+  const getUserDisplayName = (userObj) => {
+    if (!userObj) return "Neznámý";
+    return userObj.custom_display_name || userObj.full_name || userObj.email;
+  };
 
   const { data: lines = [] } = useQuery({
     queryKey: ["lines", user?.company_id],
@@ -276,12 +292,12 @@ export default function Layout({ children }) {
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 mb-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold">
-                      {user?.full_name?.[0] || "U"}
+                      {getUserDisplayName(user)?.[0] || "U"}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-slate-900 truncate">
-                      {user?.full_name || "Uživatel"}
+                      {getUserDisplayName(user)}
                     </p>
                     <p className="text-xs text-slate-500 truncate">
                       {user?.user_type === "superAdmin"

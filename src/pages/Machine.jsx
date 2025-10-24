@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -122,6 +121,23 @@ export default function Machine() {
     },
     enabled: !!line?.company_id,
   });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsers"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const userMap = React.useMemo(() => {
+    return allUsers.reduce((acc, u) => {
+      acc[u.email] = u;
+      return acc;
+    }, {});
+  }, [allUsers]);
+
+  const getUserDisplayName = (email) => {
+    const u = userMap[email];
+    return u ? (u.custom_display_name || u.full_name || u.email) : email;
+  };
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints", machineId],
@@ -741,7 +757,7 @@ export default function Machine() {
                             </p>
                             <p className="text-xs text-slate-600 line-clamp-2">{issue.description}</p>
                             <p className="text-xs text-slate-500 mt-2">
-                              {format(new Date(issue.created_date), "d.M. yyyy", { locale: cs })} • {issue.created_by}
+                              {format(new Date(issue.created_date), "d.M. yyyy", { locale: cs })} • {getUserDisplayName(issue.created_by)}
                             </p>
                           </div>
                         );
@@ -784,7 +800,7 @@ export default function Machine() {
                               {point?.name || "Neznámý bod"}
                             </p>
                             <p className="text-xs text-slate-500">
-                              {format(new Date(record.performed_at), "d.M. yyyy HH:mm", { locale: cs })} • {record.created_by}
+                              {format(new Date(record.performed_at), "d.M. yyyy HH:mm", { locale: cs })} • {getUserDisplayName(record.created_by)}
                             </p>
                           </div>
                           <Badge variant="outline" className="text-xs">
@@ -1096,7 +1112,7 @@ export default function Machine() {
                               <div className="flex items-center gap-4 text-xs text-slate-500">
                                 <span>{format(new Date(record.performed_at), "d.M. yyyy HH:mm", { locale: cs })}</span>
                                 {record.duration_hours && <span>• {record.duration_hours}h</span>}
-                                {record.technician && <span>• {record.technician}</span>}
+                                {record.technician && <span>• {getUserDisplayName(record.technician)}</span>}
                               </div>
                               {record.notes && (
                                 <p className="text-xs text-slate-500 mt-2 italic">{record.notes}</p>
@@ -1310,7 +1326,7 @@ export default function Machine() {
                               </div>
                               <p className="text-xs text-slate-500">
                                 {format(new Date(measurement.measurement_date), "d.M. yyyy HH:mm", { locale: cs })}
-                                {measurement.measured_by && ` • ${measurement.measured_by}`}
+                                {measurement.measured_by && ` • ${getUserDisplayName(measurement.measured_by)}`}
                               </p>
                             </div>
                           </div>
@@ -1398,10 +1414,10 @@ export default function Machine() {
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
                             <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                              {resp.user_name?.[0] || "?"}
+                              {getUserDisplayName(resp.user_email)?.[0] || "?"}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-slate-900 mb-1">{resp.user_name}</h3>
+                              <h3 className="font-bold text-slate-900 mb-1">{getUserDisplayName(resp.user_email)}</h3>
                               <p className="text-sm text-slate-600 mb-2">{resp.user_email}</p>
                               <Badge variant="outline">
                                 {resp.responsibility_type === "primary" ? "Primární odpovědnost" :
@@ -1637,7 +1653,7 @@ export default function Machine() {
                     <DialogTitle>{selectedDocPreview?.file_name}</DialogTitle>
                     <DialogDescription>
                         {selectedDocPreview && format(new Date(selectedDocPreview.created_date), "d. M. yyyy HH:mm", { locale: cs })}
-                        {selectedDocPreview?.created_by && ` • ${selectedDocPreview.created_by}`}
+                        {selectedDocPreview?.created_by && ` • ${getUserDisplayName(selectedDocPreview.created_by)}`}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50 rounded-md">

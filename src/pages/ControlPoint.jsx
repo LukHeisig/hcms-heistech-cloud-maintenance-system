@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -103,6 +102,23 @@ export default function ControlPoint() {
     },
     enabled: !!line?.company_id,
   });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsers"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const userMap = React.useMemo(() => {
+    return allUsers.reduce((acc, u) => {
+      acc[u.email] = u;
+      return acc;
+    }, {});
+  }, [allUsers]);
+
+  const getUserDisplayName = (email) => {
+    const u = userMap[email];
+    return u ? (u.custom_display_name || u.full_name || u.email) : email;
+  };
 
   const { data: records = [] } = useQuery({
     queryKey: ["records", pointId],
@@ -392,7 +408,7 @@ export default function ControlPoint() {
                         })}
                       </p>
                       <p className="text-xs text-slate-600 mt-1">
-                        {issue.created_by}
+                        {getUserDisplayName(issue.created_by)}
                       </p>
                     </div>
                   ))}
@@ -617,7 +633,7 @@ export default function ControlPoint() {
                       key={doc.id}
                       className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-slate-400 transition-all cursor-pointer"
                       onClick={() => {
-                        setSelectedPhoto(doc);
+                        setSelectedDocPreview(doc);
                         setShowPhotoDialog(true);
                       }}
                     >
@@ -633,7 +649,7 @@ export default function ControlPoint() {
                           className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDeletePhotoId(doc.id);
+                            setDeleteDocId(doc.id);
                           }}
                         >
                           <X className="w-5 h-5" />
@@ -702,7 +718,7 @@ export default function ControlPoint() {
                           </p>
                         )}
                         <p className="text-xs text-slate-500">
-                          {record.created_by}
+                          {getUserDisplayName(record.created_by)}
                         </p>
                       </div>
                     </div>
@@ -720,7 +736,7 @@ export default function ControlPoint() {
               <DialogTitle>{selectedPhoto?.file_name}</DialogTitle>
               <DialogDescription>
                 Nahráno {selectedPhoto && format(new Date(selectedPhoto.created_date), "d. M. yyyy HH:mm", { locale: cs })}
-                {selectedPhoto?.created_by && ` • ${selectedPhoto.created_by}`}
+                {selectedPhoto?.created_by && ` • ${getUserDisplayName(selectedPhoto.created_by)}`}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
