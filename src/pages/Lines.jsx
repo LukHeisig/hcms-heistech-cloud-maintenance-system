@@ -143,7 +143,7 @@ export default function Lines() {
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku</h1>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {companies.map((company) => {
               // Použít allLines místo lines
               const companyLines = allLines.filter((l) => l.company_id === company.id);
@@ -184,19 +184,17 @@ export default function Lines() {
                   }`}
                   onClick={() => setSelectedCompany(company.id)}
                 >
-                  <CardContent className="p-6">
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
-                          companyStatus === "overdue"
-                            ? "bg-gradient-to-br from-yellow-600 to-yellow-700"
-                            : "bg-gradient-to-br from-green-600 to-green-700"
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          companyStatus === "overdue" ? "bg-yellow-100" : "bg-green-100"
                         }`}>
-                          <Building2 className="w-7 h-7 text-white" />
+                          <Building2 className={`w-5 h-5 ${companyStatus === "overdue" ? "text-yellow-700" : "text-green-700"}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-slate-900">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-slate-900 text-base">
                               {company.name}
                             </h3>
                             {companyOverdue > 0 && (
@@ -228,13 +226,13 @@ export default function Lines() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full ${
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
                           companyStatus === "overdue"
                             ? "bg-yellow-500"
                             : "bg-green-500"
                         }`} />
-                        <ChevronRight className="w-6 h-6 text-slate-400" />
+                        <ChevronRight className="w-5 h-5 text-slate-400" />
                       </div>
                     </div>
                   </CardContent>
@@ -267,7 +265,7 @@ export default function Lines() {
           {currentCompany && (
             <p className="text-slate-600 mb-6">{currentCompany.name}</p>
           )}
-          <div className="space-y-4">
+          <div className="space-y-2">
             {lines.map((line) => {
               const lineMachines = allMachines.filter((m) => m.line_id === line.id);
               const lineMachineIds = lineMachines.map(m => m.id);
@@ -281,7 +279,7 @@ export default function Lines() {
                 linePoints.some((p) => p.id === issue.control_point_id)
               ).length;
 
-              // Určit stav linky podle bodů - lineStatus only reflects overdue or ok, not issues
+              // Určit stav linky podle bodů
               const lineStatus = hasOverdue ? "overdue" : "ok";
 
               return (
@@ -294,19 +292,17 @@ export default function Lines() {
                   }`}
                   onClick={() => setSelectedLine(line.id)}
                 >
-                  <CardContent className="p-6">
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
-                          lineStatus === "overdue"
-                            ? "bg-gradient-to-br from-yellow-600 to-yellow-700"
-                            : "bg-gradient-to-br from-green-600 to-green-700"
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          lineStatus === "overdue" ? "bg-yellow-100" : "bg-green-100"
                         }`}>
-                          <Factory className="w-7 h-7 text-white" />
+                          <Factory className={`w-5 h-5 ${lineStatus === "overdue" ? "text-yellow-700" : "text-green-700"}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h3 className="text-xl font-bold text-slate-900">
+                            <h3 className="font-bold text-slate-900 text-base">
                               {line.name}
                             </h3>
                             {hasOverdue && (
@@ -339,13 +335,13 @@ export default function Lines() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full ${
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
                           lineStatus === "overdue"
                             ? "bg-yellow-500"
                             : "bg-green-500"
                         }`} />
-                        <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0" />
+                        <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
                       </div>
                     </div>
                   </CardContent>
