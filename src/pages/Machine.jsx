@@ -236,7 +236,10 @@ export default function Machine() {
   // Nový query pro plánované úkoly údržby
   const { data: plannedMaintenance = [] } = useQuery({
     queryKey: ["plannedMaintenance", machineId],
-    queryFn: () => base44.entities.PlannedMaintenance.filter({ machine_id: machineId }, "planned_date"),
+    queryFn: () => base44.entities.PlannedMaintenance.filter({ 
+      machine_id: machineId,
+      status: ["planned", "assigned"] // Filter only active planned tasks
+    }, "planned_date"),
     enabled: !!machineId,
   });
 
@@ -344,6 +347,46 @@ export default function Machine() {
     const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
     return nextDate;
   };
+
+  // Kombinovat nejbližší kontrolní body a plánované údržby
+  const upcomingTasks = React.useMemo(() => {
+    const tasks = [];
+    
+    // Přidat kontrolní body
+    controlPoints.forEach(point => {
+      const nextDate = getNextControlDate(point);
+      if (nextDate) {
+        tasks.push({
+          type: "control_point",
+          id: point.id,
+          name: point.name,
+          date: nextDate,
+          controlType: point.type,
+          point: point,
+        });
+      }
+    });
+    
+    // Přidat plánované údržby
+    plannedMaintenance.forEach(maintenance => {
+      if (maintenance.planned_date) { // Ensure planned_date is available
+        tasks.push({
+          type: "planned_maintenance",
+          id: maintenance.id,
+          name: maintenance.title,
+          date: new Date(maintenance.planned_date),
+          maintenanceType: maintenance.maintenance_type,
+          priority: maintenance.priority,
+          assignedTo: maintenance.assigned_to,
+          status: maintenance.status,
+          maintenance: maintenance,
+        });
+      }
+    });
+    
+    // Seřadit podle data
+    return tasks.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
+  }, [controlPoints, plannedMaintenance, records]);
 
   const lubricationPoints = controlPoints.filter(p => p.type === "lubrication");
   const inspectionPoints = controlPoints.filter(p => p.type === "inspection");
@@ -939,57 +982,142 @@ export default function Machine() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-none shadow-lg">
+              {/* Nejbližší plánované úkony */}
+              <Card className="shadow-lg">
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-blue-600" />
-                    Nejbližší úkony
+                    <Calendar className="w-5 h-5 text-slate-600" />
+                    Nejbližší plánované úkony
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  {controlPoints.length === 0 ? (
-                    <p className="text-center text-slate-500 py-8">Nejsou definovány kontrolní body</p>
+                  {upcomingTasks.length === 0 ? (
+                    <p className="text-center text-slate-500 py-8">
+                      Žádné plánované úkony
+                    </p>
                   ) : (
                     <div className="space-y-3">
-                      {controlPoints
-                        .map(point => ({
-                          point,
-                          nextDate: getNextControlDate(point),
-                          status: getPointStatus(point)
-                        }))
-                        .filter(item => item.nextDate)
-                        .sort((a, b) => new Date(a.nextDate) - new Date(b.nextDate))
-                        .slice(0, 5)
-                        .map(({ point, nextDate, status }) => (
-                          <div
-                            key={point.id}
-                            className={`p-3 rounded-lg border-l-4 cursor-pointer hover:bg-slate-50 transition-colors ${
-                              status === "overdue" ? "border-l-yellow-500 bg-yellow-50/30" : "border-l-green-500 bg-green-50/30"
-                            }`}
-                            onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="font-semibold text-slate-900 text-sm">
-                                  {point.number && `${point.number} - `}{point.name}
-                                </p>
-                                <p className="text-xs text-slate-600 mt-1">
-                                  {point.type === "lubrication" ? "Mazání" : point.type === "inspection" ? "Inspekce" : "Maznice"}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className={`text-sm font-medium ${status === "overdue" ? "text-red-700" : "text-slate-900"}`}>
-                                  {format(nextDate, "d.M. yyyy", { locale: cs })}
-                                </p>
-                                {status === "overdue" && (
-                                  <Badge variant="outline" className="mt-1 bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
-                                    Po termínu
-                                  </Badge>
-                                )}
+                      {upcomingTasks.map((task) => {
+                        if (task.type === "control_point") {
+                          const point = task.point;
+                          const status = getPointStatus(point);
+                          const isOverdue = status === "overdue";
+                          
+                          return (
+                            <div
+                              key={`cp-${task.id}`}
+                              className={`p-4 rounded-lg border-l-4 ${
+                                isOverdue
+                                  ? "border-l-red-500 bg-red-50"
+                                  : "border-l-blue-500 bg-blue-50"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {point.type === "lubrication" || point.type === "auto_lubricator" ? (
+                                      <Droplet className="w-4 h-4 text-blue-600" />
+                                    ) : (
+                                      <ClipboardCheck className="w-4 h-4 text-purple-600" />
+                                    )}
+                                    <h4 className="font-semibold text-slate-900">
+                                      {point.number && `${point.number} - `}
+                                      {point.name}
+                                    </h4>
+                                    {isOverdue && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Po termínu
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-slate-600 mb-1">
+                                    {point.type === "lubrication" 
+                                      ? `Mazání: ${point.lubricant_type || "neuvedeno"}`
+                                      : point.type === "auto_lubricator" ? "Automatická maznice"
+                                      : "Inspekce"
+                                    }
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    Další kontrola:{" "}
+                                    {format(task.date, "d. M. yyyy HH:mm", { locale: cs })}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))}
+                                >
+                                  Detail
+                                </Button>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        } else {
+                          // Plánovaná údržba
+                          const maintenance = task.maintenance;
+                          const isOverdue = task.date < new Date();
+                          const isPriority = maintenance.priority === "high";
+                          
+                          const maintenanceTypeLabels = {
+                            preventive: { label: "Preventivní", icon: CheckCircle, color: "text-green-600" },
+                            corrective: { label: "Korektivní", icon: Wrench, color: "text-orange-600" },
+                            predictive: { label: "Prediktivní", icon: TrendingUp, color: "text-blue-600" },
+                            inspection: { label: "Inspekce", icon: ClipboardCheck, color: "text-purple-600" },
+                          };
+                          
+                          const typeInfo = maintenanceTypeLabels[maintenance.maintenance_type] || maintenanceTypeLabels.preventive;
+                          const TypeIcon = typeInfo.icon;
+                          
+                          return (
+                            <div
+                              key={`pm-${task.id}`}
+                              className={`p-4 rounded-lg border-l-4 ${
+                                isOverdue
+                                  ? "border-l-red-500 bg-red-50"
+                                  : isPriority
+                                  ? "border-l-orange-500 bg-orange-50"
+                                  : "border-l-green-500 bg-green-50"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                    <TypeIcon className={`w-4 h-4 ${typeInfo.color}`} />
+                                    <h4 className="font-semibold text-slate-900">
+                                      {maintenance.title}
+                                    </h4>
+                                    {isOverdue && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Po termínu
+                                      </Badge>
+                                    )}
+                                    {maintenance.status === "assigned" && (
+                                      <Badge className="bg-blue-100 text-blue-700 text-xs">
+                                        Přiřazeno
+                                      </Badge>
+                                    )}
+                                    {isPriority && !isOverdue && (
+                                      <Badge className="bg-orange-100 text-orange-700 text-xs">
+                                        Vysoká priorita
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-slate-600 mb-1">
+                                    {typeInfo.label} údržba
+                                    {maintenance.assigned_to && (
+                                      <> • Přiřazeno: {getUserDisplayName(maintenance.assigned_to)}</>
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    Plánováno na:{" "}
+                                    {format(task.date, "d. M. yyyy", { locale: cs })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -2387,7 +2515,7 @@ export default function Machine() {
                       <SelectItem value="corrective">
                         <div className="flex items-center gap-2">
                           <Wrench className="w-4 h-4 text-orange-600" />
-                          <span>Reaktivní údržba (oprava)</span>
+                          <span>Korektivní údržba</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="predictive">
