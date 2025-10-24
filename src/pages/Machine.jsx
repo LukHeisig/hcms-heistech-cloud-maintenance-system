@@ -1123,11 +1123,12 @@ export default function Machine() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg">
+              {/* Aktivní závady */}
+              <Card className="border-l-4 border-l-orange-500 shadow-lg">
                 <CardHeader className="border-b border-slate-100">
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-orange-600" />
-                    Aktivní závady
+                  <CardTitle className="flex items-center gap-2 text-orange-700">
+                    <AlertTriangle className="w-5 h-5" />
+                    Aktivní závady ({issues.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -1140,16 +1141,33 @@ export default function Machine() {
                   ) : (
                     <div className="space-y-3">
                       {issues.slice(0, 5).map((issue) => {
-                        const point = controlPoints.find(p => p.id === issue.control_point_id);
+                        const point = controlPoints.find(
+                          (p) => p.id === issue.control_point_id
+                        );
                         return (
-                          <div key={issue.id} className="p-3 rounded-lg bg-orange-50 border border-orange-200">
-                            <p className="font-semibold text-slate-900 text-sm mb-1">
-                              {point?.name || "Neznámý bod"}
+                          <div
+                            key={issue.id}
+                            onClick={() => navigate(createPageUrl(`IssueApproval?issue=${issue.id}`))}
+                            className="p-4 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 transition-all cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="font-semibold text-slate-900">
+                                {point?.name || "Neznámý bod"}
+                              </h4>
+                              <ChevronRight className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                            </div>
+                            <p className="text-sm text-slate-700 mb-2 line-clamp-2">
+                              {issue.description}
                             </p>
-                            <p className="text-xs text-slate-600 line-clamp-2">{issue.description}</p>
-                            <p className="text-xs text-slate-500 mt-2">
-                              {format(new Date(issue.created_date), "d.M. yyyy", { locale: cs })} • {getUserDisplayName(issue.created_by)}
-                            </p>
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <span>
+                                {format(new Date(issue.created_date), "d. M. yyyy", {
+                                  locale: cs,
+                                })}
+                              </span>
+                              <span>•</span>
+                              <span>{getUserDisplayName(issue.created_by)}</span>
+                            </div>
                           </div>
                         );
                       })}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -37,9 +38,24 @@ export default function IssueApproval() {
   const [resolutionNote, setResolutionNote] = useState("");
   const [isResolving, setIsResolving] = useState(false);
   const [deleteIssueId, setDeleteIssueId] = useState(null);
+  const [highlightedIssueId, setHighlightedIssueId] = useState(null);
 
   useEffect(() => {
     loadUser();
+    
+    // Zkontrolovat, zda je v URL parametr issue
+    const urlParams = new URLSearchParams(window.location.search);
+    const issueId = urlParams.get("issue");
+    if (issueId) {
+      setHighlightedIssueId(issueId);
+      // Scrollnout k závadě po načtení
+      setTimeout(() => {
+        const element = document.getElementById(`issue-${issueId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 500);
+    }
   }, []);
 
   const loadUser = async () => {
@@ -220,12 +236,16 @@ export default function IssueApproval() {
 
   const renderIssueCard = (issue, isResolved = false) => {
     const { pointName, pointNumber, machineName, lineName, companyName } = getPointInfo(issue.control_point_id);
+    const isHighlighted = issue.id === highlightedIssueId;
 
     return (
       <Card
         key={issue.id}
-        className={`border-l-4 ${
+        id={`issue-${issue.id}`}
+        className={`border-l-4 transition-all ${
           isResolved ? "border-l-green-500 bg-green-50/30" : "border-l-orange-500 bg-orange-50/30"
+        } ${
+          isHighlighted ? "ring-4 ring-blue-400 ring-opacity-50 shadow-xl" : ""
         }`}
       >
         <CardHeader className="pb-3">
@@ -240,6 +260,11 @@ export default function IssueApproval() {
                 <CardTitle className="text-lg">
                   {pointNumber && `${pointNumber} - `}{pointName}
                 </CardTitle>
+                {isHighlighted && (
+                  <Badge className="bg-blue-600 text-white">
+                    Vybraná závada
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
                 {companyName && (
@@ -467,7 +492,7 @@ export default function IssueApproval() {
                 {isResolving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Ukládání...
+                    Ukládám...
                   </>
                 ) : (
                   <>
