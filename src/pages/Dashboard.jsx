@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -47,7 +46,6 @@ export default function Dashboard() {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
-      // Admin vidí pouze podniky, které má v assigned_company_ids
       return allCompanies.filter(c => 
         user.assigned_company_ids?.includes(c.id)
       );
@@ -72,32 +70,32 @@ export default function Dashboard() {
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
     queryFn: () => base44.entities.Machine.list("order_index"),
-    enabled: !!user, // Ensure user is loaded before fetching
+    enabled: !!user,
   });
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(),
-    enabled: !!user, // Ensure user is loaded before fetching
+    enabled: !!user,
   });
 
   const { data: records = [] } = useQuery({
     queryKey: ["records"],
     queryFn: () => base44.entities.ControlRecord.list("-performed_at", 10),
-    enabled: !!user, // Ensure user is loaded before fetching
+    enabled: !!user,
   });
 
   const { data: issues = [] } = useQuery({
     queryKey: ["issues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
-    enabled: !!user, // Ensure user is loaded before fetching
+    enabled: !!user,
   });
 
   // Pokud uživatel nemá company_id a není admin, přesměrovat na setup
   useEffect(() => {
     if (user && !user.company_id && user.user_type !== "admin" && user.user_type !== "superAdmin") {
       navigate(createPageUrl("Setup"));
-    } else if (user && user.user_type !== "admin"  && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
+    } else if (user && user.user_type !== "admin" && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
       navigate(createPageUrl("Setup"));
     }
   }, [user, lines, navigate]);
@@ -116,12 +114,12 @@ export default function Dashboard() {
 
   // Výpočet skutečných hodnot
   const activeCompanies = companies.filter(c => c.is_active !== false);
-  const totalLinesCount = (user?.user_type === "admin" || user?.user_type === "superAdmin") ? allLines.length : lines.length;
-  const overduePointsCount = controlPoints.filter(
+  const totalLines = (user?.user_type === "admin" || user?.user_type === "superAdmin") ? allLines.length : lines.length;
+  const overduePoints = controlPoints.filter(
     (point) => getPointStatus(point) === "overdue"
   ).length;
 
-  const totalRecordsThisMonthCount = records.filter((r) => {
+  const totalRecordsThisMonth = records.filter((r) => {
     const date = new Date(r.performed_at);
     const now = new Date();
     return (
@@ -168,7 +166,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-purple-100 text-sm font-medium mb-1">Celkem linek</p>
-                    <p className="text-4xl font-bold">{totalLinesCount}</p>
+                    <p className="text-4xl font-bold">{totalLines}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <Factory className="w-6 h-6" />
@@ -182,7 +180,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
-                    <p className="text-4xl font-bold">{overduePointsCount}</p>
+                    <p className="text-4xl font-bold">{overduePoints}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <AlertTriangle className="w-6 h-6" />
@@ -196,7 +194,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
-                    <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
+                    <p className="text-4xl font-bold">{totalRecordsThisMonth}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <ClipboardCheck className="w-6 h-6" />
@@ -262,20 +260,20 @@ export default function Dashboard() {
                         const companyMachines = machines.filter((m) =>
                           companyLines.some((l) => l.id === m.line_id)
                         );
-                        const companyPoints = controlPoints.filter((p) =>
-                          companyMachines.some((m) => m.id === p.machine_id)
+                        const companyPoints = controlPoints.filter((point) =>
+                          companyMachines.some((m) => m.id === point.machine_id)
                         );
-                        const companyOverdue = controlPoints.filter(
-                          (p) => getPointStatus(p) === "overdue" && companyMachines.some((m) => m.id === p.machine_id)
+                        const companyOverdue = companyPoints.filter(
+                          (point) => getPointStatus(point) === "overdue"
                         ).length;
                         const companyIssues = issues.filter((issue) =>
-                          controlPoints.some((p) => p.id === issue.control_point_id) && companyMachines.some((m) => m.id === p.machine_id)
+                          companyPoints.some((point) => point.id === issue.control_point_id)
                         ).length;
 
                         return (
                           <Link
                             key={company.id}
-                            to={createPageUrl(`AdminLines?company=${company.id}`)}
+                            to={createPageUrl(`Lines?company=${company.id}`)}
                           >
                             <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                               <CardContent className="p-5">
@@ -487,7 +485,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-blue-100 text-sm font-medium mb-1">Celkem linek</p>
-                  <p className="text-4xl font-bold">{totalLinesCount}</p>
+                  <p className="text-4xl font-bold">{totalLines}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Factory className="w-6 h-6" />
@@ -515,7 +513,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
-                  <p className="text-4xl font-bold">{overduePointsCount}</p>
+                  <p className="text-4xl font-bold">{overduePoints}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <AlertTriangle className="w-6 h-6" />
@@ -529,7 +527,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
-                  <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
+                  <p className="text-4xl font-bold">{totalRecordsThisMonth}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <ClipboardCheck className="w-6 h-6" />
@@ -554,14 +552,14 @@ export default function Dashboard() {
                 <div className="grid gap-4">
                   {lines.map((line) => {
                     const lineMachines = machines.filter((m) => m.line_id === line.id);
-                    const linePoints = controlPoints.filter((p) =>
-                      lineMachines.some((m) => m.id === p.machine_id)
+                    const linePoints = controlPoints.filter((point) =>
+                      lineMachines.some((m) => m.id === point.machine_id)
                     );
-                    const lineOverdue = controlPoints.filter(
-                      (p) => getPointStatus(p) === "overdue" && lineMachines.some((m) => m.id === p.machine_id)
+                    const lineOverdue = linePoints.filter(
+                      (point) => getPointStatus(point) === "overdue"
                     ).length;
                     const lineIssues = issues.filter((issue) =>
-                      controlPoints.some((p) => p.id === issue.control_point_id) && lineMachines.some((m) => m.id === p.machine_id)
+                      linePoints.some((point) => point.id === issue.control_point_id)
                     ).length;
 
                     return (
