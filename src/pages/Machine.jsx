@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +22,7 @@ import {
   TrendingUp,
   Users,
   BarChart2,
-  FileText,
+  FileText, // General file with text
   Wrench,
   Activity,
   Building2,
@@ -29,12 +30,9 @@ import {
   Camera,
   Upload,
   X,
-  FileIcon,
-  FileImage,
-  FileTypePdf,
-  FileTypeDoc,
-  FileTypeXls,
-  FileJson
+  FileIcon, // General file icon
+  FileImage, // Image file icon
+  FileJson // JSON file icon
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -383,18 +381,18 @@ export default function Machine() {
         return <FileImage className="w-8 h-8 text-blue-500" />;
       case "schema":
         return <FileText className="w-8 h-8 text-purple-500" />;
-      case "document":
-        return <FileTypeDoc className="w-8 h-8 text-green-500" />;
+      case "document": // Use FileText for general documents like PDF, Word, Excel
+        return <FileText className="w-8 h-8 text-green-500" />;
       case "other_file":
         return <FileIcon className="w-8 h-8 text-slate-500" />;
-      case "application/pdf": // Example for specific mime types if needed
-        return <FileTypePdf className="w-8 h-8 text-red-500" />;
+      case "application/pdf":
+        return <FileText className="w-8 h-8 text-red-500" />;
       case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       case "application/msword":
-        return <FileTypeDoc className="w-8 h-8 text-blue-500" />;
+        return <FileText className="w-8 h-8 text-blue-500" />;
       case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
       case "application/vnd.ms-excel":
-        return <FileTypeXls className="w-8 h-8 text-green-500" />;
+        return <FileText className="w-8 h-8 text-green-500" />;
       case "image/jpeg":
       case "image/png":
       case "image/gif":
