@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -298,7 +299,7 @@ export default function Machine() {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate(createPageUrl(`Lines?line=${machine.line_id}`))}
+            onClick={() => navigate(createPageUrl(`Lines?company=${line?.company_id}&line=${machine.line_id}`))}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
