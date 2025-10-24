@@ -33,8 +33,10 @@ import {
   FileIcon, // General file icon
   FileImage, // Image file icon
   FileJson, // JSON file icon
-  Calendar as CalendarIcon, // Added for planned maintenance
+  CalendarClock, // Replaced Calendar as CalendarIcon, used for planned maintenance
   Plus, // Added for adding new tasks
+  UserCheck, // Added for assigned user status
+  Send, // Added for sending notifications
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -124,9 +126,9 @@ export default function Machine() {
     
     // Automaticky přepnout na záložku údržba, pokud je v URL hash #maintenance
     if (window.location.hash === "#maintenance") {
-      // Scroll na záložku nebo změnit aktivní záložku
       setTimeout(() => {
-        const maintenanceTab = document.querySelector('[data-state="inactive"][value="maintenance"]');
+        // Updated selector as per outline
+        const maintenanceTab = document.querySelector('[value="maintenance"]');
         if (maintenanceTab) {
           maintenanceTab.click();
         }
@@ -1331,7 +1333,7 @@ export default function Machine() {
             <Tabs defaultValue="planned" className="space-y-6">
               <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm">
                 <TabsTrigger value="planned" className="gap-2">
-                  <CalendarIcon className="w-4 h-4" />
+                  <CalendarClock className="w-4 h-4" />
                   Plánovaná údržba ({activePlannedTasks.length})
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-2">
@@ -1358,7 +1360,7 @@ export default function Machine() {
                   <CardHeader className="border-b border-slate-100">
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
-                        <CalendarIcon className="w-5 h-5 text-blue-600" />
+                        <CalendarClock className="w-5 h-5 text-blue-600" />
                         Plánovaná údržba
                       </CardTitle>
                       {canManagePlannedMaintenance && (
@@ -1375,7 +1377,7 @@ export default function Machine() {
                   <CardContent className="p-6">
                     {activePlannedTasks.length === 0 ? (
                       <div className="text-center py-12">
-                        <CalendarIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <CalendarClock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-500 mb-2">Zatím nejsou naplánované žádné úkoly údržby</p>
                         {canManagePlannedMaintenance && (
                           <p className="text-sm text-slate-400">Klikněte na "Přidat plánovaný úkol" pro vytvoření nového</p>
@@ -1462,7 +1464,7 @@ export default function Machine() {
                                       className="gap-2 bg-blue-600 hover:bg-blue-700"
                                       disabled={!task.assigned_to || createWorkOrderMutation.isLoading}
                                     >
-                                      {createWorkOrderMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                      {createWorkOrderMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                       Vytvořit pracovní příkaz
                                     </Button>
                                   )}
@@ -2105,11 +2107,12 @@ export default function Machine() {
                                 <p className="text-xs text-slate-500">m/s²</p>
                               </div>
                             )}
+                            {/* Corrected property access if a_envelope exists */}
                             {measurement.a_envelope !== null && (
                               <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                <p className="text-xs text-slate-500 mb-1">OA</p>
-                                <p className="text-lg font-bold text-slate-900">{measurement.overall_acceleration}</p>
-                                <p className="text-xs text-slate-500">m/s²</p>
+                                <p className="text-xs text-slate-500 mb-1">A obálka</p>
+                                <p className="text-lg font-bold text-slate-900">{measurement.a_envelope}</p>
+                                <p className="text-xs text-slate-500">g</p>
                               </div>
                             )}
                             {measurement.overall_acceleration !== null && (
