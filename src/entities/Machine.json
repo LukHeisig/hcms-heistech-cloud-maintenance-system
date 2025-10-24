@@ -13,6 +13,32 @@
     "description": {
       "type": "string"
     },
+    "inventory_number": {
+      "type": "string",
+      "description": "Invent\u00e1rn\u00ed \u010d\u00edslo / intern\u00ed ozna\u010den\u00ed"
+    },
+    "location": {
+      "type": "string",
+      "description": "Um\u00edst\u011bn\u00ed stroje (objekt/hala/sekce)"
+    },
+    "machine_type": {
+      "type": "string",
+      "enum": [
+        "press",
+        "conveyor",
+        "pump",
+        "fan",
+        "compressor",
+        "motor",
+        "gearbox",
+        "crane",
+        "robot",
+        "cnc_machine",
+        "welding_machine",
+        "other"
+      ],
+      "description": "Typ za\u0159\u00edzen\u00ed"
+    },
     "order_index": {
       "type": "number",
       "default": 0

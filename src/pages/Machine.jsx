@@ -315,6 +315,25 @@ export default function Machine() {
 
   const machineStatus = overduePoints.length > 0 ? "warning" : issues.length > 0 ? "issues" : "ok";
 
+  // Překlad typu stroje
+  const getMachineTypeLabel = (type) => {
+    const types = {
+      press: "Lis",
+      conveyor: "Dopravník",
+      pump: "Čerpadlo",
+      fan: "Ventilátor",
+      compressor: "Kompresor",
+      motor: "Motor",
+      gearbox: "Převodovka",
+      crane: "Jeřáb",
+      robot: "Robot",
+      cnc_machine: "CNC stroj",
+      welding_machine: "Svářečka",
+      other: "Jiné"
+    };
+    return types[type] || type;
+  };
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -357,6 +376,29 @@ export default function Machine() {
                       <p className="text-slate-300 text-lg">{line?.name}</p>
                     </div>
                   </div>
+
+                  {/* Dodatečné informace o stroji */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    {machine.inventory_number && (
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-slate-400 text-xs mb-1">Inventární číslo</p>
+                        <p className="text-white font-semibold">{machine.inventory_number}</p>
+                      </div>
+                    )}
+                    {machine.machine_type && (
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-slate-400 text-xs mb-1">Typ zařízení</p>
+                        <p className="text-white font-semibold">{getMachineTypeLabel(machine.machine_type)}</p>
+                      </div>
+                    )}
+                    {machine.location && (
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-slate-400 text-xs mb-1">Umístění</p>
+                        <p className="text-white font-semibold">{machine.location}</p>
+                      </div>
+                    )}
+                  </div>
+
                   {machine.description && (
                     <p className="text-slate-200 mb-4">{machine.description}</p>
                   )}

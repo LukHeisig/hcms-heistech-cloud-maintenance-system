@@ -26,6 +26,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowLeft,
   Plus,
   Pencil,
@@ -52,7 +59,13 @@ export default function AdminMachines() {
   const [copyingMachine, setCopyingMachine] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyName, setCopyName] = useState("");
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    inventory_number: "",
+    location: "",
+    machine_type: ""
+  });
 
   const { data: line } = useQuery({
     queryKey: ["line", lineId],
@@ -90,7 +103,7 @@ export default function AdminMachines() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       setShowMachineDialog(false);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: "" });
     },
   });
 
@@ -100,7 +113,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       setShowMachineDialog(false);
       setEditingMachine(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: "" });
     },
   });
 
@@ -115,10 +128,22 @@ export default function AdminMachines() {
   const handleOpenDialog = (machine = null) => {
     if (machine) {
       setEditingMachine(machine);
-      setFormData({ name: machine.name, description: machine.description || "" });
+      setFormData({
+        name: machine.name,
+        description: machine.description || "",
+        inventory_number: machine.inventory_number || "",
+        location: machine.location || "",
+        machine_type: machine.machine_type || ""
+      });
     } else {
       setEditingMachine(null);
-      setFormData({ name: "", description: "" });
+      setFormData({
+        name: "",
+        description: "",
+        inventory_number: "",
+        location: "",
+        machine_type: ""
+      });
     }
     setShowMachineDialog(true);
   };
@@ -162,6 +187,9 @@ export default function AdminMachines() {
         description: copyingMachine.description || "",
         line_id: copyingMachine.line_id,
         order_index: machines.length,
+        inventory_number: "", // Do not copy inventory number by default
+        location: copyingMachine.location || "",
+        machine_type: copyingMachine.machine_type || ""
       });
 
       // 2. Najít všechny kontrolní body původního stroje
@@ -294,6 +322,16 @@ export default function AdminMachines() {
                         <h3 className="text-xl font-bold text-slate-900 mb-1">
                           {machine.name}
                         </h3>
+                        {machine.inventory_number && (
+                          <p className="text-sm text-slate-600">
+                            Inventární číslo: {machine.inventory_number}
+                          </p>
+                        )}
+                        {machine.location && (
+                          <p className="text-sm text-slate-600">
+                            Umístění: {machine.location}
+                          </p>
+                        )}
                         {machine.description && (
                           <p className="text-sm text-slate-600 mb-3">
                             {machine.description}
@@ -350,7 +388,7 @@ export default function AdminMachines() {
         )}
 
         <Dialog open={showMachineDialog} onOpenChange={setShowMachineDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
                 {editingMachine ? "Upravit stroj" : "Nový stroj"}
@@ -362,17 +400,72 @@ export default function AdminMachines() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div>
-                <Label htmlFor="name">Název stroje *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="např. Lis LH-500"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Název stroje *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="např. Lis LH-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="inventory_number">Inventární číslo</Label>
+                  <Input
+                    id="inventory_number"
+                    value={formData.inventory_number}
+                    onChange={(e) =>
+                      setFormData({ ...formData, inventory_number: e.target.value })
+                    }
+                    placeholder="např. ST-001"
+                  />
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="machine_type">Typ zařízení</Label>
+                  <Select
+                    value={formData.machine_type}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, machine_type: value })
+                    }
+                  >
+                    <SelectTrigger id="machine_type">
+                      <SelectValue placeholder="Vyberte typ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="press">Lis</SelectItem>
+                      <SelectItem value="conveyor">Dopravník</SelectItem>
+                      <SelectItem value="pump">Čerpadlo</SelectItem>
+                      <SelectItem value="fan">Ventilátor</SelectItem>
+                      <SelectItem value="compressor">Kompresor</SelectItem>
+                      <SelectItem value="motor">Motor</SelectItem>
+                      <SelectItem value="gearbox">Převodovka</SelectItem>
+                      <SelectItem value="crane">Jeřáb</SelectItem>
+                      <SelectItem value="robot">Robot</SelectItem>
+                      <SelectItem value="cnc_machine">CNC stroj</SelectItem>
+                      <SelectItem value="welding_machine">Svářečka</SelectItem>
+                      <SelectItem value="other">Jiné</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="location">Umístění</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) =>
+                      setFormData({ ...formData, location: e.target.value })
+                    }
+                    placeholder="např. Hala A, sekce 2"
+                  />
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="description">Popis</Label>
                 <Textarea
