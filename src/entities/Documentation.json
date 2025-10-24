@@ -22,11 +22,24 @@
       "enum": [
         "photo",
         "schema",
-        "document"
+        "document",
+        "other_file"
       ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "drawing",
+        "operational",
+        "other"
+      ],
+      "description": "Kategorie dokumentace"
     }
   },
   "required": [
-    "file_url"
+    "file_url",
+    "file_name",
+    "file_type",
+    "category"
   ]
 }

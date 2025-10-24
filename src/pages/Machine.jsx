@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,7 +25,16 @@ import {
   Wrench,
   Activity,
   Building2,
-  Factory
+  Factory,
+  Camera,
+  Upload,
+  X,
+  FileIcon,
+  FileImage,
+  FileTypePdf,
+  FileTypeDoc,
+  FileTypeXls,
+  FileJson
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -47,11 +55,46 @@ import {
   BarChart,
   Bar
 } from "recharts";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 export default function Machine() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
+
+  const queryClient = useQueryClient(); // Přesunuto sem
+
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadingCategory, setUploadingCategory] = useState("drawing");
+  const [selectedUploadFile, setSelectedUploadFile] = useState(null);
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const [deleteDocId, setDeleteDocId] = useState(null);
+  const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
+  const [selectedDocPreview, setSelectedDocPreview] = useState(null);
 
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
@@ -253,13 +296,13 @@ export default function Machine() {
                         </h3>
                         {status === "overdue" && (
                           <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
-                            <Clock className="w-3 h-3" />
+                            <Clock className="w-3 h-3 mr-1" />
                             Po termínu
                           </Badge>
                         )}
                         {pointIssues.length > 0 && (
-                          <Badge className="bg-orange-500 gap-1">
-                            <AlertTriangle className="w-3 h-3" />
+                          <Badge className="bg-orange-500 text-white">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
                             {pointIssues.length}
                           </Badge>
                         )}
@@ -334,12 +377,95 @@ export default function Machine() {
     return types[type] || type;
   };
 
+  const getFileIcon = (fileType) => {
+    switch (fileType) {
+      case "photo":
+        return <FileImage className="w-8 h-8 text-blue-500" />;
+      case "schema":
+        return <FileText className="w-8 h-8 text-purple-500" />;
+      case "document":
+        return <FileTypeDoc className="w-8 h-8 text-green-500" />;
+      case "other_file":
+        return <FileIcon className="w-8 h-8 text-slate-500" />;
+      case "application/pdf": // Example for specific mime types if needed
+        return <FileTypePdf className="w-8 h-8 text-red-500" />;
+      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      case "application/msword":
+        return <FileTypeDoc className="w-8 h-8 text-blue-500" />;
+      case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      case "application/vnd.ms-excel":
+        return <FileTypeXls className="w-8 h-8 text-green-500" />;
+      case "image/jpeg":
+      case "image/png":
+      case "image/gif":
+        return <FileImage className="w-8 h-8 text-blue-500" />;
+      default:
+        return <FileIcon className="w-8 h-8 text-slate-500" />;
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedUploadFile || !uploadFileName.trim() || !uploadingCategory) return;
+
+    setIsUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: selectedUploadFile });
+      
+      let detectedFileType = "other_file";
+      if (selectedUploadFile.type.startsWith("image/")) {
+        detectedFileType = "photo";
+      } else if (selectedUploadFile.type === "application/pdf") {
+        detectedFileType = "document"; // PDFs often considered documents
+      } else if (selectedUploadFile.name.toLowerCase().endsWith(".dwg") || selectedUploadFile.name.toLowerCase().endsWith(".dxf")) {
+          detectedFileType = "schema"; // CAD files
+      } else if (selectedUploadFile.type.includes("word") || selectedUploadFile.type.includes("excel")) {
+          detectedFileType = "document";
+      }
+      
+      await base44.entities.Documentation.create({
+        machine_id: machineId,
+        file_url,
+        file_name: uploadFileName,
+        file_type: detectedFileType,
+        category: uploadingCategory,
+      });
+      queryClient.invalidateQueries({ queryKey: ["documentation"] });
+      setShowUploadDialog(false);
+      setSelectedUploadFile(null);
+      setUploadFileName("");
+      setUploadingCategory("drawing");
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Chyba při nahrávání souboru: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteDoc = async () => {
+    if (deleteDocId) {
+      await base44.entities.Documentation.delete(deleteDocId);
+      queryClient.invalidateQueries({ queryKey: ["documentation"] });
+      setDeleteDocId(null);
+    }
+  };
+
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Hlavička stroje */}
         <div className="mb-6">
-          {/* Breadcrumbs - Replaces the old "Zpět na {line?.name}" button */}
+          <Button
+            variant="ghost"
+            onClick={() => navigate(createPageUrl(`Lines?company=${line?.company_id}&line=${machine.line_id}`))}
+            className="mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Zpět na {line?.name}
+          </Button>
+
+          {/* Breadcrumbs */}
           <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
             <Building2 className="w-4 h-4 text-slate-500" />
             <button
@@ -728,42 +854,199 @@ export default function Machine() {
           <TabsContent value="documentation">
             <Card className="border-none shadow-lg">
               <CardHeader className="border-b border-slate-100">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-indigo-600" />
-                  Fotodokumentace a schémata stroje
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-indigo-600" />
+                    Dokumentace stroje
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUploadFile(null);
+                        setUploadFileName("");
+                        setUploadingCategory("drawing"); // Default category
+                        setShowUploadDialog(true);
+                      }}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Nahrát soubor
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-6">
                 {documentation.length === 0 ? (
                   <div className="text-center py-12">
                     <ImageIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500 mb-2">Zatím nebyla přidána žádná dokumentace</p>
-                    <p className="text-sm text-slate-400">Dokumentaci můžete přidávat v detailu kontrolního bodu</p>
+                    <p className="text-sm text-slate-400">Použijte tlačítko "Nahrát soubor" pro přidání</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {documentation.map((doc) => (
-                      <a
-                        key={doc.id}
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group"
-                      >
-                        <div className="aspect-square rounded-lg overflow-hidden border-2 border-slate-200 group-hover:border-indigo-400 transition-colors">
-                          <img
-                            src={doc.file_url}
-                            alt={doc.file_name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <p className="text-sm text-slate-600 mt-2 truncate">{doc.file_name}</p>
-                        <p className="text-xs text-slate-400">
-                          {format(new Date(doc.created_date), "d.M. yyyy", { locale: cs })}
-                        </p>
-                      </a>
-                    ))}
-                  </div>
+                  <Tabs defaultValue="drawing" className="space-y-6">
+                    <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm">
+                      <TabsTrigger value="drawing" className="gap-2">
+                        Výkresy ({documentation.filter(doc => doc.category === "drawing").length})
+                      </TabsTrigger>
+                      <TabsTrigger value="operational" className="gap-2">
+                        Provozní ({documentation.filter(doc => doc.category === "operational").length})
+                      </TabsTrigger>
+                      <TabsTrigger value="other" className="gap-2">
+                        Ostatní ({documentation.filter(doc => doc.category === "other").length})
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="drawing">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {documentation.filter(doc => doc.category === "drawing").map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="group relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 hover:border-indigo-400 transition-all cursor-pointer bg-slate-50 flex items-center justify-center"
+                            onClick={() => {
+                                setSelectedDocPreview(doc);
+                                setShowDocPreviewDialog(true);
+                            }}
+                          >
+                            {doc.file_type === "photo" ? (
+                              <img
+                                src={doc.file_url}
+                                alt={doc.file_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                                <div className="flex flex-col items-center p-4 text-center">
+                                    {getFileIcon(doc.file_type)}
+                                    <p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p>
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteDocId(doc.id);
+                                }}
+                              >
+                                <X className="w-5 h-5" />
+                              </Button>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                              <p className="text-xs text-white truncate">{doc.file_name}</p>
+                              <p className="text-xs text-white/70">
+                                {format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {documentation.filter(doc => doc.category === "drawing").length === 0 && (
+                            <p className="col-span-full text-center text-slate-500 py-8">Žádné výkresy nebyly přidány.</p>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="operational">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {documentation.filter(doc => doc.category === "operational").map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="group relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 hover:border-indigo-400 transition-all cursor-pointer bg-slate-50 flex items-center justify-center"
+                            onClick={() => {
+                                setSelectedDocPreview(doc);
+                                setShowDocPreviewDialog(true);
+                            }}
+                          >
+                            {doc.file_type === "photo" ? (
+                              <img
+                                src={doc.file_url}
+                                alt={doc.file_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                                <div className="flex flex-col items-center p-4 text-center">
+                                    {getFileIcon(doc.file_type)}
+                                    <p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p>
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteDocId(doc.id);
+                                }}
+                              >
+                                <X className="w-5 h-5" />
+                              </Button>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                              <p className="text-xs text-white truncate">{doc.file_name}</p>
+                              <p className="text-xs text-white/70">
+                                {format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {documentation.filter(doc => doc.category === "operational").length === 0 && (
+                            <p className="col-span-full text-center text-slate-500 py-8">Žádná provozní dokumentace nebyla přidána.</p>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="other">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {documentation.filter(doc => doc.category === "other").map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="group relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 hover:border-indigo-400 transition-all cursor-pointer bg-slate-50 flex items-center justify-center"
+                            onClick={() => {
+                                setSelectedDocPreview(doc);
+                                setShowDocPreviewDialog(true);
+                            }}
+                          >
+                            {doc.file_type === "photo" ? (
+                              <img
+                                src={doc.file_url}
+                                alt={doc.file_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                                <div className="flex flex-col items-center p-4 text-center">
+                                    {getFileIcon(doc.file_type)}
+                                    <p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p>
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteDocId(doc.id);
+                                }}
+                              >
+                                <X className="w-5 h-5" />
+                              </Button>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                              <p className="text-xs text-white truncate">{doc.file_name}</p>
+                              <p className="text-xs text-white/70">
+                                {format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {documentation.filter(doc => doc.category === "other").length === 0 && (
+                            <p className="col-span-full text-center text-slate-500 py-8">Žádná další dokumentace nebyla přidána.</p>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 )}
               </CardContent>
             </Card>
@@ -1273,6 +1556,157 @@ export default function Machine() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Dialog pro nahrávání souboru */}
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nahrát dokumentaci</DialogTitle>
+              <DialogDescription>
+                Vyberte typ a soubor pro nahrání dokumentace stroje.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div>
+                    <Label htmlFor="uploadCategory">Kategorie dokumentace *</Label>
+                    <Select
+                        value={uploadingCategory}
+                        onValueChange={setUploadingCategory}
+                    >
+                        <SelectTrigger id="uploadCategory">
+                            <SelectValue placeholder="Vyberte kategorii" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="drawing">Výkresová dokumentace</SelectItem>
+                            <SelectItem value="operational">Provozní dokumentace</SelectItem>
+                            <SelectItem value="other">Ostatní</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label htmlFor="fileName">Název souboru *</Label>
+                    <Input
+                        id="fileName"
+                        value={uploadFileName}
+                        onChange={(e) => setUploadFileName(e.target.value)}
+                        placeholder="Např. Elektrické schéma_v1"
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="fileInput">Vybrat soubor *</Label>
+                    <Input
+                        id="fileInput"
+                        type="file"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            setSelectedUploadFile(file);
+                            if (!uploadFileName && file) {
+                                setUploadFileName(file.name.split('.').slice(0, -1).join('.'));
+                            }
+                        }}
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
+                Zrušit
+              </Button>
+              <Button
+                onClick={handleFileUpload}
+                disabled={isUploading || !selectedUploadFile || !uploadFileName.trim()}
+                className="bg-gradient-to-r from-blue-600 to-blue-700"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Nahrávám...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Nahrát
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog pro zobrazení/náhled dokumentu */}
+        <Dialog open={showDocPreviewDialog} onOpenChange={setShowDocPreviewDialog}>
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>{selectedDocPreview?.file_name}</DialogTitle>
+                    <DialogDescription>
+                        {selectedDocPreview && format(new Date(selectedDocPreview.created_date), "d. M. yyyy HH:mm", { locale: cs })}
+                        {selectedDocPreview?.created_by && ` • ${selectedDocPreview.created_by}`}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50 rounded-md">
+                    {selectedDocPreview?.file_type === "photo" ? (
+                        <img
+                            src={selectedDocPreview.file_url}
+                            alt={selectedDocPreview.file_name}
+                            className="max-w-full max-h-full object-contain"
+                        />
+                    ) : selectedDocPreview?.file_type === "document" && selectedDocPreview.file_url.endsWith(".pdf") ? (
+                        <iframe
+                            src={selectedDocPreview.file_url}
+                            title={selectedDocPreview.file_name}
+                            className="w-full h-full border-none"
+                        />
+                    ) : (
+                        <div className="text-center">
+                            {getFileIcon(selectedDocPreview?.file_type)}
+                            <p className="text-slate-600 mt-4">Náhled pro tento typ souboru není dostupný.</p>
+                            <p className="text-sm text-slate-500">Můžete jej otevřít v nové záložce.</p>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        onClick={() => window.open(selectedDocPreview?.file_url, "_blank")}
+                    >
+                        Otevřít v nové záložce
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={() => {
+                            setShowDocPreviewDialog(false);
+                            setDeleteDocId(selectedDocPreview?.id);
+                        }}
+                    >
+                        <X className="w-4 h-4 mr-2" />
+                        Smazat
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Alert dialog pro smazání dokumentu */}
+        <AlertDialog
+          open={!!deleteDocId}
+          onOpenChange={() => setDeleteDocId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Opravdu smazat dokument?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tato akce je nevratná. Dokument bude trvale odstraněn.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Zrušit</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteDoc}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Smazat
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
