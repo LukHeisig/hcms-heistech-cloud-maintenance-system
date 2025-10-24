@@ -36,11 +36,24 @@ export default function Dashboard() {
     setUser(currentUser);
   };
 
-  const { data: companies = [] } = useQuery({
+  const { data: allCompanies = [] } = useQuery({
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list("name"),
-    enabled: user?.user_type === "admin",
+    enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
   });
+
+  // Filtrovat podniky podle přístupových práv
+  const companies = React.useMemo(() => {
+    if (!user) return [];
+    if (user.user_type === "superAdmin") return allCompanies;
+    if (user.user_type === "admin") {
+      // Admin vidí pouze podniky, které má v assigned_company_ids
+      return allCompanies.filter(c => 
+        user.assigned_company_ids?.includes(c.id)
+      );
+    }
+    return [];
+  }, [allCompanies, user]);
 
   const { data: lines = [] } = useQuery({
     queryKey: ["lines", user?.company_id],
@@ -48,15 +61,12 @@ export default function Dashboard() {
       user?.company_id
         ? base44.entities.Line.filter({ company_id: user.company_id }, "order_index")
         : [],
-    enabled: !!user?.company_id && user?.user_type !== "admin",
+    enabled: !!user?.company_id && user?.user_type !== "admin" && user?.user_type !== "superAdmin",
   });
 
-  // 'allLines' query is now enabled for all users once 'user' is loaded
-  // to ensure data availability for calculations, regardless of user type.
   const { data: allLines = [] } = useQuery({
     queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list(),
-    enabled: !!user, // Ensure user is loaded before fetching
   });
 
   const { data: machines = [] } = useQuery({
@@ -85,35 +95,15 @@ export default function Dashboard() {
 
   // Pokud uživatel nemá company_id a není admin, přesměrovat na setup
   useEffect(() => {
-    if (user && !user.company_id && user.user_type !== "admin") {
+    if (user && !user.company_id && user.user_type !== "admin" && user.user_type !== "superAdmin") {
       navigate(createPageUrl("Setup"));
-    } else if (user && user.user_type !== "admin" && lines.length === 0 && !user.company_id) {
+    } else if (user && user.user_type !== "admin"  && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
       navigate(createPageUrl("Setup"));
     }
   }, [user, lines, navigate]);
 
-  // Define user-relevant data based on user type for accurate statistics
-  // For non-admins, filter data to their company's scope.
-  // For admins, all fetched data is considered relevant.
-  const userRelevantMachines = user?.user_type === "admin"
-    ? machines
-    : machines.filter(m => lines.some(l => l.id === m.line_id));
-
-  const userRelevantControlPoints = user?.user_type === "admin"
-    ? controlPoints
-    : controlPoints.filter(cp => userRelevantMachines.some(m => m.id === cp.machine_id));
-
-  const userRelevantRecords = user?.user_type === "admin"
-    ? records
-    : records.filter(r => userRelevantControlPoints.some(cp => cp.id === r.control_point_id));
-
-  const userRelevantIssues = user?.user_type === "admin"
-    ? issues
-    : issues.filter(i => userRelevantControlPoints.some(cp => cp.id === i.control_point_id));
-
   const getPointStatus = (point) => {
-    // Use userRelevantRecords to determine point status
-    const pointRecords = userRelevantRecords.filter((r) => r.control_point_id === point.id);
+    const pointRecords = records.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
 
     const latestRecord = pointRecords[0];
@@ -124,14 +114,14 @@ export default function Dashboard() {
     return hoursSince > point.interval_hours ? "overdue" : "ok";
   };
 
-  // Calculations for dashboard stats
+  // Výpočet skutečných hodnot
   const activeCompanies = companies.filter(c => c.is_active !== false);
-  const totalLinesCount = user?.user_type === "admin" ? allLines.length : lines.length;
-  const overduePointsCount = userRelevantControlPoints.filter(
+  const totalLinesCount = (user?.user_type === "admin" || user?.user_type === "superAdmin") ? allLines.length : lines.length;
+  const overduePointsCount = controlPoints.filter(
     (point) => getPointStatus(point) === "overdue"
   ).length;
 
-  const totalRecordsThisMonthCount = userRelevantRecords.filter((r) => {
+  const totalRecordsThisMonthCount = records.filter((r) => {
     const date = new Date(r.performed_at);
     const now = new Date();
     return (
@@ -139,8 +129,8 @@ export default function Dashboard() {
     );
   }).length;
 
-  // Dashboard pro administrátora - zobrazení podniků
-  if (user?.user_type === "admin") {
+  // Dashboard pro administrátora a superAdmina - zobrazení podniků
+  if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-7xl mx-auto">
@@ -150,7 +140,10 @@ export default function Dashboard() {
               Dashboard
             </h1>
             <p className="text-slate-600">
-              Přehled všech podniků v systému
+              {user?.user_type === "superAdmin" 
+                ? "Přehled všech podniků v systému"
+                : `Přehled vašich ${companies.length} přiřazených podniků`
+              }
             </p>
           </div>
 
@@ -224,14 +217,16 @@ export default function Dashboard() {
                       <Building2 className="w-5 h-5 text-slate-600" />
                       Podniky
                     </CardTitle>
-                    <Button
-                      onClick={() => navigate(createPageUrl("AdminCompanies"))}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Přidat podnik
-                    </Button>
+                    {user?.user_type === "superAdmin" && (
+                      <Button
+                        onClick={() => navigate(createPageUrl("AdminCompanies"))}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Přidat podnik
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -239,18 +234,26 @@ export default function Dashboard() {
                     <div className="text-center py-12">
                       <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                        Zatím nemáte žádné podniky
+                        {user?.user_type === "superAdmin" 
+                          ? "Zatím nemáte žádné podniky"
+                          : "Nemáte přiřazené žádné podniky"
+                        }
                       </h3>
                       <p className="text-slate-500 mb-6">
-                        Začněte vytvořením prvního podniku
+                        {user?.user_type === "superAdmin"
+                          ? "Začněte vytvořením prvního podniku"
+                          : "Kontaktujte superAdmina pro přiřazení podniků"
+                        }
                       </p>
-                      <Button
-                        onClick={() => navigate(createPageUrl("AdminCompanies"))}
-                        className="bg-gradient-to-r from-red-600 to-red-700"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Vytvořit podnik
-                      </Button>
+                      {user?.user_type === "superAdmin" && (
+                        <Button
+                          onClick={() => navigate(createPageUrl("AdminCompanies"))}
+                          className="bg-gradient-to-r from-red-600 to-red-700"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Vytvořit podnik
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -262,11 +265,11 @@ export default function Dashboard() {
                         const companyPoints = controlPoints.filter((p) =>
                           companyMachines.some((m) => m.id === p.machine_id)
                         );
-                        const companyOverdue = companyPoints.filter(
-                          (p) => getPointStatus(p) === "overdue"
+                        const companyOverdue = controlPoints.filter(
+                          (p) => getPointStatus(p) === "overdue" && companyMachines.some((m) => m.id === p.machine_id)
                         ).length;
                         const companyIssues = issues.filter((issue) =>
-                          companyPoints.some((p) => p.id === issue.control_point_id)
+                          controlPoints.some((p) => p.id === issue.control_point_id) && companyMachines.some((m) => m.id === p.machine_id)
                         ).length;
 
                         return (
@@ -335,14 +338,14 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  {userRelevantRecords.length === 0 ? (
+                  {records.length === 0 ? (
                     <p className="text-center text-slate-500 py-8 text-sm">
                       Zatím nejsou žádné záznamy
                     </p>
                   ) : (
                     <div className="space-y-3">
-                      {userRelevantRecords.slice(0, 5).map((record) => {
-                        const point = userRelevantControlPoints.find(
+                      {records.slice(0, 5).map((record) => {
+                        const point = controlPoints.find(
                           (p) => p.id === record.control_point_id
                         );
                         return (
@@ -381,7 +384,7 @@ export default function Dashboard() {
               </Card>
 
               {/* Nahlášené závady */}
-              {userRelevantIssues.length > 0 && (
+              {issues.length > 0 && (
                 <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                   <CardHeader className="border-b border-slate-100">
                     <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
@@ -391,8 +394,8 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      {userRelevantIssues.slice(0, 3).map((issue) => {
-                        const point = userRelevantControlPoints.find(
+                      {issues.slice(0, 3).map((issue) => {
+                        const point = controlPoints.find(
                           (p) => p.id === issue.control_point_id
                         );
                         return (
@@ -415,7 +418,7 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
-                    {userRelevantIssues.length > 3 && (
+                    {issues.length > 3 && (
                       <Link
                         to={createPageUrl("IssueApproval")}
                         className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
@@ -498,7 +501,7 @@ export default function Dashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-purple-100 text-sm font-medium mb-1">Kontrolní body</p>
-                  <p className="text-4xl font-bold">{userRelevantControlPoints.length}</p>
+                  <p className="text-4xl font-bold">{controlPoints.length}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <Droplet className="w-6 h-6" />
@@ -554,11 +557,11 @@ export default function Dashboard() {
                     const linePoints = controlPoints.filter((p) =>
                       lineMachines.some((m) => m.id === p.machine_id)
                     );
-                    const lineOverdue = linePoints.filter(
-                      (p) => getPointStatus(p) === "overdue"
+                    const lineOverdue = controlPoints.filter(
+                      (p) => getPointStatus(p) === "overdue" && lineMachines.some((m) => m.id === p.machine_id)
                     ).length;
                     const lineIssues = issues.filter((issue) =>
-                      linePoints.some((p) => p.id === issue.control_point_id)
+                      controlPoints.some((p) => p.id === issue.control_point_id) && lineMachines.some((m) => m.id === p.machine_id)
                     ).length;
 
                     return (
@@ -624,14 +627,14 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                {userRelevantRecords.length === 0 ? (
+                {records.length === 0 ? (
                   <p className="text-center text-slate-500 py-8 text-sm">
                     Zatím nejsou žádné záznamy
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {userRelevantRecords.slice(0, 5).map((record) => {
-                      const point = userRelevantControlPoints.find(
+                    {records.slice(0, 5).map((record) => {
+                      const point = controlPoints.find(
                         (p) => p.id === record.control_point_id
                       );
                       return (
@@ -670,7 +673,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Nahlášené závady */}
-            {userRelevantIssues.length > 0 && user?.user_type !== "technician" && (
+            {issues.length > 0 && user?.user_type !== "technician" && (
               <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
@@ -680,8 +683,8 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="space-y-3">
-                    {userRelevantIssues.slice(0, 3).map((issue) => {
-                      const point = userRelevantControlPoints.find(
+                    {issues.slice(0, 3).map((issue) => {
+                      const point = controlPoints.find(
                         (p) => p.id === issue.control_point_id
                       );
                       return (
@@ -704,7 +707,7 @@ export default function Dashboard() {
                       );
                     })}
                   </div>
-                  {userRelevantIssues.length > 3 && (
+                  {issues.length > 3 && (
                     <Link
                       to={createPageUrl("IssueApproval")}
                       className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"

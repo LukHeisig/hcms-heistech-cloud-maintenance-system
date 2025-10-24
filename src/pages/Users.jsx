@@ -67,10 +67,22 @@ export default function Users() {
     queryFn: () => base44.entities.Customer.list(),
   });
 
-  const { data: companies = [] } = useQuery({ // Fetch companies
+  const { data: allCompanies = [] } = useQuery({
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list(),
   });
+
+  // Filtrovat podniky podle přístupových práv
+  const companies = React.useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.user_type === "superAdmin") return allCompanies;
+    if (currentUser.user_type === "admin") {
+      return allCompanies.filter(c => 
+        currentUser.assigned_company_ids?.includes(c.id)
+      );
+    }
+    return [];
+  }, [allCompanies, currentUser]);
 
   const updateUserMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
@@ -86,7 +98,8 @@ export default function Users() {
     setFormData({
       user_type: user.user_type || "technician",
       phone: user.phone || "",
-      company_id: user.company_id || null, // Initialize company_id from user
+      company_id: user.company_id || null,
+      assigned_company_ids: user.assigned_company_ids || [],
     });
     setShowEditDialog(true);
   };
@@ -102,6 +115,8 @@ export default function Users() {
 
   const getUserTypeLabel = (type) => {
     switch (type) {
+      case "superAdmin":
+        return "Super Administrátor";
       case "admin":
         return "Administrátor";
       case "manager":
@@ -115,6 +130,13 @@ export default function Users() {
 
   const getUserTypeBadge = (type) => {
     switch (type) {
+      case "superAdmin":
+        return (
+          <Badge className="bg-purple-100 text-purple-800 gap-1">
+            <Crown className="w-3 h-3" />
+            Super Admin
+          </Badge>
+        );
       case "admin":
         return (
           <Badge className="bg-red-100 text-red-800 gap-1">
@@ -182,8 +204,8 @@ export default function Users() {
           </div>
         </div>
 
-        {/* Návod pro přidání uživatelů - pouze pro adminy */}
-        {currentUser?.user_type === "admin" && (
+        {/* Návod pro přidání uživatelů - pouze pro superAdminy */}
+        {currentUser?.user_type === "superAdmin" && (
           <Card className="mb-6 border-blue-200 bg-blue-50">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
@@ -224,8 +246,23 @@ export default function Users() {
           </Card>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">Super Admini</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {users.filter((u) => u.user_type === "superAdmin").length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
@@ -309,8 +346,10 @@ export default function Users() {
                       <TableCell className="text-slate-600">{user.email}</TableCell>
                       <TableCell>{getUserTypeBadge(user.user_type)}</TableCell>
                       <TableCell className="text-slate-600">
-                        {user.user_type === "admin"
+                        {user.user_type === "superAdmin"
                           ? <span className="text-slate-400 italic">Všechny podniky</span>
+                          : user.user_type === "admin"
+                          ? <span className="text-slate-400 italic">Přiřazené podniky</span>
                           : getCompanyName(user.company_id)
                         }
                       </TableCell>
@@ -363,32 +402,6 @@ export default function Users() {
                 <p className="text-xs text-slate-500 mt-1">Email nelze měnit</p>
               </div>
 
-              {currentUser?.user_type === "admin" && (
-                <div>
-                  <Label htmlFor="company_id">Podnik *</Label>
-                  <Select
-                    value={formData.company_id || ""}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, company_id: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte podnik" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company.id} value={company.id}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Uživatel uvidí pouze linky a stroje tohoto podniku
-                  </p>
-                </div>
-              )}
-
               <div>
                 <Label htmlFor="user_type">Role v systému *</Label>
                 <Select
@@ -416,12 +429,81 @@ export default function Users() {
                     <SelectItem value="admin">
                       <div className="flex items-center gap-2">
                         <Crown className="w-4 h-4" />
-                        Administrátor (plný přístup ke všem podnikům)
+                        Administrátor (přístup k přiřazeným podnikům)
                       </div>
                     </SelectItem>
+                    {currentUser?.user_type === "superAdmin" && (
+                      <SelectItem value="superAdmin">
+                        <div className="flex items-center gap-2">
+                          <Crown className="w-4 h-4" />
+                          Super Administrátor (plný přístup ke všem podnikům)
+                        </div>
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.user_type === "admin" && currentUser?.user_type === "superAdmin" && (
+                <div>
+                  <Label htmlFor="assigned_companies">Přiřazené podniky *</Label>
+                  <div className="border rounded-lg p-4 bg-slate-50 space-y-2 max-h-48 overflow-y-auto">
+                    {companies.map((company) => (
+                      <label key={company.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.assigned_company_ids?.includes(company.id)}
+                          onChange={(e) => {
+                            const currentIds = formData.assigned_company_ids || [];
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                assigned_company_ids: [...currentIds, company.id],
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                assigned_company_ids: currentIds.filter(id => id !== company.id),
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm text-slate-700">{company.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Vyberte podniky, ke kterým bude mít administrátor přístup
+                  </p>
+                </div>
+              )}
+
+              {(formData.user_type === "technician" || formData.user_type === "manager") && currentUser?.user_type === "superAdmin" && (
+                <div>
+                  <Label htmlFor="company_id">Podnik *</Label>
+                  <Select
+                    value={formData.company_id || ""}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, company_id: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte podnik" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Uživatel uvidí pouze linky a stroje tohoto podniku
+                  </p>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="phone">Telefonní číslo</Label>
@@ -437,7 +519,13 @@ export default function Users() {
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
-                  <strong>Poznámka:</strong> Při změně role na "Administrátor" bude uživatel mít přístup ke všem podnikům.
+                  <strong>Poznámka:</strong> {
+                    formData.user_type === "superAdmin"
+                      ? "Super Administrátor má přístup ke všem podnikům a může spravovat vše."
+                      : formData.user_type === "admin"
+                      ? "Administrátor má přístup pouze k přiřazeným podnikům."
+                      : "Vedoucí a Technici mají přístup pouze k jednomu podniku."
+                  }
                 </p>
               </div>
             </div>

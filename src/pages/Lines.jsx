@@ -57,17 +57,29 @@ export default function Lines() {
   };
 
   // Pro admina načíst všechny podniky
-  const { data: companies = [] } = useQuery({
+  const { data: allCompanies = [] } = useQuery({
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list("name"),
-    enabled: user?.user_type === "admin",
+    enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
   });
+
+  // Filtrovat podniky podle přístupových práv
+  const companies = React.useMemo(() => {
+    if (!user) return [];
+    if (user.user_type === "superAdmin") return allCompanies;
+    if (user.user_type === "admin") {
+      return allCompanies.filter(c => 
+        user.assigned_company_ids?.includes(c.id)
+      );
+    }
+    return [];
+  }, [allCompanies, user]);
 
   // Načíst VŠECHNY linky pro admina (pro statistiky)
   const { data: allLines = [] } = useQuery({
     queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list(),
-    enabled: user?.user_type === "admin",
+    enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
   });
 
   // Linky pro vybraný podnik
@@ -131,7 +143,7 @@ export default function Lines() {
   });
 
   // Admin - výběr podniku
-  if (user?.user_type === "admin" && !selectedCompany) {
+  if ((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto">

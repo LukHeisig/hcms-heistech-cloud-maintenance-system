@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -50,10 +51,27 @@ export default function AdminCompanies() {
     phone: "",
   });
 
-  const { data: companies = [], isLoading } = useQuery({
+  const { data: allCompanies = [], isLoading } = useQuery({
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list("name"),
   });
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: () => base44.auth.me(),
+  });
+
+  // Filtrovat podniky podle přístupových práv
+  const companies = React.useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.user_type === "superAdmin") return allCompanies;
+    if (currentUser.user_type === "admin") {
+      return allCompanies.filter(c => 
+        currentUser.assigned_company_ids?.includes(c.id)
+      );
+    }
+    return [];
+  }, [allCompanies, currentUser]);
 
   const { data: lines = [] } = useQuery({
     queryKey: ["allLines"],
@@ -151,15 +169,19 @@ export default function AdminCompanies() {
               Zpět na administraci
             </Button>
             <h1 className="text-3xl font-bold text-slate-900">Správa podniků</h1>
-            <p className="text-slate-600 mt-1">{companies.length} podniků</p>
+            <p className="text-slate-600 mt-1">
+              {companies.length} {currentUser?.user_type === "superAdmin" ? "podniků" : "přiřazených podniků"}
+            </p>
           </div>
-          <Button
-            onClick={() => handleOpenDialog()}
-            className="bg-gradient-to-r from-red-600 to-red-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Přidat podnik
-          </Button>
+          {currentUser?.user_type === "superAdmin" && (
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="bg-gradient-to-r from-red-600 to-red-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Přidat podnik
+            </Button>
+          )}
         </div>
 
         {companies.length === 0 ? (
@@ -172,13 +194,15 @@ export default function AdminCompanies() {
               <p className="text-slate-500 mb-6">
                 Začněte vytvořením prvního podniku
               </p>
-              <Button
-                onClick={() => handleOpenDialog()}
-                className="bg-gradient-to-r from-red-600 to-red-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Vytvořit první podnik
-              </Button>
+              {currentUser?.user_type === "superAdmin" && (
+                <Button
+                  onClick={() => handleOpenDialog()}
+                  className="bg-gradient-to-r from-red-600 to-red-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Vytvořit první podnik
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -221,20 +245,24 @@ export default function AdminCompanies() {
                           Linky
                           <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDialog(company)}
-                        >
-                          <Pencil className="w-4 h-4 text-slate-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(company.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
+                        {currentUser?.user_type === "superAdmin" && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenDialog(company)}
+                            >
+                              <Pencil className="w-4 h-4 text-slate-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(company.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>

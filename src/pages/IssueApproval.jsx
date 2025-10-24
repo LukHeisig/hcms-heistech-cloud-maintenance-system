@@ -69,8 +69,21 @@ export default function IssueApproval() {
 
   // Filtrování závad podle podniku uživatele
   const reportedIssues = React.useMemo(() => {
-    if (!user || controlPoints.length === 0 || machines.length === 0 || lines.length === 0) return [];
-    if (user.user_type === "admin") return allReportedIssues;
+    if (!user) return [];
+    if (user.user_type === "superAdmin") return allReportedIssues;
+    
+    if (user.user_type === "admin") {
+      // Admin vidí pouze závady z přiřazených podniků
+      const assignedCompanyIds = user.assigned_company_ids || [];
+      const companyLines = lines.filter(l => assignedCompanyIds.includes(l.company_id));
+      const companyLineIds = companyLines.map(l => l.id);
+      const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+      const companyMachineIds = companyMachines.map(m => m.id);
+      const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
+      const companyControlPointIds = companyControlPoints.map(cp => cp.id);
+      
+      return allReportedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+    }
 
     // Pro non-admin: filtrovat podle company_id
     const companyLines = lines.filter(l => l.company_id === user.company_id);
@@ -84,8 +97,21 @@ export default function IssueApproval() {
   }, [allReportedIssues, user, lines, machines, controlPoints]);
 
   const resolvedIssues = React.useMemo(() => {
-    if (!user || controlPoints.length === 0 || machines.length === 0 || lines.length === 0) return [];
-    if (user.user_type === "admin") return allResolvedIssues;
+    if (!user) return [];
+    if (user.user_type === "superAdmin") return allResolvedIssues;
+    
+    if (user.user_type === "admin") {
+      // Admin vidí pouze závady z přiřazených podniků
+      const assignedCompanyIds = user.assigned_company_ids || [];
+      const companyLines = lines.filter(l => assignedCompanyIds.includes(l.company_id));
+      const companyLineIds = companyLines.map(l => l.id);
+      const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+      const companyMachineIds = companyMachines.map(m => m.id);
+      const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
+      const companyControlPointIds = companyControlPoints.map(cp => cp.id);
+      
+      return allResolvedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+    }
 
     // Pro non-admin: filtrovat podle company_id
     const companyLines = lines.filter(l => l.company_id === user.company_id);
@@ -152,7 +178,7 @@ export default function IssueApproval() {
     };
   };
 
-  const canResolveIssues = user?.user_type === "admin" || user?.user_type === "manager";
+  const canResolveIssues = user?.user_type === "admin" || user?.user_type === "manager" || user?.user_type === "superAdmin";
 
   const renderIssueCard = (issue, isResolved = false) => {
     const { pointName, pointNumber, machineName, lineName, companyName } = getPointInfo(issue.control_point_id);
@@ -260,8 +286,10 @@ export default function IssueApproval() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Správa závad</h1>
           <p className="text-slate-600">
-            {user?.user_type === "admin" 
+            {user?.user_type === "superAdmin" 
               ? "Přehled všech nahlášených a vyřešených závad" 
+              : user?.user_type === "admin"
+              ? "Přehled závad z vašich přiřazených podniků"
               : "Přehled nahlášených a vyřešených závad vašeho podniku"
             }
           </p>

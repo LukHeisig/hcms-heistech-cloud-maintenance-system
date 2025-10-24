@@ -115,17 +115,17 @@ export default function Layout({ children }) {
       url: createPageUrl("Lines"),
       icon: Factory,
     },
-    ...(user?.user_type === "manager" || user?.user_type === "admin"
+    ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [
           {
-            title: "Správa závad", // Changed from "Závady ke schválení"
+            title: "Správa závad",
             url: createPageUrl("IssueApproval"),
             icon: AlertTriangle,
             badge: pendingIssuesCount,
           },
         ]
       : []),
-    ...(user?.user_type === "admin"
+    ...(user?.user_type === "superAdmin"
       ? [
           {
             title: "Administrace",
@@ -284,7 +284,9 @@ export default function Layout({ children }) {
                       {user?.full_name || "Uživatel"}
                     </p>
                     <p className="text-xs text-slate-500 truncate">
-                      {user?.user_type === "admin"
+                      {user?.user_type === "superAdmin"
+                        ? "Super Administrátor"
+                        : user?.user_type === "admin"
                         ? "Administrátor"
                         : user?.user_type === "manager"
                         ? "Vedoucí"

@@ -10,13 +10,21 @@
       "enum": [
         "technician",
         "manager",
-        "admin"
+        "admin",
+        "superAdmin"
       ],
       "default": "technician",
       "description": "Typ u\u017eivatele"
     },
     "phone": {
       "type": "string"
+    },
+    "assigned_company_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID podnik\u016f, ke kter\u00fdm m\u00e1 admin p\u0159\u00edstup (pouze pro adminy)"
     }
   },
   "name": "User",
