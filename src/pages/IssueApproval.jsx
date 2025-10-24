@@ -62,6 +62,11 @@ export default function IssueApproval() {
     queryFn: () => base44.entities.Line.list(),
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies"],
+    queryFn: () => base44.entities.Company.list(),
+  });
+
   // Filtrování závad podle podniku uživatele
   const reportedIssues = React.useMemo(() => {
     if (!user || controlPoints.length === 0 || machines.length === 0 || lines.length === 0) return [];
@@ -132,23 +137,25 @@ export default function IssueApproval() {
 
   const getPointInfo = (controlPointId) => {
     const point = controlPoints.find((p) => p.id === controlPointId);
-    if (!point) return { pointName: "Neznámý bod", machineName: "", lineName: "" };
+    if (!point) return { pointName: "Neznámý bod", machineName: "", lineName: "", companyName: "" };
 
     const machine = machines.find((m) => m.id === point.machine_id);
     const line = lines.find((l) => l.id === machine?.line_id);
+    const company = companies.find((c) => c.id === line?.company_id);
 
     return {
       pointName: point.name,
       pointNumber: point.number,
       machineName: machine?.name || "",
       lineName: line?.name || "",
+      companyName: company?.name || "",
     };
   };
 
   const canResolveIssues = user?.user_type === "admin" || user?.user_type === "manager";
 
   const renderIssueCard = (issue, isResolved = false) => {
-    const { pointName, pointNumber, machineName, lineName } = getPointInfo(issue.control_point_id);
+    const { pointName, pointNumber, machineName, lineName, companyName } = getPointInfo(issue.control_point_id);
 
     return (
       <Card
@@ -170,7 +177,15 @@ export default function IssueApproval() {
                   {pointNumber && `${pointNumber} - `}{pointName}
                 </CardTitle>
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
+                {companyName && (
+                  <>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      {companyName}
+                    </Badge>
+                    <span>•</span>
+                  </>
+                )}
                 {lineName && (
                   <>
                     <span>{lineName}</span>
