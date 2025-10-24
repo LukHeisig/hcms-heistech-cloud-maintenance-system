@@ -33,7 +33,6 @@ export default function Lines() {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedLine, setSelectedLine] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
-  // Removed selectedMachine and showMachineDialog states
 
   const navigate = useNavigate();
 
@@ -51,7 +50,7 @@ export default function Lines() {
     setUser(currentUser);
     
     // Pro non-admin uživatele nastavit company_id automaticky
-    if (currentUser && currentUser.company_id && currentUser.user_type !== "admin") {
+    if (currentUser && currentUser.company_id && currentUser.user_type !== "admin" && currentUser.user_type !== "superAdmin") {
       setSelectedCompany(currentUser.company_id);
     }
   };
@@ -175,7 +174,7 @@ export default function Lines() {
                 companyPoints.some((p) => p.id === issue.control_point_id)
               ).length;
 
-              // Určit celkový stav podniku (bez oranžové) - keeping original logic for company status
+              // Určit celkový stav podniku
               const hasOverdue = companyOverdue > 0;
               const companyStatus = hasOverdue ? "overdue" : "ok";
 
@@ -259,7 +258,7 @@ export default function Lines() {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto">
-          {user?.user_type === "admin" && (
+          {(user?.user_type === "admin" || user?.user_type === "superAdmin") && (
             <Button
               variant="ghost"
               onClick={() => setSelectedCompany(null)}

@@ -61,25 +61,25 @@ export default function Layout({ children }) {
     queryFn: () => user?.company_id 
       ? base44.entities.Line.filter({ company_id: user.company_id })
       : [],
-    enabled: !!user && user.user_type !== "admin",
+    enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
     queryFn: () => base44.entities.Machine.list(),
-    enabled: !!user && user.user_type !== "admin",
+    enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(),
-    enabled: !!user && user.user_type !== "admin",
+    enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
   // Vypočítat počet závad podle uživatele
   const pendingIssuesCount = React.useMemo(() => {
     if (!user) return 0;
-    if (user.user_type === "admin") return allReportedIssues.length;
+    if (user.user_type === "admin" || user.user_type === "superAdmin") return allReportedIssues.length;
 
     // Pro non-admin: filtrovat podle company_id
     const companyLineIds = lines.map(l => l.id);
