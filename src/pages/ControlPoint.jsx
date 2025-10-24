@@ -37,11 +37,14 @@ import {
   Upload,
   Image as ImageIcon,
   X,
-  Plus, // Added from outline
-  ChevronRight, // Added from outline
-  Building2, // Added from outline
-  Factory, // Added from outline
-  Settings // Added from outline
+  Plus,
+  ChevronRight,
+  Building2,
+  Factory,
+  Settings,
+  FileText, // Added for generic files
+  FileIcon, // Added for generic files
+  FileImage // Added for image files
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -57,10 +60,13 @@ export default function ControlPoint() {
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
   const [isReportingIssue, setIsReportingIssue] = useState(false);
-  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  
+  // Změněno z photo-specific na generic doc state
+  const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
+  const [selectedDocPreview, setSelectedDocPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [deletePhotoId, setDeletePhotoId] = useState(null);
+  const [deleteDocId, setDeleteDocId] = useState(null); // Změněno z deletePhotoId
+
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
@@ -167,14 +173,27 @@ export default function ControlPoint() {
     },
   });
 
-  const uploadPhotoMutation = useMutation({
+  const uploadDocumentMutation = useMutation({ // Změněno z uploadPhotoMutation
     mutationFn: async (file) => {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      let detectedFileType = "other_file";
+      if (file.type.startsWith("image/")) {
+        detectedFileType = "photo";
+      } else if (file.type === "application/pdf") {
+        detectedFileType = "document";
+      } else if (file.name.toLowerCase().endsWith(".dwg") || file.name.toLowerCase().endsWith(".dxf")) {
+          detectedFileType = "schema";
+      } else if (file.type.includes("word") || file.type.includes("excel")) {
+          detectedFileType = "document";
+      }
+
       return base44.entities.Documentation.create({
         control_point_id: pointId,
         file_url,
         file_name: file.name,
-        file_type: "photo",
+        file_type: detectedFileType,
+        category: "other", // Pro kontrolní body zatím defaultně "other"
       });
     },
     onSuccess: () => {
@@ -183,15 +202,16 @@ export default function ControlPoint() {
     },
     onError: () => {
       setIsUploading(false);
-      alert("Chyba při nahrávání fotografie");
+      alert("Chyba při nahrávání souboru");
     },
   });
 
-  const deletePhotoMutation = useMutation({
+  const deleteDocumentMutation = useMutation({ // Změněno z deletePhotoMutation
     mutationFn: (id) => base44.entities.Documentation.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documentation"] });
-      setDeletePhotoId(null);
+      setDeleteDocId(null);
+      setSelectedDocPreview(null); // Zavřít náhled po smazání
     },
   });
 
@@ -248,13 +268,8 @@ export default function ControlPoint() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("Prosím vyberte pouze obrázkové soubory");
-      return;
-    }
-
     setIsUploading(true);
-    await uploadPhotoMutation.mutateAsync(file);
+    await uploadDocumentMutation.mutateAsync(file);
   };
 
   const handleCameraCapture = async (event) => {
@@ -262,8 +277,36 @@ export default function ControlPoint() {
     if (!file) return;
 
     setIsUploading(true);
-    await uploadPhotoMutation.mutateAsync(file);
+    await uploadDocumentMutation.mutateAsync(file);
   };
+
+  const getFileIcon = (fileType) => {
+    switch (fileType) {
+      case "photo":
+        return <FileImage className="w-8 h-8 text-blue-500" />;
+      case "schema":
+        return <FileText className="w-8 h-8 text-purple-500" />;
+      case "document":
+        return <FileText className="w-8 h-8 text-green-500" />;
+      case "other_file":
+        return <FileIcon className="w-8 h-8 text-slate-500" />;
+      case "application/pdf":
+        return <FileText className="w-8 h-8 text-red-500" />;
+      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      case "application/msword":
+        return <FileText className="w-8 h-8 text-blue-500" />;
+      case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      case "application/vnd.ms-excel":
+        return <FileText className="w-8 h-8 text-green-500" />;
+      case "image/jpeg":
+      case "image/png":
+      case "image/gif":
+        return <FileImage className="w-8 h-8 text-blue-500" />;
+      default:
+        return <FileIcon className="w-8 h-8 text-slate-500" />;
+    }
+  };
+
 
   if (!point) {
     return (
@@ -634,14 +677,21 @@ export default function ControlPoint() {
                       className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-slate-400 transition-all cursor-pointer"
                       onClick={() => {
                         setSelectedDocPreview(doc);
-                        setShowPhotoDialog(true);
+                        setShowDocPreviewDialog(true);
                       }}
                     >
-                      <img
-                        src={doc.file_url}
-                        alt={doc.file_name}
-                        className="w-full h-full object-cover"
-                      />
+                      {doc.file_type === "photo" ? (
+                        <img
+                          src={doc.file_url}
+                          alt={doc.file_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                          <div className="flex flex-col items-center p-4 text-center">
+                              {getFileIcon(doc.file_type)}
+                              <p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p>
+                          </div>
+                      )}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
                         <Button
                           variant="ghost"
@@ -729,35 +779,49 @@ export default function ControlPoint() {
           </CardContent>
         </Card>
 
-        {/* Dialog pro zobrazení fotografie */}
-        <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
-          <DialogContent className="max-w-4xl">
+        {/* Dialog pro zobrazení/náhled dokumentu */}
+        <Dialog open={showDocPreviewDialog} onOpenChange={setShowDocPreviewDialog}>
+          <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>{selectedPhoto?.file_name}</DialogTitle>
+              <DialogTitle>{selectedDocPreview?.file_name}</DialogTitle>
               <DialogDescription>
-                Nahráno {selectedPhoto && format(new Date(selectedPhoto.created_date), "d. M. yyyy HH:mm", { locale: cs })}
-                {selectedPhoto?.created_by && ` • ${getUserDisplayName(selectedPhoto.created_by)}`}
+                Nahráno {selectedDocPreview && format(new Date(selectedDocPreview.created_date), "d. M. yyyy HH:mm", { locale: cs })}
+                {selectedDocPreview?.created_by && ` • ${getUserDisplayName(selectedDocPreview.created_by)}`}
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <img
-                src={selectedPhoto?.file_url}
-                alt={selectedPhoto?.file_name}
-                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-              />
+            <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50 rounded-md">
+              {selectedDocPreview?.file_type === "photo" ? (
+                <img
+                  src={selectedDocPreview.file_url}
+                  alt={selectedDocPreview.file_name}
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : selectedDocPreview?.file_type === "document" && selectedDocPreview.file_url.endsWith(".pdf") ? (
+                <iframe
+                  src={selectedDocPreview.file_url}
+                  title={selectedDocPreview.file_name}
+                  className="w-full h-full border-none"
+                />
+              ) : (
+                <div className="text-center">
+                  {getFileIcon(selectedDocPreview?.file_type)}
+                  <p className="text-slate-600 mt-4">Náhled pro tento typ souboru není dostupný.</p>
+                  <p className="text-sm text-slate-500">Můžete jej otevřít v nové záložce.</p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => window.open(selectedPhoto?.file_url, "_blank")}
+                onClick={() => window.open(selectedDocPreview?.file_url, "_blank")}
               >
                 Otevřít v nové záložce
               </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
-                  setShowPhotoDialog(false);
-                  setDeletePhotoId(selectedPhoto?.id);
+                  setShowDocPreviewDialog(false);
+                  setDeleteDocId(selectedDocPreview?.id);
                 }}
               >
                 <X className="w-4 h-4 mr-2" />
@@ -767,22 +831,22 @@ export default function ControlPoint() {
           </DialogContent>
         </Dialog>
 
-        {/* Alert dialog pro smazání fotografie */}
+        {/* Alert dialog pro smazání dokumentu */}
         <AlertDialog
-          open={!!deletePhotoId}
-          onOpenChange={() => setDeletePhotoId(null)}
+          open={!!deleteDocId}
+          onOpenChange={() => setDeleteDocId(null)}
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Opravdu smazat fotografii?</AlertDialogTitle>
+              <AlertDialogTitle>Opravdu smazat dokument?</AlertDialogTitle>
               <AlertDialogDescription>
-                Tato akce je nevratná. Fotografie bude trvale odstraněna.
+                Tato akce je nevratná. Dokument bude trvale odstraněn.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Zrušit</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => deletePhotoMutation.mutate(deletePhotoId)}
+                onClick={() => deleteDocumentMutation.mutate(deleteDocId)}
                 className="bg-red-600 hover:bg-red-700"
               >
                 Smazat
