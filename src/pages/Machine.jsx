@@ -169,6 +169,17 @@ export default function Machine() {
   const overduePoints = controlPoints.filter(p => getPointStatus(p) === "overdue");
   const okPoints = controlPoints.filter(p => getPointStatus(p) === "ok");
 
+  // Funkce pro určení stavu skupiny bodů
+  const getGroupStatus = (points) => {
+    if (points.length === 0) return null; // Žádné body = žádná tečka
+    const hasOverdue = points.some(p => getPointStatus(p) === "overdue");
+    return hasOverdue ? "overdue" : "ok";
+  };
+
+  const lubricationStatus = getGroupStatus(lubricationPoints);
+  const inspectionStatus = getGroupStatus(inspectionPoints);
+  const lubricatorsStatus = getGroupStatus(lubricatorPoints);
+
   // Statistiky
   const lowStockParts = spareParts.filter(p => p.quantity_in_stock <= (p.minimum_stock || 0));
   const totalMaintenanceCost = maintenanceRecords.reduce((sum, r) => sum + (r.cost || 0), 0);
@@ -631,14 +642,29 @@ export default function Machine() {
                 <TabsTrigger value="lubrication" className="gap-2">
                   <Droplet className="w-4 h-4" />
                   Mazání ({lubricationPoints.length})
+                  {lubricationStatus && (
+                    <div className={`w-2 h-2 rounded-full ml-1 ${
+                      lubricationStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                    }`} />
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="inspection" className="gap-2">
                   <CheckCircle className="w-4 h-4" />
                   Inspekce ({inspectionPoints.length})
+                  {inspectionStatus && (
+                    <div className={`w-2 h-2 rounded-full ml-1 ${
+                      inspectionStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                    }`} />
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="lubricators" className="gap-2">
                   <Droplet className="w-4 h-4" />
                   Maznice ({lubricatorPoints.length})
+                  {lubricatorsStatus && (
+                    <div className={`w-2 h-2 rounded-full ml-1 ${
+                      lubricatorsStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                    }`} />
+                  )}
                 </TabsTrigger>
               </TabsList>
 
@@ -782,7 +808,7 @@ export default function Machine() {
                   {lowStockParts.length > 0 && (
                     <Badge variant="destructive" className="gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      {lowStockParts.length} pod minimem
+                      {lowStockParts.length} pod minimom
                     </Badge>
                   )}
                 </div>
