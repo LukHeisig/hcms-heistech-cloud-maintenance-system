@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users as UsersIcon, Pencil, Loader2, Shield, User, Crown } from "lucide-react";
+import { ArrowLeft, Users as UsersIcon, Pencil, Loader2, Shield, User, Crown, Filter, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -41,11 +41,12 @@ export default function Users() {
   const [currentUser, setCurrentUser] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState("all");
   const [formData, setFormData] = useState({
     user_type: "technician",
     phone: "",
-    company_id: null, // Added company_id to formData
-    custom_display_name: "", // Nové pole pro vlastní zobrazované jméno
+    company_id: null,
+    custom_display_name: "",
   });
 
   useEffect(() => {
@@ -84,6 +85,15 @@ export default function Users() {
     return [];
   }, [allCompanies, currentUser]);
 
+  // Filtrovat uživatele podle vybraného podniku
+  const filteredUsers = React.useMemo(() => {
+    if (selectedCompanyFilter === "all") return users;
+    if (selectedCompanyFilter === "no_company") {
+      return users.filter(u => !u.company_id);
+    }
+    return users.filter(u => u.company_id === selectedCompanyFilter);
+  }, [users, selectedCompanyFilter]);
+
   const updateUserMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onSuccess: () => {
@@ -100,7 +110,7 @@ export default function Users() {
       phone: user.phone || "",
       company_id: user.company_id || null,
       assigned_company_ids: user.assigned_company_ids || [],
-      custom_display_name: user.custom_display_name || user.full_name || "", // Předvyplnit existujícím jménem
+      custom_display_name: user.custom_display_name || user.full_name || "",
     });
     setShowEditDialog(true);
   };
@@ -200,7 +210,10 @@ export default function Users() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900">Správa uživatelů</h1>
-              <p className="text-slate-600 mt-1">{users.length} uživatelů v systému</p>
+              <p className="text-slate-600 mt-1">
+                {filteredUsers.length} {selectedCompanyFilter !== "all" ? "filtrovaných" : ""} uživatelů
+                {selectedCompanyFilter !== "all" && ` z ${users.length} celkem`}
+              </p>
             </div>
           </div>
         </div>
@@ -247,6 +260,49 @@ export default function Users() {
           </Card>
         )}
 
+        {/* Filtrace podle podniku */}
+        {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin") && companies.length > 0 && (
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <Filter className="w-5 h-5 text-slate-600" />
+                <div className="flex-1">
+                  <Label htmlFor="companyFilter" className="text-sm font-medium text-slate-700 mb-2 block">
+                    Filtrovat podle podniku
+                  </Label>
+                  <Select value={selectedCompanyFilter} onValueChange={setSelectedCompanyFilter}>
+                    <SelectTrigger id="companyFilter" className="w-full md:w-80">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          Všechny podniky ({users.length})
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="no_company">
+                        <div className="flex items-center gap-2 text-slate-500">
+                          <User className="w-4 h-4" />
+                          Bez podniku ({users.filter(u => !u.company_id).length})
+                        </div>
+                      </SelectItem>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            {company.name} ({users.filter(u => u.company_id === company.id).length})
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
@@ -258,7 +314,7 @@ export default function Users() {
                 <div>
                   <p className="text-sm text-slate-600">Super Admini</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    {users.filter((u) => u.user_type === "superAdmin").length}
+                    {filteredUsers.filter((u) => u.user_type === "superAdmin").length}
                   </p>
                 </div>
               </div>
@@ -273,7 +329,7 @@ export default function Users() {
                 <div>
                   <p className="text-sm text-slate-600">Administrátoři</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    {users.filter((u) => u.user_type === "admin").length}
+                    {filteredUsers.filter((u) => u.user_type === "admin").length}
                   </p>
                 </div>
               </div>
@@ -288,7 +344,7 @@ export default function Users() {
                 <div>
                   <p className="text-sm text-slate-600">Vedoucí</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    {users.filter((u) => u.user_type === "manager").length}
+                    {filteredUsers.filter((u) => u.user_type === "manager").length}
                   </p>
                 </div>
               </div>
@@ -303,7 +359,7 @@ export default function Users() {
                 <div>
                   <p className="text-sm text-slate-600">Technici</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    {users.filter((u) => u.user_type === "technician").length}
+                    {filteredUsers.filter((u) => u.user_type === "technician").length}
                   </p>
                 </div>
               </div>
@@ -334,7 +390,7 @@ export default function Users() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
@@ -378,10 +434,15 @@ export default function Users() {
               </Table>
             </div>
 
-            {users.length === 0 && (
+            {filteredUsers.length === 0 && (
               <div className="text-center py-12">
                 <UsersIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Zatím nejsou žádní uživatelé</p>
+                <p className="text-slate-500">
+                  {selectedCompanyFilter !== "all" 
+                    ? "Žádní uživatelé pro vybraný filtr"
+                    : "Zatím nejsou žádní uživatelé"
+                  }
+                </p>
               </div>
             )}
           </CardContent>
