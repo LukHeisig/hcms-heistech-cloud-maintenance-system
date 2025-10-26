@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CheckCircle,
@@ -21,10 +20,19 @@ import {
 export default function About() {
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+      <style>{`
+        .heistech-gradient {
+          background: linear-gradient(135deg, #2150D8 0%, #1a40b0 100%);
+        }
+        .heistech-text {
+          color: #2150D8;
+        }
+      `}</style>
+      
       <div className="max-w-6xl mx-auto">
         {/* Hero sekce */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-2xl mb-6">
+          <div className="inline-flex items-center justify-center w-20 h-20 heistech-gradient rounded-2xl shadow-2xl mb-6">
             <span className="text-white font-bold text-4xl">H</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
@@ -39,9 +47,9 @@ export default function About() {
         </div>
 
         {/* Proč HCMS */}
-        <Card className="mb-8 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+        <Card className="mb-8 border-2 bg-gradient-to-br from-blue-50 to-white" style={{ borderColor: '#2150D8' }}>
           <CardHeader>
-            <CardTitle className="text-2xl text-blue-900">
+            <CardTitle className="text-2xl heistech-text">
               Proč implementovat HCMS ve vaší firmě?
             </CardTitle>
           </CardHeader>
@@ -50,7 +58,7 @@ export default function About() {
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
                   <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-blue-600" />
+                    <TrendingUp className="w-6 h-6 heistech-text" />
                   </div>
                 </div>
                 <div>
@@ -123,7 +131,7 @@ export default function About() {
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center p-4">
                 <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Droplet className="w-8 h-8 text-blue-600" />
+                  <Droplet className="w-8 h-8 heistech-text" />
                 </div>
                 <h3 className="font-semibold text-slate-900 mb-2">
                   Mazací plány
@@ -204,7 +212,7 @@ export default function About() {
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="flex items-start gap-4">
-                <Cloud className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+                <Cloud className="w-6 h-6 heistech-text flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-slate-900 mb-1">
                     Cloudové řešení
@@ -262,25 +270,25 @@ export default function About() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <ArrowRight className="w-5 h-5 heistech-text flex-shrink-0 mt-0.5" />
                 <p className="text-slate-700">
                   <strong>Výrobní podniky</strong> s potřebou systematické údržby výrobních linek a strojů
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <ArrowRight className="w-5 h-5 heistech-text flex-shrink-0 mt-0.5" />
                 <p className="text-slate-700">
                   <strong>Údržbářské týmy</strong> hledající efektivní nástroj pro plánování a evidenci práce
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <ArrowRight className="w-5 h-5 heistech-text flex-shrink-0 mt-0.5" />
                 <p className="text-slate-700">
                   <strong>Vedoucí údržby a management</strong> potřebující přehled o stavu strojů a nákladech
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <ArrowRight className="w-5 h-5 heistech-text flex-shrink-0 mt-0.5" />
                 <p className="text-slate-700">
                   <strong>Společnosti s více provozovnami</strong> vyžadující centralizovanou správu údržby
                 </p>
@@ -290,7 +298,7 @@ export default function About() {
         </Card>
 
         {/* Footer s kontaktem */}
-        <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-none">
+        <Card className="heistech-gradient text-white border-none">
           <CardContent className="p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">
               Připraveni modernizovat vaši údržbu?
@@ -306,7 +314,7 @@ export default function About() {
                 <strong className="text-white">Web:</strong> www.heistech.cz
               </p>
             </div>
-            <div className="mt-6 pt-6 border-t border-blue-500">
+            <div className="mt-6 pt-6 border-t border-blue-400">
               <p className="text-xs text-blue-200">
                 HCMS v1.0 | © 2024 Heistech s.r.o. | Vyvinuto na platformě Base44
               </p>

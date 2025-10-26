@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -61,7 +60,6 @@ export default function Layout({ children }) {
     }
   };
 
-  // Použít useQuery pro automatickou aktualizaci počtu závad
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
@@ -98,7 +96,6 @@ export default function Layout({ children }) {
     enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
-  // Načíst pracovní příkazy přiřazené aktuálnímu uživateli
   const { data: myWorkOrders = [] } = useQuery({
     queryKey: ["myWorkOrders", user?.email],
     queryFn: async () => {
@@ -110,22 +107,19 @@ export default function Layout({ children }) {
       return allOrders;
     },
     enabled: !!user?.email,
-    refetchInterval: 30000, // Aktualizovat každých 30 sekund
+    refetchInterval: 30000,
   });
 
-  // Načíst stroje pro notifikace
   const { data: allMachines = [] } = useQuery({
     queryKey: ["allMachinesForNotifications"],
     queryFn: () => base44.entities.Machine.list(),
     enabled: myWorkOrders.length > 0,
   });
 
-  // Vypočítat počet závad podle uživatele
   const pendingIssuesCount = React.useMemo(() => {
     if (!user) return 0;
     if (user.user_type === "admin" || user.user_type === "superAdmin") return allReportedIssues.length;
 
-    // Pro non-admin: filtrovat podle company_id
     const companyLineIds = lines.map(l => l.id);
     const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
     const companyMachineIds = companyMachines.map(m => m.id);
@@ -195,7 +189,6 @@ export default function Layout({ children }) {
     },
   ];
 
-  // Přidat Setup do menu pokud nejsou data
   if (!hasData) {
     navigationItems.unshift({
       title: "🚀 Vytvořit demo data",
@@ -207,11 +200,21 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <style>{`
+        :root {
+          --heistech-blue: #2150D8;
+          --heistech-blue-dark: #1a40b0;
+          --heistech-blue-light: #4d73e5;
+          --heistech-orange: #FF8C00;
+          --heistech-orange-dark: #cc7000;
+        }
+      `}</style>
+
       {/* Header pro mobilní */}
       <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
               <span className="text-white font-bold text-lg">H</span>
             </div>
             <div>
@@ -220,13 +223,12 @@ export default function Layout({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Notifikace - Mobilní */}
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
                     <Bell className="w-5 h-5 text-slate-600" />
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--heistech-orange)' }}>
                       {myWorkOrders.length}
                     </span>
                   </button>
@@ -291,18 +293,21 @@ export default function Layout({ children }) {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center justify-between p-4 rounded-xl transition-all ${
                   item.highlight
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
+                    ? "text-white shadow-lg"
                     : location.pathname === item.url
-                    ? "bg-blue-50 text-blue-700"
+                    ? "text-white shadow-lg"
                     : "hover:bg-slate-100"
                 }`}
+                style={item.highlight || location.pathname === item.url ? {
+                  background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)'
+                } : {}}
               >
                 <div className="flex items-center gap-3">
                   <item.icon className="w-5 h-5" />
                   <span className="font-medium">{item.title}</span>
                 </div>
                 {item.badge > 0 && (
-                  <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded-full">
+                  <span className="px-2 py-1 text-xs font-bold bg-orange-600 text-white rounded-full">
                     {item.badge}
                   </span>
                 )}
@@ -327,7 +332,7 @@ export default function Layout({ children }) {
               <SidebarHeader className="border-b border-slate-200 p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-xl" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
                       <span className="text-white font-bold text-2xl">H</span>
                     </div>
                     <div>
@@ -336,13 +341,12 @@ export default function Layout({ children }) {
                     </div>
                   </div>
                   
-                  {/* Notifikace - Desktop */}
                   {myWorkOrders.length > 0 && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
                           <Bell className="w-5 h-5 text-slate-600" />
-                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                          <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--heistech-orange)' }}>
                             {myWorkOrders.length}
                           </span>
                         </button>
@@ -397,12 +401,13 @@ export default function Layout({ children }) {
                           <SidebarMenuButton
                             asChild
                             className={`hover:bg-slate-100 rounded-xl mb-1 transition-all ${
-                              item.highlight
-                                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
-                                : location.pathname === item.url
-                                ? "bg-blue-50 text-blue-700"
+                              item.highlight || location.pathname === item.url
+                                ? "text-white hover:opacity-90"
                                 : ""
                             }`}
+                            style={item.highlight || location.pathname === item.url ? {
+                              background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)'
+                            } : {}}
                           >
                             <Link to={item.url} className="flex items-center justify-between px-4 py-3">
                               <div className="flex items-center gap-3">
@@ -410,7 +415,7 @@ export default function Layout({ children }) {
                                 <span className="font-medium">{item.title}</span>
                               </div>
                               {item.badge > 0 && (
-                                <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded-full">
+                                <span className="px-2 py-1 text-xs font-bold bg-orange-600 text-white rounded-full">
                                   {item.badge}
                                 </span>
                               )}
@@ -425,7 +430,7 @@ export default function Layout({ children }) {
 
               <SidebarFooter className="border-t border-slate-200 p-4">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
                     <span className="text-white font-semibold">
                       {getUserDisplayName(user)?.[0] || "U"}
                     </span>
@@ -462,7 +467,6 @@ export default function Layout({ children }) {
         </SidebarProvider>
       </div>
 
-      {/* Main content pro mobilní */}
       <main className="lg:hidden">
         {children}
       </main>

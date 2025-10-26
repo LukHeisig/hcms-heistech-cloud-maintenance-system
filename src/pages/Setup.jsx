@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,6 @@ export default function Setup() {
     try {
       const user = await base44.auth.me();
 
-      // 1. Vytvořit podnik
       let company;
       const existingCompanies = await base44.entities.Company.list();
       if (existingCompanies.length > 0) {
@@ -33,13 +31,11 @@ export default function Setup() {
         });
       }
 
-      // Aktualizovat uživatele s company_id
       await base44.auth.updateMe({
         company_id: company.id,
         user_type: "admin",
       });
 
-      // 2. Vytvořit linky
       const line1 = await base44.entities.Line.create({
         company_id: company.id,
         name: "Linka 1 - Lisovna",
@@ -54,7 +50,6 @@ export default function Setup() {
         order_index: 2,
       });
 
-      // 3. Vytvořit stroje
       const machine1 = await base44.entities.Machine.create({
         line_id: line1.id,
         name: "Lis LH-500",
@@ -76,7 +71,6 @@ export default function Setup() {
         order_index: 1,
       });
 
-      // 4. Vytvořit kontrolní body
       const point1 = await base44.entities.ControlPoint.create({
         machine_id: machine1.id,
         name: "Hlavní ložisko",
@@ -132,7 +126,6 @@ export default function Setup() {
         interval_hours: 336,
       });
 
-      // 5. Vytvořit ukázkové záznamy
       await base44.entities.ControlRecord.create({
         control_point_id: point1.id,
         record_type: "lubrication",
@@ -153,7 +146,6 @@ export default function Setup() {
         note: "Vše v pořádku, žádné úniky",
       });
 
-      // 6. Vytvořit ukázkovou závadu
       await base44.entities.Issue.create({
         control_point_id: point1.id,
         description: "Zjištěn mírný únik maziva z těsnění",
@@ -184,7 +176,8 @@ export default function Setup() {
             </p>
             <Button
               onClick={() => navigate(createPageUrl("Dashboard"))}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              className="w-full text-white h-12 text-base font-semibold"
+              style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}
             >
               Přejít na Dashboard
             </Button>
@@ -198,7 +191,7 @@ export default function Setup() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <Card className="max-w-lg w-full shadow-2xl">
         <CardHeader className="text-center pb-8 pt-12">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
             <span className="text-white font-bold text-4xl">H</span>
           </div>
           <CardTitle className="text-3xl font-bold text-slate-900 mb-2">
@@ -216,23 +209,23 @@ export default function Setup() {
               </h3>
               <ul className="space-y-2 text-sm text-slate-600">
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#2150D8' }} />
                   <span>Jeden demo podnik</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#2150D8' }} />
                   <span>2 výrobní linky s ukázkovými stroji</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#2150D8' }} />
                   <span>6 kontrolních bodů (mazání + inspekce)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#2150D8' }} />
                   <span>Ukázkové záznamy a závadu</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#2150D8' }} />
                   <span>Vaše uživatelské oprávnění (admin)</span>
                 </li>
               </ul>
@@ -241,7 +234,8 @@ export default function Setup() {
             <Button
               onClick={createDemoData}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 h-12 text-base font-semibold"
+              className="w-full text-white h-12 text-base font-semibold"
+              style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}
             >
               {loading ? (
                 <>
