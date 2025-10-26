@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -62,7 +61,7 @@ export default function Lines() {
   });
 
   // Filtrovat podniky podle přístupových práv
-  const companies = React.useMemo(() => {
+  const companies = useMemo(() => {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
