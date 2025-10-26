@@ -37,7 +37,9 @@ export default function AppSettings() {
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      loadCurrentUser();
+      
+      // Reload page to apply theme changes
+      window.location.reload();
     },
     onError: (error) => {
       console.error("Error updating theme preference:", error);
