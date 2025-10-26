@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -63,7 +63,9 @@ export default function Dashboard() {
         user.assigned_company_ids?.includes(c.id)
       );
     }
-    return [];
+    // For regular users, their `company_id` is used implicitly in other queries.
+    // This `companies` array is primarily for admin/superAdmin to list multiple companies.
+    return []; 
   }, [allCompanies, user]);
 
   const { data: lines = [] } = useQuery({
@@ -112,7 +114,10 @@ export default function Dashboard() {
     }
   }, [user, lines, navigate]);
 
-  const getPointStatus = (point) => {
+  // Utility function to determine point status
+  // This function will use the `records` array which is automatically scoped
+  // by useQuery for non-admin users (their company_id) and includes all records for admin/superAdmin.
+  const getPointStatus = useCallback((point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
 
@@ -122,22 +127,82 @@ export default function Dashboard() {
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
     return hoursSince > point.interval_hours ? "overdue" : "ok";
-  };
+  }, [records]); // Dependency on `records` ensures re-evaluation if records change
 
-  // Výpočet skutečných hodnot
-  const activeCompanies = companies.filter(c => c.is_active !== false);
-  const totalLinesCount = (user?.user_type === "admin" || user?.user_type === "superAdmin") ? allLines.length : lines.length;
-  const overduePointsCount = controlPoints.filter(
-    (point) => getPointStatus(point) === "overdue"
-  ).length;
+  // Výpočet skutečných hodnot - vyloučit demo podniky pro admin/superAdmin statistiky
+  const activeCompanies = React.useMemo(() => {
+    // For admin/superAdmin, filter out inactive and companies with "demo" in their name.
+    // For other users, `companies` is already their assigned companies.
+    if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+      return companies.filter(c =>
+        c.is_active !== false &&
+        !c.name.toLowerCase().includes('demo')
+      );
+    }
+    // For non-admin/superAdmin, the 'companies' array (which is empty in this context) is not used for this calculation.
+    // The relevant data for them comes from `lines`, `controlPoints`, `records`, `issues` which are already scoped to their company.
+    return companies; 
+  }, [companies, user]);
 
-  const totalRecordsThisMonthCount = records.filter((r) => {
-    const date = new Date(r.performed_at);
-    const now = new Date();
-    return (
-      date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
-    );
-  }).length;
+  const activeCompanyIds = React.useMemo(() => activeCompanies.map(c => c.id), [activeCompanies]);
+  
+  const totalLinesCount = React.useMemo(() => {
+    if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+      // Počítat pouze linky z ne-demo aktivních podniků
+      return allLines.filter(l => activeCompanyIds.includes(l.company_id)).length;
+    }
+    return lines.length; // Pro běžné uživatele již `lines` obsahuje jen jejich linky.
+  }, [user, allLines, lines, activeCompanyIds]);
+
+  // Kontrolní body pouze z aktivních (ne-demo) podniků pro admin/superAdmin
+  const activeControlPoints = React.useMemo(() => {
+    if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+      const activeLinesIds = allLines
+        .filter(l => activeCompanyIds.includes(l.company_id))
+        .map(l => l.id);
+      const activeMachineIds = machines
+        .filter(m => activeLinesIds.includes(m.line_id))
+        .map(m => m.id);
+      return controlPoints.filter(cp => activeMachineIds.includes(cp.machine_id));
+    }
+    return controlPoints; // Pro běžné uživatele již `controlPoints` obsahuje jen jejich body.
+  }, [user, allLines, machines, controlPoints, activeCompanyIds]);
+
+  const overduePointsCount = React.useMemo(() => {
+    // Use `getPointStatus` which relies on the global (or company-scoped) `records` list.
+    // This is correct as `activeControlPoints` are already filtered by company, and `getPointStatus` checks records for those points.
+    return activeControlPoints.filter(
+      (point) => getPointStatus(point) === "overdue"
+    ).length;
+  }, [activeControlPoints, getPointStatus]);
+
+  // Záznamy pouze z aktivních (ne-demo) podniků pro admin/superAdmin
+  const activeRecords = React.useMemo(() => {
+    if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+      const activePointIds = activeControlPoints.map(p => p.id);
+      return records.filter(r => activePointIds.includes(r.control_point_id));
+    }
+    return records; // Pro běžné uživatele již `records` obsahuje jen jejich záznamy.
+  }, [user, records, activeControlPoints]);
+
+  const totalRecordsThisMonthCount = React.useMemo(() => {
+    return activeRecords.filter((r) => {
+      const date = new Date(r.performed_at);
+      const now = new Date();
+      return (
+        date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+      );
+    }).length;
+  }, [activeRecords]);
+
+  // Aktivní závady pouze z aktivních (ne-demo) podniků pro admin/superAdmin
+  const activeIssues = React.useMemo(() => {
+    if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+      const activePointIds = activeControlPoints.map(p => p.id);
+      return issues.filter(issue => activePointIds.includes(issue.control_point_id));
+    }
+    return issues; // Pro běžné uživatele již `issues` obsahuje jen jejich závady.
+  }, [user, issues, activeControlPoints]);
 
   // Dashboard pro administrátora a superAdmina - zobrazení podniků
   if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
@@ -151,7 +216,7 @@ export default function Dashboard() {
             <p className="text-slate-600">
               {user?.user_type === "superAdmin" 
                 ? "Přehled všech podniků v systému"
-                : `Přehled vašich ${companies.length} přiřazených podniků`
+                : `Přehled vašich ${activeCompanies.length} přiřazených aktivních podniků`
               }
             </p>
           </div>
@@ -163,9 +228,10 @@ export default function Dashboard() {
                   <div>
                     <p className="text-blue-100 text-sm font-medium mb-1">Aktivní podniky</p>
                     <p className="text-4xl font-bold">{activeCompanies.length}</p>
+                    <p className="text-xs text-blue-100 mt-1">Bez demo podniků</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
-                    <Wrench className="w-6 h-6" /> {/* Changed from Building2 */}
+                    <Wrench className="w-6 h-6" />
                   </div>
                 </div>
               </CardContent>
@@ -177,9 +243,10 @@ export default function Dashboard() {
                   <div>
                     <p className="text-purple-100 text-sm font-medium mb-1">Celkem linek</p>
                     <p className="text-4xl font-bold">{totalLinesCount}</p>
+                    <p className="text-xs text-purple-100 mt-1">Z aktivních podniků</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
-                    <Activity className="w-6 h-6" /> {/* Changed from Factory */}
+                    <Activity className="w-6 h-6" />
                   </div>
                 </div>
               </CardContent>
@@ -191,6 +258,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
                     <p className="text-4xl font-bold">{overduePointsCount}</p>
+                    <p className="text-xs text-red-100 mt-1">Kontrolní body</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <AlertTriangle className="w-6 h-6" />
@@ -205,6 +273,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
                     <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
+                    <p className="text-xs text-green-100 mt-1">Z aktivních podniků</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <ClipboardCheck className="w-6 h-6" />
@@ -220,7 +289,7 @@ export default function Dashboard() {
                 <CardHeader className="border-b border-slate-100">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-xl">
-                      <Wrench className="w-5 h-5 text-slate-600" /> {/* Changed from Building2 */}
+                      <Wrench className="w-5 h-5 text-slate-600" />
                       Podniky
                     </CardTitle>
                     {user?.user_type === "superAdmin" && (
@@ -229,20 +298,20 @@ export default function Dashboard() {
                         size="sm"
                         variant="outline"
                       >
-                        <ArrowRight className="w-4 h-4 mr-2" /> {/* Changed from Plus */}
+                        <ArrowRight className="w-4 h-4 mr-2" />
                         Přidat podnik
                       </Button>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  {companies.length === 0 ? (
+                  {activeCompanies.length === 0 ? (
                     <div className="text-center py-12">
-                      <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" /> {/* Changed from Building2 */}
+                      <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">
                         {user?.user_type === "superAdmin" 
-                          ? "Zatím nemáte žádné podniky"
-                          : "Nemáte přiřazené žádné podniky"
+                          ? "Zatím nemáte žádné aktivní podniky"
+                          : "Nemáte přiřazené žádné aktivní podniky"
                         }
                       </h3>
                       <p className="text-slate-500 mb-6">
@@ -256,25 +325,26 @@ export default function Dashboard() {
                           onClick={() => navigate(createPageUrl("AdminCompanies"))}
                           className="bg-gradient-to-r from-red-600 to-red-700"
                         >
-                          <ArrowRight className="w-4 h-4 mr-2" /> {/* Changed from Plus */}
+                          <ArrowRight className="w-4 h-4 mr-2" />
                           Vytvořit podnik
                         </Button>
                       )}
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {companies.map((company) => {
+                      {activeCompanies.map((company) => {
                         const companyLines = allLines.filter((l) => l.company_id === company.id);
                         const companyMachines = machines.filter((m) =>
                           companyLines.some((l) => l.id === m.line_id)
                         );
-                        const companyPoints = controlPoints.filter((point) =>
+                        // Filter control points for this specific company, considering only `activeControlPoints`
+                        const companyPoints = activeControlPoints.filter((point) =>
                           companyMachines.some((m) => m.id === point.machine_id)
                         );
                         const companyOverdue = companyPoints.filter(
                           (point) => getPointStatus(point) === "overdue"
                         ).length;
-                        const companyIssues = issues.filter((issue) =>
+                        const companyIssues = activeIssues.filter((issue) => // Use activeIssues
                           companyPoints.some((point) => point.id === issue.control_point_id)
                         ).length;
 
@@ -288,7 +358,7 @@ export default function Dashboard() {
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-center gap-4 flex-1">
                                     <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                                      <Wrench className="w-6 h-6 text-white" /> {/* Changed from Building2 */}
+                                      <Wrench className="w-6 h-6 text-white" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-3 mb-2">
@@ -297,7 +367,7 @@ export default function Dashboard() {
                                         </h3>
                                         {companyOverdue > 0 && (
                                           <Badge variant="destructive" className="gap-1">
-                                            <AlertTriangle className="w-3 h-3" /> {/* Changed from Clock */}
+                                            <AlertTriangle className="w-3 h-3" />
                                             {companyOverdue}
                                           </Badge>
                                         )}
@@ -310,7 +380,7 @@ export default function Dashboard() {
                                       </div>
                                       <div className="flex items-center gap-4 text-sm text-slate-600">
                                         <span className="flex items-center gap-1">
-                                          <Activity className="w-4 h-4" /> {/* Changed from Factory */}
+                                          <Activity className="w-4 h-4" />
                                           {companyLines.length} linek
                                         </span>
                                         <span className="flex items-center gap-1">
@@ -320,7 +390,7 @@ export default function Dashboard() {
                                       </div>
                                     </div>
                                   </div>
-                                  <ArrowRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" /> {/* Changed from ChevronRight */}
+                                  <ArrowRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
                                 </div>
                               </CardContent>
                             </Card>
@@ -337,19 +407,19 @@ export default function Dashboard() {
               <Card className="border-none shadow-lg">
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Activity className="w-5 h-5 text-slate-600" /> {/* Changed from Clock */}
+                    <Activity className="w-5 h-5 text-slate-600" />
                     Poslední záznamy
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  {records.length === 0 ? (
+                  {activeRecords.length === 0 ? ( // Use activeRecords
                     <p className="text-center text-slate-500 py-8 text-sm">
                       Zatím nejsou žádné záznamy
                     </p>
                   ) : (
                     <div className="space-y-3">
-                      {records.slice(0, 5).map((record) => {
-                        const point = controlPoints.find(
+                      {activeRecords.slice(0, 5).map((record) => { // Use activeRecords
+                        const point = activeControlPoints.find( // Use activeControlPoints
                           (cp) => cp.id === record.control_point_id
                         );
                         return (
@@ -387,7 +457,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {issues.length > 0 && (
+              {activeIssues.length > 0 && ( // Use activeIssues
                 <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                   <CardHeader className="border-b border-slate-100">
                     <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
@@ -397,8 +467,8 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      {issues.slice(0, 3).map((issue) => {
-                        const point = controlPoints.find(
+                      {activeIssues.slice(0, 3).map((issue) => { // Use activeIssues
+                        const point = activeControlPoints.find( // Use activeControlPoints
                           (cp) => cp.id === issue.control_point_id
                         );
                         return (
@@ -421,7 +491,7 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
-                    {issues.length > 3 && (
+                    {activeIssues.length > 3 && ( // Use activeIssues
                       <Link
                         to={createPageUrl("IssueApproval")}
                         className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
@@ -446,7 +516,7 @@ export default function Dashboard() {
         <div className="max-w-3xl mx-auto">
           <Card className="shadow-xl">
             <CardContent className="p-12 text-center">
-              <Activity className="w-20 h-20 text-slate-300 mx-auto mb-6" /> {/* Changed from Factory */}
+              <Activity className="w-20 h-20 text-slate-300 mx-auto mb-6" />
               <h2 className="text-2xl font-bold text-slate-900 mb-4">
                 Začněte s DEMIP
               </h2>
@@ -458,7 +528,7 @@ export default function Dashboard() {
                   onClick={() => navigate(createPageUrl("Setup"))}
                   className="bg-gradient-to-r from-red-600 to-red-700"
                 >
-                  <ArrowRight className="w-4 h-4 mr-2" /> {/* Changed from Plus */}
+                  <ArrowRight className="w-4 h-4 mr-2" />
                   Vytvořit demo data
                 </Button>
               </div>
@@ -469,6 +539,7 @@ export default function Dashboard() {
     );
   }
 
+  // Dashboard pro běžné uživatele (vedoucí, techniky) - zde se filtrace 'demo' neaplikuje na statistiky
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -490,7 +561,7 @@ export default function Dashboard() {
                   <p className="text-4xl font-bold">{totalLinesCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
-                  <Activity className="w-6 h-6" /> {/* Changed from Factory */}
+                  <Activity className="w-6 h-6" />
                 </div>
               </div>
             </CardContent>
@@ -544,7 +615,7 @@ export default function Dashboard() {
             <Card className="border-none shadow-lg">
               <CardHeader className="border-b border-slate-100">
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Activity className="w-5 h-5 text-slate-600" /> {/* Changed from Factory */}
+                  <Activity className="w-5 h-5 text-slate-600" />
                   Výrobní linky
                 </CardTitle>
               </CardHeader>
@@ -574,7 +645,7 @@ export default function Dashboard() {
                                   </h3>
                                   {lineOverdue > 0 && (
                                     <Badge variant="destructive" className="gap-1">
-                                      <AlertTriangle className="w-3 h-3" /> {/* Changed from Clock */}
+                                      <AlertTriangle className="w-3 h-3" />
                                       {lineOverdue}
                                     </Badge>
                                   )}
@@ -587,7 +658,7 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-slate-600">
                                   <span className="flex items-center gap-1">
-                                    <Activity className="w-4 h-4" /> {/* Changed from Factory */}
+                                    <Activity className="w-4 h-4" />
                                     {lineMachines.length} strojů
                                   </span>
                                   <span className="flex items-center gap-1">
@@ -618,7 +689,7 @@ export default function Dashboard() {
             <Card className="border-none shadow-lg">
               <CardHeader className="border-b border-slate-100">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Activity className="w-5 h-5 text-slate-600" /> {/* Changed from Clock */}
+                  <Activity className="w-5 h-5 text-slate-600" />
                   Poslední záznamy
                 </CardTitle>
               </CardHeader>
