@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -44,11 +45,51 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
+  const [currentTheme, setCurrentTheme] = useState('system'); // New state for theme
 
   useEffect(() => {
     loadUser();
     checkData();
   }, []);
+
+  // Správa tématu - sledování user preference
+  useEffect(() => {
+    if (user) {
+      setCurrentTheme(user.theme_preference || 'system');
+    }
+  }, [user]);
+
+  // Aplikace tématu na HTML element
+  useEffect(() => {
+    const root = window.document.documentElement;
+
+    const applyTheme = (theme) => {
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else if (theme === 'light') {
+        root.classList.remove('dark');
+      } else { // 'system'
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      }
+    };
+
+    applyTheme(currentTheme);
+
+    // Sledování změn systémové preference pro 'system' režim
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (currentTheme === 'system') {
+        applyTheme('system');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [currentTheme]);
 
   const loadUser = async () => {
     try {
@@ -205,17 +246,17 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header pro mobilní */}
-      <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
+      <header className="lg:hidden bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-700 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg">
               <Factory className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">DEMIP</h1>
-              <p className="text-xs text-slate-500">Správa mazání</p>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">DEMIP</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Správa mazání</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -223,17 +264,17 @@ export default function Layout({ children }) {
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                    <Bell className="w-5 h-5 text-slate-600" />
+                  <button className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
                       {myWorkOrders.length}
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <div className="p-3 border-b border-slate-200">
-                    <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
-                    <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
+                <DropdownMenuContent align="end" className="w-80 dark:bg-slate-800 dark:border-slate-700">
+                  <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">Moje pracovní příkazy</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{myWorkOrders.length} aktivních úkolů</p>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {myWorkOrders.map((order) => {
@@ -243,18 +284,18 @@ export default function Layout({ children }) {
                       return (
                         <DropdownMenuItem
                           key={order.id}
-                          className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                          className="p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-700"
                           onClick={() => handleNotificationClick(order)}
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                              <p className="font-semibold text-sm text-slate-900 dark:text-white">{order.title}</p>
                               {isOverdue && (
                                 <Badge variant="destructive" className="text-xs">Po termínu</Badge>
                               )}
                             </div>
-                            <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">{machine?.name || "Neznámý stroj"}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">
                               Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
                             </p>
                           </div>
@@ -267,12 +308,12 @@ export default function Layout({ children }) {
             )}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="p-2 rounded-lg hover:bg-slate-100"
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {mobileOpen ? (
-                <X className="w-6 h-6 text-slate-600" />
+                <X className="w-6 h-6 text-slate-600 dark:text-slate-300" />
               ) : (
-                <Menu className="w-6 h-6 text-slate-600" />
+                <Menu className="w-6 h-6 text-slate-600 dark:text-slate-300" />
               )}
             </button>
           </div>
@@ -281,7 +322,7 @@ export default function Layout({ children }) {
 
       {/* Mobilní menu */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-white">
+        <div className="lg:hidden fixed inset-0 z-40 bg-white dark:bg-slate-900">
           <div className="p-6 space-y-4 pt-20">
             {navigationItems.map((item) => (
               <Link
@@ -292,8 +333,8 @@ export default function Layout({ children }) {
                   item.highlight
                     ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg"
                     : location.pathname === item.url
-                    ? "bg-red-50 text-red-700"
-                    : "hover:bg-slate-100"
+                    ? "bg-red-50 text-red-700 dark:bg-red-900 dark:text-white"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -309,7 +350,7 @@ export default function Layout({ children }) {
             ))}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 text-red-600"
+              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-red-600 dark:text-red-400"
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">Odhlásit se</span>
@@ -322,16 +363,16 @@ export default function Layout({ children }) {
       <div className="hidden lg:flex">
         <SidebarProvider>
           <div className="flex min-h-screen w-full">
-            <Sidebar className="border-r border-slate-200 bg-white">
-              <SidebarHeader className="border-b border-slate-200 p-6">
+            <Sidebar className="border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+              <SidebarHeader className="border-b border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
                       <Factory className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-slate-900">DEMIP</h2>
-                      <p className="text-sm text-slate-500">Správa mazání</p>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">DEMIP</h2>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Správa mazání</p>
                     </div>
                   </div>
                   
@@ -339,17 +380,17 @@ export default function Layout({ children }) {
                   {myWorkOrders.length > 0 && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                          <Bell className="w-5 h-5 text-slate-600" />
+                        <button className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                          <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
                             {myWorkOrders.length}
                           </span>
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-80">
-                        <div className="p-3 border-b border-slate-200">
-                          <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
-                          <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
+                      <DropdownMenuContent align="end" className="w-80 dark:bg-slate-800 dark:border-slate-700">
+                        <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+                          <h3 className="font-semibold text-slate-900 dark:text-white">Moje pracovní příkazy</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{myWorkOrders.length} aktivních úkolů</p>
                         </div>
                         <div className="max-h-96 overflow-y-auto">
                           {myWorkOrders.map((order) => {
@@ -359,18 +400,18 @@ export default function Layout({ children }) {
                             return (
                               <DropdownMenuItem
                                 key={order.id}
-                                className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                                className="p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-700"
                                 onClick={() => handleNotificationClick(order)}
                               >
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                                    <p className="font-semibold text-sm text-slate-900 dark:text-white">{order.title}</p>
                                     {isOverdue && (
                                       <Badge variant="destructive" className="text-xs">Po termínu</Badge>
                                     )}
                                   </div>
-                                  <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
-                                  <p className="text-xs text-slate-500">
+                                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">{machine?.name || "Neznámý stroj"}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-500">
                                     Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
                                   </p>
                                 </div>
@@ -386,7 +427,7 @@ export default function Layout({ children }) {
 
               <SidebarContent className="p-4">
                 <SidebarGroup>
-                  <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2">
+                  <SidebarGroupLabel className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 py-2">
                     Menu
                   </SidebarGroupLabel>
                   <SidebarGroupContent>
@@ -395,12 +436,12 @@ export default function Layout({ children }) {
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton
                             asChild
-                            className={`hover:bg-slate-100 rounded-xl mb-1 transition-all ${
+                            className={`hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl mb-1 transition-all ${
                               item.highlight
                                 ? "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
                                 : location.pathname === item.url
-                                ? "bg-red-50 text-red-700"
-                                : ""
+                                ? "bg-red-50 text-red-700 dark:bg-red-900 dark:text-white"
+                                : "dark:text-slate-200"
                             }`}
                           >
                             <Link to={item.url} className="flex items-center justify-between px-4 py-3">
@@ -422,18 +463,18 @@ export default function Layout({ children }) {
                 </SidebarGroup>
               </SidebarContent>
 
-              <SidebarFooter className="border-t border-slate-200 p-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 mb-3">
+              <SidebarFooter className="border-t border-slate-200 dark:border-slate-700 p-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 mb-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold">
                       {getUserDisplayName(user)?.[0] || "U"}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 truncate">
+                    <p className="font-medium text-slate-900 dark:text-white truncate">
                       {getUserDisplayName(user)}
                     </p>
-                    <p className="text-xs text-slate-500 truncate">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                       {user?.user_type === "superAdmin"
                         ? "Super Administrátor"
                         : user?.user_type === "admin"
@@ -446,7 +487,7 @@ export default function Layout({ children }) {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 transition-colors font-medium"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900 dark:text-white dark:hover:bg-red-800 transition-colors font-medium"
                 >
                   <LogOut className="w-4 h-4" />
                   Odhlásit se

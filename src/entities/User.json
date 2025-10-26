@@ -29,6 +29,16 @@
     "custom_display_name": {
       "type": "string",
       "description": "Voliteln\u00e9 jm\u00e9no pro zobrazen\u00ed, p\u0159ep\u00ed\u0161e full_name"
+    },
+    "theme_preference": {
+      "type": "string",
+      "enum": [
+        "light",
+        "dark",
+        "system"
+      ],
+      "default": "system",
+      "description": "U\u017eivatelsk\u00e1 preference pro sv\u011btl\u00fd/tmav\u00fd re\u017eim"
     }
   },
   "name": "User",
