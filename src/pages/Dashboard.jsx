@@ -216,7 +216,7 @@ export default function Dashboard() {
             <p className="text-slate-600">
               {user?.user_type === "superAdmin" 
                 ? "Přehled všech podniků v systému"
-                : `Přehled vašich ${activeCompanies.length} přiřazených aktivních podniků`
+                : `Přehled vašich ${activeCompanies.length} přiřazených podniků`
               }
             </p>
           </div>
@@ -228,7 +228,6 @@ export default function Dashboard() {
                   <div>
                     <p className="text-blue-100 text-sm font-medium mb-1">Aktivní podniky</p>
                     <p className="text-4xl font-bold">{activeCompanies.length}</p>
-                    <p className="text-xs text-blue-100 mt-1">Bez demo podniků</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <Wrench className="w-6 h-6" />
@@ -243,7 +242,6 @@ export default function Dashboard() {
                   <div>
                     <p className="text-purple-100 text-sm font-medium mb-1">Celkem linek</p>
                     <p className="text-4xl font-bold">{totalLinesCount}</p>
-                    <p className="text-xs text-purple-100 mt-1">Z aktivních podniků</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <Activity className="w-6 h-6" />
@@ -258,7 +256,6 @@ export default function Dashboard() {
                   <div>
                     <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
                     <p className="text-4xl font-bold">{overduePointsCount}</p>
-                    <p className="text-xs text-red-100 mt-1">Kontrolní body</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <AlertTriangle className="w-6 h-6" />
@@ -273,7 +270,6 @@ export default function Dashboard() {
                   <div>
                     <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
                     <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
-                    <p className="text-xs text-green-100 mt-1">Z aktivních podniků</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <ClipboardCheck className="w-6 h-6" />
