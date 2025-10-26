@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -180,11 +179,11 @@ export default function Setup() {
               Aplikace je připravena!
             </h2>
             <p className="text-slate-600 mb-8">
-              Demo data byla úspěšně vytvořena. Nyní můžete začít používat aplikaci.
+              Demo data byla úspěšně vytvořena. Nyní můžete začít používat HCMS.
             </p>
             <Button
               onClick={() => navigate(createPageUrl("Dashboard"))}
-              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
             >
               Přejít na Dashboard
             </Button>
@@ -198,14 +197,14 @@ export default function Setup() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
       <Card className="max-w-lg w-full shadow-2xl">
         <CardHeader className="text-center pb-8 pt-12">
-          <div className="w-20 h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <Factory className="w-12 h-12 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <span className="text-white font-bold text-4xl">H</span>
           </div>
           <CardTitle className="text-3xl font-bold text-slate-900 mb-2">
-            Vítejte v DEMIP
+            Vítejte v HCMS
           </CardTitle>
           <p className="text-slate-600">
-            Digitální Evidence Mazacích a Inspekčních Procesů
+            Heistech Cloud Maintenance System
           </p>
         </CardHeader>
         <CardContent className="px-12 pb-12">
@@ -241,7 +240,7 @@ export default function Setup() {
             <Button
               onClick={createDemoData}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 h-12 text-base font-semibold"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 h-12 text-base font-semibold"
             >
               {loading ? (
                 <>

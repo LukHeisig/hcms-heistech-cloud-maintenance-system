@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   Rocket,
-  Bell
+  Bell,
+  Info
 } from "lucide-react";
 import {
   Sidebar,
@@ -192,6 +193,11 @@ export default function Layout({ children }) {
           },
         ]
       : []),
+    {
+      title: "O aplikaci",
+      url: createPageUrl("About"),
+      icon: Info,
+    },
   ];
 
   // Přidat Setup do menu pokud nejsou data
@@ -210,12 +216,12 @@ export default function Layout({ children }) {
       <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg">
-              <Factory className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg">H</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">DEMIP</h1>
-              <p className="text-xs text-slate-500">Správa mazání</p>
+              <h1 className="text-lg font-bold text-slate-900">HCMS</h1>
+              <p className="text-xs text-slate-500">Heistech Cloud</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -290,9 +296,9 @@ export default function Layout({ children }) {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center justify-between p-4 rounded-xl transition-all ${
                   item.highlight
-                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg"
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
                     : location.pathname === item.url
-                    ? "bg-red-50 text-red-700"
+                    ? "bg-blue-50 text-blue-700"
                     : "hover:bg-slate-100"
                 }`}
               >
@@ -326,12 +332,12 @@ export default function Layout({ children }) {
               <SidebarHeader className="border-b border-slate-200 p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
-                      <Factory className="w-7 h-7 text-white" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-white font-bold text-2xl">H</span>
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-slate-900">DEMIP</h2>
-                      <p className="text-sm text-slate-500">Správa mazání</p>
+                      <h2 className="text-xl font-bold text-slate-900">HCMS</h2>
+                      <p className="text-sm text-slate-500">Heistech Cloud</p>
                     </div>
                   </div>
                   
@@ -397,9 +403,9 @@ export default function Layout({ children }) {
                             asChild
                             className={`hover:bg-slate-100 rounded-xl mb-1 transition-all ${
                               item.highlight
-                                ? "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
+                                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
                                 : location.pathname === item.url
-                                ? "bg-red-50 text-red-700"
+                                ? "bg-blue-50 text-blue-700"
                                 : ""
                             }`}
                           >
