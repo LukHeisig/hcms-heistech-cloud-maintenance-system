@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +8,10 @@ import {
   Droplet,
   ClipboardCheck,
   AlertTriangle,
+  CheckCircle,
   Clock,
+  TrendingUp,
+  Calendar,
   Plus,
   Building2,
   ChevronRight
@@ -56,11 +58,12 @@ export default function Dashboard() {
     return u ? (u.custom_display_name || u.full_name || u.email) : email;
   };
 
+  // Filtrovat podniky podle přístupových práv
   const companies = React.useMemo(() => {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
-      return allCompanies.filter(c =>
+      return allCompanies.filter(c => 
         user.assigned_company_ids?.includes(c.id)
       );
     }
@@ -108,7 +111,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (user && !user.company_id && user.user_type !== "admin" && user.user_type !== "superAdmin") {
       navigate(createPageUrl("Setup"));
-    } else if (user && user.user_type !== "admin" && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
+    } else if (user && user.user_type !== "admin"  && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
       navigate(createPageUrl("Setup"));
     }
   }, [user, lines, navigate]);
@@ -125,6 +128,7 @@ export default function Dashboard() {
     return hoursSince > point.interval_hours ? "overdue" : "ok";
   };
 
+  // Výpočet skutečných hodnot
   const activeCompanies = companies.filter(c => c.is_active !== false);
   const totalLinesCount = (user?.user_type === "admin" || user?.user_type === "superAdmin") ? allLines.length : lines.length;
   const overduePointsCount = controlPoints.filter(
@@ -139,16 +143,17 @@ export default function Dashboard() {
     );
   }).length;
 
+  // Dashboard pro administrátora a superAdmina - zobrazení podniků
   if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
     return (
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 min-h-screen">
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
               Dashboard
             </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              {user?.user_type === "superAdmin"
+            <p className="text-slate-600">
+              {user?.user_type === "superAdmin" 
                 ? "Přehled všech podniků v systému"
                 : `Přehled vašich ${companies.length} přiřazených podniků`
               }
@@ -215,11 +220,11 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <Card className="border-none shadow-lg dark:bg-slate-800 dark:border-slate-700">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-700">
+              <Card className="border-none shadow-lg">
+                <CardHeader className="border-b border-slate-100">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-xl text-slate-900 dark:text-white">
-                      <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Building2 className="w-5 h-5 text-slate-600" />
                       Podniky
                     </CardTitle>
                     {user?.user_type === "superAdmin" && (
@@ -227,7 +232,6 @@ export default function Dashboard() {
                         onClick={() => navigate(createPageUrl("AdminCompanies"))}
                         size="sm"
                         variant="outline"
-                        className="dark:border-slate-600 dark:text-slate-200"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Přidat podnik
@@ -238,14 +242,14 @@ export default function Dashboard() {
                 <CardContent className="p-6">
                   {companies.length === 0 ? (
                     <div className="text-center py-12">
-                      <Building2 className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                        {user?.user_type === "superAdmin"
+                      <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                        {user?.user_type === "superAdmin" 
                           ? "Zatím nemáte žádné podniky"
                           : "Nemáte přiřazené žádné podniky"
                         }
                       </h3>
-                      <p className="text-slate-500 dark:text-slate-400 mb-6">
+                      <p className="text-slate-500 mb-6">
                         {user?.user_type === "superAdmin"
                           ? "Začněte vytvořením prvního podniku"
                           : "Kontaktujte superAdmina pro přiřazení podniků"
@@ -283,7 +287,7 @@ export default function Dashboard() {
                             key={company.id}
                             to={createPageUrl(`AdminLines?company=${company.id}`)}
                           >
-                            <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:hover:border-slate-500">
+                            <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                               <CardContent className="p-5">
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-center gap-4 flex-1">
@@ -292,7 +296,7 @@ export default function Dashboard() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                        <h3 className="text-lg font-bold text-slate-900">
                                           {company.name}
                                         </h3>
                                         {companyOverdue > 0 && (
@@ -302,13 +306,13 @@ export default function Dashboard() {
                                           </Badge>
                                         )}
                                         {companyIssues > 0 && (
-                                          <Badge className="bg-orange-100 text-orange-700 gap-1 dark:bg-orange-900 dark:text-orange-200">
+                                          <Badge className="bg-orange-100 text-orange-700 gap-1">
                                             <AlertTriangle className="w-3 h-3" />
                                             {companyIssues}
                                           </Badge>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                                      <div className="flex items-center gap-4 text-sm text-slate-600">
                                         <span className="flex items-center gap-1">
                                           <Factory className="w-4 h-4" />
                                           {companyLines.length} linek
@@ -320,7 +324,7 @@ export default function Dashboard() {
                                       </div>
                                     </div>
                                   </div>
-                                  <ChevronRight className="w-6 h-6 text-slate-400 dark:text-slate-500 flex-shrink-0 ml-4" />
+                                  <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
                                 </div>
                               </CardContent>
                             </Card>
@@ -334,16 +338,16 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-6">
-              <Card className="border-none shadow-lg dark:bg-slate-800 dark:border-slate-700">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-700">
-                  <CardTitle className="flex items-center gap-2 text-lg text-slate-900 dark:text-white">
-                    <Clock className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <Card className="border-none shadow-lg">
+                <CardHeader className="border-b border-slate-100">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Clock className="w-5 h-5 text-slate-600" />
                     Poslední záznamy
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
                   {records.length === 0 ? (
-                    <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">
+                    <p className="text-center text-slate-500 py-8 text-sm">
                       Zatím nejsou žádné záznamy
                     </p>
                   ) : (
@@ -355,27 +359,27 @@ export default function Dashboard() {
                         return (
                           <div
                             key={record.id}
-                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors"
                           >
                             <div className="flex-shrink-0 mt-1">
                               {record.record_type === "lubrication" ? (
-                                <Droplet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <Droplet className="w-4 h-4 text-blue-600" />
                               ) : (
-                                <ClipboardCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                <ClipboardCheck className="w-4 h-4 text-purple-600" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                              <p className="text-sm font-medium text-slate-900 truncate">
                                 {point?.name || "Neznámý bod"}
                               </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <p className="text-xs text-slate-500 mt-1">
                                 {format(
                                   new Date(record.performed_at),
                                   "d. M. yyyy HH:mm",
                                   { locale: cs }
                                 )}
                               </p>
-                              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                              <p className="text-xs text-slate-600 mt-1">
                                 {getUserDisplayName(record.created_by)}
                               </p>
                             </div>
@@ -388,9 +392,9 @@ export default function Dashboard() {
               </Card>
 
               {issues.length > 0 && (
-                <Card className="border-none shadow-lg border-l-4 border-l-orange-500 dark:bg-slate-800 dark:border-slate-700">
-                  <CardHeader className="border-b border-slate-100 dark:border-slate-700">
-                    <CardTitle className="flex items-center gap-2 text-lg text-orange-700 dark:text-orange-400">
+                <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
+                  <CardHeader className="border-b border-slate-100">
+                    <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
                       <AlertTriangle className="w-5 h-5" />
                       Aktivní závady
                     </CardTitle>
@@ -404,15 +408,15 @@ export default function Dashboard() {
                         return (
                           <div
                             key={issue.id}
-                            className="p-3 rounded-lg bg-orange-50 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-800"
+                            className="p-3 rounded-lg bg-orange-50 border border-orange-200"
                           >
-                            <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
+                            <p className="text-sm font-medium text-slate-900 mb-1">
                               {point?.name || "Neznámý bod"}
                             </p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                            <p className="text-xs text-slate-600 line-clamp-2">
                               {issue.description}
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                            <p className="text-xs text-slate-500 mt-2">
                               {format(new Date(issue.created_date), "d. M. yyyy", {
                                 locale: cs,
                               })} • {getUserDisplayName(issue.created_by)}
@@ -424,7 +428,7 @@ export default function Dashboard() {
                     {issues.length > 3 && (
                       <Link
                         to={createPageUrl("IssueApproval")}
-                        className="block text-center text-sm text-orange-700 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 font-medium mt-4"
+                        className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
                       >
                         Zobrazit všechny závady →
                       </Link>
@@ -439,17 +443,18 @@ export default function Dashboard() {
     );
   }
 
+  // Dashboard pro vedoucí a techniky
   if (lines.length === 0 && user?.company_id) {
     return (
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 min-h-screen">
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-3xl mx-auto">
-          <Card className="shadow-xl dark:bg-slate-800 dark:border-slate-700">
+          <Card className="shadow-xl">
             <CardContent className="p-12 text-center">
-              <Factory className="w-20 h-20 text-slate-300 dark:text-slate-600 mx-auto mb-6" />
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+              <Factory className="w-20 h-20 text-slate-300 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-slate-900 mb-4">
                 Začněte s DEMIP
               </h2>
-              <p className="text-slate-600 dark:text-slate-400 mb-8">
+              <p className="text-slate-600 mb-8">
                 Zatím nemáte vytvořené žádné linky. Vytvořte demo data nebo začněte s vlastní strukturou.
               </p>
               <div className="flex gap-4 justify-center">
@@ -469,13 +474,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 min-h-screen">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
             Dashboard
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-slate-600">
             Přehled stavu mazacích a inspekčních plánů
           </p>
         </div>
@@ -540,10 +545,10 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Card className="border-none shadow-lg dark:bg-slate-800 dark:border-slate-700">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-700">
-                <CardTitle className="flex items-center gap-2 text-xl text-slate-900 dark:text-white">
-                  <Factory className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            <Card className="border-none shadow-lg">
+              <CardHeader className="border-b border-slate-100">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Factory className="w-5 h-5 text-slate-600" />
                   Výrobní linky
                 </CardTitle>
               </CardHeader>
@@ -563,12 +568,12 @@ export default function Dashboard() {
 
                     return (
                       <Link key={line.id} to={createPageUrl(`Lines?line=${line.id}`)}>
-                        <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-500">
+                        <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                           <CardContent className="p-5">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                  <h3 className="text-lg font-bold text-slate-900">
                                     {line.name}
                                   </h3>
                                   {lineOverdue > 0 && (
@@ -578,13 +583,13 @@ export default function Dashboard() {
                                     </Badge>
                                   )}
                                   {lineIssues > 0 && (
-                                    <Badge className="bg-orange-100 text-orange-700 gap-1 dark:bg-orange-900 dark:text-orange-200">
+                                    <Badge className="bg-orange-100 text-orange-700 gap-1">
                                       <AlertTriangle className="w-3 h-3" />
                                       {lineIssues}
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                                <div className="flex items-center gap-4 text-sm text-slate-600">
                                   <span className="flex items-center gap-1">
                                     <Factory className="w-4 h-4" />
                                     {lineMachines.length} strojů
@@ -614,16 +619,16 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-6">
-            <Card className="border-none shadow-lg dark:bg-slate-800 dark:border-slate-700">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-700">
-                <CardTitle className="flex items-center gap-2 text-lg text-slate-900 dark:text-white">
-                  <Clock className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            <Card className="border-none shadow-lg">
+              <CardHeader className="border-b border-slate-100">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="w-5 h-5 text-slate-600" />
                   Poslední záznamy
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                   {records.length === 0 ? (
-                    <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">
+                    <p className="text-center text-slate-500 py-8 text-sm">
                       Zatím nejsou žádné záznamy
                     </p>
                   ) : (
@@ -635,27 +640,27 @@ export default function Dashboard() {
                         return (
                           <div
                             key={record.id}
-                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors"
                           >
                             <div className="flex-shrink-0 mt-1">
                               {record.record_type === "lubrication" ? (
-                                <Droplet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <Droplet className="w-4 h-4 text-blue-600" />
                               ) : (
-                                <ClipboardCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                <ClipboardCheck className="w-4 h-4 text-purple-600" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                              <p className="text-sm font-medium text-slate-900 truncate">
                                 {point?.name || "Neznámý bod"}
                               </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <p className="text-xs text-slate-500 mt-1">
                                 {format(
                                   new Date(record.performed_at),
                                   "d. M. yyyy HH:mm",
                                   { locale: cs }
                                 )}
                               </p>
-                              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                              <p className="text-xs text-slate-600 mt-1">
                                 {getUserDisplayName(record.created_by)}
                               </p>
                             </div>
@@ -668,9 +673,9 @@ export default function Dashboard() {
             </Card>
 
             {issues.length > 0 && user?.user_type !== "technician" && (
-              <Card className="border-none shadow-lg border-l-4 border-l-orange-500 dark:bg-slate-800 dark:border-slate-700">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-700">
-                  <CardTitle className="flex items-center gap-2 text-lg text-orange-700 dark:text-orange-400">
+              <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
+                <CardHeader className="border-b border-slate-100">
+                  <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
                     <AlertTriangle className="w-5 h-5" />
                     Aktivní závady
                   </CardTitle>
@@ -684,15 +689,15 @@ export default function Dashboard() {
                       return (
                         <div
                           key={issue.id}
-                          className="p-3 rounded-lg bg-orange-50 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-800"
+                          className="p-3 rounded-lg bg-orange-50 border border-orange-200"
                         >
-                          <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
+                          <p className="text-sm font-medium text-slate-900 mb-1">
                             {point?.name || "Neznámý bod"}
                           </p>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                          <p className="text-xs text-slate-600 line-clamp-2">
                             {issue.description}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                          <p className="text-xs text-slate-500 mt-2">
                             {format(new Date(issue.created_date), "d. M. yyyy", {
                               locale: cs,
                             })} • {getUserDisplayName(issue.created_by)}
@@ -704,7 +709,7 @@ export default function Dashboard() {
                   {issues.length > 3 && (
                     <Link
                       to={createPageUrl("IssueApproval")}
-                      className="block text-center text-sm text-orange-700 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 font-medium mt-4"
+                      className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
                     >
                       Zobrazit všechny závady →
                     </Link>

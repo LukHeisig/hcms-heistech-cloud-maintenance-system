@@ -50,38 +50,6 @@ export default function Layout({ children }) {
     checkData();
   }, []);
 
-  // DARK MODE LOGIC - aplikace tématu na HTML element
-  useEffect(() => {
-    if (!user) return;
-
-    const root = window.document.documentElement;
-    const themePreference = user.theme_preference || 'system';
-
-    const applyTheme = (theme) => {
-      if (theme === 'dark') {
-        root.classList.add('dark');
-      } else if (theme === 'light') {
-        root.classList.remove('dark');
-      } else { // 'system'
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          root.classList.add('dark');
-        } else {
-          root.classList.remove('dark');
-        }
-      }
-    };
-
-    applyTheme(themePreference);
-
-    // Sledování změn systémové preference pro 'system' režim
-    if (themePreference === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyTheme('system');
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-  }, [user]);
-
   const loadUser = async () => {
     try {
       const currentUser = await base44.auth.me();
@@ -91,11 +59,24 @@ export default function Layout({ children }) {
     }
   };
 
+  // Použít useQuery pro automatickou aktualizaci počtu závad
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
     enabled: !!user,
   });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsers"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const userMap = React.useMemo(() => {
+    return allUsers.reduce((acc, u) => {
+      acc[u.email] = u;
+      return acc;
+    }, {});
+  }, [allUsers]);
 
   const getUserDisplayName = (userObj) => {
     if (!userObj) return "Neznámý";
@@ -122,6 +103,7 @@ export default function Layout({ children }) {
     enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
+  // Načíst pracovní příkazy přiřazené aktuálnímu uživateli
   const { data: myWorkOrders = [] } = useQuery({
     queryKey: ["myWorkOrders", user?.email],
     queryFn: async () => {
@@ -133,69 +115,37 @@ export default function Layout({ children }) {
       return allOrders;
     },
     enabled: !!user?.email,
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Aktualizovat každých 30 sekund
   });
 
+  // Načíst stroje pro notifikace
   const { data: allMachines = [] } = useQuery({
     queryKey: ["allMachinesForNotifications"],
     queryFn: () => base44.entities.Machine.list(),
     enabled: myWorkOrders.length > 0,
   });
 
+  // Vypočítat počet závad podle uživatele
   const pendingIssuesCount = React.useMemo(() => {
     if (!user) return 0;
     if (user.user_type === "admin" || user.user_type === "superAdmin") return allReportedIssues.length;
 
+    // Pro non-admin: filtrovat podle company_id
     const companyLineIds = lines.map(l => l.id);
     const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
     const companyMachineIds = companyMachines.map(m => m.id);
     const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
     const companyControlPointIds = companyControlPoints.map(cp => cp.id);
-
-    return allReportedIssues.filter(issue => 
-      companyControlPointIds.includes(issue.control_point_id)
-    ).length;
-  }, [user, allReportedIssues, lines, machines, controlPoints]);
-
-  const pendingWorkOrdersCount = React.useMemo(() => {
-    return myWorkOrders.length;
-  }, [myWorkOrders]);
+    
+    return allReportedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id)).length;
+  }, [allReportedIssues, user, lines, machines, controlPoints]);
 
   const checkData = async () => {
     try {
-      const currentUser = await base44.auth.me();
-      if (currentUser.user_type === "admin" || currentUser.user_type === "superAdmin") {
-        setHasData(true);
-        return;
-      }
-
-      const allLines = await base44.entities.Line.list();
-      const userLines = allLines.filter(l => l.company_id === currentUser.company_id);
-      
-      if (userLines.length === 0) {
-        setHasData(false);
-        return;
-      }
-
-      const allMachines = await base44.entities.Machine.list();
-      const userMachines = allMachines.filter(m => 
-        userLines.some(l => l.id === m.line_id)
-      );
-
-      if (userMachines.length === 0) {
-        setHasData(false);
-        return;
-      }
-
-      const allControlPoints = await base44.entities.ControlPoint.list();
-      const userControlPoints = allControlPoints.filter(cp =>
-        userMachines.some(m => m.id === cp.machine_id)
-      );
-
-      setHasData(userControlPoints.length > 0);
+      const lines = await base44.entities.Line.list();
+      setHasData(lines.length > 0);
     } catch (error) {
-      console.error("Error checking data:", error);
-      setHasData(true);
+      setHasData(false);
     }
   };
 
@@ -203,238 +153,318 @@ export default function Layout({ children }) {
     await base44.auth.logout();
   };
 
-  const isActive = (path) => {
-    return location.pathname === path;
+  const handleNotificationClick = (workOrder) => {
+    navigate(createPageUrl(`Machine?id=${workOrder.machine_id}#maintenance`));
   };
 
-  const isAdminOrSuperAdmin = user?.user_type === "admin" || user?.user_type === "superAdmin";
+  const navigationItems = [
+    {
+      title: "Dashboard",
+      url: createPageUrl("Dashboard"),
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Přehled výroby",
+      url: createPageUrl("Lines"),
+      icon: Factory,
+    },
+    ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
+      ? [
+          {
+            title: "Správa závad",
+            url: createPageUrl("IssueApproval"),
+            icon: AlertTriangle,
+            badge: pendingIssuesCount,
+          },
+        ]
+      : []),
+    ...(user?.user_type === "superAdmin"
+      ? [
+          {
+            title: "Administrace",
+            url: createPageUrl("Admin"),
+            icon: Settings,
+          },
+          {
+            title: "Uživatelé",
+            url: createPageUrl("Users"),
+            icon: Users,
+          },
+        ]
+      : []),
+  ];
 
-  const sidebarContent = (
-    <div className="flex flex-col h-full">
-      <SidebarHeader className="border-b border-slate-200 dark:border-slate-700 pb-4">
-        <div className="flex items-center gap-2 px-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center">
-            <Factory className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="font-bold text-lg text-slate-900 dark:text-white">DEMIP</h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Digitální Evidence</p>
-          </div>
-        </div>
-      </SidebarHeader>
-
-      <SidebarContent className="flex-1">
-        {!hasData && !isAdminOrSuperAdmin && (
-          <div className="p-4 mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg mx-4 mt-4">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-yellow-900 dark:text-yellow-200 mb-1">
-                  Žádná data k zobrazení
-                </p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                  Kontaktujte prosím správce pro nastavení linek, strojů a kontrolních bodů.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400">Hlavní menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive(createPageUrl("Dashboard"))}
-                  className="data-[active=true]:bg-red-50 dark:data-[active=true]:bg-red-900/20 data-[active=true]:text-red-700 dark:data-[active=true]:text-red-400"
-                >
-                  <Link to={createPageUrl("Dashboard")}>
-                    <LayoutDashboard className="w-5 h-5" />
-                    <span>Přehled</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              {!isAdminOrSuperAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(createPageUrl("Lines"))}
-                    className="data-[active=true]:bg-red-50 dark:data-[active=true]:bg-red-900/20 data-[active=true]:text-red-700 dark:data-[active=true]:text-red-400"
-                  >
-                    <Link to={createPageUrl("Lines")}>
-                      <Factory className="w-5 h-5" />
-                      <span>Linky</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-
-              {(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(createPageUrl("IssueApproval"))}
-                    className="data-[active=true]:bg-red-50 dark:data-[active=true]:bg-red-900/20 data-[active=true]:text-red-700 dark:data-[active=true]:text-red-400"
-                  >
-                    <Link to={createPageUrl("IssueApproval")}>
-                      <AlertTriangle className="w-5 h-5" />
-                      <span>Schválení závad</span>
-                      {pendingIssuesCount > 0 && (
-                        <Badge className="ml-auto bg-red-600 text-white">
-                          {pendingIssuesCount}
-                        </Badge>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-
-              {pendingWorkOrdersCount > 0 && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    className="data-[active=true]:bg-red-50 dark:data-[active=true]:bg-red-900/20 data-[active=true]:text-red-700 dark:data-[active=true]:text-red-400"
-                  >
-                    <Link to={createPageUrl("Dashboard")}>
-                      <Bell className="w-5 h-5" />
-                      <span>Pracovní příkazy</span>
-                      <Badge className="ml-auto bg-blue-600 text-white">
-                        {pendingWorkOrdersCount}
-                      </Badge>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {(user?.user_type === "admin" || user?.user_type === "superAdmin") && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400">Administrace</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(createPageUrl("Admin"))}
-                    className="data-[active=true]:bg-red-50 dark:data-[active=true]:bg-red-900/20 data-[active=true]:text-red-700 dark:data-[active=true]:text-red-400"
-                  >
-                    <Link to={createPageUrl("Admin")}>
-                      <Settings className="w-5 h-5" />
-                      <span>Správa systému</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(createPageUrl("Users"))}
-                    className="data-[active=true]:bg-red-50 dark:data-[active=true]:bg-red-900/20 data-[active=true]:text-red-700 dark:data-[active=true]:text-red-400"
-                  >
-                    <Link to={createPageUrl("Users")}>
-                      <Users className="w-5 h-5" />
-                      <span>Uživatelé</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-      </SidebarContent>
-
-      <SidebarFooter className="border-t border-slate-200 dark:border-slate-700 pt-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="w-full">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm font-medium">
-                        {user?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                        {getUserDisplayName(user)}
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </div>
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="end" className="w-56">
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Odhlásit se
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </div>
-  );
+  // Přidat Setup do menu pokud nejsou data
+  if (!hasData) {
+    navigationItems.unshift({
+      title: "🚀 Vytvořit demo data",
+      url: createPageUrl("Setup"),
+      icon: Rocket,
+      highlight: true,
+    });
+  }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-slate-50 dark:bg-slate-900">
-        <Sidebar className="hidden md:flex border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-          {sidebarContent}
-        </Sidebar>
-
-        {mobileOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
-            <div 
-              className="absolute inset-0 bg-black/50" 
-              onClick={() => setMobileOpen(false)}
-            />
-            <div className="absolute top-0 left-0 bottom-0 w-72 bg-white dark:bg-slate-800 shadow-xl overflow-y-auto">
-              <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2">
-                  <Factory className="w-6 h-6 text-red-600 dark:text-red-400" />
-                  <h2 className="font-bold text-lg text-slate-900 dark:text-white">DEMIP</h2>
-                </div>
-                <button 
-                  onClick={() => setMobileOpen(false)}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                >
-                  <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                </button>
-              </div>
-              {sidebarContent}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header pro mobilní */}
+      <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg">
+              <Factory className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900">DEMIP</h1>
+              <p className="text-xs text-slate-500">Správa mazání</p>
             </div>
           </div>
-        )}
-
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <div className="flex items-center gap-2">
+            {/* Notifikace - Mobilní */}
+            {myWorkOrders.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <Bell className="w-5 h-5 text-slate-600" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {myWorkOrders.length}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <div className="p-3 border-b border-slate-200">
+                    <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
+                    <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {myWorkOrders.map((order) => {
+                      const machine = allMachines.find(m => m.id === order.machine_id);
+                      const isOverdue = new Date(order.planned_date) < new Date();
+                      
+                      return (
+                        <DropdownMenuItem
+                          key={order.id}
+                          className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                          onClick={() => handleNotificationClick(order)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                              {isOverdue && (
+                                <Badge variant="destructive" className="text-xs">Po termínu</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
+                            <p className="text-xs text-slate-500">
+                              Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <button
-              onClick={() => setMobileOpen(true)}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="p-2 rounded-lg hover:bg-slate-100"
             >
-              <Menu className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              {mobileOpen ? (
+                <X className="w-6 h-6 text-slate-600" />
+              ) : (
+                <Menu className="w-6 h-6 text-slate-600" />
+              )}
             </button>
-            <div className="flex items-center gap-2">
-              <Factory className="w-6 h-6 text-red-600 dark:text-red-400" />
-              <h1 className="font-bold text-lg text-slate-900 dark:text-white">DEMIP</h1>
-            </div>
-            <div className="w-10" />
-          </header>
-
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
+          </div>
         </div>
+      </header>
+
+      {/* Mobilní menu */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-white">
+          <div className="p-6 space-y-4 pt-20">
+            {navigationItems.map((item) => (
+              <Link
+                key={item.title}
+                to={item.url}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center justify-between p-4 rounded-xl transition-all ${
+                  item.highlight
+                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg"
+                    : location.pathname === item.url
+                    ? "bg-red-50 text-red-700"
+                    : "hover:bg-slate-100"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.title}</span>
+                </div>
+                {item.badge > 0 && (
+                  <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            ))}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 text-red-600"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="font-medium">Odhlásit se</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex">
+        <SidebarProvider>
+          <div className="flex min-h-screen w-full">
+            <Sidebar className="border-r border-slate-200 bg-white">
+              <SidebarHeader className="border-b border-slate-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
+                      <Factory className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">DEMIP</h2>
+                      <p className="text-sm text-slate-500">Správa mazání</p>
+                    </div>
+                  </div>
+                  
+                  {/* Notifikace - Desktop */}
+                  {myWorkOrders.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                          <Bell className="w-5 h-5 text-slate-600" />
+                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                            {myWorkOrders.length}
+                          </span>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-80">
+                        <div className="p-3 border-b border-slate-200">
+                          <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
+                          <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {myWorkOrders.map((order) => {
+                            const machine = allMachines.find(m => m.id === order.machine_id);
+                            const isOverdue = new Date(order.planned_date) < new Date();
+                            
+                            return (
+                              <DropdownMenuItem
+                                key={order.id}
+                                className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                                onClick={() => handleNotificationClick(order)}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                                    {isOverdue && (
+                                      <Badge variant="destructive" className="text-xs">Po termínu</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
+                                  <p className="text-xs text-slate-500">
+                                    Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                                  </p>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </SidebarHeader>
+
+              <SidebarContent className="p-4">
+                <SidebarGroup>
+                  <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2">
+                    Menu
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {navigationItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            asChild
+                            className={`hover:bg-slate-100 rounded-xl mb-1 transition-all ${
+                              item.highlight
+                                ? "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
+                                : location.pathname === item.url
+                                ? "bg-red-50 text-red-700"
+                                : ""
+                            }`}
+                          >
+                            <Link to={item.url} className="flex items-center justify-between px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <item.icon className="w-5 h-5" />
+                                <span className="font-medium">{item.title}</span>
+                              </div>
+                              {item.badge > 0 && (
+                                <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded-full">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </SidebarContent>
+
+              <SidebarFooter className="border-t border-slate-200 p-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold">
+                      {getUserDisplayName(user)?.[0] || "U"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-900 truncate">
+                      {getUserDisplayName(user)}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {user?.user_type === "superAdmin"
+                        ? "Super Administrátor"
+                        : user?.user_type === "admin"
+                        ? "Administrátor"
+                        : user?.user_type === "manager"
+                        ? "Vedoucí"
+                        : "Technik"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 transition-colors font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Odhlásit se
+                </button>
+              </SidebarFooter>
+            </Sidebar>
+
+            <main className="flex-1 overflow-auto">
+              {children}
+            </main>
+          </div>
+        </SidebarProvider>
       </div>
-    </SidebarProvider>
+
+      {/* Main content pro mobilní */}
+      <main className="lg:hidden">
+        {children}
+      </main>
+    </div>
   );
 }
