@@ -95,8 +95,8 @@ export default function Layout({ children }) {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
-    } catch (error) {
-      console.error("Error loading user:", error);
+    } catch (err) { // Renamed error to err
+      console.error("Error loading user:", err);
     }
   };
 
@@ -112,12 +112,13 @@ export default function Layout({ children }) {
     queryFn: () => base44.entities.User.list(),
   });
 
-  const userMap = React.useMemo(() => {
-    return allUsers.reduce((acc, u) => {
-      acc[u.email] = u;
-      return acc;
-    }, {});
-  }, [allUsers]);
+  // Removed userMap as it was unused and caused lint errors if not optimized
+  // const userMap = React.useMemo(() => {
+  //   return allUsers.reduce((acc, u) => {
+  //     acc[u.email] = u;
+  //     return acc;
+  //   }, {});
+  // }, [allUsers]);
 
   const getUserDisplayName = (userObj) => {
     if (!userObj) return "Neznámý";
@@ -185,7 +186,7 @@ export default function Layout({ children }) {
     try {
       const lines = await base44.entities.Line.list();
       setHasData(lines.length > 0);
-    } catch (error) {
+    } catch (err) { // Renamed error to err
       setHasData(false);
     }
   };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,6 @@ export default function AppSettings() {
   const [selectedTheme, setSelectedTheme] = useState('system');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    loadCurrentUser();
-  }, []);
-
   const loadCurrentUser = async () => {
     try {
       const user = await base44.auth.me();
@@ -31,13 +27,16 @@ export default function AppSettings() {
     }
   };
 
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
   const updateThemePreferenceMutation = useMutation({
     mutationFn: (theme) => base44.auth.updateMe({ theme_preference: theme }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      // Znovu načíst uživatele pro aktualizaci layoutu
       loadCurrentUser();
     },
     onError: (error) => {
@@ -83,7 +82,6 @@ export default function AppSettings() {
               onValueChange={setSelectedTheme}
               className="grid grid-cols-1 md:grid-cols-3 gap-4"
             >
-              {/* Systém */}
               <div className={`flex flex-col items-center justify-center p-6 border-2 rounded-lg transition-all cursor-pointer ${
                 selectedTheme === 'system' 
                   ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' 
@@ -101,7 +99,6 @@ export default function AppSettings() {
                 </Label>
               </div>
 
-              {/* Světlý režim */}
               <div className={`flex flex-col items-center justify-center p-6 border-2 rounded-lg transition-all cursor-pointer ${
                 selectedTheme === 'light' 
                   ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' 
@@ -119,7 +116,6 @@ export default function AppSettings() {
                 </Label>
               </div>
 
-              {/* Tmavý režim */}
               <div className={`flex flex-col items-center justify-center p-6 border-2 rounded-lg transition-all cursor-pointer ${
                 selectedTheme === 'dark' 
                   ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' 
