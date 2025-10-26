@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -45,21 +44,19 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
-  const [currentTheme, setCurrentTheme] = useState('system'); // New state for theme
+  const [currentTheme, setCurrentTheme] = useState('system');
 
   useEffect(() => {
     loadUser();
     checkData();
   }, []);
 
-  // Správa tématu - sledování user preference
   useEffect(() => {
     if (user) {
       setCurrentTheme(user.theme_preference || 'system');
     }
   }, [user]);
 
-  // Aplikace tématu na HTML element
   useEffect(() => {
     const root = window.document.documentElement;
 
@@ -68,7 +65,7 @@ export default function Layout({ children }) {
         root.classList.add('dark');
       } else if (theme === 'light') {
         root.classList.remove('dark');
-      } else { // 'system'
+      } else {
         if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
           root.classList.add('dark');
         } else {
@@ -79,7 +76,6 @@ export default function Layout({ children }) {
 
     applyTheme(currentTheme);
 
-    // Sledování změn systémové preference pro 'system' režim
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
       if (currentTheme === 'system') {
@@ -95,30 +91,16 @@ export default function Layout({ children }) {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
-    } catch (err) { // Renamed error to err
-      console.error("Error loading user:", err);
+    } catch (error) {
+      console.error("Error loading user:", error);
     }
   };
 
-  // Použít useQuery pro automatickou aktualizaci počtu závad
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
     enabled: !!user,
   });
-
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(),
-  });
-
-  // Removed userMap as it was unused and caused lint errors if not optimized
-  // const userMap = React.useMemo(() => {
-  //   return allUsers.reduce((acc, u) => {
-  //     acc[u.email] = u;
-  //     return acc;
-  //   }, {});
-  // }, [allUsers]);
 
   const getUserDisplayName = (userObj) => {
     if (!userObj) return "Neznámý";
@@ -145,7 +127,6 @@ export default function Layout({ children }) {
     enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
-  // Načíst pracovní příkazy přiřazené aktuálnímu uživateli
   const { data: myWorkOrders = [] } = useQuery({
     queryKey: ["myWorkOrders", user?.email],
     queryFn: async () => {
@@ -157,37 +138,50 @@ export default function Layout({ children }) {
       return allOrders;
     },
     enabled: !!user?.email,
-    refetchInterval: 30000, // Aktualizovat každých 30 sekund
+    refetchInterval: 30000,
   });
 
-  // Načíst stroje pro notifikace
   const { data: allMachines = [] } = useQuery({
     queryKey: ["allMachinesForNotifications"],
     queryFn: () => base44.entities.Machine.list(),
     enabled: myWorkOrders.length > 0,
   });
 
-  // Vypočítat počet závad podle uživatele
   const pendingIssuesCount = React.useMemo(() => {
     if (!user) return 0;
     if (user.user_type === "admin" || user.user_type === "superAdmin") return allReportedIssues.length;
 
-    // Pro non-admin: filtrovat podle company_id
     const companyLineIds = lines.map(l => l.id);
     const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
     const companyMachineIds = companyMachines.map(m => m.id);
     const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
     const companyControlPointIds = companyControlPoints.map(cp => cp.id);
     
-    return allReportedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id)).length;
-  }, [allReportedIssues, user, lines, machines, controlPoints]);
+    return allReportedIssues.filter(issue => 
+      companyControlPointIds.includes(issue.control_point_id)
+    ).length;
+  }, [user, allReportedIssues, lines, machines, controlPoints]);
 
   const checkData = async () => {
     try {
-      const lines = await base44.entities.Line.list();
-      setHasData(lines.length > 0);
-    } catch (err) { // Renamed error to err
-      setHasData(false);
+      const currentUser = await base44.auth.me();
+      if (!currentUser.company_id && currentUser.user_type !== "admin" && currentUser.user_type !== "superAdmin") {
+        setHasData(false);
+        return;
+      }
+      
+      if (currentUser.user_type === "admin" || currentUser.user_type === "superAdmin") {
+        setHasData(true);
+        return;
+      }
+
+      const userLines = await base44.entities.Line.filter({ 
+        company_id: currentUser.company_id 
+      });
+      
+      setHasData(userLines.length > 0);
+    } catch (error) {
+      console.error("Error checking data:", error);
     }
   };
 
@@ -195,318 +189,229 @@ export default function Layout({ children }) {
     await base44.auth.logout();
   };
 
-  const handleNotificationClick = (workOrder) => {
-    navigate(createPageUrl(`Machine?id=${workOrder.machine_id}#maintenance`));
-  };
-
-  const navigationItems = [
-    {
-      title: "Dashboard",
-      url: createPageUrl("Dashboard"),
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Přehled výroby",
-      url: createPageUrl("Lines"),
-      icon: Factory,
-    },
-    ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
-      ? [
-          {
-            title: "Správa závad",
-            url: createPageUrl("IssueApproval"),
-            icon: AlertTriangle,
-            badge: pendingIssuesCount,
-          },
-        ]
-      : []),
-    ...(user?.user_type === "superAdmin"
-      ? [
-          {
-            title: "Administrace",
-            url: createPageUrl("Admin"),
-            icon: Settings,
-          },
-          {
-            title: "Uživatelé",
-            url: createPageUrl("Users"),
-            icon: Users,
-          },
-        ]
-      : []),
-  ];
-
-  // Přidat Setup do menu pokud nejsou data
-  if (!hasData) {
-    navigationItems.unshift({
-      title: "🚀 Vytvořit demo data",
-      url: createPageUrl("Setup"),
-      icon: Rocket,
-      highlight: true,
-    });
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Načítání...</p>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Header pro mobilní */}
-      <header className="lg:hidden bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-700 px-4 py-3 sticky top-0 z-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg">
-              <Factory className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">DEMIP</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Správa mazání</p>
-            </div>
+  const isAdminOrSuperAdmin = user.user_type === "admin" || user.user_type === "superAdmin";
+  const navItems = isAdminOrSuperAdmin
+    ? [
+        { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
+        { name: "Administrace", path: "Admin", icon: Settings },
+        { name: "Uživatelé", path: "Users", icon: Users },
+        { name: "Závady", path: "IssueApproval", icon: AlertTriangle },
+      ]
+    : hasData
+    ? [
+        { name: "Dashboard", path: "Dashboard", icon: LayoutDashboard },
+        { name: "Linky", path: "Lines", icon: Factory },
+        ...(user.user_type !== "technician" ? [{ name: "Závady", path: "IssueApproval", icon: AlertTriangle }] : []),
+      ]
+    : [
+        { name: "Nastavení", path: "Setup", icon: Rocket },
+      ];
+
+  const sidebarContent = (
+    <>
+      <SidebarHeader className="border-b border-slate-200 dark:border-slate-700 p-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
+            <Factory className="w-6 h-6 text-white" />
           </div>
-          <div className="flex items-center gap-2">
-            {/* Notifikace - Mobilní */}
-            {myWorkOrders.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {myWorkOrders.length}
-                    </span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 dark:bg-slate-800 dark:border-slate-700">
-                  <div className="p-3 border-b border-slate-200 dark:border-slate-700">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">Moje pracovní příkazy</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{myWorkOrders.length} aktivních úkolů</p>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {myWorkOrders.map((order) => {
-                      const machine = allMachines.find(m => m.id === order.machine_id);
-                      const isOverdue = new Date(order.planned_date) < new Date();
-                      
-                      return (
-                        <DropdownMenuItem
-                          key={order.id}
-                          className="p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-700"
-                          onClick={() => handleNotificationClick(order)}
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold text-sm text-slate-900 dark:text-white">{order.title}</p>
-                              {isOverdue && (
-                                <Badge variant="destructive" className="text-xs">Po termínu</Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">{machine?.name || "Neznámý stroj"}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-500">
-                              Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              {mobileOpen ? (
-                <X className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-              ) : (
-                <Menu className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-              )}
-            </button>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">DEMIP</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {user.user_type === "superAdmin" ? "Super Admin" : 
+               user.user_type === "admin" ? "Administrátor" : 
+               user.user_type === "manager" ? "Vedoucí" : "Technik"}
+            </p>
           </div>
         </div>
-      </header>
+      </SidebarHeader>
 
-      {/* Mobilní menu */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-white dark:bg-slate-900">
-          <div className="p-6 space-y-4 pt-20">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.title}
-                to={item.url}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center justify-between p-4 rounded-xl transition-all ${
-                  item.highlight
-                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg"
-                    : location.pathname === item.url
-                    ? "bg-red-50 text-red-700 dark:bg-red-900 dark:text-white"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-200"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.title}</span>
+      <SidebarContent className="px-3 py-4">
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 mb-2">
+            Navigace
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                const isActive = location.pathname === createPageUrl(item.path);
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      className={`${
+                        isActive
+                          ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 font-semibold"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      } transition-colors duration-200`}
+                    >
+                      <Link to={createPageUrl(item.path)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
+                        <item.icon className={`w-5 h-5 ${isActive ? "text-red-600 dark:text-red-400" : ""}`} />
+                        <span>{item.name}</span>
+                        {item.name === "Závady" && pendingIssuesCount > 0 && (
+                          <Badge variant="destructive" className="ml-auto">
+                            {pendingIssuesCount}
+                          </Badge>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {myWorkOrders.length > 0 && (
+          <SidebarGroup className="mt-6">
+            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 mb-2 flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Přiřazené úkoly ({myWorkOrders.length})
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto px-3">
+                  {myWorkOrders.slice(0, 5).map((order) => {
+                    const machine = allMachines.find(m => m.id === order.machine_id);
+                    const isOverdue = new Date(order.planned_date) < new Date();
+                    
+                    return (
+                      <Link
+                        key={order.id}
+                        to={createPageUrl(`Machine?id=${order.machine_id}`)}
+                        className="block p-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white line-clamp-1">
+                            {order.title}
+                          </p>
+                          {isOverdue && (
+                            <Badge variant="destructive" className="text-xs flex-shrink-0">
+                              Po termínu
+                            </Badge>
+                          )}
+                        </div>
+                        {machine && (
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 line-clamp-1">
+                            {machine.name}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-500 dark:text-slate-500">
+                          {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                        </p>
+                      </Link>
+                    );
+                  })}
                 </div>
-                {item.badge > 0 && (
-                  <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded-full">
-                    {item.badge}
-                  </span>
+                {myWorkOrders.length > 5 && (
+                  <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-2 px-3">
+                    + další {myWorkOrders.length - 5} úkolů
+                  </p>
                 )}
-              </Link>
-            ))}
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-red-600 dark:text-red-400"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Odhlásit se</span>
-            </button>
-          </div>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-slate-200 dark:border-slate-700 p-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger className="w-full">
+            <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+              <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center shadow-md flex-shrink-0">
+                <span className="text-white font-semibold text-sm">
+                  {getUserDisplayName(user).charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                  {getUserDisplayName(user)}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+              </div>
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => navigate(createPageUrl("AppSettings"))}>
+              <Settings className="w-4 h-4 mr-2" />
+              Nastavení vzhledu
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400">
+              <LogOut className="w-4 h-4 mr-2" />
+              Odhlásit se
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarFooter>
+    </>
+  );
+
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-slate-50 dark:bg-slate-900">
+        <div className="hidden md:block">
+          <Sidebar className="border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            {sidebarContent}
+          </Sidebar>
         </div>
-      )}
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:flex">
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <Sidebar className="border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-              <SidebarHeader className="border-b border-slate-200 dark:border-slate-700 p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
-                      <Factory className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">DEMIP</h2>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Správa mazání</p>
-                    </div>
-                  </div>
-                  
-                  {/* Notifikace - Desktop */}
-                  {myWorkOrders.length > 0 && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                          <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                            {myWorkOrders.length}
-                          </span>
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-80 dark:bg-slate-800 dark:border-slate-700">
-                        <div className="p-3 border-b border-slate-200 dark:border-slate-700">
-                          <h3 className="font-semibold text-slate-900 dark:text-white">Moje pracovní příkazy</h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{myWorkOrders.length} aktivních úkolů</p>
-                        </div>
-                        <div className="max-h-96 overflow-y-auto">
-                          {myWorkOrders.map((order) => {
-                            const machine = allMachines.find(m => m.id === order.machine_id);
-                            const isOverdue = new Date(order.planned_date) < new Date();
-                            
-                            return (
-                              <DropdownMenuItem
-                                key={order.id}
-                                className="p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 focus:bg-slate-50 dark:focus:bg-slate-700"
-                                onClick={() => handleNotificationClick(order)}
-                              >
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <p className="font-semibold text-sm text-slate-900 dark:text-white">{order.title}</p>
-                                    {isOverdue && (
-                                      <Badge variant="destructive" className="text-xs">Po termínu</Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">{machine?.name || "Neznámý stroj"}</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-500">
-                                    Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
-                                  </p>
-                                </div>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </div>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </SidebarHeader>
-
-              <SidebarContent className="p-4">
-                <SidebarGroup>
-                  <SidebarGroupLabel className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 py-2">
-                    Menu
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {navigationItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className={`hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl mb-1 transition-all ${
-                              item.highlight
-                                ? "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
-                                : location.pathname === item.url
-                                ? "bg-red-50 text-red-700 dark:bg-red-900 dark:text-white"
-                                : "dark:text-slate-200"
-                            }`}
-                          >
-                            <Link to={item.url} className="flex items-center justify-between px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <item.icon className="w-5 h-5" />
-                                <span className="font-medium">{item.title}</span>
-                              </div>
-                              {item.badge > 0 && (
-                                <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded-full">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </SidebarContent>
-
-              <SidebarFooter className="border-t border-slate-200 dark:border-slate-700 p-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold">
-                      {getUserDisplayName(user)?.[0] || "U"}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 dark:text-white truncate">
-                      {getUserDisplayName(user)}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {user?.user_type === "superAdmin"
-                        ? "Super Administrátor"
-                        : user?.user_type === "admin"
-                        ? "Administrátor"
-                        : user?.user_type === "manager"
-                        ? "Vedoucí"
-                        : "Technik"}
-                    </p>
-                  </div>
-                </div>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setMobileOpen(false)}
+            />
+            <div className="absolute left-0 top-0 bottom-0 w-72 bg-white dark:bg-slate-800 shadow-xl">
+              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Menu</h2>
                 <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900 dark:text-white dark:hover:bg-red-800 transition-colors font-medium"
+                  onClick={() => setMobileOpen(false)}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <LogOut className="w-4 h-4" />
-                  Odhlásit se
+                  <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                 </button>
-              </SidebarFooter>
-            </Sidebar>
-
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
+              </div>
+              <div className="overflow-y-auto h-[calc(100vh-73px)]">
+                {sidebarContent}
+              </div>
+            </div>
           </div>
-        </SidebarProvider>
-      </div>
+        )}
 
-      {/* Main content pro mobilní */}
-      <main className="lg:hidden">
-        {children}
-      </main>
-    </div>
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="md:hidden sticky top-0 z-40 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Menu className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-md">
+                  <Factory className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-lg font-bold text-slate-900 dark:text-white">DEMIP</h1>
+              </div>
+              <div className="w-10" />
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
