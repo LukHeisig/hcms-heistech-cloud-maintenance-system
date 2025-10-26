@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -78,7 +79,7 @@ export default function Users() {
     if (!currentUser) return [];
     if (currentUser.user_type === "superAdmin") return allCompanies;
     if (currentUser.user_type === "admin") {
-      return allCompanies.filter(c => 
+      return allCompanies.filter(c =>
         currentUser.assigned_company_ids?.includes(c.id)
       );
     }
@@ -180,9 +181,9 @@ export default function Users() {
   };
 
   const getCompanyName = (companyId) => {
-    if (!companyId) return "-";
+    if (!companyId) return "Není přiřazen";
     const company = companies.find((c) => c.id === companyId);
-    return company?.name || "-";
+    return company ? company.name : "Neznámý podnik";
   };
 
   if (isLoading) {
@@ -438,7 +439,7 @@ export default function Users() {
               <div className="text-center py-12">
                 <UsersIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">
-                  {selectedCompanyFilter !== "all" 
+                  {selectedCompanyFilter !== "all"
                     ? "Žádní uživatelé pro vybraný filtr"
                     : "Zatím nejsou žádní uživatelé"
                   }

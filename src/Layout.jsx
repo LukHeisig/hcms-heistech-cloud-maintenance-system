@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -72,13 +73,6 @@ export default function Layout({ children }) {
     queryFn: () => base44.entities.User.list(),
   });
 
-  const userMap = React.useMemo(() => {
-    return allUsers.reduce((acc, u) => {
-      acc[u.email] = u;
-      return acc;
-    }, {});
-  }, [allUsers]);
-
   const getUserDisplayName = (userObj) => {
     if (!userObj) return "Neznámý";
     return userObj.custom_display_name || userObj.full_name || userObj.email;
@@ -143,9 +137,10 @@ export default function Layout({ children }) {
 
   const checkData = async () => {
     try {
-      const lines = await base44.entities.Line.list();
-      setHasData(lines.length > 0);
-    } catch (error) {
+      const linesData = await base44.entities.Line.list();
+      setHasData(linesData.length > 0);
+    } catch (err) {
+      console.error("Error checking data:", err);
       setHasData(false);
     }
   };

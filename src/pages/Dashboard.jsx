@@ -1,20 +1,16 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
-  Factory,
+  AlertTriangle,
   Droplet,
   ClipboardCheck,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  Calendar,
-  Plus,
-  Building2,
-  ChevronRight
+  Wrench,
+  Activity,
+  ArrowRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +165,7 @@ export default function Dashboard() {
                     <p className="text-4xl font-bold">{activeCompanies.length}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
-                    <Building2 className="w-6 h-6" />
+                    <Wrench className="w-6 h-6" /> {/* Changed from Building2 */}
                   </div>
                 </div>
               </CardContent>
@@ -183,7 +179,7 @@ export default function Dashboard() {
                     <p className="text-4xl font-bold">{totalLinesCount}</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl">
-                    <Factory className="w-6 h-6" />
+                    <Activity className="w-6 h-6" /> {/* Changed from Factory */}
                   </div>
                 </div>
               </CardContent>
@@ -224,7 +220,7 @@ export default function Dashboard() {
                 <CardHeader className="border-b border-slate-100">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-xl">
-                      <Building2 className="w-5 h-5 text-slate-600" />
+                      <Wrench className="w-5 h-5 text-slate-600" /> {/* Changed from Building2 */}
                       Podniky
                     </CardTitle>
                     {user?.user_type === "superAdmin" && (
@@ -233,7 +229,7 @@ export default function Dashboard() {
                         size="sm"
                         variant="outline"
                       >
-                        <Plus className="w-4 h-4 mr-2" />
+                        <ArrowRight className="w-4 h-4 mr-2" /> {/* Changed from Plus */}
                         Přidat podnik
                       </Button>
                     )}
@@ -242,7 +238,7 @@ export default function Dashboard() {
                 <CardContent className="p-6">
                   {companies.length === 0 ? (
                     <div className="text-center py-12">
-                      <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                      <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" /> {/* Changed from Building2 */}
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">
                         {user?.user_type === "superAdmin" 
                           ? "Zatím nemáte žádné podniky"
@@ -260,7 +256,7 @@ export default function Dashboard() {
                           onClick={() => navigate(createPageUrl("AdminCompanies"))}
                           className="bg-gradient-to-r from-red-600 to-red-700"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
+                          <ArrowRight className="w-4 h-4 mr-2" /> {/* Changed from Plus */}
                           Vytvořit podnik
                         </Button>
                       )}
@@ -292,7 +288,7 @@ export default function Dashboard() {
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-center gap-4 flex-1">
                                     <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                                      <Building2 className="w-6 h-6 text-white" />
+                                      <Wrench className="w-6 h-6 text-white" /> {/* Changed from Building2 */}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-3 mb-2">
@@ -301,7 +297,7 @@ export default function Dashboard() {
                                         </h3>
                                         {companyOverdue > 0 && (
                                           <Badge variant="destructive" className="gap-1">
-                                            <Clock className="w-3 h-3" />
+                                            <AlertTriangle className="w-3 h-3" /> {/* Changed from Clock */}
                                             {companyOverdue}
                                           </Badge>
                                         )}
@@ -314,7 +310,7 @@ export default function Dashboard() {
                                       </div>
                                       <div className="flex items-center gap-4 text-sm text-slate-600">
                                         <span className="flex items-center gap-1">
-                                          <Factory className="w-4 h-4" />
+                                          <Activity className="w-4 h-4" /> {/* Changed from Factory */}
                                           {companyLines.length} linek
                                         </span>
                                         <span className="flex items-center gap-1">
@@ -324,7 +320,7 @@ export default function Dashboard() {
                                       </div>
                                     </div>
                                   </div>
-                                  <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
+                                  <ArrowRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" /> {/* Changed from ChevronRight */}
                                 </div>
                               </CardContent>
                             </Card>
@@ -341,7 +337,7 @@ export default function Dashboard() {
               <Card className="border-none shadow-lg">
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Clock className="w-5 h-5 text-slate-600" />
+                    <Activity className="w-5 h-5 text-slate-600" /> {/* Changed from Clock */}
                     Poslední záznamy
                   </CardTitle>
                 </CardHeader>
@@ -450,7 +446,7 @@ export default function Dashboard() {
         <div className="max-w-3xl mx-auto">
           <Card className="shadow-xl">
             <CardContent className="p-12 text-center">
-              <Factory className="w-20 h-20 text-slate-300 mx-auto mb-6" />
+              <Activity className="w-20 h-20 text-slate-300 mx-auto mb-6" /> {/* Changed from Factory */}
               <h2 className="text-2xl font-bold text-slate-900 mb-4">
                 Začněte s DEMIP
               </h2>
@@ -462,7 +458,7 @@ export default function Dashboard() {
                   onClick={() => navigate(createPageUrl("Setup"))}
                   className="bg-gradient-to-r from-red-600 to-red-700"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <ArrowRight className="w-4 h-4 mr-2" /> {/* Changed from Plus */}
                   Vytvořit demo data
                 </Button>
               </div>
@@ -494,7 +490,7 @@ export default function Dashboard() {
                   <p className="text-4xl font-bold">{totalLinesCount}</p>
                 </div>
                 <div className="p-3 bg-white/20 rounded-xl">
-                  <Factory className="w-6 h-6" />
+                  <Activity className="w-6 h-6" /> {/* Changed from Factory */}
                 </div>
               </div>
             </CardContent>
@@ -548,7 +544,7 @@ export default function Dashboard() {
             <Card className="border-none shadow-lg">
               <CardHeader className="border-b border-slate-100">
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Factory className="w-5 h-5 text-slate-600" />
+                  <Activity className="w-5 h-5 text-slate-600" /> {/* Changed from Factory */}
                   Výrobní linky
                 </CardTitle>
               </CardHeader>
@@ -578,7 +574,7 @@ export default function Dashboard() {
                                   </h3>
                                   {lineOverdue > 0 && (
                                     <Badge variant="destructive" className="gap-1">
-                                      <Clock className="w-3 h-3" />
+                                      <AlertTriangle className="w-3 h-3" /> {/* Changed from Clock */}
                                       {lineOverdue}
                                     </Badge>
                                   )}
@@ -591,7 +587,7 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-slate-600">
                                   <span className="flex items-center gap-1">
-                                    <Factory className="w-4 h-4" />
+                                    <Activity className="w-4 h-4" /> {/* Changed from Factory */}
                                     {lineMachines.length} strojů
                                   </span>
                                   <span className="flex items-center gap-1">
@@ -622,7 +618,7 @@ export default function Dashboard() {
             <Card className="border-none shadow-lg">
               <CardHeader className="border-b border-slate-100">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Clock className="w-5 h-5 text-slate-600" />
+                  <Activity className="w-5 h-5 text-slate-600" /> {/* Changed from Clock */}
                   Poslední záznamy
                 </CardTitle>
               </CardHeader>

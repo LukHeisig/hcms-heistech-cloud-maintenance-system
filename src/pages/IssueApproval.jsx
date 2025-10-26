@@ -26,7 +26,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, CheckCircle, Clock, Factory, Loader2, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  ChevronRight,
+  Trash2,
+  ArrowLeft,
+  Filter,
+  Building2,
+  Clock,
+  Factory,
+} from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
