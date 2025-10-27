@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -14,7 +15,8 @@ import {
   X,
   Rocket,
   Bell,
-  Info
+  Info,
+  Code
 } from "lucide-react";
 import {
   Sidebar,
@@ -186,6 +188,11 @@ export default function Layout({ children }) {
       title: "O aplikaci",
       url: createPageUrl("About"),
       icon: Info,
+    },
+    {
+      title: "API Dokumentace",
+      url: createPageUrl("ApiDocumentation"),
+      icon: Code,
     },
   ];
 
