@@ -68,6 +68,10 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
+  // Get URL params for DEMIP mode
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedPoint = urlParams.get('point');
+
   useEffect(() => {
     loadUser();
   }, []);
@@ -147,6 +151,13 @@ export default function Dashboard() {
     queryKey: ["issues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
     enabled: !!user,
+  });
+
+  // Documentation query - always call but only enable when selectedPoint exists
+  const { data: documentation = [] } = useQuery({
+    queryKey: ["documentation", selectedPoint],
+    queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
+    enabled: !!selectedPoint && viewMode === 'demip',
   });
 
   useEffect(() => {
@@ -324,11 +335,9 @@ export default function Dashboard() {
   };
 
   if (viewMode === 'demip') {
-    const urlParams = new URLSearchParams(window.location.search);
     const selectedCompany = urlParams.get('company');
     const selectedLine = urlParams.get('line');
     const selectedMachine = urlParams.get('machine');
-    const selectedPoint = urlParams.get('point');
 
     const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
       ? activeCompanies
@@ -363,12 +372,6 @@ export default function Dashboard() {
       const nextDate = getNextControlDate(currentPoint);
       const lastRecord = pointRecords[0];
       const isOverdue = status === "overdue";
-
-      const { data: documentation = [] } = useQuery({
-        queryKey: ["documentation", selectedPoint],
-        queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
-        enabled: !!selectedPoint,
-      });
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
