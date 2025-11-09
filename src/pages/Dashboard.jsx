@@ -413,22 +413,21 @@ export default function Dashboard() {
     setIsScanning(true);
     try {
       const ndef = new NDEFReader();
-      await ndef.scan();
-
       const abortController = new AbortController();
+      
+      await ndef.scan({ signal: abortController.signal });
+
       const timeoutId = setTimeout(() => {
-        if (isScanning) {
-          abortController.abort();
-          alert("Časový limit čtení NFC vypršel (10s).");
-          setIsScanning(false);
-        }
+        abortController.abort();
+        alert("Časový limit čtení NFC vypršel (10s).");
+        setIsScanning(false);
       }, 10000);
 
       ndef.addEventListener("reading", ({ serialNumber }) => {
         clearTimeout(timeoutId);
         setNfcChipId(serialNumber);
         setIsScanning(false);
-        ndef.cancelScan();
+        abortController.abort(); // Stop scanning
       }, { signal: abortController.signal });
 
       ndef.addEventListener("readingerror", (event) => {
@@ -436,7 +435,7 @@ export default function Dashboard() {
         console.error("NFC reading error:", event);
         alert("Chyba při čtení NFC čipu.");
         setIsScanning(false);
-        ndef.cancelScan();
+        abortController.abort(); // Stop scanning
       }, { signal: abortController.signal });
 
     } catch (error) {
@@ -468,23 +467,22 @@ export default function Dashboard() {
 
     try {
       const ndef = new NDEFReader();
-      await ndef.scan();
       const abortController = new AbortController();
+      
+      await ndef.scan({ signal: abortController.signal });
 
       const timeoutId = setTimeout(() => {
-        if (isNfcScanning) {
-          abortController.abort();
-          alert("Časový limit čtení NFC vypršel (10s).");
-          setIsNfcScanning(false);
-          setShowNfcScanDialog(false);
-        }
+        abortController.abort();
+        alert("Časový limit čtení NFC vypršel (10s).");
+        setIsNfcScanning(false);
+        setShowNfcScanDialog(false);
       }, 10000);
 
       ndef.addEventListener("reading", ({ serialNumber }) => {
         clearTimeout(timeoutId);
         setIsNfcScanning(false);
         setShowNfcScanDialog(false);
-        ndef.cancelScan();
+        abortController.abort(); // Stop scanning
 
         console.log("NFC serial number:", serialNumber);
 
@@ -526,7 +524,7 @@ export default function Dashboard() {
         alert("Chyba při čtení NFC čipu.");
         setIsNfcScanning(false);
         setShowNfcScanDialog(false);
-        ndef.cancelScan();
+        abortController.abort(); // Stop scanning
       }, { signal: abortController.signal });
 
     } catch (error) {
