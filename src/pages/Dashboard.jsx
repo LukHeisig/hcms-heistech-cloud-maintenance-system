@@ -204,7 +204,28 @@ export default function Dashboard() {
     return issues;
   }, [user, issues, activeControlPoints]);
 
-  // Zobrazení pro DEMIP režim - navigační struktura jako Lines
+  const machinesWithPoints = React.useMemo(() => {
+    if (!user || user.user_type === "admin" || user.user_type === "superAdmin") return [];
+
+    const companyLines = lines.filter(l => l.company_id === user.company_id);
+    const companyLineIds = companyLines.map(l => l.id);
+    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+
+    return companyMachines.map(machine => {
+      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+      const line = lines.find(l => l.id === machine.line_id);
+
+      return {
+        ...machine,
+        lineName: line?.name,
+        points: machinePoints,
+        totalPoints: machinePoints.length,
+        overduePoints: overdueCount,
+      };
+    }).filter(m => m.totalPoints > 0);
+  }, [user, lines, machines, controlPoints, getPointStatus]);
+
   if (viewMode === 'demip') {
     const urlParams = new URLSearchParams(window.location.search);
     const selectedCompany = urlParams.get('company');
@@ -231,7 +252,6 @@ export default function Dashboard() {
       ? activeIssues
       : issues;
 
-    // Admin - výběr podniku
     if ((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) {
       return (
         <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -287,7 +307,6 @@ export default function Dashboard() {
       );
     }
 
-    // Výběr linky
     if (!selectedLine) {
       const companyId = selectedCompany || user?.company_id;
       const currentCompany = [...demipCompanies, ...allCompanies].find(c => c.id === companyId);
@@ -361,7 +380,6 @@ export default function Dashboard() {
       );
     }
 
-    // Výběr stroje
     if (!selectedMachine) {
       const currentLine = demipAllLines.find(l => l.id === selectedLine);
       const lineMachines = demipMachines.filter(m => m.line_id === selectedLine);
@@ -431,7 +449,6 @@ export default function Dashboard() {
       );
     }
 
-    // Zobrazení kontrolních bodů stroje s kartami
     const currentMachine = demipMachines.find(m => m.id === selectedMachine);
     const machinePoints = demipControlPoints.filter(p => p.machine_id === selectedMachine);
 
@@ -611,7 +628,6 @@ export default function Dashboard() {
     );
   }
 
-  // Admin dashboard - klasický režim údržby
   if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
