@@ -23,12 +23,14 @@ import {
   Upload,
   X,
   Loader2,
+  Pencil, // Added Pencil icon
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input"; // Added Input component
 import {
   Dialog,
   DialogContent,
@@ -68,12 +70,22 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
+  const [showEditPointDialog, setShowEditPointDialog] = useState(false);
+  const [editingPoint, setEditingPoint] = useState(null);
+  const [nfcChipId, setNfcChipId] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [nfcSupported, setNfcSupported] = useState(false);
+
   // Get URL params for DEMIP mode
   const urlParams = new URLSearchParams(window.location.search);
   const selectedPoint = urlParams.get('point');
 
   useEffect(() => {
     loadUser();
+    // Check NFC support
+    if ('NDEFReader' in window) {
+      setNfcSupported(true);
+    }
   }, []);
 
   const loadUser = async () => {
@@ -307,6 +319,21 @@ export default function Dashboard() {
     },
   });
 
+  const updateControlPointMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ControlPoint.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+      setShowEditPointDialog(false);
+      setEditingPoint(null);
+      setNfcChipId("");
+      alert("Kontrolní bod byl úspěšně aktualizován.");
+    },
+    onError: (error) => {
+      console.error("Error updating control point:", error);
+      alert("Chyba při ukládání kontrolního bodu: " + (error.message || "Neznámá chyba"));
+    },
+  });
+
   const handleReportIssue = async (pointId) => {
     if (!issueDescription.trim()) return;
     setIsReportingIssue(true);
@@ -333,6 +360,66 @@ export default function Dashboard() {
     setIsUploading(true);
     await uploadDocumentMutation.mutateAsync({ file, pointId });
   };
+
+  const handleEditPoint = (point) => {
+    setEditingPoint(point);
+    setNfcChipId(point.nfc_chip_id || "");
+    setShowEditPointDialog(true);
+  };
+
+  const handleSavePoint = async () => {
+    if (!editingPoint) return;
+
+    await updateControlPointMutation.mutateAsync({
+      id: editingPoint.id,
+      data: {
+        nfc_chip_id: nfcChipId.trim() || null,
+      },
+    });
+  };
+
+  const handleNfcScan = async () => {
+    if (!nfcSupported) {
+      alert("NFC není podporováno v tomto prohlížeči. Použijte prosím Chrome na Androidu.");
+      return;
+    }
+
+    setIsScanning(true);
+    try {
+      const ndef = new NDEFReader();
+      await ndef.scan();
+      
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        if (isScanning) { // Check if still scanning before aborting
+          abortController.abort();
+          alert("Časový limit čtení NFC vypršel (10s).");
+          setIsScanning(false);
+        }
+      }, 10000); // 10 seconds timeout
+
+      ndef.addEventListener("reading", ({ serialNumber }) => {
+        clearTimeout(timeoutId); // Clear timeout on successful read
+        setNfcChipId(serialNumber);
+        setIsScanning(false);
+        ndef.cancelScan(); // Stop scanning after successful read
+      }, { signal: abortController.signal });
+
+      ndef.addEventListener("readingerror", (event) => {
+        clearTimeout(timeoutId); // Clear timeout on error
+        console.error("NFC reading error:", event);
+        alert("Chyba při čtení NFC čipu.");
+        setIsScanning(false);
+        ndef.cancelScan(); // Stop scanning on error
+      }, { signal: abortController.signal });
+
+    } catch (error) {
+      console.error("NFC scan initiation error:", error);
+      alert("Chyba při spuštění skenování NFC: " + (error.message || "Neznámá chyba"));
+      setIsScanning(false);
+    }
+  };
+
 
   if (viewMode === 'demip') {
     const selectedCompany = urlParams.get('company');
@@ -373,19 +460,35 @@ export default function Dashboard() {
       const lastRecord = pointRecords[0];
       const isOverdue = status === "overdue";
 
+      const canEdit = user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin";
+
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
             <div className="max-w-5xl mx-auto p-4">
-              <h1 className="text-xl font-bold leading-tight mb-1">
-                {currentPoint.number && `${currentPoint.number} - `}
-                {currentPoint.name}
-              </h1>
-              {currentPoint.description && (
-                <p className="text-sm text-blue-100 opacity-90">
-                  {currentPoint.description}
-                </p>
-              )}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h1 className="text-xl font-bold leading-tight mb-1">
+                    {currentPoint.number && `${currentPoint.number} - `}
+                    {currentPoint.name}
+                  </h1>
+                  {currentPoint.description && (
+                    <p className="text-sm text-blue-100 opacity-90">
+                      {currentPoint.description}
+                    </p>
+                  )}
+                </div>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditPoint(currentPoint)}
+                    className="text-white hover:bg-white/20 flex-shrink-0"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -667,6 +770,89 @@ export default function Dashboard() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          <Dialog open={showEditPointDialog} onOpenChange={setShowEditPointDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Pencil className="w-5 h-5 text-blue-600" />
+                  Upravit kontrolní bod
+                </DialogTitle>
+                <DialogDescription>
+                  {editingPoint?.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="nfc_chip_id">NFC čip ID</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      id="nfc_chip_id"
+                      value={nfcChipId}
+                      onChange={(e) => setNfcChipId(e.target.value)}
+                      placeholder="Zadejte nebo naskenujte ID čipu"
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleNfcScan}
+                      disabled={isScanning || !nfcSupported}
+                      variant="outline"
+                      className="flex-shrink-0"
+                    >
+                      {isScanning ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Skenování...
+                        </>
+                      ) : (
+                        <>
+                          <Activity className="w-4 h-4 mr-2" />
+                          Skenovat
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {!nfcSupported && (
+                    <p className="text-xs text-orange-600 mt-2">
+                      NFC není podporováno v tomto prohlížeči. Použijte Chrome na Androidu.
+                    </p>
+                  )}
+                  {isScanning && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      Přiložte NFC čip k zařízení...
+                    </p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditPointDialog(false);
+                    setEditingPoint(null);
+                    setNfcChipId("");
+                  }}
+                  disabled={updateControlPointMutation.isLoading}
+                >
+                  Zrušit
+                </Button>
+                <Button
+                  onClick={handleSavePoint}
+                  disabled={updateControlPointMutation.isLoading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700"
+                >
+                  {updateControlPointMutation.isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Ukládání...
+                    </>
+                  ) : (
+                    "Uložit"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <Dialog open={showIssueDialog} onOpenChange={setShowIssueDialog}>
             <DialogContent>
