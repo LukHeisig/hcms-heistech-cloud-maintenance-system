@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import {
   AlertTriangle,
   Droplet,
@@ -11,6 +12,9 @@ import {
   Wrench,
   Activity,
   ArrowRight,
+  ChevronRight,
+  Clock,
+  CheckCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +25,7 @@ import { cs } from "date-fns/locale";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const { viewMode } = useViewMode();
 
   useEffect(() => {
     loadUser();
@@ -59,13 +64,13 @@ export default function Dashboard() {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
-      return allCompanies.filter(c => 
+      return allCompanies.filter(c =>
         user.assigned_company_ids?.includes(c.id)
       );
     }
     // For regular users, their `company_id` is used implicitly in other queries.
     // This `companies` array is primarily for admin/superAdmin to list multiple companies.
-    return []; 
+    return [];
   }, [allCompanies, user]);
 
   const { data: lines = [] } = useQuery({
@@ -129,6 +134,16 @@ export default function Dashboard() {
     return hoursSince > point.interval_hours ? "overdue" : "ok";
   }, [records]); // Dependency on `records` ensures re-evaluation if records change
 
+  const getNextControlDate = useCallback((point) => {
+    const pointRecords = records.filter(r => r.control_point_id === point.id);
+    if (pointRecords.length === 0 || !point.interval_hours) return null;
+
+    const latestRecord = pointRecords[0];
+    const lastPerformed = new Date(latestRecord.performed_at);
+    const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
+    return nextDate;
+  }, [records]);
+
   // Výpočet skutečných hodnot - vyloučit demo podniky pro admin/superAdmin statistiky
   const activeCompanies = React.useMemo(() => {
     // For admin/superAdmin, filter out inactive and companies with "demo" in their name.
@@ -141,11 +156,11 @@ export default function Dashboard() {
     }
     // For non-admin/superAdmin, the 'companies' array (which is empty in this context) is not used for this calculation.
     // The relevant data for them comes from `lines`, `controlPoints`, `records`, `issues` which are already scoped to their company.
-    return companies; 
+    return companies;
   }, [companies, user]);
 
   const activeCompanyIds = React.useMemo(() => activeCompanies.map(c => c.id), [activeCompanies]);
-  
+
   const totalLinesCount = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       // Počítat pouze linky z ne-demo aktivních podniků
@@ -204,7 +219,31 @@ export default function Dashboard() {
     return issues; // Pro běžné uživatele již `issues` obsahuje jen jejich závady.
   }, [user, issues, activeControlPoints]);
 
-  // Dashboard pro administrátora a superAdmina - zobrazení podniků
+  // Pro DEMIP režim - seskupit kontrolní body podle strojů
+  const machinesWithPoints = React.useMemo(() => {
+    if (!user || user.user_type === "admin" || user.user_type === "superAdmin") return [];
+
+    const companyLines = lines.filter(l => l.company_id === user.company_id);
+    const companyLineIds = companyLines.map(l => l.id);
+    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+
+    return companyMachines.map(machine => {
+      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+      const line = lines.find(l => l.id === machine.line_id);
+
+      return {
+        ...machine,
+        lineName: line?.name,
+        points: machinePoints,
+        totalPoints: machinePoints.length,
+        overduePoints: overdueCount,
+      };
+    }).filter(m => m.totalPoints > 0); // Zobrazit pouze stroje s kontrolními body
+  }, [user, lines, machines, controlPoints, getPointStatus]);
+
+
+  // Dashboard pro administrátora a superAdmina - zobrazení podniků (ÚDRŽBA)
   if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -214,7 +253,7 @@ export default function Dashboard() {
               Dashboard
             </h1>
             <p className="text-slate-600">
-              {user?.user_type === "superAdmin" 
+              {user?.user_type === "superAdmin"
                 ? "Přehled všech podniků v systému"
                 : `Přehled vašich ${activeCompanies.length} přiřazených podniků`
               }
@@ -305,7 +344,7 @@ export default function Dashboard() {
                     <div className="text-center py-12">
                       <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                        {user?.user_type === "superAdmin" 
+                        {user?.user_type === "superAdmin"
                           ? "Zatím nemáte žádné aktivní podniky"
                           : "Nemáte přiřazené žádné aktivní podniky"
                         }
@@ -333,7 +372,6 @@ export default function Dashboard() {
                         const companyMachines = machines.filter((m) =>
                           companyLines.some((l) => l.id === m.line_id)
                         );
-                        // Filter control points for this specific company, considering only `activeControlPoints`
                         const companyPoints = activeControlPoints.filter((point) =>
                           companyMachines.some((m) => m.id === point.machine_id)
                         );
@@ -505,7 +543,7 @@ export default function Dashboard() {
     );
   }
 
-  // Dashboard pro vedoucí a techniky
+  // Dashboard pro vedoucí a techniky - Setup flow
   if (lines.length === 0 && user?.company_id) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -514,7 +552,7 @@ export default function Dashboard() {
             <CardContent className="p-12 text-center">
               <Activity className="w-20 h-20 text-slate-300 mx-auto mb-6" />
               <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                Začněte s DEMIP
+                Začněte s HCMS
               </h2>
               <p className="text-slate-600 mb-8">
                 Zatím nemáte vytvořené žádné linky. Vytvořte demo data nebo začněte s vlastní strukturou.
@@ -535,7 +573,177 @@ export default function Dashboard() {
     );
   }
 
-  // Dashboard pro běžné uživatele (vedoucí, techniky) - zde se filtrace 'demo' neaplikuje na statistiky
+  // REŽIM DEMIP - zobrazení kontrolních bodů podle strojů
+  if (viewMode === 'demip') {
+    return (
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
+              Přehled výroby - DEMIP
+            </h1>
+            <p className="text-slate-600">
+              Kontrolní body všech strojů
+            </p>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-purple-100 text-xs font-medium mb-1">Kontrolní body</p>
+                <p className="text-2xl md:text-3xl font-bold">{controlPoints.length}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-red-100 text-xs font-medium mb-1">Po termínu</p>
+                <p className="text-2xl md:text-3xl font-bold">{overduePointsCount}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-green-100 text-xs font-medium mb-1">V pořádku</p>
+                <p className="text-2xl md:text-3xl font-bold">
+                  {controlPoints.length - overduePointsCount}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-orange-100 text-xs font-medium mb-1">Aktivní závady</p>
+                <p className="text-2xl md:text-3xl font-bold">{issues.length}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Seznam strojů s kontrolními body */}
+          <div className="space-y-4">
+            {machinesWithPoints.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Nejsou definovány žádné kontrolní body</p>
+                </CardContent>
+              </Card>
+            ) : (
+              machinesWithPoints.map((machine) => (
+                <Card key={machine.id} className="border-2 border-slate-200 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <CardTitle className="text-lg md:text-xl">{machine.name}</CardTitle>
+                          {machine.overduePoints > 0 && (
+                            <Badge variant="destructive" className="gap-1">
+                              <AlertTriangle className="w-3 h-3" />
+                              {machine.overduePoints}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs md:text-sm text-slate-600">{machine.lineName}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Celkem bodů</p>
+                        <p className="text-xl md:text-2xl font-bold text-slate-900">
+                          {machine.totalPoints}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 md:p-4">
+                    <div className="grid gap-2">
+                      {machine.points.map((point) => {
+                        const status = getPointStatus(point);
+                        const nextDate = getNextControlDate(point);
+                        const isOverdue = status === "overdue";
+                        const pointIssues = issues.filter(i => i.control_point_id === point.id);
+
+                        return (
+                          <Link
+                            key={point.id}
+                            to={createPageUrl(`ControlPoint?id=${point.id}`)}
+                          >
+                            <Card
+                              className={`border-l-4 transition-all hover:shadow-md ${
+                                isOverdue
+                                  ? "border-l-yellow-500 bg-yellow-50/50"
+                                  : "border-l-green-500 bg-white"
+                              }`}
+                            >
+                              <CardContent className="p-3 md:p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                    isOverdue ? "bg-yellow-100" : "bg-green-100"
+                                  }`}>
+                                    {point.type === "lubrication" || point.type === "auto_lubricator" ? (
+                                      <Droplet className={`w-5 h-5 md:w-6 md:h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                                    ) : (
+                                      <ClipboardCheck className={`w-5 h-5 md:w-6 md:h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                      <h3 className="font-bold text-sm md:text-base text-slate-900">
+                                        {point.number && `${point.number} - `}{point.name}
+                                      </h3>
+                                      {isOverdue && (
+                                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                                          <Clock className="w-3 h-3 mr-1" />
+                                          Po termínu
+                                        </Badge>
+                                      )}
+                                      {pointIssues.length > 0 && (
+                                        <Badge className="bg-orange-500 text-white text-xs">
+                                          <AlertTriangle className="w-3 h-3 mr-1" />
+                                          {pointIssues.length}
+                                        </Badge>
+                                      )}
+                                    </div>
+
+                                    <div className="text-xs md:text-sm text-slate-600 space-y-0.5">
+                                      {point.type === "lubrication" && point.lubricant_type && (
+                                        <p>Mazivo: {point.lubricant_type}</p>
+                                      )}
+                                      {point.interval_hours && (
+                                        <p>Interval: {point.interval_hours}h</p>
+                                      )}
+                                      {nextDate && (
+                                        <p className={isOverdue ? "text-yellow-700 font-medium" : ""}>
+                                          Další kontrola: {format(nextDate, "d.M. yyyy", { locale: cs })}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      isOverdue ? "bg-yellow-500" : "bg-green-500"
+                                    }`} />
+                                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // REŽIM ÚDRŽBA - původní zobrazení pro běžné uživatele
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -783,6 +991,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
