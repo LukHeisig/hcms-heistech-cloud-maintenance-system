@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +18,9 @@ import {
   Building2,
   Factory,
   CheckCircle,
+  FileText, // New import
+  Image as ImageIcon, // New import
+  User, // New import
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +70,7 @@ export default function Dashboard() {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
-      return allCompanies.filter(c => 
+      return allCompanies.filter(c =>
         user.assigned_company_ids?.includes(c.id)
       );
     }
@@ -232,6 +236,7 @@ export default function Dashboard() {
     const selectedCompany = urlParams.get('company');
     const selectedLine = urlParams.get('line');
     const selectedMachine = urlParams.get('machine');
+    const selectedPoint = urlParams.get('point'); // New variable
 
     const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
       ? activeCompanies
@@ -252,6 +257,214 @@ export default function Dashboard() {
     const demipIssues = (user?.user_type === "admin" || user?.user_type === "superAdmin")
       ? activeIssues
       : issues;
+
+    // Detail kontrolního bodu
+    if (selectedPoint) {
+      const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
+      if (!currentPoint) {
+        return <div className="p-8">Kontrolní bod nenalezen</div>;
+      }
+
+      const pointRecords = records.filter(r => r.control_point_id === selectedPoint);
+      const pointIssues = demipIssues.filter(i => i.control_point_id === selectedPoint);
+      const status = getPointStatus(currentPoint);
+      const nextDate = getNextControlDate(currentPoint);
+      const lastRecord = pointRecords[0];
+      const isOverdue = status === "overdue";
+
+      return (
+        <div className="min-h-screen bg-slate-100">
+          {/* Červený header */}
+          <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 shadow-lg">
+            <div className="max-w-5xl mx-auto">
+              <div className="flex items-center justify-between mb-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    const url = selectedCompany
+                      ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}`
+                      : `Dashboard?line=${selectedLine}&machine=${selectedMachine}`;
+                    navigate(createPageUrl(url));
+                  }}
+                  className="text-white hover:bg-white/20"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                {pointIssues.length > 0 && (
+                  <AlertTriangle className="w-8 h-8 text-yellow-300" />
+                )}
+              </div>
+              <h1 className="text-2xl font-bold">
+                {currentPoint.number && `${currentPoint.number} - `}
+                {currentPoint.name}
+              </h1>
+              {currentPoint.description && (
+                <p className="text-red-100 mt-2">{currentPoint.description}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-4">
+            {/* Hlavní informace */}
+            <Card className="shadow-lg border-2 border-slate-200">
+              <CardContent className="p-6 bg-slate-50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentPoint.type === "lubrication" && (
+                    <>
+                      <div>
+                        <p className="text-sm text-slate-600 mb-1">Typ maziva:</p>
+                        <p className="text-lg font-bold text-slate-900">
+                          {currentPoint.lubricant_type || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600 mb-1">Množství maziva pro doplnění:</p>
+                        <p className="text-lg font-bold text-slate-900">
+                          {currentPoint.lubricant_amount ? `${currentPoint.lubricant_amount} g` : "-"}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  {currentPoint.type === "inspection" && currentPoint.inspection_tasks && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-slate-600 mb-1">Inspekční úkoly:</p>
+                      <p className="text-base text-slate-900 whitespace-pre-wrap">
+                        {currentPoint.inspection_tasks}
+                      </p>
+                    </div>
+                  )}
+                  {currentPoint.type === "auto_lubricator" && (
+                     <>
+                     <div>
+                       <p className="text-sm text-slate-600 mb-1">Datum instalace maznice:</p>
+                       <p className="text-lg font-bold text-slate-900">
+                         {currentPoint.installation_date ? format(new Date(currentPoint.installation_date), "d. M. yyyy", { locale: cs }) : "-"}
+                       </p>
+                     </div>
+                     <div>
+                       <p className="text-sm text-slate-600 mb-1">Datum další výměny maznice:</p>
+                       <p className="text-lg font-bold text-slate-900">
+                         {currentPoint.next_replacement_date ? format(new Date(currentPoint.next_replacement_date), "d. M. yyyy", { locale: cs }) : "-"}
+                       </p>
+                     </div>
+                   </>
+                  )}
+                  <div>
+                    <p className="text-sm text-slate-600 mb-1">Naposledy {currentPoint.type === "lubrication" ? "mazáno" : currentPoint.type === "inspection" ? "kontrolováno" : "vyměněno"}:</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      {lastRecord
+                        ? format(new Date(lastRecord.performed_at), "d. M. yyyy HH:mm", { locale: cs })
+                        : "Dosud neprovedeno"
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600 mb-1">Interval {currentPoint.type === "lubrication" ? "mazání" : currentPoint.type === "inspection" ? "kontroly" : "výměny"}:</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      {currentPoint.interval_hours ? `${currentPoint.interval_hours} hodin` : "-"}
+                    </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-slate-600 mb-1">Datum násl. {currentPoint.type === "lubrication" ? "mazání" : currentPoint.type === "inspection" ? "kontroly" : "výměny"}:</p>
+                    <p className={`text-xl font-bold ${isOverdue ? "text-red-600" : "text-green-600"}`}>
+                      {nextDate
+                        ? format(nextDate, "d. M. yyyy", { locale: cs })
+                        : "-"
+                      }
+                      {isOverdue && (
+                        <Badge className="ml-3 bg-red-600 text-white">Po termínu</Badge>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Aktivní závady */}
+            {pointIssues.length > 0 && (
+              <Card className="shadow-lg border-2 border-orange-300 bg-orange-50">
+                <CardHeader className="border-b border-orange-200 pb-3">
+                  <CardTitle className="text-lg text-orange-900 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Aktivní závady ({pointIssues.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {pointIssues.map((issue) => (
+                      <div key={issue.id} className="bg-white p-4 rounded-lg border border-orange-200">
+                        <p className="text-sm text-slate-900 mb-2">{issue.description}</p>
+                        <p className="text-xs text-slate-500">
+                          Nahlášeno: {format(new Date(issue.created_date), "d. M. yyyy HH:mm", { locale: cs })}
+                        </p>
+                        <p className="text-xs text-slate-600 mt-1">
+                          {getUserDisplayName(issue.created_by)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Všechny termíny */}
+            <Card className="shadow-lg border-2 border-slate-200">
+              <CardHeader className="border-b border-slate-200 pb-3">
+                <CardTitle className="text-lg text-slate-900">
+                  Všechny termíny {currentPoint.type === "lubrication" ? "mazání" : currentPoint.type === "inspection" ? "kontrol" : "výměn"}:
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {pointRecords.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Zatím nebyly provedeny žádné záznamy</p>
+                ) : (
+                  <div className="space-y-2">
+                    {pointRecords.map((record) => (
+                      <div key={record.id} className="bg-slate-50 p-4 rounded-lg flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-slate-900">
+                            {format(new Date(record.performed_at), "d. M. yyyy HH:mm", { locale: cs })}
+                          </p>
+                          {record.note && (
+                            <p className="text-sm text-slate-600 mt-1">{record.note}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-slate-600">Potvrdil:</p>
+                          <p className="font-medium text-slate-900">
+                            {getUserDisplayName(record.created_by)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Akční tlačítka */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="shadow-lg border-2 border-slate-200 hover:border-blue-500 transition-all cursor-pointer">
+                <CardContent className="p-6 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                    <FileText className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <p className="font-semibold text-slate-900">Poznámky</p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-lg border-2 border-slate-200 hover:border-purple-500 transition-all cursor-pointer">
+                <CardContent className="p-6 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-3">
+                    <ImageIcon className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <p className="font-semibold text-slate-900">Dokumentace</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     if ((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) {
       return (
@@ -534,9 +747,15 @@ export default function Dashboard() {
                     return (
                       <div
                         key={point.id}
-                        className={`p-4 hover:bg-slate-50 transition-colors ${
+                        className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
                           isOverdue ? "bg-yellow-50/50" : ""
                         }`}
+                        onClick={() => {
+                          const url = selectedCompany
+                            ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&point=${point.id}`
+                            : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&point=${point.id}`;
+                          navigate(createPageUrl(url));
+                        }}
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -549,7 +768,7 @@ export default function Dashboard() {
                                 <Droplet className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
                               )}
                             </div>
-                            
+
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-semibold text-slate-900 text-sm">
@@ -562,7 +781,7 @@ export default function Dashboard() {
                                   </Badge>
                                 )}
                               </div>
-                              
+
                               <div className="flex items-center gap-4 text-xs text-slate-600">
                                 {point.interval_hours && (
                                   <span>Interval: {point.interval_hours}h</span>
@@ -586,7 +805,7 @@ export default function Dashboard() {
                                 </p>
                               </div>
                             )}
-                            
+
                             <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                               isOverdue ? "bg-yellow-500" : "bg-green-500"
                             }`} />
