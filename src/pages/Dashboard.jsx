@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,10 +16,8 @@ import {
   ArrowLeft,
   Building2,
   Factory,
-  CheckCircle,
   FileText,
   Image as ImageIcon,
-  User,
   Camera,
   Upload,
   X,
@@ -29,7 +26,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -60,12 +56,10 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { viewMode } = useViewMode();
   
-  // States for issue reporting
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
   const [isReportingIssue, setIsReportingIssue] = useState(false);
   
-  // States for documentation
   const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
   const [selectedDocPreview, setSelectedDocPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -248,29 +242,6 @@ export default function Dashboard() {
     return issues;
   }, [user, issues, activeControlPoints]);
 
-  const machinesWithPoints = React.useMemo(() => {
-    if (!user || user.user_type === "admin" || user.user_type === "superAdmin") return [];
-
-    const companyLines = lines.filter(l => l.company_id === user.company_id);
-    const companyLineIds = companyLines.map(l => l.id);
-    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
-
-    return companyMachines.map(machine => {
-      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
-      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
-      const line = lines.find(l => l.id === machine.line_id);
-
-      return {
-        ...machine,
-        lineName: line?.name,
-        points: machinePoints,
-        totalPoints: machinePoints.length,
-        overduePoints: overdueCount,
-      };
-    }).filter(m => m.totalPoints > 0);
-  }, [user, lines, machines, controlPoints, getPointStatus]);
-
-  // Mutations for issue and documentation
   const issueMutation = useMutation({
     mutationFn: (data) => base44.entities.Issue.create(data),
     onSuccess: () => {
@@ -350,7 +321,7 @@ export default function Dashboard() {
     setIsUploading(true);
     await uploadDocumentMutation.mutateAsync({ file, pointId });
   };
-  
+
   if (viewMode === 'demip') {
     const urlParams = new URLSearchParams(window.location.search);
     const selectedCompany = urlParams.get('company');
@@ -378,7 +349,6 @@ export default function Dashboard() {
       ? activeIssues
       : issues;
 
-    // Detail kontrolního bodu
     if (selectedPoint) {
       const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
       if (!currentPoint) {
@@ -392,7 +362,6 @@ export default function Dashboard() {
       const lastRecord = pointRecords[0];
       const isOverdue = status === "overdue";
 
-      // Fetch documentation for this control point
       const { data: documentation = [] } = useQuery({
         queryKey: ["documentation", selectedPoint],
         queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
@@ -401,7 +370,6 @@ export default function Dashboard() {
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-          {/* Kompaktní header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
             <div className="max-w-5xl mx-auto p-3 md:p-6">
               <div className="flex items-center justify-between mb-2 md:mb-4">
@@ -430,7 +398,6 @@ export default function Dashboard() {
           </div>
 
           <div className="max-w-5xl mx-auto p-3 md:p-6 space-y-3 md:space-y-4">
-            {/* Hlavní informace - řádkový layout */}
             <Card className="shadow-lg">
               <CardContent className="p-3 md:p-6 space-y-2">
                 {currentPoint.type === "lubrication" && (
@@ -454,21 +421,21 @@ export default function Dashboard() {
                   </div>
                 )}
                 {currentPoint.type === "auto_lubricator" && (
-                     <>
-                     <div className="flex items-center justify-between py-2 border-b border-slate-200">
-                       <span className="text-sm text-slate-600">Datum instalace maznice:</span>
-                       <span className="font-semibold text-slate-900">
-                         {currentPoint.installation_date ? format(new Date(currentPoint.installation_date), "d. M. yyyy", { locale: cs }) : "-"}
-                       </span>
-                     </div>
-                     <div className="flex items-center justify-between py-2 border-b border-slate-200">
-                       <span className="text-sm text-slate-600">Datum další výměny maznice:</span>
-                       <span className="font-semibold text-slate-900">
-                         {currentPoint.next_replacement_date ? format(new Date(currentPoint.next_replacement_date), "d. M. yyyy", { locale: cs }) : "-"}
-                       </span>
-                     </div>
-                   </>
-                  )}
+                  <>
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Datum instalace maznice:</span>
+                      <span className="font-semibold text-slate-900">
+                        {currentPoint.installation_date ? format(new Date(currentPoint.installation_date), "d. M. yyyy", { locale: cs }) : "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Datum další výměny maznice:</span>
+                      <span className="font-semibold text-slate-900">
+                        {currentPoint.next_replacement_date ? format(new Date(currentPoint.next_replacement_date), "d. M. yyyy", { locale: cs }) : "-"}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="flex items-center justify-between py-2 border-b border-slate-200">
                   <span className="text-sm text-slate-600">
                     Naposledy {currentPoint.type === "lubrication" ? "mazáno" : currentPoint.type === "inspection" ? "kontrolováno" : "vyměněno"}:
@@ -500,7 +467,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Aktivní závady */}
             {pointIssues.length > 0 && (
               <Card className="shadow-lg border-2 border-orange-300 bg-orange-50">
                 <CardHeader className="pb-2">
@@ -522,7 +488,6 @@ export default function Dashboard() {
               </Card>
             )}
 
-            {/* Fotodokumentace */}
             <Card className="shadow-lg">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -623,7 +588,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Historie záznamů */}
             <Card className="shadow-lg">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base md:text-lg">
@@ -655,7 +619,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Tlačítko pro nahlášení závady */}
             <Button
               onClick={() => setShowIssueDialog(true)}
               className="w-full h-12 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-lg"
@@ -665,7 +628,6 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          {/* Dialog pro zobrazení fotky */}
           <Dialog open={showDocPreviewDialog} onOpenChange={setShowDocPreviewDialog}>
             <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
               <DialogHeader className="p-4 border-b">
@@ -710,7 +672,6 @@ export default function Dashboard() {
             </DialogContent>
           </Dialog>
 
-          {/* Alert dialog pro smazání fotky */}
           <AlertDialog open={!!deleteDocId} onOpenChange={() => setDeleteDocId(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -731,7 +692,6 @@ export default function Dashboard() {
             </AlertDialogContent>
           </AlertDialog>
 
-          {/* Dialog pro hlášení závady */}
           <Dialog open={showIssueDialog} onOpenChange={setShowIssueDialog}>
             <DialogContent>
               <DialogHeader>
