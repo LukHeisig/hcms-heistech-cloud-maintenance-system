@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +13,6 @@ import {
   ArrowRight,
   ChevronRight,
   Clock,
-  CheckCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,17 +57,14 @@ export default function Dashboard() {
     return u ? (u.custom_display_name || u.full_name || u.email) : email;
   };
 
-  // Filtrovat podniky podle přístupových práv
   const companies = React.useMemo(() => {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
-      return allCompanies.filter(c =>
+      return allCompanies.filter(c => 
         user.assigned_company_ids?.includes(c.id)
       );
     }
-    // For regular users, their `company_id` is used implicitly in other queries.
-    // This `companies` array is primarily for admin/superAdmin to list multiple companies.
     return [];
   }, [allCompanies, user]);
 
@@ -119,9 +114,6 @@ export default function Dashboard() {
     }
   }, [user, lines, navigate]);
 
-  // Utility function to determine point status
-  // This function will use the `records` array which is automatically scoped
-  // by useQuery for non-admin users (their company_id) and includes all records for admin/superAdmin.
   const getPointStatus = useCallback((point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
@@ -132,7 +124,7 @@ export default function Dashboard() {
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
     return hoursSince > point.interval_hours ? "overdue" : "ok";
-  }, [records]); // Dependency on `records` ensures re-evaluation if records change
+  }, [records]);
 
   const getNextControlDate = useCallback((point) => {
     const pointRecords = records.filter(r => r.control_point_id === point.id);
@@ -144,18 +136,13 @@ export default function Dashboard() {
     return nextDate;
   }, [records]);
 
-  // Výpočet skutečných hodnot - vyloučit demo podniky pro admin/superAdmin statistiky
   const activeCompanies = React.useMemo(() => {
-    // For admin/superAdmin, filter out inactive and companies with "demo" in their name.
-    // For other users, `companies` is already their assigned companies.
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       return companies.filter(c =>
         c.is_active !== false &&
         !c.name.toLowerCase().includes('demo')
       );
     }
-    // For non-admin/superAdmin, the 'companies' array (which is empty in this context) is not used for this calculation.
-    // The relevant data for them comes from `lines`, `controlPoints`, `records`, `issues` which are already scoped to their company.
     return companies;
   }, [companies, user]);
 
@@ -163,13 +150,11 @@ export default function Dashboard() {
 
   const totalLinesCount = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
-      // Počítat pouze linky z ne-demo aktivních podniků
       return allLines.filter(l => activeCompanyIds.includes(l.company_id)).length;
     }
-    return lines.length; // Pro běžné uživatele již `lines` obsahuje jen jejich linky.
+    return lines.length;
   }, [user, allLines, lines, activeCompanyIds]);
 
-  // Kontrolní body pouze z aktivních (ne-demo) podniků pro admin/superAdmin
   const activeControlPoints = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       const activeLinesIds = allLines
@@ -180,24 +165,21 @@ export default function Dashboard() {
         .map(m => m.id);
       return controlPoints.filter(cp => activeMachineIds.includes(cp.machine_id));
     }
-    return controlPoints; // Pro běžné uživatele již `controlPoints` obsahuje jen jejich body.
+    return controlPoints;
   }, [user, allLines, machines, controlPoints, activeCompanyIds]);
 
   const overduePointsCount = React.useMemo(() => {
-    // Use `getPointStatus` which relies on the global (or company-scoped) `records` list.
-    // This is correct as `activeControlPoints` are already filtered by company, and `getPointStatus` checks records for those points.
     return activeControlPoints.filter(
       (point) => getPointStatus(point) === "overdue"
     ).length;
   }, [activeControlPoints, getPointStatus]);
 
-  // Záznamy pouze z aktivních (ne-demo) podniků pro admin/superAdmin
   const activeRecords = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       const activePointIds = activeControlPoints.map(p => p.id);
       return records.filter(r => activePointIds.includes(r.control_point_id));
     }
-    return records; // Pro běžné uživatele již `records` obsahuje jen jejich záznamy.
+    return records;
   }, [user, records, activeControlPoints]);
 
   const totalRecordsThisMonthCount = React.useMemo(() => {
@@ -210,16 +192,14 @@ export default function Dashboard() {
     }).length;
   }, [activeRecords]);
 
-  // Aktivní závady pouze z aktivních (ne-demo) podniků pro admin/superAdmin
   const activeIssues = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       const activePointIds = activeControlPoints.map(p => p.id);
       return issues.filter(issue => activePointIds.includes(issue.control_point_id));
     }
-    return issues; // Pro běžné uživatele již `issues` obsahuje jen jejich závady.
+    return issues;
   }, [user, issues, activeControlPoints]);
 
-  // Pro DEMIP režim - seskupit kontrolní body podle strojů
   const machinesWithPoints = React.useMemo(() => {
     if (!user || user.user_type === "admin" || user.user_type === "superAdmin") return [];
 
@@ -239,11 +219,9 @@ export default function Dashboard() {
         totalPoints: machinePoints.length,
         overduePoints: overdueCount,
       };
-    }).filter(m => m.totalPoints > 0); // Zobrazit pouze stroje s kontrolními body
+    }).filter(m => m.totalPoints > 0);
   }, [user, lines, machines, controlPoints, getPointStatus]);
 
-
-  // Dashboard pro administrátora a superAdmina - zobrazení podniků (ÚDRŽBA)
   if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -378,7 +356,7 @@ export default function Dashboard() {
                         const companyOverdue = companyPoints.filter(
                           (point) => getPointStatus(point) === "overdue"
                         ).length;
-                        const companyIssues = activeIssues.filter((issue) => // Use activeIssues
+                        const companyIssues = activeIssues.filter((issue) =>
                           companyPoints.some((point) => point.id === issue.control_point_id)
                         ).length;
 
@@ -446,14 +424,14 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  {activeRecords.length === 0 ? ( // Use activeRecords
+                  {activeRecords.length === 0 ? (
                     <p className="text-center text-slate-500 py-8 text-sm">
                       Zatím nejsou žádné záznamy
                     </p>
                   ) : (
                     <div className="space-y-3">
-                      {activeRecords.slice(0, 5).map((record) => { // Use activeRecords
-                        const point = activeControlPoints.find( // Use activeControlPoints
+                      {activeRecords.slice(0, 5).map((record) => {
+                        const point = activeControlPoints.find(
                           (cp) => cp.id === record.control_point_id
                         );
                         return (
@@ -491,7 +469,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {activeIssues.length > 0 && ( // Use activeIssues
+              {activeIssues.length > 0 && (
                 <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                   <CardHeader className="border-b border-slate-100">
                     <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
@@ -501,8 +479,8 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      {activeIssues.slice(0, 3).map((issue) => { // Use activeIssues
-                        const point = activeControlPoints.find( // Use activeControlPoints
+                      {activeIssues.slice(0, 3).map((issue) => {
+                        const point = activeControlPoints.find(
                           (cp) => cp.id === issue.control_point_id
                         );
                         return (
@@ -525,7 +503,7 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
-                    {activeIssues.length > 3 && ( // Use activeIssues
+                    {activeIssues.length > 3 && (
                       <Link
                         to={createPageUrl("IssueApproval")}
                         className="block text-center text-sm text-orange-700 hover:text-orange-800 font-medium mt-4"
@@ -543,7 +521,6 @@ export default function Dashboard() {
     );
   }
 
-  // Dashboard pro vedoucí a techniky - Setup flow
   if (lines.length === 0 && user?.company_id) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -573,7 +550,6 @@ export default function Dashboard() {
     );
   }
 
-  // REŽIM DEMIP - zobrazení kontrolních bodů podle strojů
   if (viewMode === 'demip') {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -587,7 +563,6 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
             <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
               <CardContent className="p-4">
@@ -620,7 +595,6 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Seznam strojů s kontrolními body */}
           <div className="space-y-4">
             {machinesWithPoints.length === 0 ? (
               <Card>
@@ -743,7 +717,6 @@ export default function Dashboard() {
     );
   }
 
-  // REŽIM ÚDRŽBA - původní zobrazení pro běžné uživatele
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -898,49 +871,49 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                  {records.length === 0 ? (
-                    <p className="text-center text-slate-500 py-8 text-sm">
-                      Zatím nejsou žádné záznamy
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {records.slice(0, 5).map((record) => {
-                        const point = controlPoints.find(
-                          (cp) => cp.id === record.control_point_id
-                        );
-                        return (
-                          <div
-                            key={record.id}
-                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors"
-                          >
-                            <div className="flex-shrink-0 mt-1">
-                              {record.record_type === "lubrication" ? (
-                                <Droplet className="w-4 h-4 text-blue-600" />
-                              ) : (
-                                <ClipboardCheck className="w-4 h-4 text-purple-600" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 truncate">
-                                {point?.name || "Neznámý bod"}
-                              </p>
-                              <p className="text-xs text-slate-500 mt-1">
-                                {format(
-                                  new Date(record.performed_at),
-                                  "d. M. yyyy HH:mm",
-                                  { locale: cs }
-                                )}
-                              </p>
-                              <p className="text-xs text-slate-600 mt-1">
-                                {getUserDisplayName(record.created_by)}
-                              </p>
-                            </div>
+                {records.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8 text-sm">
+                    Zatím nejsou žádné záznamy
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {records.slice(0, 5).map((record) => {
+                      const point = controlPoints.find(
+                        (cp) => cp.id === record.control_point_id
+                      );
+                      return (
+                        <div
+                          key={record.id}
+                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex-shrink-0 mt-1">
+                            {record.record_type === "lubrication" ? (
+                              <Droplet className="w-4 h-4 text-blue-600" />
+                            ) : (
+                              <ClipboardCheck className="w-4 h-4 text-purple-600" />
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-900 truncate">
+                              {point?.name || "Neznámý bod"}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              {format(
+                                new Date(record.performed_at),
+                                "d. M. yyyy HH:mm",
+                                { locale: cs }
+                              )}
+                            </p>
+                            <p className="text-xs text-slate-600 mt-1">
+                              {getUserDisplayName(record.created_by)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
             </Card>
 
             {issues.length > 0 && user?.user_type !== "technician" && (
@@ -991,6 +964,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
