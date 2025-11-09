@@ -485,22 +485,36 @@ export default function Dashboard() {
         setShowNfcScanDialog(false);
         ndef.cancelScan();
 
+        console.log("NFC serial number:", serialNumber);
+
         const targetControlPoints = (viewMode === 'demip' ? activeControlPoints : controlPoints);
         const point = targetControlPoints.find(p => p.nfc_chip_id === serialNumber);
+
+        console.log("Found point:", point);
 
         if (point) {
           const machine = machines.find(m => m.id === point.machine_id);
           const line = allLines.find(l => l.id === machine?.line_id);
-          const company = allCompanies.find(c => c.id === line?.company_id);
+          
+          console.log("Machine:", machine);
+          console.log("Line:", line);
 
           let url;
           if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+            const company = allCompanies.find(c => c.id === line?.company_id);
+            console.log("Company (admin):", company);
             url = `Dashboard?company=${company?.id}&line=${line?.id}&machine=${machine?.id}&point=${point.id}&nfc_scanned=true`;
           } else {
+            // Pro non-admin uživatele použijeme user.company_id, ale jen pro jeho vlastní linky/stroje
+            // company parametr se v URL pro tyto uživatele nepřenáší, protože už je implicitně dána user.company_id
+            console.log("User company_id:", user?.company_id);
             url = `Dashboard?line=${line?.id}&machine=${machine?.id}&point=${point.id}&nfc_scanned=true`;
           }
+          
+          console.log("Navigating to:", url);
           navigate(createPageUrl(url));
         } else {
+          console.log("Point not found for serial number:", serialNumber);
           alert("Kontrolní bod s tímto NFC čipem nebyl nalezen");
         }
       }, { signal: abortController.signal });
