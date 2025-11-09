@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -66,7 +65,7 @@ export default function Dashboard() {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
-      return allCompanies.filter(c =>
+      return allCompanies.filter(c => 
         user.assigned_company_ids?.includes(c.id)
       );
     }
@@ -205,37 +204,13 @@ export default function Dashboard() {
     return issues;
   }, [user, issues, activeControlPoints]);
 
-  const machinesWithPoints = React.useMemo(() => {
-    if (!user || user.user_type === "admin" || user.user_type === "superAdmin") return [];
-
-    const companyLines = lines.filter(l => l.company_id === user.company_id);
-    const companyLineIds = companyLines.map(l => l.id);
-    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
-
-    return companyMachines.map(machine => {
-      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
-      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
-      const line = lines.find(l => l.id === machine.line_id);
-
-      return {
-        ...machine,
-        lineName: line?.name,
-        points: machinePoints,
-        totalPoints: machinePoints.length,
-        overduePoints: overdueCount,
-      };
-    }).filter(m => m.totalPoints > 0);
-  }, [user, lines, machines, controlPoints, getPointStatus]);
-
   // Zobrazení pro DEMIP režim - navigační struktura jako Lines
   if (viewMode === 'demip') {
-    // URL parametry pro navigaci
     const urlParams = new URLSearchParams(window.location.search);
     const selectedCompany = urlParams.get('company');
     const selectedLine = urlParams.get('line');
     const selectedMachine = urlParams.get('machine');
 
-    // Data podle uživatelských práv
     const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
       ? activeCompanies
       : [];
@@ -460,7 +435,6 @@ export default function Dashboard() {
     const currentMachine = demipMachines.find(m => m.id === selectedMachine);
     const machinePoints = demipControlPoints.filter(p => p.machine_id === selectedMachine);
 
-    // Kategorizace bodů
     const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
     const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
     const lubricatorPoints = machinePoints.filter(p => p.type === "auto_lubricator");
@@ -498,7 +472,6 @@ export default function Dashboard() {
           </h1>
           <p className="text-slate-600 mb-6">{machinePoints.length} kontrolních bodů</p>
 
-          {/* Taby pro kategorie */}
           <div className="flex gap-2 mb-6 overflow-x-auto">
             <Button
               onClick={() => setActiveTab("lubrication")}
@@ -523,7 +496,6 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          {/* Karty kontrolních bodů */}
           <div className="grid gap-4">
             {displayPoints.length === 0 ? (
               <Card>
@@ -1029,7 +1001,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-green-100 text-sm font-medium mb-1">Záznamů tento měsíc</p>
                   <p className="text-4xl font-bold">{totalRecordsThisMonthCount}</p>
-                  </div>
+                </div>
                 <div className="p-3 bg-white/20 rounded-xl">
                   <ClipboardCheck className="w-6 h-6" />
                 </div>
@@ -1215,6 +1187,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
