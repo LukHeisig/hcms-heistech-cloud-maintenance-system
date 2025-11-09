@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useViewMode } from "@/contexts/ViewModeContext";
+import { useViewMode } from "@/lib/ViewModeContext";
 import {
   AlertTriangle,
   Droplet,
