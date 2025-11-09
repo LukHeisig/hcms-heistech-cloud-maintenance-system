@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from '@tanstack/react-query';
+import { ViewModeProvider, useViewMode } from "@/components/ViewModeContext";
 import {
   LayoutDashboard,
   Factory,
@@ -16,7 +17,9 @@ import {
   Rocket,
   Bell,
   Info,
-  Code
+  Code,
+  Wrench,
+  Droplet,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,15 +41,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
-export default function Layout({ children }) {
+function LayoutContent({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
+  const { viewMode, toggleViewMode } = useViewMode();
 
   useEffect(() => {
     loadUser();
@@ -205,6 +210,31 @@ export default function Layout({ children }) {
     });
   }
 
+  const ViewModeToggle = () => (
+    <Button
+      onClick={toggleViewMode}
+      variant="outline"
+      size="sm"
+      className="gap-2 border-2"
+      style={{
+        borderColor: viewMode === 'demip' ? '#2150D8' : '#64748b',
+        backgroundColor: viewMode === 'demip' ? '#eff6ff' : 'white',
+      }}
+    >
+      {viewMode === 'demip' ? (
+        <>
+          <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
+          <span className="hidden sm:inline font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
+        </>
+      ) : (
+        <>
+          <Wrench className="w-4 h-4 text-slate-600" />
+          <span className="hidden sm:inline font-semibold text-slate-700">Režim Údržba</span>
+        </>
+      )}
+    </Button>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <style>{`
@@ -230,6 +260,7 @@ export default function Layout({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ViewModeToggle />
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -394,6 +425,11 @@ export default function Layout({ children }) {
                     </DropdownMenu>
                   )}
                 </div>
+                
+                {/* Přepínač režimů - na všech stránkách */}
+                <div className="mt-4">
+                  <ViewModeToggle />
+                </div>
               </SidebarHeader>
 
               <SidebarContent className="p-4">
@@ -478,5 +514,13 @@ export default function Layout({ children }) {
         {children}
       </main>
     </div>
+  );
+}
+
+export default function Layout({ children }) {
+  return (
+    <ViewModeProvider>
+      <LayoutContent>{children}</LayoutContent>
+    </ViewModeProvider>
   );
 }
