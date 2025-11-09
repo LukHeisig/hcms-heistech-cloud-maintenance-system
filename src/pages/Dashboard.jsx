@@ -323,6 +323,781 @@ export default function Dashboard() {
     await uploadDocumentMutation.mutateAsync({ file, pointId });
   };
 
+  if (viewMode === 'demip') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedCompany = urlParams.get('company');
+    const selectedLine = urlParams.get('line');
+    const selectedMachine = urlParams.get('machine');
+    const selectedPoint = urlParams.get('point');
+
+    const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+      ? activeCompanies
+      : [];
+
+    const demipAllLines = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+      ? allLines
+      : lines;
+
+    const demipMachines = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+      ? machines
+      : machines.filter(m => lines.some(l => l.id === m.line_id));
+
+    const demipControlPoints = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+      ? activeControlPoints
+      : controlPoints;
+
+    const demipIssues = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+      ? activeIssues
+      : issues;
+
+    // Point detail view
+    if (selectedPoint) {
+      const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
+      if (!currentPoint) {
+        return <div className="p-8">Kontrolní bod nenalezen</div>;
+      }
+
+      const pointRecords = records.filter(r => r.control_point_id === selectedPoint);
+      const pointIssues = demipIssues.filter(i => i.control_point_id === selectedPoint);
+      const status = getPointStatus(currentPoint);
+      const nextDate = getNextControlDate(currentPoint);
+      const lastRecord = pointRecords[0];
+      const isOverdue = status === "overdue";
+
+      const { data: documentation = [] } = useQuery({
+        queryKey: ["documentation", selectedPoint],
+        queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
+        enabled: !!selectedPoint,
+      });
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+            <div className="max-w-5xl mx-auto p-3 md:p-6">
+              <div className="flex items-center justify-between mb-2 md:mb-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const url = selectedCompany
+                      ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}`
+                      : `Dashboard?line=${selectedLine}&machine=${selectedMachine}`;
+                    navigate(createPageUrl(url));
+                  }}
+                  className="text-white hover:bg-white/20 p-2 h-auto"
+                >
+                  <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
+                </Button>
+                {pointIssues.length > 0 && (
+                  <AlertTriangle className="w-6 h-6 md:w-8 md:h-8 text-yellow-300" />
+                )}
+              </div>
+              <h1 className="text-lg md:text-2xl font-bold leading-tight">
+                {currentPoint.number && `${currentPoint.number} - `}
+                {currentPoint.name}
+              </h1>
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto p-3 md:p-6 space-y-3 md:space-y-4">
+            <Card className="shadow-lg">
+              <CardContent className="p-3 md:p-6 space-y-2">
+                {currentPoint.type === "lubrication" && (
+                  <>
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Typ maziva:</span>
+                      <span className="font-semibold text-slate-900">{currentPoint.lubricant_type || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Množství pro doplnění:</span>
+                      <span className="font-semibold text-slate-900">
+                        {currentPoint.lubricant_amount ? `${currentPoint.lubricant_amount} g` : "-"}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {currentPoint.type === "inspection" && currentPoint.inspection_tasks && (
+                  <div className="py-2 border-b border-slate-200">
+                    <p className="text-sm text-slate-600 mb-1">Inspekční úkoly:</p>
+                    <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                  <span className="text-sm text-slate-600">
+                    Naposledy {currentPoint.type === "lubrication" ? "mazáno" : "kontrolováno"}:
+                  </span>
+                  <span className="font-semibold text-slate-900 text-right">
+                    {lastRecord 
+                      ? format(new Date(lastRecord.performed_at), "d.M.yyyy HH:mm", { locale: cs })
+                      : "Dosud neprovedeno"
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                  <span className="text-sm text-slate-600">Interval:</span>
+                  <span className="font-semibold text-slate-900">
+                    {currentPoint.interval_hours ? `${currentPoint.interval_hours} hodin` : "-"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm text-slate-600">Datum další kontroly:</span>
+                  <div className="text-right">
+                    <span className={`font-bold text-lg ${isOverdue ? "text-red-600" : "text-green-600"}`}>
+                      {nextDate ? format(nextDate, "d.M.yyyy", { locale: cs }) : "-"}
+                    </span>
+                    {isOverdue && (
+                      <Badge className="ml-2 bg-red-600 text-white text-xs">Po termínu</Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {pointIssues.length > 0 && (
+              <Card className="shadow-lg border-2 border-orange-300 bg-orange-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base md:text-lg text-orange-900 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 md:w-5 md:h-5" />
+                    Aktivní závady ({pointIssues.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 space-y-2">
+                  {pointIssues.map((issue) => (
+                    <div key={issue.id} className="bg-white p-3 rounded-lg border border-orange-200">
+                      <p className="text-sm text-slate-900 mb-1">{issue.description}</p>
+                      <p className="text-xs text-slate-500">
+                        {format(new Date(issue.created_date), "d.M.yyyy HH:mm", { locale: cs })} • {getUserDisplayName(issue.created_by)}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="shadow-lg">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                    Fotodokumentace
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => handleCameraCapture(e, selectedPoint)}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="h-8 px-2 md:px-3"
+                    >
+                      <Camera className="w-4 h-4 md:mr-1" />
+                      <span className="hidden md:inline">Vyfotit</span>
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, selectedPoint)}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="h-8 px-2 md:px-3"
+                    >
+                      <Upload className="w-4 h-4 md:mr-1" />
+                      <span className="hidden md:inline">Nahrát</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                {isUploading && (
+                  <div className="flex items-center justify-center py-6 bg-slate-50 rounded-lg mb-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-400 mr-2" />
+                    <span className="text-sm text-slate-600">Nahrávání...</span>
+                  </div>
+                )}
+                {documentation.length === 0 && !isUploading ? (
+                  <div className="text-center py-8 bg-slate-50 rounded-lg">
+                    <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm text-slate-500">Zatím není žádná dokumentace</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+                    {documentation.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-400 transition-all cursor-pointer"
+                        onClick={() => {
+                          setSelectedDocPreview(doc);
+                          setShowDocPreviewDialog(true);
+                        }}
+                      >
+                        {doc.file_type === "photo" ? (
+                          <img
+                            src={doc.file_url}
+                            alt={doc.file_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full bg-slate-100">
+                            <FileText className="w-8 h-8 text-slate-400" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteDocId(doc.id);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base md:text-lg">
+                  Historie {currentPoint.type === "lubrication" ? "mazání" : "kontrol"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3">
+                {pointRecords.length === 0 ? (
+                  <p className="text-center text-slate-500 py-6 text-sm">Zatím nejsou žádné záznamy</p>
+                ) : (
+                  <div className="space-y-2">
+                    {pointRecords.map((record) => (
+                      <div key={record.id} className="bg-slate-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-slate-900 text-sm">
+                            {format(new Date(record.performed_at), "d.M.yyyy HH:mm", { locale: cs })}
+                          </span>
+                          <span className="text-xs text-slate-600">
+                            {getUserDisplayName(record.created_by)}
+                          </span>
+                        </div>
+                        {record.note && (
+                          <p className="text-sm text-slate-600">{record.note}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Button
+              onClick={() => setShowIssueDialog(true)}
+              className="w-full h-12 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-lg"
+            >
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Nahlásit závadu
+            </Button>
+          </div>
+
+          <Dialog open={showDocPreviewDialog} onOpenChange={setShowDocPreviewDialog}>
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+              <DialogHeader className="p-4 border-b">
+                <DialogTitle>{selectedDocPreview?.file_name}</DialogTitle>
+                <DialogDescription>
+                  {selectedDocPreview && format(new Date(selectedDocPreview.created_date), "d.M.yyyy HH:mm", { locale: cs })}
+                  {selectedDocPreview?.created_by && ` • ${getUserDisplayName(selectedDocPreview.created_by)}`}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50">
+                {selectedDocPreview?.file_type === "photo" ? (
+                  <img
+                    src={selectedDocPreview.file_url}
+                    alt={selectedDocPreview.file_name}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600">Náhled není dostupný</p>
+                  </div>
+                )}
+              </div>
+              <DialogFooter className="p-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(selectedDocPreview?.file_url, "_blank")}
+                >
+                  Otevřít v nové záložce
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setShowDocPreviewDialog(false);
+                    setDeleteDocId(selectedDocPreview?.id);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Smazat
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog open={!!deleteDocId} onOpenChange={() => setDeleteDocId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Opravdu smazat fotografii?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tato akce je nevratná. Fotografie bude trvale odstraněna.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteDocumentMutation.mutate(deleteDocId)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Smazat
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Dialog open={showIssueDialog} onOpenChange={setShowIssueDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-orange-700">
+                  <AlertTriangle className="w-5 h-5" />
+                  Nahlásit závadu
+                </DialogTitle>
+                <DialogDescription>
+                  Popište zjištěnou závadu na kontrolním bodě
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="description">Popis závady *</Label>
+                  <Textarea
+                    id="description"
+                    value={issueDescription}
+                    onChange={(e) => setIssueDescription(e.target.value)}
+                    placeholder="Popište podrobně zjištěnou závadu..."
+                    rows={5}
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowIssueDialog(false);
+                    setIssueDescription("");
+                  }}
+                  disabled={isReportingIssue}
+                >
+                  Zrušit
+                </Button>
+                <Button
+                  onClick={() => handleReportIssue(selectedPoint)}
+                  disabled={!issueDescription.trim() || isReportingIssue}
+                  className="bg-gradient-to-r from-orange-600 to-orange-700"
+                >
+                  {isReportingIssue ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Ukládání...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Nahlásit závadu
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      );
+    }
+
+    // Company selection for admin
+    if ((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) {
+      return (
+        <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku - DEMIP</h1>
+            <div className="space-y-2">
+              {demipCompanies.map((company) => {
+                const companyLines = demipAllLines.filter(l => l.company_id === company.id);
+                const companyLineIds = companyLines.map(l => l.id);
+                const companyMachines = demipMachines.filter(m => companyLineIds.includes(m.line_id));
+                const companyMachineIds = companyMachines.map(m => m.id);
+                const companyPoints = demipControlPoints.filter(p => companyMachineIds.includes(p.machine_id));
+                const companyOverdue = companyPoints.filter(p => getPointStatus(p) === "overdue").length;
+
+                return (
+                  <Card
+                    key={company.id}
+                    className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
+                    onClick={() => navigate(createPageUrl(`Dashboard?company=${company.id}`))}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-100">
+                            <Building2 className="w-5 h-5 text-blue-700" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-bold text-slate-900 text-base">{company.name}</h3>
+                              {companyOverdue > 0 && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {companyOverdue}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-slate-600">
+                              <span>{companyLines.length} linek</span>
+                              <span>·</span>
+                              <span>{companyPoints.length} bodů</span>
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-slate-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Line selection
+    if (!selectedLine) {
+      const companyId = selectedCompany || user?.company_id;
+      const currentCompany = [...demipCompanies, ...allCompanies].find(c => c.id === companyId);
+      const companyLines = demipAllLines.filter(l => l.company_id === companyId);
+
+      return (
+        <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+          <div className="max-w-4xl mx-auto">
+            {(user?.user_type === "admin" || user?.user_type === "superAdmin") && (
+              <Button
+                variant="ghost"
+                onClick={() => navigate(createPageUrl("Dashboard"))}
+                className="mb-4"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Zpět na podniky
+              </Button>
+            )}
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Výběr linky - DEMIP</h1>
+            {currentCompany && <p className="text-slate-600 mb-6">{currentCompany.name}</p>}
+            <div className="space-y-2">
+              {companyLines.map((line) => {
+                const lineMachines = demipMachines.filter(m => m.line_id === line.id);
+                const lineMachineIds = lineMachines.map(m => m.id);
+                const linePoints = demipControlPoints.filter(p => lineMachineIds.includes(p.machine_id));
+                const lineOverdue = linePoints.filter(p => getPointStatus(p) === "overdue").length;
+
+                return (
+                  <Card
+                    key={line.id}
+                    className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
+                    onClick={() => {
+                      const url = selectedCompany
+                        ? `Dashboard?company=${selectedCompany}&line=${line.id}`
+                        : `Dashboard?line=${line.id}`;
+                      navigate(createPageUrl(url));
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-100">
+                            <Factory className="w-5 h-5 text-blue-700" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-bold text-slate-900 text-base">{line.name}</h3>
+                              {lineOverdue > 0 && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {lineOverdue}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-slate-600">
+                              <span>{lineMachines.length} strojů</span>
+                              <span>·</span>
+                              <span>{linePoints.length} bodů</span>
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-slate-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Machine selection
+    if (!selectedMachine) {
+      const currentLine = demipAllLines.find(l => l.id === selectedLine);
+      const lineMachines = demipMachines.filter(m => m.line_id === selectedLine);
+
+      return (
+        <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+          <div className="max-w-4xl mx-auto">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                const url = selectedCompany
+                  ? `Dashboard?company=${selectedCompany}`
+                  : "Dashboard";
+                navigate(createPageUrl(url));
+              }}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Zpět na linky
+            </Button>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Výběr stroje - DEMIP</h1>
+            {currentLine && <p className="text-slate-600 mb-6">{currentLine.name}</p>}
+            <div className="space-y-2">
+              {lineMachines.map((machine) => {
+                const machinePoints = demipControlPoints.filter(p => p.machine_id === machine.id);
+                const machineOverdue = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+
+                return (
+                  <Card
+                    key={machine.id}
+                    className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
+                    onClick={() => {
+                      const url = selectedCompany
+                        ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${machine.id}`
+                        : `Dashboard?line=${selectedLine}&machine=${machine.id}`;
+                      navigate(createPageUrl(url));
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-100">
+                            <Activity className="w-5 h-5 text-blue-700" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-bold text-slate-900 text-base">{machine.name}</h3>
+                              {machineOverdue > 0 && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {machineOverdue}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-600">{machinePoints.length} kontrolních bodů</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-slate-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Points list view
+    const currentMachine = demipMachines.find(m => m.id === selectedMachine);
+    const machinePoints = demipControlPoints.filter(p => p.machine_id === selectedMachine);
+
+    const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
+    const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
+    const lubricatorPoints = machinePoints.filter(p => p.type === "auto_lubricator");
+
+    const getDisplayPoints = () => {
+      switch (activeTab) {
+        case "lubrication": return lubricationPoints;
+        case "inspection": return inspectionPoints;
+        case "lubricator": return lubricatorPoints;
+        default: return lubricationPoints;
+      }
+    };
+
+    const displayPoints = getDisplayPoints();
+
+    return (
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-5xl mx-auto">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              const url = selectedCompany
+                ? `Dashboard?company=${selectedCompany}&line=${selectedLine}`
+                : `Dashboard?line=${selectedLine}`;
+              navigate(createPageUrl(url));
+            }}
+            className="mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Zpět na stroje
+          </Button>
+
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            {currentMachine?.name || "Stroj"}
+          </h1>
+          <p className="text-slate-600 mb-6">{machinePoints.length} kontrolních bodů</p>
+
+          <div className="flex gap-2 mb-6 overflow-x-auto">
+            <Button
+              onClick={() => setActiveTab("lubrication")}
+              variant={activeTab === "lubrication" ? "default" : "outline"}
+              className={activeTab === "lubrication" ? "bg-blue-600 text-white" : ""}
+            >
+              Mazání ({lubricationPoints.length})
+            </Button>
+            <Button
+              onClick={() => setActiveTab("inspection")}
+              variant={activeTab === "inspection" ? "default" : "outline"}
+              className={activeTab === "inspection" ? "bg-blue-600 text-white" : ""}
+            >
+              Inspekce ({inspectionPoints.length})
+            </Button>
+            <Button
+              onClick={() => setActiveTab("lubricator")}
+              variant={activeTab === "lubricator" ? "default" : "outline"}
+              className={activeTab === "lubricator" ? "bg-blue-600 text-white" : ""}
+            >
+              Maznice ({lubricatorPoints.length})
+            </Button>
+          </div>
+
+          <Card className="shadow-lg">
+            <CardContent className="p-0">
+              {displayPoints.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Žádné body v této kategorii</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200">
+                  {displayPoints.map((point) => {
+                    const status = getPointStatus(point);
+                    const nextDate = getNextControlDate(point);
+                    const isOverdue = status === "overdue";
+                    const pointRecords = records.filter(r => r.control_point_id === point.id);
+                    const lastRecord = pointRecords[0];
+                    const pointIssues = demipIssues.filter(i => i.control_point_id === point.id);
+
+                    return (
+                      <div
+                        key={point.id}
+                        className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
+                          isOverdue ? "bg-yellow-50/50" : ""
+                        }`}
+                        onClick={() => {
+                          const url = selectedCompany
+                            ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&point=${point.id}`
+                            : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&point=${point.id}`;
+                          navigate(createPageUrl(url));
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              isOverdue ? "bg-yellow-100" : "bg-green-100"
+                            }`}>
+                              {point.type === "inspection" ? (
+                                <ClipboardCheck className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                              ) : (
+                                <Droplet className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-slate-900 text-sm">
+                                  {point.number && `${point.number} - `}{point.name}
+                                </h3>
+                                {pointIssues.length > 0 && (
+                                  <Badge className="bg-orange-500 text-white text-xs">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    Závada
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center gap-4 text-xs text-slate-600">
+                                {point.interval_hours && (
+                                  <span>Interval: {point.interval_hours}h</span>
+                                )}
+                                {lastRecord && (
+                                  <>
+                                    <span>·</span>
+                                    <span>Poslední: {format(new Date(lastRecord.performed_at), "d.M. HH:mm", { locale: cs })}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            {nextDate && (
+                              <div className="text-right">
+                                <p className="text-xs text-slate-500 mb-1">Následující kontrola</p>
+                                <p className={`text-sm font-bold ${isOverdue ? "text-yellow-700" : "text-green-700"}`}>
+                                  {format(nextDate, "d.M. yyyy", { locale: cs })}
+                                </p>
+                              </div>
+                            )}
+                            
+                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                              isOverdue ? "bg-yellow-500" : "bg-green-500"
+                            }`} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   if (viewMode === 'maintenance') {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       return (
