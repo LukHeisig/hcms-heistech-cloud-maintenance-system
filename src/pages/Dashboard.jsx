@@ -201,28 +201,209 @@ export default function Dashboard() {
     return issues;
   }, [user, issues, activeControlPoints]);
 
-  const machinesWithPoints = React.useMemo(() => {
-    if (!user || user.user_type === "admin" || user.user_type === "superAdmin") return [];
 
-    const companyLines = lines.filter(l => l.company_id === user.company_id);
-    const companyLineIds = companyLines.map(l => l.id);
-    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+  // Zobrazení pro DEMIP režim - nyní i pro adminy
+  if (viewMode === 'demip') {
+    // Pro adminy použít activeControlPoints, pro ostatní controlPoints
+    const demipPoints = (user?.user_type === "admin" || user?.user_type === "superAdmin") 
+      ? activeControlPoints 
+      : controlPoints;
+    
+    const demipMachines = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+      ? machines.filter(m => {
+          const activeLinesIds = allLines.filter(l => activeCompanyIds.includes(l.company_id)).map(l => l.id);
+          return activeLinesIds.includes(m.line_id);
+        })
+      : machines.filter(m => lines.some(l => l.id === m.line_id));
 
-    return companyMachines.map(machine => {
-      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+    const demipMachinesWithPoints = demipMachines.map(machine => {
+      const machinePoints = demipPoints.filter(p => p.machine_id === machine.id);
       const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
-      const line = lines.find(l => l.id === machine.line_id);
+      const machineLine = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+        ? allLines.find(l => l.id === machine.line_id)
+        : lines.find(l => l.id === machine.line_id);
 
       return {
         ...machine,
-        lineName: line?.name,
+        lineName: machineLine?.name,
         points: machinePoints,
         totalPoints: machinePoints.length,
         overduePoints: overdueCount,
       };
     }).filter(m => m.totalPoints > 0);
-  }, [user, lines, machines, controlPoints, getPointStatus]);
 
+    const demipOverdueCount = demipPoints.filter(p => getPointStatus(p) === "overdue").length;
+    const demipIssues = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+      ? activeIssues
+      : issues;
+
+    return (
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
+              Přehled výroby - DEMIP
+            </h1>
+            <p className="text-slate-600">
+              Kontrolní body všech strojů
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-purple-100 text-xs font-medium mb-1">Kontrolní body</p>
+                <p className="text-2xl md:text-3xl font-bold">{demipPoints.length}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-red-100 text-xs font-medium mb-1">Po termínu</p>
+                <p className="text-2xl md:text-3xl font-bold">{demipOverdueCount}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-green-100 text-xs font-medium mb-1">V pořádku</p>
+                <p className="text-2xl md:text-3xl font-bold">
+                  {demipPoints.length - demipOverdueCount}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <CardContent className="p-4">
+                <p className="text-orange-100 text-xs font-medium mb-1">Aktivní závady</p>
+                <p className="text-2xl md:text-3xl font-bold">{demipIssues.length}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            {demipMachinesWithPoints.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Nejsou definovány žádné kontrolní body</p>
+                </CardContent>
+              </Card>
+            ) : (
+              demipMachinesWithPoints.map((machine) => (
+                <Card key={machine.id} className="border-2 border-slate-200 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <CardTitle className="text-lg md:text-xl">{machine.name}</CardTitle>
+                          {machine.overduePoints > 0 && (
+                            <Badge variant="destructive" className="gap-1">
+                              <AlertTriangle className="w-3 h-3" />
+                              {machine.overduePoints}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs md:text-sm text-slate-600">{machine.lineName}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Celkem bodů</p>
+                        <p className="text-xl md:text-2xl font-bold text-slate-900">
+                          {machine.totalPoints}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 md:p-4">
+                    <div className="grid gap-2">
+                      {machine.points.map((point) => {
+                        const status = getPointStatus(point);
+                        const nextDate = getNextControlDate(point);
+                        const isOverdue = status === "overdue";
+                        const pointIssues = demipIssues.filter(i => i.control_point_id === point.id);
+
+                        return (
+                          <Link
+                            key={point.id}
+                            to={createPageUrl(`ControlPoint?id=${point.id}`)}
+                          >
+                            <Card
+                              className={`border-l-4 transition-all hover:shadow-md ${
+                                isOverdue
+                                  ? "border-l-yellow-500 bg-yellow-50/50"
+                                  : "border-l-green-500 bg-white"
+                              }`}
+                            >
+                              <CardContent className="p-3 md:p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                    isOverdue ? "bg-yellow-100" : "bg-green-100"
+                                  }`}>
+                                    {point.type === "lubrication" || point.type === "auto_lubricator" ? (
+                                      <Droplet className={`w-5 h-5 md:w-6 md:h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                                    ) : (
+                                      <ClipboardCheck className={`w-5 h-5 md:w-6 md:h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                      <h3 className="font-bold text-sm md:text-base text-slate-900">
+                                        {point.number && `${point.number} - `}{point.name}
+                                      </h3>
+                                      {isOverdue && (
+                                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                                          <Clock className="w-3 h-3 mr-1" />
+                                          Po termínu
+                                        </Badge>
+                                      )}
+                                      {pointIssues.length > 0 && (
+                                        <Badge className="bg-orange-500 text-white text-xs">
+                                          <AlertTriangle className="w-3 h-3 mr-1" />
+                                          {pointIssues.length}
+                                        </Badge>
+                                      )}
+                                    </div>
+
+                                    <div className="text-xs md:text-sm text-slate-600 space-y-0.5">
+                                      {point.type === "lubrication" && point.lubricant_type && (
+                                        <p>Mazivo: {point.lubricant_type}</p>
+                                      )}
+                                      {point.interval_hours && (
+                                        <p>Interval: {point.interval_hours}h</p>
+                                      )}
+                                      {nextDate && (
+                                        <p className={isOverdue ? "text-yellow-700 font-medium" : ""}>
+                                          Další kontrola: {format(nextDate, "d.M. yyyy", { locale: cs })}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      isOverdue ? "bg-yellow-500" : "bg-green-500"
+                                    }`} />
+                                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin dashboard - klasický režim údržby
   if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -451,7 +632,7 @@ export default function Dashboard() {
                               <p className="text-sm font-medium text-slate-900 truncate">
                                 {point?.name || "Neznámý bod"}
                               </p>
-                              <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-slate-500 mt-1">
                                 {format(
                                   new Date(record.performed_at),
                                   "d. M. yyyy HH:mm",
@@ -546,173 +727,6 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (viewMode === 'demip') {
-    return (
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
-              Přehled výroby - DEMIP
-            </h1>
-            <p className="text-slate-600">
-              Kontrolní body všech strojů
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-            <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-              <CardContent className="p-4">
-                <p className="text-purple-100 text-xs font-medium mb-1">Kontrolní body</p>
-                <p className="text-2xl md:text-3xl font-bold">{controlPoints.length}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white">
-              <CardContent className="p-4">
-                <p className="text-red-100 text-xs font-medium mb-1">Po termínu</p>
-                <p className="text-2xl md:text-3xl font-bold">{overduePointsCount}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
-              <CardContent className="p-4">
-                <p className="text-green-100 text-xs font-medium mb-1">V pořádku</p>
-                <p className="text-2xl md:text-3xl font-bold">
-                  {controlPoints.length - overduePointsCount}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-              <CardContent className="p-4">
-                <p className="text-orange-100 text-xs font-medium mb-1">Aktivní závady</p>
-                <p className="text-2xl md:text-3xl font-bold">{issues.length}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-4">
-            {machinesWithPoints.length === 0 ? (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500">Nejsou definovány žádné kontrolní body</p>
-                </CardContent>
-              </Card>
-            ) : (
-              machinesWithPoints.map((machine) => (
-                <Card key={machine.id} className="border-2 border-slate-200 shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 pb-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <CardTitle className="text-lg md:text-xl">{machine.name}</CardTitle>
-                          {machine.overduePoints > 0 && (
-                            <Badge variant="destructive" className="gap-1">
-                              <AlertTriangle className="w-3 h-3" />
-                              {machine.overduePoints}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs md:text-sm text-slate-600">{machine.lineName}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-slate-500">Celkem bodů</p>
-                        <p className="text-xl md:text-2xl font-bold text-slate-900">
-                          {machine.totalPoints}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-3 md:p-4">
-                    <div className="grid gap-2">
-                      {machine.points.map((point) => {
-                        const status = getPointStatus(point);
-                        const nextDate = getNextControlDate(point);
-                        const isOverdue = status === "overdue";
-                        const pointIssues = issues.filter(i => i.control_point_id === point.id);
-
-                        return (
-                          <Link
-                            key={point.id}
-                            to={createPageUrl(`ControlPoint?id=${point.id}`)}
-                          >
-                            <Card
-                              className={`border-l-4 transition-all hover:shadow-md ${
-                                isOverdue
-                                  ? "border-l-yellow-500 bg-yellow-50/50"
-                                  : "border-l-green-500 bg-white"
-                              }`}
-                            >
-                              <CardContent className="p-3 md:p-4">
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                    isOverdue ? "bg-yellow-100" : "bg-green-100"
-                                  }`}>
-                                    {point.type === "lubrication" || point.type === "auto_lubricator" ? (
-                                      <Droplet className={`w-5 h-5 md:w-6 md:h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
-                                    ) : (
-                                      <ClipboardCheck className={`w-5 h-5 md:w-6 md:h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
-                                    )}
-                                  </div>
-
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                      <h3 className="font-bold text-sm md:text-base text-slate-900">
-                                        {point.number && `${point.number} - `}{point.name}
-                                      </h3>
-                                      {isOverdue && (
-                                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
-                                          <Clock className="w-3 h-3 mr-1" />
-                                          Po termínu
-                                        </Badge>
-                                      )}
-                                      {pointIssues.length > 0 && (
-                                        <Badge className="bg-orange-500 text-white text-xs">
-                                          <AlertTriangle className="w-3 h-3 mr-1" />
-                                          {pointIssues.length}
-                                        </Badge>
-                                      )}
-                                    </div>
-
-                                    <div className="text-xs md:text-sm text-slate-600 space-y-0.5">
-                                      {point.type === "lubrication" && point.lubricant_type && (
-                                        <p>Mazivo: {point.lubricant_type}</p>
-                                      )}
-                                      {point.interval_hours && (
-                                        <p>Interval: {point.interval_hours}h</p>
-                                      )}
-                                      {nextDate && (
-                                        <p className={isOverdue ? "text-yellow-700 font-medium" : ""}>
-                                          Další kontrola: {format(nextDate, "d.M. yyyy", { locale: cs })}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-3 h-3 rounded-full ${
-                                      isOverdue ? "bg-yellow-500" : "bg-green-500"
-                                    }`} />
-                                    <ChevronRight className="w-5 h-5 text-slate-400" />
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
         </div>
       </div>
     );
@@ -965,6 +979,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 }

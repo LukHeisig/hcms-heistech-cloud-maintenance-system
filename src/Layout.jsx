@@ -260,7 +260,7 @@ function LayoutContent({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {location.pathname === createPageUrl("Dashboard") && user?.user_type !== "admin" && user?.user_type !== "superAdmin" && (
+            {location.pathname === createPageUrl("Dashboard") && (
               <ViewModeToggle />
             )}
             {myWorkOrders.length > 0 && (
@@ -428,8 +428,8 @@ function LayoutContent({ children }) {
                   )}
                 </div>
                 
-                {/* Přepínač režimů - pouze pro non-admin na dashboard */}
-                {location.pathname === createPageUrl("Dashboard") && user?.user_type !== "admin" && user?.user_type !== "superAdmin" && (
+                {/* Přepínač režimů - pro všechny na dashboard */}
+                {location.pathname === createPageUrl("Dashboard") && (
                   <div className="mt-4">
                     <ViewModeToggle />
                   </div>
