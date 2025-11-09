@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -200,6 +199,28 @@ export default function Dashboard() {
     }
     return issues;
   }, [user, issues, activeControlPoints]);
+
+  const machinesWithPoints = React.useMemo(() => {
+    if (!user || user.user_type === "admin" || user.user_type === "superAdmin") return [];
+
+    const companyLines = lines.filter(l => l.company_id === user.company_id);
+    const companyLineIds = companyLines.map(l => l.id);
+    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
+
+    return companyMachines.map(machine => {
+      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+      const line = lines.find(l => l.id === machine.line_id);
+
+      return {
+        ...machine,
+        lineName: line?.name,
+        points: machinePoints,
+        totalPoints: machinePoints.length,
+        overduePoints: overdueCount,
+      };
+    }).filter(m => m.totalPoints > 0);
+  }, [user, lines, machines, controlPoints, getPointStatus]);
 
   // Zobrazení pro DEMIP režim - nyní i pro adminy
   if (viewMode === 'demip') {
