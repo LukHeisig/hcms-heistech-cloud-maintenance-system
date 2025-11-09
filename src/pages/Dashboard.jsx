@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -83,14 +82,12 @@ export default function Dashboard() {
   const [isNfcScanning, setIsNfcScanning] = useState(false);
   const [isConfirmingControl, setIsConfirmingControl] = useState(false);
 
-  // Get URL params for DEMIP mode
   const urlParams = new URLSearchParams(window.location.search);
   const selectedPoint = urlParams.get('point');
   const nfcScanned = urlParams.get('nfc_scanned') === 'true';
 
   useEffect(() => {
     loadUser();
-    // Check NFC support
     if ('NDEFReader' in window) {
       setNfcSupported(true);
     }
@@ -173,7 +170,6 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Documentation query - always call but only enable when selectedPoint exists
   const { data: documentation = [] } = useQuery({
     queryKey: ["documentation", selectedPoint],
     queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
@@ -349,8 +345,6 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
       setIsConfirmingControl(false);
 
-      // Remove nfc_scanned parameter from URL
-      // Check if there are other params besides nfc_scanned
       const newSearch = window.location.search.replace(/[?&]nfc_scanned=true/, '');
       const newUrl = window.location.pathname + (newSearch.startsWith('&') ? '?' + newSearch.substring(1) : newSearch);
 
@@ -421,26 +415,26 @@ export default function Dashboard() {
 
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => {
-        if (isScanning) { // Check if still scanning before aborting
+        if (isScanning) {
           abortController.abort();
           alert("Časový limit čtení NFC vypršel (10s).");
           setIsScanning(false);
         }
-      }, 10000); // 10 seconds timeout
+      }, 10000);
 
       ndef.addEventListener("reading", ({ serialNumber }) => {
-        clearTimeout(timeoutId); // Clear timeout on successful read
+        clearTimeout(timeoutId);
         setNfcChipId(serialNumber);
         setIsScanning(false);
-        ndef.cancelScan(); // Stop scanning after successful read
+        ndef.cancelScan();
       }, { signal: abortController.signal });
 
       ndef.addEventListener("readingerror", (event) => {
-        clearTimeout(timeoutId); // Clear timeout on error
+        clearTimeout(timeoutId);
         console.error("NFC reading error:", event);
         alert("Chyba při čtení NFC čipu.");
         setIsScanning(false);
-        ndef.cancelScan(); // Stop scanning on error
+        ndef.cancelScan();
       }, { signal: abortController.signal });
 
     } catch (error) {
@@ -490,12 +484,10 @@ export default function Dashboard() {
         setShowNfcScanDialog(false);
         ndef.cancelScan();
 
-        // Find control point with this NFC chip ID
-        const targetControlPoints = (viewMode === 'demip' ? activeControlPoints : controlPoints); // Adjust based on user type/viewMode
+        const targetControlPoints = (viewMode === 'demip' ? activeControlPoints : controlPoints);
         const point = targetControlPoints.find(p => p.nfc_chip_id === serialNumber);
 
         if (point) {
-          // Navigate to the point with nfc_scanned parameter
           const machine = machines.find(m => m.id === point.machine_id);
           const line = allLines.find(l => l.id === machine?.line_id);
           const company = allCompanies.find(c => c.id === line?.company_id);
@@ -529,7 +521,6 @@ export default function Dashboard() {
     }
   };
 
-
   if (viewMode === 'demip') {
     const selectedCompany = urlParams.get('company');
     const selectedLine = urlParams.get('line');
@@ -555,7 +546,6 @@ export default function Dashboard() {
       ? activeIssues
       : issues;
 
-    // Point detail view
     if (selectedPoint) {
       const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
       if (!currentPoint) {
@@ -1042,26 +1032,21 @@ export default function Dashboard() {
       );
     }
 
-    // Floating NFC Button - visible on all DEMIP pages except point detail
     const showFloatingNfcButton = !selectedPoint;
 
-    // Prepare data for line selection
     const companyId = selectedCompany || user?.company_id;
     const currentCompany = [...demipCompanies, ...allCompanies].find(c => c.id === companyId);
     const companyLines = demipAllLines.filter(l => l.company_id === companyId);
 
-    // Prepare data for machine selection
     const currentLine = demipAllLines.find(l => l.id === selectedLine);
     const lineMachines = demipMachines.filter(m => m.line_id === selectedLine);
 
-    // Prepare data for points list
     const currentMachine = demipMachines.find(m => m.id === selectedMachine);
     const machinePoints = demipControlPoints.filter(p => p.machine_id === selectedMachine);
 
     return (
       <div className="relative">
         <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-          {/* Company selection for admin */}
           {((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) && (
             <div className="max-w-4xl mx-auto">
               <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku - DEMIP</h1>
@@ -1113,7 +1098,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Line selection */}
           {(!selectedLine && !(user?.user_type === "admin" || user?.user_type === "superAdmin")) && (
             <LineSelection
               user={user}
@@ -1138,7 +1122,6 @@ export default function Dashboard() {
             />
           )}
 
-          {/* Machine selection */}
           {(selectedLine && !selectedMachine) && (
             <MachineSelection
               selectedCompany={selectedCompany}
@@ -1150,7 +1133,6 @@ export default function Dashboard() {
             />
           )}
 
-          {/* Points list view */}
           {(selectedMachine && !selectedPoint) && (
             <PointsList
               selectedCompany={selectedCompany}
