@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Building2,
   Factory,
+  CheckCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -513,116 +514,91 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          <div className="grid gap-4">
-            {displayPoints.length === 0 ? (
-              <Card>
-                <CardContent className="p-12 text-center">
+          <Card className="shadow-lg">
+            <CardContent className="p-0">
+              {displayPoints.length === 0 ? (
+                <div className="p-12 text-center">
                   <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                   <p className="text-slate-500">Žádné body v této kategorii</p>
-                </CardContent>
-              </Card>
-            ) : (
-              displayPoints.map((point) => {
-                const status = getPointStatus(point);
-                const nextDate = getNextControlDate(point);
-                const isOverdue = status === "overdue";
-                const pointRecords = records.filter(r => r.control_point_id === point.id);
-                const lastRecord = pointRecords[0];
-                const pointIssues = demipIssues.filter(i => i.control_point_id === point.id);
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200">
+                  {displayPoints.map((point) => {
+                    const status = getPointStatus(point);
+                    const nextDate = getNextControlDate(point);
+                    const isOverdue = status === "overdue";
+                    const pointRecords = records.filter(r => r.control_point_id === point.id);
+                    const lastRecord = pointRecords[0];
+                    const pointIssues = demipIssues.filter(i => i.control_point_id === point.id);
 
-                return (
-                  <Card
-                    key={point.id}
-                    className={`border-l-4 transition-all cursor-pointer hover:shadow-lg ${
-                      isOverdue ? "border-l-yellow-500" : "border-l-green-500"
-                    }`}
-                    onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    return (
+                      <div
+                        key={point.id}
+                        className={`p-4 hover:bg-slate-50 transition-colors ${
+                          isOverdue ? "bg-yellow-50/50" : ""
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                               isOverdue ? "bg-yellow-100" : "bg-green-100"
                             }`}>
                               {point.type === "inspection" ? (
-                                <ClipboardCheck className={`w-6 h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                                <ClipboardCheck className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
                               ) : (
-                                <Droplet className={`w-6 h-6 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                                <Droplet className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
                               )}
                             </div>
+                            
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-xl font-bold text-slate-900">
-                                {point.number && `${point.number} - `}{point.name}
-                              </h3>
-                              {point.description && (
-                                <p className="text-sm text-slate-600 mt-1">{point.description}</p>
-                              )}
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-slate-900 text-sm">
+                                  {point.number && `${point.number} - `}{point.name}
+                                </h3>
+                                {pointIssues.length > 0 && (
+                                  <Badge className="bg-orange-500 text-white text-xs">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    Závada
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center gap-4 text-xs text-slate-600">
+                                {point.interval_hours && (
+                                  <span>Interval: {point.interval_hours}h</span>
+                                )}
+                                {lastRecord && (
+                                  <>
+                                    <span>·</span>
+                                    <span>Poslední: {format(new Date(lastRecord.performed_at), "d.M. HH:mm", { locale: cs })}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          {pointIssues.length > 0 && (
-                            <div className="flex gap-2 flex-wrap mt-2">
-                              {pointIssues.map(issue => (
-                                <Badge key={issue.id} className="bg-orange-500 text-white">
-                                  <AlertTriangle className="w-3 h-3 mr-1" />
-                                  Závada
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+
+                          <div className="flex items-center gap-3">
+                            {nextDate && (
+                              <div className="text-right">
+                                <p className="text-xs text-slate-500 mb-1">Následující kontrola</p>
+                                <p className={`text-sm font-bold ${isOverdue ? "text-yellow-700" : "text-green-700"}`}>
+                                  {format(nextDate, "d.M. yyyy", { locale: cs })}
+                                </p>
+                              </div>
+                            )}
+                            
+                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                              isOverdue ? "bg-yellow-500" : "bg-green-500"
+                            }`} />
+                          </div>
                         </div>
-                        {isOverdue && (
-                          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 gap-1">
-                            <Clock className="w-4 h-4" />
-                            Po termínu
-                          </Badge>
-                        )}
                       </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        {point.interval_hours && (
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-xs text-slate-500 mb-1">Interval</p>
-                            <p className="text-lg font-bold text-slate-900">{point.interval_hours}h</p>
-                          </div>
-                        )}
-                        {lastRecord && (
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-xs text-slate-500 mb-1">Poslední</p>
-                            <p className="text-sm font-semibold text-slate-900">
-                              {format(new Date(lastRecord.performed_at), "d.M. HH:mm", { locale: cs })}
-                            </p>
-                          </div>
-                        )}
-                        {nextDate && (
-                          <div className={`rounded-lg p-3 ${isOverdue ? "bg-yellow-50" : "bg-green-50"}`}>
-                            <p className="text-xs text-slate-500 mb-1">Následující</p>
-                            <p className={`text-sm font-bold ${isOverdue ? "text-yellow-800" : "text-green-800"}`}>
-                              {format(nextDate, "d.M. yyyy", { locale: cs })}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {point.type === "lubrication" && point.lubricant_type && (
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                          <span>Mazivo: {point.lubricant_type}</span>
-                          {point.lubricant_amount && <span>· {point.lubricant_amount}g</span>}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-end mt-4">
-                        <div className={`w-3 h-3 rounded-full mr-2 ${
-                          isOverdue ? "bg-yellow-500" : "bg-green-500"
-                        }`} />
-                        <ChevronRight className="w-5 h-5 text-slate-400" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
