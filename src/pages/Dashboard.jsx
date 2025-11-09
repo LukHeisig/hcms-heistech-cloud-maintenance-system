@@ -562,10 +562,35 @@ export default function Dashboard() {
       ? activeIssues
       : issues;
 
+    // DEBUG INFO - zobrazí se na obrazovce
+    const debugInfo = {
+      viewMode,
+      selectedPoint,
+      nfcScanned,
+      selectedCompany,
+      selectedLine,
+      selectedMachine,
+      urlSearch: location.search,
+      foundPoint: selectedPoint ? demipControlPoints.find(p => p.id === selectedPoint)?.name : null,
+      demipControlPointsCount: demipControlPoints.length,
+    };
+
     if (selectedPoint) {
       const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
+      
+      // Zobrazit debug panel na obrazovce
       if (!currentPoint) {
-        return <div className="p-8">Kontrolní bod nenalezen</div>;
+        return (
+          <div className="p-8">
+            <div className="bg-red-100 border-2 border-red-600 rounded-lg p-4 mb-4">
+              <h3 className="text-red-900 font-bold text-lg mb-2">❌ KONTROLNÍ BOD NENALEZEN</h3>
+              <pre className="text-xs text-red-900 whitespace-pre-wrap bg-white p-3 rounded">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </div>
+            <p className="text-slate-600">Vyfotit tento výstup a poslat</p>
+          </div>
+        );
       }
 
       const pointRecords = records.filter(r => r.control_point_id === selectedPoint);
@@ -579,6 +604,20 @@ export default function Dashboard() {
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+          {/* DEBUG INFO na vrchu obrazovky - vyfotit! */}
+          <div className="bg-blue-100 border-2 border-blue-600 p-3 m-2 rounded-lg">
+            <h3 className="text-blue-900 font-bold text-sm mb-1">🐛 DEBUG INFO (vyfotit!):</h3>
+            <pre className="text-xs text-blue-900 whitespace-pre-wrap">
+              {JSON.stringify({
+                ...debugInfo,
+                currentPointFound: !!currentPoint,
+                currentPointName: currentPoint?.name,
+                nfcScannedValue: nfcScanned,
+                nfcScannedType: typeof nfcScanned,
+              }, null, 2)}
+            </pre>
+          </div>
+
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
             <div className="max-w-5xl mx-auto p-4">
               <Button
@@ -622,6 +661,22 @@ export default function Dashboard() {
           </div>
 
           <div className="max-w-5xl mx-auto p-3 md:p-6 space-y-3 md:space-y-4">
+            {/* DEBUG: zobrazit hodnotu nfcScanned */}
+            {nfcScanned && (
+              <div className="bg-green-100 border-2 border-green-600 rounded-lg p-3">
+                <p className="text-green-900 font-bold">✅ NFC bylo skenováno! Tlačítko by mělo být viditelné.</p>
+                <p className="text-xs text-green-800 mt-1">nfcScanned = {String(nfcScanned)}</p>
+              </div>
+            )}
+            
+            {!nfcScanned && (
+              <div className="bg-orange-100 border-2 border-orange-600 rounded-lg p-3">
+                <p className="text-orange-900 font-bold">⚠️ NFC NEBYLO skenováno!</p>
+                <p className="text-xs text-orange-800 mt-1">nfcScanned = {String(nfcScanned)}</p>
+                <p className="text-xs text-orange-800">URL parametr "nfc_scanned" v URL není nastaven na "true"</p>
+              </div>
+            )}
+
             <Card className="shadow-lg">
               <CardContent className="p-3 md:p-6 space-y-2">
                 {currentPoint.type === "lubrication" && (
@@ -1554,7 +1609,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-red-100 text-sm font-medium mb-1">Po termínu</p>
                     <p className="text-4xl font-bold">{overduePointsCount}</p>
-                  </div>
+                    </div>
                   <div className="p-3 bg-white/20 rounded-xl">
                     <AlertTriangle className="w-6 h-6" />
                   </div>
