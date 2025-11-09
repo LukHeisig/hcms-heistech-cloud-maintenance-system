@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -247,7 +246,6 @@ function LayoutContent({ children }) {
         }
       `}</style>
 
-      {/* Header pro mobilní */}
       <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -320,7 +318,6 @@ function LayoutContent({ children }) {
         </div>
       </header>
 
-      {/* Mobilní menu */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-white">
           <div className="p-6 space-y-4 pt-20">
@@ -362,7 +359,6 @@ function LayoutContent({ children }) {
         </div>
       )}
 
-      {/* Desktop sidebar */}
       <div className="hidden lg:flex">
         <SidebarProvider>
           <div className="flex min-h-screen w-full">
@@ -426,7 +422,6 @@ function LayoutContent({ children }) {
                   )}
                 </div>
                 
-                {/* Přepínač režimů - na všech stránkách */}
                 <div className="mt-4">
                   <ViewModeToggle />
                 </div>
