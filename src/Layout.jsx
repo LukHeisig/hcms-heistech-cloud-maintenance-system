@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -259,9 +260,7 @@ function LayoutContent({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {location.pathname === createPageUrl("Dashboard") && (
-              <ViewModeToggle />
-            )}
+            <ViewModeToggle />
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -427,12 +426,10 @@ function LayoutContent({ children }) {
                   )}
                 </div>
                 
-                {/* Přepínač režimů - pro všechny na dashboard */}
-                {location.pathname === createPageUrl("Dashboard") && (
-                  <div className="mt-4">
-                    <ViewModeToggle />
-                  </div>
-                )}
+                {/* Přepínač režimů - na všech stránkách */}
+                <div className="mt-4">
+                  <ViewModeToggle />
+                </div>
               </SidebarHeader>
 
               <SidebarContent className="p-4">
