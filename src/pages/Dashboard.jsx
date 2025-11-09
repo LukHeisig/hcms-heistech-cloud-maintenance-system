@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useViewMode } from "@/components/ViewModeContext";
 import {
@@ -61,6 +61,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { viewMode } = useViewMode();
+  const location = useLocation();
 
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
@@ -83,7 +84,7 @@ export default function Dashboard() {
   const [isNfcScanning, setIsNfcScanning] = useState(false);
   const [isConfirmingControl, setIsConfirmingControl] = useState(false);
 
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const selectedPoint = urlParams.get('point');
   const nfcScanned = urlParams.get('nfc_scanned') === 'true';
 
