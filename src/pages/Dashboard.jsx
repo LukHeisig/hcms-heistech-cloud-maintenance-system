@@ -350,7 +350,7 @@ export default function Dashboard() {
     setIsUploading(true);
     await uploadDocumentMutation.mutateAsync({ file, pointId });
   };
-
+  
   if (viewMode === 'demip') {
     const urlParams = new URLSearchParams(window.location.search);
     const selectedCompany = urlParams.get('company');
