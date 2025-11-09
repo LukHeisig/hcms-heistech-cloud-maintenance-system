@@ -14,9 +14,9 @@ import {
   ArrowRight,
   ChevronRight,
   Clock,
-  ArrowLeft, // Added for back buttons
-  Building2, // New icon for companies
-  Factory,   // New icon for lines
+  ArrowLeft,
+  Building2,
+  Factory,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { cs } from "date-fns/locale";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("lubrication");
   const navigate = useNavigate();
   const { viewMode } = useViewMode();
 
@@ -65,7 +66,7 @@ export default function Dashboard() {
     if (!user) return [];
     if (user.user_type === "superAdmin") return allCompanies;
     if (user.user_type === "admin") {
-      return allCompanies.filter(c => 
+      return allCompanies.filter(c =>
         user.assigned_company_ids?.includes(c.id)
       );
     }
@@ -463,8 +464,6 @@ export default function Dashboard() {
     const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
     const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
     const lubricatorPoints = machinePoints.filter(p => p.type === "auto_lubricator");
-
-    const [activeTab, setActiveTab] = React.useState("lubrication");
 
     const getDisplayPoints = () => {
       switch (activeTab) {
@@ -1216,6 +1215,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
