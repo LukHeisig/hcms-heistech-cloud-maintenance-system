@@ -376,29 +376,16 @@ export default function Dashboard() {
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-            <div className="max-w-5xl mx-auto p-3 md:p-6">
-              <div className="flex items-center justify-between mb-2 md:mb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const url = selectedCompany
-                      ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}`
-                      : `Dashboard?line=${selectedLine}&machine=${selectedMachine}`;
-                    navigate(createPageUrl(url));
-                  }}
-                  className="text-white hover:bg-white/20 p-2 h-auto"
-                >
-                  <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
-                </Button>
-                {pointIssues.length > 0 && (
-                  <AlertTriangle className="w-6 h-6 md:w-8 md:h-8 text-yellow-300" />
-                )}
-              </div>
-              <h1 className="text-lg md:text-2xl font-bold leading-tight">
+            <div className="max-w-5xl mx-auto p-4">
+              <h1 className="text-xl font-bold leading-tight mb-1">
                 {currentPoint.number && `${currentPoint.number} - `}
                 {currentPoint.name}
               </h1>
+              {currentPoint.description && (
+                <p className="text-sm text-blue-100 opacity-90">
+                  {currentPoint.description}
+                </p>
+              )}
             </div>
           </div>
 
@@ -453,6 +440,37 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base md:text-lg">
+                  Historie {currentPoint.type === "lubrication" ? "mazání" : "kontrol"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3">
+                {pointRecords.length === 0 ? (
+                  <p className="text-center text-slate-500 py-6 text-sm">Zatím nejsou žádné záznamy</p>
+                ) : (
+                  <div className="space-y-2">
+                    {pointRecords.map((record) => (
+                      <div key={record.id} className="bg-slate-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-slate-900 text-sm">
+                            {format(new Date(record.performed_at), "d.M.yyyy HH:mm", { locale: cs })}
+                          </span>
+                          <span className="text-xs text-slate-600">
+                            {getUserDisplayName(record.created_by)}
+                          </span>
+                        </div>
+                        {record.note && (
+                          <p className="text-sm text-slate-600">{record.note}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -570,37 +588,6 @@ export default function Dashboard() {
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base md:text-lg">
-                  Historie {currentPoint.type === "lubrication" ? "mazání" : "kontrol"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3">
-                {pointRecords.length === 0 ? (
-                  <p className="text-center text-slate-500 py-6 text-sm">Zatím nejsou žádné záznamy</p>
-                ) : (
-                  <div className="space-y-2">
-                    {pointRecords.map((record) => (
-                      <div key={record.id} className="bg-slate-50 p-3 rounded-lg">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-slate-900 text-sm">
-                            {format(new Date(record.performed_at), "d.M.yyyy HH:mm", { locale: cs })}
-                          </span>
-                          <span className="text-xs text-slate-600">
-                            {getUserDisplayName(record.created_by)}
-                          </span>
-                        </div>
-                        {record.note && (
-                          <p className="text-sm text-slate-600">{record.note}</p>
-                        )}
                       </div>
                     ))}
                   </div>
