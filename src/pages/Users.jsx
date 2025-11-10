@@ -74,6 +74,11 @@ export default function Users() {
     queryFn: () => base44.entities.Company.list(),
   });
 
+  const { data: auditLogs = [] } = useQuery({
+    queryKey: ["auditLogs"],
+    queryFn: () => base44.entities.AuditLog.list("-created_date", 1000),
+  });
+
   // Filtrovat podniky podle přístupových práv
   const companies = React.useMemo(() => {
     if (!currentUser) return [];
@@ -184,6 +189,13 @@ export default function Users() {
     if (!companyId) return "Není přiřazen";
     const company = companies.find((c) => c.id === companyId);
     return company ? company.name : "Neznámý podnik";
+  };
+
+  // Získat poslední aktivitu pro každého uživatele
+  const getUserLastActivity = (userEmail) => {
+    const userLogs = auditLogs.filter(log => log.changed_by === userEmail);
+    if (userLogs.length === 0) return null;
+    return userLogs[0]; // První = nejnovější (seřazeno DESC)
   };
 
   if (isLoading) {
@@ -387,50 +399,68 @@ export default function Users() {
                     <TableHead>Podnik</TableHead>
                     <TableHead>Telefon</TableHead>
                     <TableHead>Registrace</TableHead>
+                    <TableHead>Poslední aktivita</TableHead>
                     <TableHead className="text-right">Akce</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            {(user.custom_display_name || user.full_name)?.[0] || "?"}
+                  {filteredUsers.map((user) => {
+                    const lastActivity = getUserLastActivity(user.email);
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-500 rounded-full flex items-center justify-center text-white font-semibold">
+                              {(user.custom_display_name || user.full_name)?.[0] || "?"}
+                            </div>
+                            {user.custom_display_name || user.full_name || "Bez jména"}
                           </div>
-                          {user.custom_display_name || user.full_name || "Bez jména"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-slate-600">{user.email}</TableCell>
-                      <TableCell>{getUserTypeBadge(user.user_type)}</TableCell>
-                      <TableCell className="text-slate-600">
-                        {user.user_type === "superAdmin"
-                          ? <span className="text-slate-400 italic">Všechny podniky</span>
-                          : user.user_type === "admin"
-                          ? <span className="text-slate-400 italic">Přiřazené podniky</span>
-                          : getCompanyName(user.company_id)
-                        }
-                      </TableCell>
-                      <TableCell className="text-slate-600">
-                        {user.phone || "-"}
-                      </TableCell>
-                      <TableCell className="text-slate-600">
-                        {format(new Date(user.created_date), "d. M. yyyy", {
-                          locale: cs,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenEdit(user)}
-                          disabled={currentUser?.id === user.id}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-slate-600">{user.email}</TableCell>
+                        <TableCell>{getUserTypeBadge(user.user_type)}</TableCell>
+                        <TableCell className="text-slate-600">
+                          {user.user_type === "superAdmin"
+                            ? <span className="text-slate-400 italic">Všechny podniky</span>
+                            : user.user_type === "admin"
+                            ? <span className="text-slate-400 italic">Přiřazené podniky</span>
+                            : getCompanyName(user.company_id)
+                          }
+                        </TableCell>
+                        <TableCell className="text-slate-600">
+                          {user.phone || "-"}
+                        </TableCell>
+                        <TableCell className="text-slate-600">
+                          {format(new Date(user.created_date), "d. M. yyyy", {
+                            locale: cs,
+                          })}
+                        </TableCell>
+                        <TableCell className="text-slate-600">
+                          {lastActivity ? (
+                            <div className="text-xs">
+                              <div className="font-medium">
+                                {format(new Date(lastActivity.created_date), "d. M. yyyy HH:mm", { locale: cs })}
+                              </div>
+                              <div className="text-slate-500 truncate max-w-xs" title={lastActivity.change_description}>
+                                {lastActivity.change_description.length > 40 ? lastActivity.change_description.slice(0, 40) + "..." : lastActivity.change_description}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-xs">Žádná aktivita</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenEdit(user)}
+                            disabled={currentUser?.id === user.id}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

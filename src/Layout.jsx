@@ -20,6 +20,7 @@ import {
   Code,
   Wrench,
   Droplet,
+  Activity, // Added Activity icon
 } from "lucide-react";
 import {
   Sidebar,
@@ -167,6 +168,11 @@ function LayoutContent({ children }) {
             url: createPageUrl("IssueApproval"),
             icon: AlertTriangle,
             badge: pendingIssuesCount,
+          },
+          {
+            title: "Audit Log",
+            url: createPageUrl("AuditLog"),
+            icon: Activity,
           },
         ]
       : []),

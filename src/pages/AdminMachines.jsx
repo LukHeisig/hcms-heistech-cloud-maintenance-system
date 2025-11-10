@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,7 @@ export default function AdminMachines() {
   const [copyingMachine, setCopyingMachine] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyName, setCopyName] = useState("");
+  const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -66,6 +67,35 @@ export default function AdminMachines() {
     location: "",
     machine_type: null
   });
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    const currentUser = await base44.auth.me();
+    setUser(currentUser);
+  };
+
+  // Helper funkce pro vytvoření audit logu
+  const createAuditLog = async (entityType, entityId, description) => {
+    if (!user) {
+      console.warn("Audit log cannot be created: user not loaded.");
+      return;
+    }
+    try {
+      await base44.entities.AuditLog.create({
+        entity_type: entityType,
+        entity_id: entityId,
+        changed_by: user.email,
+        change_description: description,
+        user_type: user.user_type,
+        company_id: user.company_id || null,
+      });
+    } catch (error) {
+      console.error("Error creating audit log:", error);
+    }
+  };
 
   const { data: line } = useQuery({
     queryKey: ["line", lineId],
@@ -100,8 +130,14 @@ export default function AdminMachines() {
 
   const createMachineMutation = useMutation({
     mutationFn: (data) => base44.entities.Machine.create(data),
-    onSuccess: () => {
+    onSuccess: async (newMachine) => {
+      await createAuditLog(
+        "Machine",
+        newMachine.id,
+        `Vytvořil nový stroj "${newMachine.name}"`
+      );
       queryClient.invalidateQueries({ queryKey: ["machines"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
       setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
     },
@@ -109,8 +145,22 @@ export default function AdminMachines() {
 
   const updateMachineMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Machine.update(id, data),
-    onSuccess: () => {
+    onSuccess: async (updatedMachine, variables) => {
+      const oldMachine = machines.find(m => m.id === variables.id);
+      const changes = [];
+      if (oldMachine && oldMachine.name !== updatedMachine.name) changes.push(`název na "${updatedMachine.name}"`);
+      if (oldMachine && oldMachine.inventory_number !== updatedMachine.inventory_number) changes.push(`inventární číslo na "${updatedMachine.inventory_number || "null"}"`);
+      if (oldMachine && oldMachine.location !== updatedMachine.location) changes.push(`umístění na "${updatedMachine.location || "null"}"`);
+      if (oldMachine && oldMachine.machine_type !== updatedMachine.machine_type) changes.push(`typ stroje na "${updatedMachine.machine_type || "null"}"`);
+      if (oldMachine && oldMachine.description !== updatedMachine.description) changes.push(`popis`);
+      
+      await createAuditLog(
+        "Machine",
+        updatedMachine.id,
+        `Aktualizoval stroj "${updatedMachine.name}"${changes.length > 0 ? `: změnil ${changes.join(", ")}` : ""}`
+      );
       queryClient.invalidateQueries({ queryKey: ["machines"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
       setEditingMachine(null);
       setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
@@ -119,8 +169,15 @@ export default function AdminMachines() {
 
   const deleteMachineMutation = useMutation({
     mutationFn: (id) => base44.entities.Machine.delete(id),
-    onSuccess: () => {
+    onSuccess: async (_, deletedId) => {
+      const deletedMachine = machines.find(m => m.id === deletedId);
+      await createAuditLog(
+        "Machine",
+        deletedId,
+        `Smazal stroj "${deletedMachine?.name || "Neznámý stroj"}"`
+      );
       queryClient.invalidateQueries({ queryKey: ["machines"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setDeleteMachineId(null);
     },
   });
@@ -221,9 +278,16 @@ export default function AdminMachines() {
         });
       }
 
+      await createAuditLog(
+        "Machine",
+        newMachine.id,
+        `Zkopíroval stroj "${copyingMachine.name}" jako "${copyName}" (včetně ${machinePoints.length} kontrolních bodů)`
+      );
+
       // Refresh dat
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
 
       setShowCopyDialog(false);
       setCopyingMachine(null);

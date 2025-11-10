@@ -179,12 +179,24 @@ export default function IssueApproval() {
     return allResolvedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
   }, [allResolvedIssues, user, lines, machines, controlPoints]);
 
+  const allVisibleIssues = React.useMemo(() => [...reportedIssues, ...resolvedIssues], [reportedIssues, resolvedIssues]);
+
   const resolveIssueMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Issue.update(id, data),
-    onSuccess: () => {
+    onSuccess: async (updatedIssue) => {
+      const point = controlPoints.find(cp => cp.id === updatedIssue.control_point_id);
+      await base44.entities.AuditLog.create({
+        entity_type: "Issue",
+        entity_id: updatedIssue.id,
+        changed_by: user?.email || "",
+        change_description: `Vyřešil závadu "${updatedIssue.description.slice(0, 50)}..." na kontrolním bodě "${point?.name || "Neznámý"}"`,
+        user_type: user?.user_type,
+        company_id: user?.company_id || null,
+      });
       queryClient.invalidateQueries({ queryKey: ["reportedIssues"] });
       queryClient.invalidateQueries({ queryKey: ["resolvedIssues"] });
       queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowResolveDialog(false);
       setSelectedIssue(null);
       setResolutionNote("");
@@ -197,10 +209,20 @@ export default function IssueApproval() {
 
   const deleteIssueMutation = useMutation({
     mutationFn: (id) => base44.entities.Issue.delete(id),
-    onSuccess: () => {
+    onSuccess: async (_, deletedId) => {
+      const deletedIssue = allVisibleIssues.find(i => i.id === deletedId);
+      await base44.entities.AuditLog.create({
+        entity_type: "Issue",
+        entity_id: deletedId,
+        changed_by: user?.email || "",
+        change_description: `Smazal vyřešenou závadu "${deletedIssue?.description.slice(0, 50) || "Neznámá závada"}..."`,
+        user_type: user?.user_type,
+        company_id: user?.company_id || null,
+      });
       queryClient.invalidateQueries({ queryKey: ["reportedIssues"] });
       queryClient.invalidateQueries({ queryKey: ["resolvedIssues"] });
       queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setDeleteIssueId(null);
     },
   });
