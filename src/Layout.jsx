@@ -250,7 +250,7 @@ function LayoutContent({ children }) {
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-900">HCMS</h1>
-              <p className="text-xs text-slate-500">Heistech Cloud</p>
+              <p className="text-xs text-slate-500">Heistech Cloud Maintenance System</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -367,7 +367,7 @@ function LayoutContent({ children }) {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">HCMS</h2>
-                      <p className="text-sm text-slate-500">Heistech Cloud</p>
+                      <p className="text-sm text-slate-500">Heistech Cloud Maintenance System</p>
                     </div>
                   </div>
                   
