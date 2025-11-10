@@ -1304,17 +1304,17 @@ export default function Dashboard() {
                   <CardHeader className="border-b border-slate-100">
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2 text-xl">
-                        <Wrench className="w-5 h-5 text-slate-600" />
-                        Podniky
+                        <Activity className="w-5 h-5 text-slate-600" />
+                        Přehled výroby - Linky
                       </CardTitle>
                       {user?.user_type === "superAdmin" && (
                         <Button
-                          onClick={() => navigate(createPageUrl("AdminCompanies"))}
+                          onClick={() => navigate(createPageUrl("Admin"))}
                           size="sm"
                           variant="outline"
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
-                          Přidat podnik
+                          Správa struktury
                         </Button>
                       )}
                     </div>
@@ -1322,7 +1322,7 @@ export default function Dashboard() {
                   <CardContent className="p-6">
                     {activeCompanies.length === 0 ? (
                       <div className="text-center py-12">
-                        <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <Factory className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-slate-900 mb-2">
                           {user?.user_type === "superAdmin"
                             ? "Zatím nemáte žádné aktivní podniky"
@@ -1335,16 +1335,16 @@ export default function Dashboard() {
                         </p>
                         {user?.user_type === "superAdmin" && (
                           <Button
-                            onClick={() => navigate(createPageUrl("AdminCompanies"))}
+                            onClick={() => navigate(createPageUrl("Admin"))}
                             className="bg-gradient-to-r from-red-600 to-red-700"
                           >
                             <ArrowRight className="w-4 h-4 mr-2" />
-                            Vytvořit podnik
+                            Správa struktury
                           </Button>
                         )}
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         {activeCompanies.map((company) => {
                           const companyLines = allLines.filter((l) => l.company_id === company.id);
                           const companyMachines = machines.filter((m) =>
@@ -1361,47 +1361,78 @@ export default function Dashboard() {
                           ).length;
 
                           return (
-                            <Link key={company.id} to={createPageUrl(`AdminLines?company=${company.id}`)}>
-                              <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
-                                <CardContent className="p-5">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-4 flex-1">
-                                      <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                                        <Wrench className="w-6 h-6 text-white" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-3 mb-2">
-                                          <h3 className="text-lg font-bold text-slate-900">{company.name}</h3>
-                                          {companyOverdue > 0 && (
-                                            <Badge variant="destructive" className="gap-1">
-                                              <AlertTriangle className="w-3 h-3" />
-                                              {companyOverdue}
-                                            </Badge>
-                                          )}
-                                          {companyIssues > 0 && (
-                                            <Badge className="bg-orange-100 text-orange-700 gap-1">
-                                              <AlertTriangle className="w-3 h-3" />
-                                              {companyIssues}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                                          <span className="flex items-center gap-1">
-                                            <Activity className="w-4 h-4" />
-                                            {companyLines.length} linek
-                                          </span>
-                                          <span className="flex items-center gap-1">
-                                            <Droplet className="w-4 h-4" />
-                                            {companyPoints.length} bodů
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <ArrowRight className="w-6 h-6 text-slate-400 flex-shrink-0 ml-4" />
+                            <div key={company.id} className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
+                                    <Building2 className="w-5 h-5 text-white" />
                                   </div>
-                                </CardContent>
-                              </Card>
-                            </Link>
+                                  <div>
+                                    <h3 className="text-lg font-bold text-slate-900">{company.name}</h3>
+                                    <p className="text-sm text-slate-600">{companyLines.length} linek</p>
+                                  </div>
+                                </div>
+                                <Button
+                                  onClick={() => navigate(createPageUrl(`Admin`))}
+                                  size="sm"
+                                  variant="ghost"
+                                >
+                                  Spravovat
+                                </Button>
+                              </div>
+
+                              <div className="grid gap-3 pl-13">
+                                {companyLines.map((line) => {
+                                  const lineMachines = machines.filter((m) => m.line_id === line.id);
+                                  const linePoints = controlPoints.filter((point) =>
+                                    lineMachines.some((m) => m.id === point.machine_id)
+                                  );
+                                  const lineOverdue = linePoints.filter((point) => getPointStatus(point) === "overdue").length;
+                                  const lineIssues = issues.filter((issue) =>
+                                    linePoints.some((point) => point.id === issue.control_point_id)
+                                  ).length;
+
+                                  return (
+                                    <Link key={line.id} to={createPageUrl(`Lines?company=${company.id}&line=${line.id}`)}>
+                                      <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
+                                        <CardContent className="p-4">
+                                          <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-3 flex-1">
+                                              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <Factory className="w-4 h-4 text-slate-600" />
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                  <h4 className="font-semibold text-slate-900 text-sm">{line.name}</h4>
+                                                  {lineOverdue > 0 && (
+                                                    <Badge variant="destructive" className="gap-1 text-xs">
+                                                      <AlertTriangle className="w-3 h-3" />
+                                                      {lineOverdue}
+                                                    </Badge>
+                                                  )}
+                                                  {lineIssues > 0 && (
+                                                    <Badge className="bg-orange-100 text-orange-700 gap-1 text-xs">
+                                                      <AlertTriangle className="w-3 h-3" />
+                                                      {lineIssues}
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs text-slate-600">
+                                                  <span>{lineMachines.length} strojů</span>
+                                                  <span>·</span>
+                                                  <span>{linePoints.length} bodů</span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" />
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
@@ -1583,7 +1614,7 @@ export default function Dashboard() {
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <Activity className="w-5 h-5 text-slate-600" />
-                    Výrobní linky
+                    Přehled výroby - Linky
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">

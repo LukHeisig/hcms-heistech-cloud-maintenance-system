@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -158,11 +159,6 @@ function LayoutContent({ children }) {
       title: "Dashboard",
       url: createPageUrl("Dashboard"),
       icon: LayoutDashboard,
-    },
-    {
-      title: "Přehled výroby",
-      url: createPageUrl("Lines"),
-      icon: Factory,
     },
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [
