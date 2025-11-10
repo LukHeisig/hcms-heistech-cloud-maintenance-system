@@ -71,6 +71,7 @@ export default function Dashboard() {
   const [selectedDocPreview, setSelectedDocPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState(null);
+  const [imageErrors, setImageErrors] = useState({});
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
@@ -424,7 +425,7 @@ export default function Dashboard() {
         clearTimeout(timeoutId);
         setNfcChipId(serialNumber);
         setIsScanning(false);
-        abortController.abort(); // Stop scanning
+        abortController.abort();
       }, { signal: abortController.signal });
 
       ndef.addEventListener("readingerror", (event) => {
@@ -432,7 +433,7 @@ export default function Dashboard() {
         console.error("NFC reading error:", event);
         alert("Chyba při čtení NFC čipu.");
         setIsScanning(false);
-        abortController.abort(); // Stop scanning
+        abortController.abort();
       }, { signal: abortController.signal });
 
     } catch (error) {
@@ -479,38 +480,25 @@ export default function Dashboard() {
         clearTimeout(timeoutId);
         setIsNfcScanning(false);
         setShowNfcScanDialog(false);
-        abortController.abort(); // Stop scanning
-
-        console.log("NFC serial number:", serialNumber);
+        abortController.abort();
 
         const targetControlPoints = (viewMode === 'demip' ? activeControlPoints : controlPoints);
         const point = targetControlPoints.find(p => p.nfc_chip_id === serialNumber);
 
-        console.log("Found point:", point);
-
         if (point) {
           const machine = machines.find(m => m.id === point.machine_id);
           const line = allLines.find(l => l.id === machine?.line_id);
-          
-          console.log("Machine:", machine);
-          console.log("Line:", line);
 
           let url;
           if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
             const company = allCompanies.find(c => c.id === line?.company_id);
-            console.log("Company (admin):", company);
             url = `Dashboard?company=${company?.id}&line=${line?.id}&machine=${machine?.id}&point=${point.id}&nfc_scanned=true`;
           } else {
-            // Pro non-admin uživatele použijeme user.company_id, ale jen pro jeho vlastní linky/stroje
-            // company parametr se v URL pro tyto uživatele nepřenáší, protože už je implicitně dána user.company_id
-            console.log("User company_id:", user?.company_id);
             url = `Dashboard?line=${line?.id}&machine=${machine?.id}&point=${point.id}&nfc_scanned=true`;
           }
           
-          console.log("Navigating to:", url);
           navigate(createPageUrl(url));
         } else {
-          console.log("Point not found for serial number:", serialNumber);
           alert("Kontrolní bod s tímto NFC čipem nebyl nalezen");
         }
       }, { signal: abortController.signal });
@@ -521,7 +509,7 @@ export default function Dashboard() {
         alert("Chyba při čtení NFC čipu.");
         setIsNfcScanning(false);
         setShowNfcScanDialog(false);
-        abortController.abort(); // Stop scanning
+        abortController.abort();
       }, { signal: abortController.signal });
 
     } catch (error) {
@@ -530,6 +518,10 @@ export default function Dashboard() {
       setIsNfcScanning(false);
       setShowNfcScanDialog(false);
     }
+  };
+
+  const handleImageError = (docId) => {
+    setImageErrors(prev => ({ ...prev, [docId]: true }));
   };
 
   if (viewMode === 'demip') {
@@ -819,11 +811,13 @@ export default function Dashboard() {
                           setShowDocPreviewDialog(true);
                         }}
                       >
-                        {doc.file_type === "photo" ? (
+                        {doc.file_type === "photo" && !imageErrors[doc.id] ? (
                           <img
                             src={doc.file_url}
-                            alt={doc.file_name}
+                            alt={doc.file_name || "Dokumentace"}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={() => handleImageError(doc.id)}
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full bg-slate-100">
@@ -874,18 +868,21 @@ export default function Dashboard() {
                     src={selectedDocPreview.file_url}
                     alt={selectedDocPreview.file_name}
                     className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling.style.display = 'block';
+                    }}
                   />
-                ) : (
-                  <div className="text-center">
-                    <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600">Náhled není dostupný</p>
-                  </div>
-                )}
+                ) : null}
+                <div style={{ display: selectedDocPreview?.file_type !== "photo" ? 'block' : 'none' }} className="text-center">
+                  <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-600">Náhled není dostupný</p>
+                </div>
               </div>
               <DialogFooter className="p-4 border-t">
                 <Button
                   variant="outline"
-                  onClick={() => window.open(selectedDocPreview?.file_url, "_blank")}
+                  onClick={() => selectedDocPreview?.file_url && window.open(selectedDocPreview.file_url, "_blank")}
                 >
                   Otevřít v nové záložce
                 </Button>
