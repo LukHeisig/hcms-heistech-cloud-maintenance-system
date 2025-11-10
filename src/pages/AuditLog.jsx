@@ -21,17 +21,17 @@ import {
   User as UserIcon,
   Activity,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
 
 export default function AuditLog() {
   const [user, setUser] = useState(null);
   const [entityTypeFilter, setEntityTypeFilter] = useState("all");
-  const [userFilter, setUserFilter] = useState("");
+  const [userFilter, setUserFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateRangeFilter, setDateRangeFilter] = useState("all");
 
   useEffect(() => {
     loadUser();
@@ -42,9 +42,17 @@ export default function AuditLog() {
     setUser(currentUser);
   };
 
+  // Načíst logy pouze za poslední 2 měsíce
+  const twoMonthsAgo = new Date();
+  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
   const { data: allLogs = [], isLoading } = useQuery({
     queryKey: ["auditLogs"],
-    queryFn: () => base44.entities.AuditLog.list("-created_date", 500),
+    queryFn: async () => {
+      const logs = await base44.entities.AuditLog.list("-created_date", 1000);
+      // Filtrovat pouze logy z posledních 2 měsíců
+      return logs.filter(log => new Date(log.created_date) >= twoMonthsAgo);
+    },
     enabled: !!user,
   });
 
@@ -58,6 +66,11 @@ export default function AuditLog() {
     queryFn: () => base44.entities.Company.list(),
   });
 
+  const { data: lines = [] } = useQuery({
+    queryKey: ["lines"],
+    queryFn: () => base44.entities.Line.list(),
+  });
+
   const userMap = useMemo(() => {
     return allUsers.reduce((acc, u) => {
       acc[u.email] = u;
@@ -68,6 +81,70 @@ export default function AuditLog() {
   const getUserDisplayName = (email) => {
     const u = userMap[email];
     return u ? (u.custom_display_name || u.full_name || u.email) : email;
+  };
+
+  // Získat uživatele, které může aktuální uživatel vidět podle hierarchie
+  const visibleUsers = useMemo(() => {
+    if (!user) return [];
+
+    if (user.user_type === "superAdmin") {
+      // SuperAdmin vidí všechny uživatele
+      return allUsers;
+    }
+
+    if (user.user_type === "admin") {
+      // Admin vidí uživatele z přiřazených podniků (technici a manažeři)
+      const assignedCompanyIds = user.assigned_company_ids || [];
+      return allUsers.filter(u => 
+        // Vidí sám sebe, ostatní adminy a uživatele z přiřazených podniků
+        u.id === user.id ||
+        (u.company_id && assignedCompanyIds.includes(u.company_id))
+      );
+    }
+
+    if (user.user_type === "manager") {
+      // Manager vidí pouze techniky ze svého podniku a sebe
+      return allUsers.filter(u => 
+        u.id === user.id ||
+        (u.company_id === user.company_id && u.user_type === "technician")
+      );
+    }
+
+    // Technik nevidí audit log
+    return [];
+  }, [user, allUsers]);
+
+  // Funkce pro výpočet datového rozsahu
+  const getDateRange = (rangeType) => {
+    const now = new Date();
+    let fromDate = null;
+    let toDate = null;
+
+    switch (rangeType) {
+      case "thisWeek":
+        fromDate = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+        toDate = endOfWeek(now, { weekStartsOn: 1 });
+        break;
+      case "lastWeek":
+        const lastWeek = subDays(now, 7);
+        fromDate = startOfWeek(lastWeek, { weekStartsOn: 1 });
+        toDate = endOfWeek(lastWeek, { weekStartsOn: 1 });
+        break;
+      case "lastMonth":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        fromDate = startOfMonth(lastMonth);
+        toDate = endOfMonth(lastMonth);
+        break;
+      case "last30Days":
+        fromDate = subDays(now, 30);
+        toDate = now;
+        break;
+      case "all":
+      default:
+        return { fromDate: null, toDate: null };
+    }
+
+    return { fromDate, toDate };
   };
 
   // Hierarchické filtrování logů podle role uživatele
@@ -83,9 +160,10 @@ export default function AuditLog() {
     } else if (user.user_type === "admin") {
       // Admin vidí pouze logy z přiřazených podniků
       const assignedCompanyIds = user.assigned_company_ids || [];
-      logs = logs.filter(log => 
-        !log.company_id || assignedCompanyIds.includes(log.company_id)
-      );
+      logs = logs.filter(log => {
+        if (!log.company_id) return true; // Auth události bez podniku
+        return assignedCompanyIds.includes(log.company_id);
+      });
     } else if (user.user_type === "manager") {
       // Manager vidí pouze logy ze svého podniku
       logs = logs.filter(log => 
@@ -102,10 +180,8 @@ export default function AuditLog() {
     }
 
     // Filtrování podle uživatele
-    if (userFilter.trim()) {
-      logs = logs.filter(log => 
-        log.changed_by.toLowerCase().includes(userFilter.toLowerCase())
-      );
+    if (userFilter !== "all") {
+      logs = logs.filter(log => log.changed_by === userFilter);
     }
 
     // Textové vyhledávání v popisu
@@ -115,21 +191,19 @@ export default function AuditLog() {
       );
     }
 
-    // Filtrování podle data
-    if (dateFrom) {
-      const fromDate = new Date(dateFrom);
-      fromDate.setHours(0, 0, 0, 0);
-      logs = logs.filter(log => new Date(log.created_date) >= fromDate);
-    }
-
-    if (dateTo) {
-      const toDate = new Date(dateTo);
-      toDate.setHours(23, 59, 59, 999);
-      logs = logs.filter(log => new Date(log.created_date) <= toDate);
+    // Filtrování podle datového rozsahu
+    if (dateRangeFilter !== "all") {
+      const { fromDate, toDate } = getDateRange(dateRangeFilter);
+      if (fromDate && toDate) {
+        logs = logs.filter(log => {
+          const logDate = new Date(log.created_date);
+          return logDate >= fromDate && logDate <= toDate;
+        });
+      }
     }
 
     return logs;
-  }, [allLogs, user, entityTypeFilter, userFilter, searchQuery, dateFrom, dateTo]);
+  }, [allLogs, user, entityTypeFilter, userFilter, searchQuery, dateRangeFilter]);
 
   // Pokud uživatel není oprávněn
   if (user && user.user_type === "technician") {
@@ -180,6 +254,10 @@ export default function AuditLog() {
     );
   };
 
+  const oldestLogDate = allLogs.length > 0 
+    ? new Date(Math.min(...allLogs.map(log => new Date(log.created_date))))
+    : null;
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -191,6 +269,24 @@ export default function AuditLog() {
             {user?.user_type === "admin" && " (pouze vaše přiřazené podniky)"}
           </p>
         </div>
+
+        {/* Informace o retention policy */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-blue-900 font-medium mb-1">
+                  Uchování záznamů: 2 měsíce
+                </p>
+                <p className="text-xs text-blue-800">
+                  Starší záznamy jsou automaticky mazány pro úsporu serverového prostoru.
+                  {oldestLogDate && ` Nejstarší záznam: ${format(oldestLogDate, "d. M. yyyy", { locale: cs })}`}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Filtry */}
         <Card className="mb-6 shadow-lg">
@@ -223,71 +319,110 @@ export default function AuditLog() {
 
               <div>
                 <Label htmlFor="userFilter">Uživatel</Label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="userFilter"
-                    value={userFilter}
-                    onChange={(e) => setUserFilter(e.target.value)}
-                    placeholder="Email uživatele..."
-                    className="pl-10"
-                  />
-                </div>
+                <Select value={userFilter} onValueChange={setUserFilter}>
+                  <SelectTrigger id="userFilter">
+                    <SelectValue placeholder="Všichni uživatelé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <UserIcon className="w-4 h-4" />
+                        Všichni uživatelé
+                      </div>
+                    </SelectItem>
+                    {visibleUsers
+                      .sort((a, b) => {
+                        // Seřadit podle role a jména
+                        const roleOrder = { superAdmin: 0, admin: 1, manager: 2, technician: 3 };
+                        const aOrder = roleOrder[a.user_type] || 999;
+                        const bOrder = roleOrder[b.user_type] || 999;
+                        if (aOrder !== bOrder) return aOrder - bOrder;
+                        return (a.custom_display_name || a.full_name || a.email).localeCompare(
+                          b.custom_display_name || b.full_name || b.email
+                        );
+                      })
+                      .map((u) => (
+                        <SelectItem key={u.id} value={u.email}>
+                          <div className="flex items-center gap-2">
+                            <UserIcon className="w-4 h-4" />
+                            <span className="flex-1">{getUserDisplayName(u.email)}</span>
+                            <Badge variant="outline" className="text-xs ml-2">
+                              {u.user_type === "superAdmin" ? "Super Admin" : 
+                               u.user_type === "admin" ? "Admin" :
+                               u.user_type === "manager" ? "Vedoucí" : "Technik"}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label htmlFor="dateFrom">Od data</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="dateFrom"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <Label htmlFor="dateRange">Časové období</Label>
+                <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+                  <SelectTrigger id="dateRange">
+                    <SelectValue placeholder="Vyberte období" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Vše (poslední 2 měsíce)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="thisWeek">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Tento týden
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="lastWeek">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Minulý týden
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="last30Days">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Posledních 30 dní
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="lastMonth">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Minulý měsíc
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label htmlFor="dateTo">Do data</Label>
+                <Label htmlFor="search">Hledat v popisu</Label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
-                    id="dateTo"
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
+                    id="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Vyhledat..."
                     className="pl-10"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="mt-4">
-              <Label htmlFor="search">Hledat v popisu</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  id="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Vyhledat v popisu změny..."
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {(entityTypeFilter !== "all" || userFilter || searchQuery || dateFrom || dateTo) && (
+            {(entityTypeFilter !== "all" || userFilter !== "all" || searchQuery || dateRangeFilter !== "all") && (
               <div className="mt-4">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setEntityTypeFilter("all");
-                    setUserFilter("");
+                    setUserFilter("all");
                     setSearchQuery("");
-                    setDateFrom("");
-                    setDateTo("");
+                    setDateRangeFilter("all");
                   }}
                 >
                   Vymazat filtry
