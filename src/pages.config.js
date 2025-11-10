@@ -12,6 +12,7 @@ import AdminCompanies from './pages/AdminCompanies';
 import ControlPoint from './pages/ControlPoint';
 import About from './pages/About';
 import ApiDocumentation from './pages/ApiDocumentation';
+import AuditLog from './pages/AuditLog';
 import Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "ControlPoint": ControlPoint,
     "About": About,
     "ApiDocumentation": ApiDocumentation,
+    "AuditLog": AuditLog,
 }
 
 export const pagesConfig = {
