@@ -64,7 +64,7 @@ export default function AdminMachines() {
     description: "",
     inventory_number: "",
     location: "",
-    machine_type: ""
+    machine_type: null
   });
 
   const { data: line } = useQuery({
@@ -103,7 +103,7 @@ export default function AdminMachines() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       setShowMachineDialog(false);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: "" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
     },
   });
 
@@ -113,7 +113,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       setShowMachineDialog(false);
       setEditingMachine(null);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: "" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
     },
   });
 
@@ -133,7 +133,7 @@ export default function AdminMachines() {
         description: machine.description || "",
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
-        machine_type: machine.machine_type || ""
+        machine_type: machine.machine_type || null
       });
     } else {
       setEditingMachine(null);
@@ -142,7 +142,7 @@ export default function AdminMachines() {
         description: "",
         inventory_number: "",
         location: "",
-        machine_type: ""
+        machine_type: null
       });
     }
     setShowMachineDialog(true);
@@ -151,14 +151,22 @@ export default function AdminMachines() {
   const handleSaveMachine = async () => {
     if (!formData.name.trim()) return;
 
+    const dataToSave = {
+      name: formData.name.trim(),
+      description: formData.description.trim() || null,
+      inventory_number: formData.inventory_number.trim() || null,
+      location: formData.location.trim() || null,
+      machine_type: formData.machine_type || null,
+    };
+
     if (editingMachine) {
       await updateMachineMutation.mutateAsync({
         id: editingMachine.id,
-        data: formData,
+        data: dataToSave,
       });
     } else {
       await createMachineMutation.mutateAsync({
-        ...formData,
+        ...dataToSave,
         line_id: lineId,
         order_index: machines.length,
       });
@@ -183,13 +191,13 @@ export default function AdminMachines() {
     try {
       // 1. Vytvořit nový stroj
       const newMachine = await base44.entities.Machine.create({
-        name: copyName,
-        description: copyingMachine.description || "",
+        name: copyName.trim(),
+        description: copyingMachine.description || null,
         line_id: copyingMachine.line_id,
         order_index: machines.length,
-        inventory_number: "", // Do not copy inventory number by default
-        location: copyingMachine.location || "",
-        machine_type: copyingMachine.machine_type || ""
+        inventory_number: null, // Do not copy inventory number by default
+        location: copyingMachine.location || null,
+        machine_type: copyingMachine.machine_type || null
       });
 
       // 2. Najít všechny kontrolní body původního stroje
@@ -202,14 +210,14 @@ export default function AdminMachines() {
         await base44.entities.ControlPoint.create({
           machine_id: newMachine.id,
           type: point.type,
-          number: point.number || "",
+          number: point.number || null,
           name: point.name,
-          description: point.description || "",
-          lubricant_type: point.lubricant_type || "",
+          description: point.description || null,
+          lubricant_type: point.lubricant_type || null,
           lubricant_amount: point.lubricant_amount || null,
           interval_hours: point.interval_hours || null,
-          nfc_chip_id: point.nfc_chip_id || "",
-          inspection_tasks: point.inspection_tasks || "",
+          nfc_chip_id: point.nfc_chip_id || null,
+          inspection_tasks: point.inspection_tasks || null,
         });
       }
 
@@ -429,9 +437,9 @@ export default function AdminMachines() {
                 <div>
                   <Label htmlFor="machine_type">Typ zařízení</Label>
                   <Select
-                    value={formData.machine_type}
+                    value={formData.machine_type || ""}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, machine_type: value })
+                      setFormData({ ...formData, machine_type: value || null })
                     }
                   >
                     <SelectTrigger id="machine_type">
