@@ -137,7 +137,10 @@ export default function IssueApproval() {
       const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
       const companyControlPointIds = companyControlPoints.map(cp => cp.id);
       
-      return allReportedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+      return allReportedIssues.filter(issue => 
+        (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
+        (issue.machine_id && companyMachineIds.includes(issue.machine_id))
+      );
     }
 
     // Pro non-admin: filtrovat podle company_id
@@ -148,7 +151,10 @@ export default function IssueApproval() {
     const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
     const companyControlPointIds = companyControlPoints.map(cp => cp.id);
 
-    return allReportedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+    return allReportedIssues.filter(issue => 
+      (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
+      (issue.machine_id && companyMachineIds.includes(issue.machine_id))
+    );
   }, [allReportedIssues, user, lines, machines, controlPoints]);
 
   const resolvedIssues = React.useMemo(() => {
@@ -165,7 +171,10 @@ export default function IssueApproval() {
       const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
       const companyControlPointIds = companyControlPoints.map(cp => cp.id);
       
-      return allResolvedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+      return allResolvedIssues.filter(issue => 
+        (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
+        (issue.machine_id && companyMachineIds.includes(issue.machine_id))
+      );
     }
 
     // Pro non-admin: filtrovat podle company_id
@@ -176,20 +185,60 @@ export default function IssueApproval() {
     const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
     const companyControlPointIds = companyControlPoints.map(cp => cp.id);
 
-    return allResolvedIssues.filter(issue => companyControlPointIds.includes(issue.control_point_id));
+    return allResolvedIssues.filter(issue => 
+      (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
+      (issue.machine_id && companyMachineIds.includes(issue.machine_id))
+    );
   }, [allResolvedIssues, user, lines, machines, controlPoints]);
 
   const allVisibleIssues = React.useMemo(() => [...reportedIssues, ...resolvedIssues], [reportedIssues, resolvedIssues]);
 
+  // Získat informace o bodě nebo stroji pro zobrazení
+  const getIssueInfo = (issue) => {
+    if (issue.control_point_id) {
+      const point = controlPoints.find((p) => p.id === issue.control_point_id);
+      if (!point) return { name: "Neznámý bod", machineName: "", lineName: "", companyName: "", type: "control_point" };
+
+      const machine = machines.find((m) => m.id === point.machine_id);
+      const line = lines.find((l) => l.id === machine?.line_id);
+      const company = companies.find((c) => c.id === line?.company_id);
+
+      return {
+        name: point.name,
+        number: point.number,
+        machineName: machine?.name || "",
+        lineName: line?.name || "",
+        companyName: company?.name || "",
+        type: "control_point",
+      };
+    } else if (issue.machine_id) {
+      const machine = machines.find((m) => m.id === issue.machine_id);
+      if (!machine) return { name: "Neznámý stroj", machineName: "", lineName: "", companyName: "", type: "machine" };
+
+      const line = lines.find((l) => l.id === machine.line_id);
+      const company = companies.find((c) => c.id === line?.company_id);
+
+      return {
+        name: machine.name,
+        machineName: machine.name,
+        lineName: line?.name || "",
+        companyName: company?.name || "",
+        type: "machine",
+      };
+    }
+
+    return { name: "Neznámá lokace", machineName: "", lineName: "", companyName: "", type: "unknown" };
+  };
+
   const resolveIssueMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Issue.update(id, data),
     onSuccess: async (updatedIssue) => {
-      const point = controlPoints.find(cp => cp.id === updatedIssue.control_point_id);
+      const info = getIssueInfo(updatedIssue);
       await base44.entities.AuditLog.create({
         entity_type: "Issue",
         entity_id: updatedIssue.id,
         changed_by: user?.email || "",
-        change_description: `Vyřešil závadu "${updatedIssue.description.slice(0, 50)}..." na kontrolním bodě "${point?.name || "Neznámý"}"`,
+        change_description: `Vyřešil závadu "${updatedIssue.description.slice(0, 50)}..." na ${info.type === "control_point" ? "kontrolním bodě" : "stroji"} "${info.name || "Neznámý"}"`,
         user_type: user?.user_type,
         company_id: user?.company_id || null,
       });
@@ -248,28 +297,11 @@ export default function IssueApproval() {
     });
   };
 
-  const getPointInfo = (controlPointId) => {
-    const point = controlPoints.find((p) => p.id === controlPointId);
-    if (!point) return { pointName: "Neznámý bod", machineName: "", lineName: "", companyName: "" };
-
-    const machine = machines.find((m) => m.id === point.machine_id);
-    const line = lines.find((l) => l.id === machine?.line_id);
-    const company = companies.find((c) => c.id === line?.company_id);
-
-    return {
-      pointName: point.name,
-      pointNumber: point.number,
-      machineName: machine?.name || "",
-      lineName: line?.name || "",
-      companyName: company?.name || "",
-    };
-  };
-
   const canResolveIssues = user?.user_type === "admin" || user?.user_type === "manager" || user?.user_type === "superAdmin";
   const canDeleteIssues = user?.user_type === "admin" || user?.user_type === "manager" || user?.user_type === "superAdmin";
 
   const renderIssueCard = (issue, isResolved = false) => {
-    const { pointName, pointNumber, machineName, lineName, companyName } = getPointInfo(issue.control_point_id);
+    const issueInfo = getIssueInfo(issue);
     const isHighlighted = issue.id === highlightedIssueId;
 
     return (
@@ -292,8 +324,12 @@ export default function IssueApproval() {
                   <AlertTriangle className="w-5 h-5 text-orange-600" />
                 )}
                 <CardTitle className="text-lg">
-                  {pointNumber && `${pointNumber} - `}{pointName}
+                  {issueInfo.type === "control_point" && issueInfo.number && `${issueInfo.number} - `}
+                  {issueInfo.name}
                 </CardTitle>
+                {issueInfo.type === "machine" && (
+                  <Badge className="bg-blue-100 text-blue-700">Celý stroj</Badge>
+                )}
                 {isHighlighted && (
                   <Badge className="bg-blue-600 text-white">
                     Vybraná závada
@@ -301,21 +337,21 @@ export default function IssueApproval() {
                 )}
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
-                {companyName && (
+                {issueInfo.companyName && (
                   <>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      {companyName}
+                      {issueInfo.companyName}
                     </Badge>
                     <span>•</span>
                   </>
                 )}
-                {lineName && (
+                {issueInfo.lineName && (
                   <>
-                    <span>{lineName}</span>
+                    <span>{issueInfo.lineName}</span>
                     <span>•</span>
                   </>
                 )}
-                <span>{machineName}</span>
+                <span>{issueInfo.machineName}</span>
               </div>
             </div>
             <div className="flex gap-2">
@@ -349,6 +385,27 @@ export default function IssueApproval() {
                 {issue.description}
               </p>
             </div>
+
+            {issue.photo_url && (
+              <div>
+                <p className="text-sm font-medium text-slate-700 mb-2">Fotografie:</p>
+                <div 
+                  className="relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 cursor-pointer hover:border-orange-400 transition-all"
+                  onClick={() => window.open(issue.photo_url, "_blank")}
+                >
+                  <img
+                    src={issue.photo_url}
+                    alt="Fotografie závady"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-all flex items-center justify-center">
+                    <span className="text-white font-medium opacity-0 hover:opacity-100 transition-opacity">
+                      Kliknout pro zvětšení
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center gap-4 text-xs text-slate-500">
               <div className="flex items-center gap-1">
@@ -478,7 +535,7 @@ export default function IssueApproval() {
               <DialogDescription>
                 {selectedIssue && (
                   <>
-                    Vyřešení závady na bodě: {getPointInfo(selectedIssue.control_point_id).pointName}
+                    Vyřešení závady na: {getIssueInfo(selectedIssue).name}
                   </>
                 )}
               </DialogDescription>

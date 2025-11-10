@@ -65,7 +65,10 @@ export default function Dashboard() {
 
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
+  const [issuePhoto, setIssuePhoto] = useState(null); // ADDED
   const [isReportingIssue, setIsReportingIssue] = useState(false);
+  const issuePhotoInputRef = useRef(null); // ADDED
+  const issueCameraInputRef = useRef(null); // ADDED
 
   const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
   const [selectedDocPreview, setSelectedDocPreview] = useState(null);
@@ -274,11 +277,94 @@ export default function Dashboard() {
   }, [user, issues, activeControlPoints]);
 
   const issueMutation = useMutation({
-    mutationFn: (data) => base44.entities.Issue.create(data),
+    mutationFn: async (data) => {
+      // Nahrát fotku, pokud existuje
+      let photoUrl = null;
+      if (data.photo) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: data.photo });
+        photoUrl = file_url;
+      }
+
+      // Vytvořit závadu s photo_url nebo machine_id
+      const issue = await base44.entities.Issue.create({
+        control_point_id: data.control_point_id || null,
+        machine_id: data.machine_id || null, // Allow machine_id
+        description: data.description,
+        photo_url: photoUrl,
+        status: "reported",
+      });
+
+      // Poslat notifikace manažerům
+      // Determine company_id first
+      let companyIdToNotify = user?.company_id;
+      
+      // If issue is tied to a specific machine or control point, try to find its company_id
+      if (!companyIdToNotify && (issue.machine_id || issue.control_point_id)) {
+        let machineIdForLookup = issue.machine_id;
+        
+        if (!machineIdForLookup && issue.control_point_id) {
+          const point = controlPoints.find(p => p.id === issue.control_point_id);
+          machineIdForLookup = point?.machine_id;
+        }
+        
+        if (machineIdForLookup) {
+          const machine = machines.find(m => m.id === machineIdForLookup);
+          if (machine) {
+            const line = allLines.find(l => l.id === machine.line_id);
+            if (line) {
+              companyIdToNotify = line.company_id;
+            }
+          }
+        }
+      }
+      
+      // If we found a company_id, notify relevant users
+      if (companyIdToNotify) {
+        const managersAndAdmins = allUsers.filter(u => 
+          ((u.user_type === "manager" && u.company_id === companyIdToNotify) ||
+           (u.user_type === "admin" && u.assigned_company_ids?.includes(companyIdToNotify)))
+        );
+        
+        // Zjistit detaily pro email
+        let locationInfo = "";
+        if (issue.control_point_id) { // Prioritize control point detail
+          const point = controlPoints.find(p => p.id === issue.control_point_id);
+          if (point) {
+            const machine = machines.find(m => m.id === point.machine_id);
+            if (machine) {
+              const line = allLines.find(l => l.id === machine.line_id);
+              locationInfo = `Kontrolní bod: ${point.name} na stroji ${machine.name}${line ? ` (Linka: ${line.name})` : ""}`;
+            }
+          }
+        } else if (issue.machine_id) { // Fallback to machine detail if no control point
+          const machine = machines.find(m => m.id === issue.machine_id);
+          if (machine) {
+            const line = allLines.find(l => l.id === machine.line_id);
+            locationInfo = `Stroj: ${machine.name}${line ? ` (Linka: ${line.name})` : ""}`;
+          }
+        }
+        
+        // Poslat email každému manažerovi/adminovi
+        for (const manager of managersAndAdmins) {
+          try {
+            await base44.integrations.Core.SendEmail({
+              to: manager.email,
+              subject: `[HCMS] Nová závada nahlášena`,
+              body: `Dobrý den,\n\nByla nahlášena nová závada v systému HCMS:\n\n${locationInfo}\n\nPopis závady:\n${issue.description}\n\nNahlásil: ${getUserDisplayName(user.email)}\n\nProsím přihlaste se do systému pro více informací a možnost vyřešení závady.\n\nS pozdravem,\nHCMS systém`,
+            });
+          } catch (error) {
+            console.error(`Chyba při odesílání notifikace pro ${manager.email}:`, error);
+          }
+        }
+      }
+
+      return issue;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       setShowIssueDialog(false);
       setIssueDescription("");
+      setIssuePhoto(null); // Clear issue photo
       setIsReportingIssue(false);
     },
     onError: () => {
@@ -358,14 +444,15 @@ export default function Dashboard() {
     },
   });
 
-  const handleReportIssue = async (pointId) => {
+  const handleReportIssue = async (pointId, machineId) => { // Added machineId
     if (!issueDescription.trim()) return;
     setIsReportingIssue(true);
 
     await issueMutation.mutateAsync({
-      control_point_id: pointId,
+      control_point_id: pointId || null,
+      machine_id: machineId || null, // Pass machineId
       description: issueDescription,
-      status: "reported",
+      photo: issuePhoto, // Pass issuePhoto
     });
   };
 
@@ -733,7 +820,12 @@ export default function Dashboard() {
                   {pointIssues.map((issue) => (
                     <div key={issue.id} className="bg-white p-3 rounded-lg border border-orange-200">
                       <p className="text-sm text-slate-900 mb-1">{issue.description}</p>
-                      <p className="text-xs text-slate-500">
+                      {issue.photo_url && (
+                        <div className="mt-2">
+                          <img src={issue.photo_url} alt="Závada" className="max-h-24 object-contain rounded-md" />
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500 mt-2">
                         {format(new Date(issue.created_date), "d.M.yyyy HH:mm", { locale: cs })} • {getUserDisplayName(issue.created_by)}
                       </p>
                     </div>
@@ -1003,7 +1095,13 @@ export default function Dashboard() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showIssueDialog} onOpenChange={setShowIssueDialog}>
+          <Dialog open={showIssueDialog} onOpenChange={(isOpen) => {
+            setShowIssueDialog(isOpen);
+            if (!isOpen) { // Clear on close
+              setIssueDescription("");
+              setIssuePhoto(null);
+            }
+          }}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-orange-700">
@@ -1011,7 +1109,7 @@ export default function Dashboard() {
                   Nahlásit závadu
                 </DialogTitle>
                 <DialogDescription>
-                  Popište zjištěnou závadu na kontrolním bodě
+                  Popište zjištěnou závadu{selectedPoint ? " na kontrolním bodě" : ""}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -1026,6 +1124,64 @@ export default function Dashboard() {
                     className="mt-2"
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="issue_photo">Fotografie závady (volitelné)</Label>
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      ref={issuePhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setIssuePhoto(file);
+                      }}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => issuePhotoInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {issuePhoto ? issuePhoto.name : "Nahrát fotku"}
+                    </Button>
+                    <input
+                      ref={issueCameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setIssuePhoto(file);
+                      }}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => issueCameraInputRef.current?.click()}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </Button>
+                    {issuePhoto && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIssuePhoto(null)}
+                      >
+                        <X className="w-4 h-4 text-red-600" />
+                      </Button>
+                    )}
+                  </div>
+                  {issuePhoto && (
+                    <div className="mt-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                      <p className="text-xs text-slate-600">Vybraná fotka: {issuePhoto.name}</p>
+                    </div>
+                  )}
+                </div>
               </div>
               <DialogFooter>
                 <Button
@@ -1033,13 +1189,14 @@ export default function Dashboard() {
                   onClick={() => {
                     setShowIssueDialog(false);
                     setIssueDescription("");
+                    setIssuePhoto(null);
                   }}
                   disabled={isReportingIssue}
                 >
                   Zrušit
                 </Button>
                 <Button
-                  onClick={() => handleReportIssue(selectedPoint)}
+                  onClick={() => handleReportIssue(selectedPoint, null)}
                   disabled={!issueDescription.trim() || isReportingIssue}
                   className="bg-gradient-to-r from-orange-600 to-orange-700"
                 >
@@ -1496,6 +1653,11 @@ export default function Dashboard() {
                             <div key={issue.id} className="p-3 rounded-lg bg-orange-50 border border-orange-200">
                               <p className="text-sm font-medium text-slate-900 mb-1">{point?.name || "Neznámý bod"}</p>
                               <p className="text-xs text-slate-600 line-clamp-2">{issue.description}</p>
+                              {issue.photo_url && (
+                                <div className="mt-2">
+                                  <img src={issue.photo_url} alt="Závada" className="max-h-20 object-contain rounded-md" />
+                                </div>
+                              )}
                               <p className="text-xs text-slate-500 mt-2">
                                 {format(new Date(issue.created_date), "d. M. yyyy", { locale: cs })} • {getUserDisplayName(issue.created_by)}
                               </p>
@@ -1734,6 +1896,11 @@ export default function Dashboard() {
                           <div key={issue.id} className="p-3 rounded-lg bg-orange-50 border border-orange-200">
                             <p className="text-sm font-medium text-slate-900 mb-1">{point?.name || "Neznámý bod"}</p>
                             <p className="text-xs text-slate-600 line-clamp-2">{issue.description}</p>
+                            {issue.photo_url && (
+                              <div className="mt-2">
+                                <img src={issue.photo_url} alt="Závada" className="max-h-20 object-contain rounded-md" />
+                              </div>
+                            )}
                             <p className="text-xs text-slate-500 mt-2">
                               {format(new Date(issue.created_date), "d. M. yyyy", { locale: cs })} • {getUserDisplayName(issue.created_by)}
                             </p>
