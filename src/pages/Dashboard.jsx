@@ -152,29 +152,77 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Line.list(),
   });
 
-  const { data: machines = [] } = useQuery({
-    queryKey: ["machines"],
+  const { data: allMachines = [] } = useQuery({
+    queryKey: ["allMachines"],
     queryFn: () => base44.entities.Machine.list("order_index"),
     enabled: !!user,
   });
 
-  const { data: controlPoints = [] } = useQuery({
-    queryKey: ["controlPoints"],
+  // Filtrovat stroje podle company_id pro non-admin uživatele
+  const machines = React.useMemo(() => {
+    if (!user) return [];
+    if (user.user_type === "admin" || user.user_type === "superAdmin") {
+      return allMachines;
+    }
+    // Pro manager/technician vrátit pouze stroje z jejich podniku
+    const userLineIds = lines.map(l => l.id);
+    return allMachines.filter(m => userLineIds.includes(m.line_id));
+  }, [user, allMachines, lines]);
+
+  const { data: allControlPoints = [] } = useQuery({
+    queryKey: ["allControlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(),
     enabled: !!user,
   });
 
-  const { data: records = [] } = useQuery({
-    queryKey: ["records"],
+  // Filtrovat kontrolní body podle company_id pro non-admin uživatele
+  const controlPoints = React.useMemo(() => {
+    if (!user) return [];
+    if (user.user_type === "admin" || user.user_type === "superAdmin") {
+      return allControlPoints;
+    }
+    // Pro manager/technician vrátit pouze body z jejich strojů
+    const userMachineIds = machines.map(m => m.id);
+    return allControlPoints.filter(cp => userMachineIds.includes(cp.machine_id));
+  }, [user, allControlPoints, machines]);
+
+  const { data: allRecords = [] } = useQuery({
+    queryKey: ["allRecords"],
     queryFn: () => base44.entities.ControlRecord.list("-performed_at", 100),
     enabled: !!user,
   });
 
-  const { data: issues = [] } = useQuery({
-    queryKey: ["issues"],
+  // Filtrovat záznamy podle company_id pro non-admin uživatele
+  const records = React.useMemo(() => {
+    if (!user) return [];
+    if (user.user_type === "admin" || user.user_type === "superAdmin") {
+      return allRecords;
+    }
+    // Pro manager/technician vrátit pouze záznamy z jejich bodů
+    const userPointIds = controlPoints.map(p => p.id);
+    return allRecords.filter(r => userPointIds.includes(r.control_point_id));
+  }, [user, allRecords, controlPoints]);
+
+  const { data: allIssues = [] } = useQuery({
+    queryKey: ["allIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
     enabled: !!user,
   });
+
+  // Filtrovat závady podle company_id pro non-admin uživatele
+  const issues = React.useMemo(() => {
+    if (!user) return [];
+    if (user.user_type === "admin" || user.user_type === "superAdmin") {
+      return allIssues;
+    }
+    // Pro manager/technician vrátit pouze závady z jejich bodů
+    const userPointIds = controlPoints.map(p => p.id);
+    const userMachineIds = machines.map(m => m.id);
+    return allIssues.filter(issue =>
+      (issue.control_point_id && userPointIds.includes(issue.control_point_id)) ||
+      (issue.machine_id && userMachineIds.includes(issue.machine_id))
+    );
+  }, [user, allIssues, controlPoints, machines]);
 
   const { data: documentation = [] } = useQuery({
     queryKey: ["documentation", selectedPoint],
@@ -236,10 +284,10 @@ export default function Dashboard() {
       const activeLinesIds = allLines
         .filter(l => activeCompanyIds.includes(l.company_id))
         .map(l => l.id);
-      const activeMachineIds = machines
+      const activeMachineIds = machines // This `machines` is the useMemo, which for admins is `allMachines`. Correct.
         .filter(m => activeLinesIds.includes(m.line_id))
         .map(m => m.id);
-      return controlPoints.filter(cp => activeMachineIds.includes(cp.machine_id));
+      return controlPoints.filter(cp => activeMachineIds.includes(cp.machine_id)); // This `controlPoints` is the useMemo, which for admins is `allControlPoints`. Correct.
     }
     return controlPoints;
   }, [user, allLines, machines, controlPoints, activeCompanyIds]);
@@ -253,10 +301,10 @@ export default function Dashboard() {
   const activeRecords = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       const activePointIds = activeControlPoints.map(p => p.id);
-      return records.filter(r => activePointIds.includes(r.control_point_id));
+      return allRecords.filter(r => activePointIds.includes(r.control_point_id)); // Changed from records to allRecords, as records is now filtered.
     }
     return records;
-  }, [user, records, activeControlPoints]);
+  }, [user, records, activeControlPoints, allRecords]);
 
   const totalRecordsThisMonthCount = React.useMemo(() => {
     return activeRecords.filter((r) => {
@@ -271,10 +319,19 @@ export default function Dashboard() {
   const activeIssues = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       const activePointIds = activeControlPoints.map(p => p.id);
-      return issues.filter(issue => activePointIds.includes(issue.control_point_id));
+      const activeMachineIds = machines
+        .filter(m => {
+          const line = allLines.find(l => l.id === m.line_id);
+          return line && activeCompanyIds.includes(line.company_id);
+        })
+        .map(m => m.id);
+      return allIssues.filter(issue => // Changed from issues to allIssues
+        (issue.control_point_id && activePointIds.includes(issue.control_point_id)) ||
+        (issue.machine_id && activeMachineIds.includes(issue.machine_id))
+      );
     }
     return issues;
-  }, [user, issues, activeControlPoints]);
+  }, [user, issues, activeControlPoints, allIssues, machines, allLines, activeCompanyIds]);
 
   const issueMutation = useMutation({
     mutationFn: async (data) => {
@@ -303,12 +360,12 @@ export default function Dashboard() {
         let machineIdForLookup = issue.machine_id;
         
         if (!machineIdForLookup && issue.control_point_id) {
-          const point = controlPoints.find(p => p.id === issue.control_point_id);
+          const point = allControlPoints.find(p => p.id === issue.control_point_id); // Use allControlPoints for lookup
           machineIdForLookup = point?.machine_id;
         }
         
         if (machineIdForLookup) {
-          const machine = machines.find(m => m.id === machineIdForLookup);
+          const machine = allMachines.find(m => m.id === machineIdForLookup); // Use allMachines for lookup
           if (machine) {
             const line = allLines.find(l => l.id === machine.line_id);
             if (line) {
@@ -328,16 +385,16 @@ export default function Dashboard() {
         // Zjistit detaily pro email
         let locationInfo = "";
         if (issue.control_point_id) { // Prioritize control point detail
-          const point = controlPoints.find(p => p.id === issue.control_point_id);
+          const point = allControlPoints.find(p => p.id === issue.control_point_id); // Use allControlPoints for lookup
           if (point) {
-            const machine = machines.find(m => m.id === point.machine_id);
+            const machine = allMachines.find(m => m.id === point.machine_id); // Use allMachines for lookup
             if (machine) {
               const line = allLines.find(l => l.id === machine.line_id);
               locationInfo = `Kontrolní bod: ${point.name} na stroji ${machine.name}${line ? ` (Linka: ${line.name})` : ""}`;
             }
           }
         } else if (issue.machine_id) { // Fallback to machine detail if no control point
-          const machine = machines.find(m => m.id === issue.machine_id);
+          const machine = allMachines.find(m => m.id === issue.machine_id); // Use allMachines for lookup
           if (machine) {
             const line = allLines.find(l => l.id === machine.line_id);
             locationInfo = `Stroj: ${machine.name}${line ? ` (Linka: ${line.name})` : ""}`;
@@ -361,7 +418,7 @@ export default function Dashboard() {
       return issue;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["allIssues"] }); // Invalidate allIssues
       setShowIssueDialog(false);
       setIssueDescription("");
       setIssuePhoto(null); // Clear issue photo
@@ -415,7 +472,7 @@ export default function Dashboard() {
   const updateControlPointMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.ControlPoint.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+      queryClient.invalidateQueries({ queryKey: ["allControlPoints"] }); // Invalidate allControlPoints
       setShowEditPointDialog(false);
       setEditingPoint(null);
       setNfcChipId("");
@@ -429,8 +486,8 @@ export default function Dashboard() {
   const createControlRecordMutation = useMutation({
     mutationFn: (data) => base44.entities.ControlRecord.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["records"] });
-      queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+      queryClient.invalidateQueries({ queryKey: ["allRecords"] }); // Invalidate allRecords
+      queryClient.invalidateQueries({ queryKey: ["allControlPoints"] }); // Invalidate allControlPoints
       setIsConfirmingControl(false);
 
       const newSearch = window.location.search.replace(/[?&]nfc_scanned=true/, '');
@@ -569,12 +626,12 @@ export default function Dashboard() {
         setShowNfcScanDialog(false);
         abortController.abort();
 
-        const targetControlPoints = (viewMode === 'demip' ? activeControlPoints : controlPoints);
+        const targetControlPoints = (viewMode === 'demip' ? activeControlPoints : controlPoints); // Use the correct controlPoints based on viewMode
         const point = targetControlPoints.find(p => p.nfc_chip_id === serialNumber);
 
         if (point) {
-          const machine = machines.find(m => m.id === point.machine_id);
-          const line = allLines.find(l => l.id === machine?.line_id);
+          const machine = allMachines.find(m => m.id === point.machine_id); // Use allMachines for general lookup
+          const line = allLines.find(l => l.id === machine?.line_id); // Use allLines for general lookup
 
           let url;
           if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
@@ -624,17 +681,15 @@ export default function Dashboard() {
       ? allLines
       : lines;
 
-    const demipMachines = (user?.user_type === "admin" || user?.user_type === "superAdmin")
-      ? machines
-      : machines.filter(m => lines.some(l => l.id === m.line_id));
+    const demipMachines = machines; // Use the useMemo 'machines' which is already filtered correctly by role.
 
     const demipControlPoints = (user?.user_type === "admin" || user?.user_type === "superAdmin")
       ? activeControlPoints
-      : controlPoints;
+      : controlPoints; // Use the useMemo 'controlPoints' which is already filtered correctly by role.
 
     const demipIssues = (user?.user_type === "admin" || user?.user_type === "superAdmin")
       ? activeIssues
-      : issues;
+      : issues; // Use the useMemo 'issues' which is already filtered correctly by role.
 
     if (selectedPoint) {
       const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
@@ -1504,16 +1559,16 @@ export default function Dashboard() {
                       <div className="space-y-6">
                         {activeCompanies.map((company) => {
                           const companyLines = allLines.filter((l) => l.company_id === company.id);
-                          const companyMachines = machines.filter((m) =>
+                          const companyMachines = allMachines.filter((m) => // Use allMachines here
                             companyLines.some((l) => l.id === m.line_id)
                           );
-                          const companyPoints = activeControlPoints.filter((point) =>
+                          const companyPoints = allControlPoints.filter((point) => // Use allControlPoints here
                             companyMachines.some((m) => m.id === point.machine_id)
                           );
                           const companyOverdue = companyPoints.filter(
                             (point) => getPointStatus(point) === "overdue"
                           ).length;
-                          const companyIssues = activeIssues.filter((issue) =>
+                          const companyIssues = allIssues.filter((issue) => // Use allIssues here
                             companyPoints.some((point) => point.id === issue.control_point_id)
                           ).length;
 
@@ -1540,12 +1595,12 @@ export default function Dashboard() {
 
                               <div className="grid gap-3 pl-13">
                                 {companyLines.map((line) => {
-                                  const lineMachines = machines.filter((m) => m.line_id === line.id);
-                                  const linePoints = controlPoints.filter((point) =>
+                                  const lineMachines = allMachines.filter((m) => m.line_id === line.id); // Use allMachines here
+                                  const linePoints = allControlPoints.filter((point) => // Use allControlPoints here
                                     lineMachines.some((m) => m.id === point.machine_id)
                                   );
                                   const lineOverdue = linePoints.filter((point) => getPointStatus(point) === "overdue").length;
-                                  const lineIssues = issues.filter((issue) =>
+                                  const lineIssues = allIssues.filter((issue) => // Use allIssues here
                                     linePoints.some((point) => point.id === issue.control_point_id)
                                   ).length;
 
@@ -1612,7 +1667,7 @@ export default function Dashboard() {
                     ) : (
                       <div className="space-y-3">
                         {activeRecords.slice(0, 5).map((record) => {
-                          const point = activeControlPoints.find((cp) => cp.id === record.control_point_id);
+                          const point = allControlPoints.find((cp) => cp.id === record.control_point_id); // Use allControlPoints for lookup
                           return (
                             <div key={record.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
                               <div className="flex-shrink-0 mt-1">
@@ -1648,7 +1703,7 @@ export default function Dashboard() {
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         {activeIssues.slice(0, 3).map((issue) => {
-                          const point = activeControlPoints.find((cp) => cp.id === issue.control_point_id);
+                          const point = allControlPoints.find((cp) => cp.id === issue.control_point_id); // Use allControlPoints for lookup
                           return (
                             <div key={issue.id} className="p-3 rounded-lg bg-orange-50 border border-orange-200">
                               <p className="text-sm font-medium text-slate-900 mb-1">{point?.name || "Neznámý bod"}</p>
