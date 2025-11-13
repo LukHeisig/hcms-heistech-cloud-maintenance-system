@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -20,7 +20,7 @@ import {
   Code,
   Wrench,
   Droplet,
-  Activity, // Added Activity icon
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,11 +53,38 @@ function LayoutContent({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
   const { viewMode, toggleViewMode } = useViewMode();
+  const lastActivityUpdateRef = useRef(null);
 
   useEffect(() => {
     loadUser();
     checkData();
   }, []);
+
+  // Automatická aktualizace last_active_at při načtení stránky nebo změně URL
+  useEffect(() => {
+    const updateUserActivity = async () => {
+      if (!user) return;
+      
+      const now = Date.now();
+      const lastUpdate = lastActivityUpdateRef.current;
+      
+      // Throttling - aktualizovat maximálně jednou za 30 sekund
+      if (lastUpdate && (now - lastUpdate) < 30000) {
+        return;
+      }
+      
+      try {
+        await base44.auth.updateMe({ 
+          last_active_at: new Date().toISOString() 
+        });
+        lastActivityUpdateRef.current = now;
+      } catch (error) {
+        console.error("Error updating user activity:", error);
+      }
+    };
+    
+    updateUserActivity();
+  }, [user, location.pathname]);
 
   const loadUser = async () => {
     try {
