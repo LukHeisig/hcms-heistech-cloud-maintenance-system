@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Factory, Clock, ChevronRight, ArrowLeft, Activity } from "lucide-react";
+import { Factory, Clock, ChevronRight, ArrowLeft } from "lucide-react";
 
 export default function LineSelection({
   user,

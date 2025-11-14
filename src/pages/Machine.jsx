@@ -30,17 +30,20 @@ import {
   Users,
   User,
   Bell,
+  // The original imports had these, keeping them for safety but they might not be in the outline's list
+  // Image as ImageIcon, LayoutDashboard, Settings, BarChart2, Factory, Camera, X, FileIcon, FileImage, FileJson, Send, Building2
+  // Re-adding the ones that seem to be used and were not explicitly removed by the outline
   Image as ImageIcon,
   LayoutDashboard,
   Settings,
   BarChart2,
   Building2,
-  Factory,
-  Camera,
+  Factory, // Not used but was there
+  Camera, // Not used but was there
   X,
   FileIcon,
   FileImage,
-  FileJson,
+  FileJson, // Not used but was there
   Send
 } from "lucide-react";
 import { format } from "date-fns";
@@ -2293,7 +2296,7 @@ export default function Machine() {
                           )}
 
                           {measurement.recommendations && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                               <p className="text-xs font-semibold text-blue-900 mb-1">Doporučení:</p>
                               <p className="text-sm text-blue-800">{measurement.recommendations}</p>
                             </div>
@@ -2445,7 +2448,7 @@ export default function Machine() {
                     <div className="pt-4 border-t border-slate-200">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-slate-900">Celkem kontrolních bodů</span>
-                        <span className="2xl font-bold text-slate-900">{controlPoints.length}</span>
+                        <span className="text-2xl font-bold text-slate-900">{controlPoints.length}</span>
                       </div>
                     </div>
                   </div>

@@ -1,1344 +1,656 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Code,
-  Copy,
-  CheckCircle,
-  ExternalLink,
-  FileText,
-  Download,
-  BookOpen,
-  AlertCircle,
-} from "lucide-react";
+import { Code, Copy, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function ApiDocumentation() {
-  const [copiedUrl, setCopiedUrl] = useState(null);
-  const baseUrl = window.location.origin.replace(/^https?:\/\//, '').split('.')[0];
-  const apiBaseUrl = `https://${baseUrl}.base44.com/api`;
+  const [copiedSection, setCopiedSection] = React.useState(null);
 
-  const copyToClipboard = (text, id) => {
+  const copyToClipboard = (text, section) => {
     navigator.clipboard.writeText(text);
-    setCopiedUrl(id);
-    setTimeout(() => setCopiedUrl(null), 2000);
+    setCopiedSection(section);
+    setTimeout(() => setCopiedSection(null), 2000);
   };
 
-  const downloadDocumentation = (format) => {
-    const doc = generateDocumentation(format);
-    const blob = new Blob([doc.content], { type: doc.mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = doc.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const generateDocumentation = (format) => {
-    if (format === 'json') {
-      const jsonDoc = {
-        title: "HCMS API Documentation",
-        version: "1.0",
-        baseUrl: apiBaseUrl,
-        authentication: {
-          type: "Bearer Token",
-          header: "Authorization: Bearer YOUR_TOKEN",
-          description: "Získejte token z nastavení uživatele v aplikaci"
-        },
-        endpoints: {
-          companies: {
-            list: { method: "GET", path: "/entities/Company" },
-            create: { method: "POST", path: "/entities/Company" },
-            update: { method: "PUT", path: "/entities/Company/{id}" },
-            delete: { method: "DELETE", path: "/entities/Company/{id}" }
-          },
-          lines: {
-            list: { method: "GET", path: "/entities/Line" },
-            filter: { method: "GET", path: "/entities/Line?filter[company_id]={company_id}" },
-            create: { method: "POST", path: "/entities/Line" },
-            update: { method: "PUT", path: "/entities/Line/{id}" },
-            delete: { method: "DELETE", path: "/entities/Line/{id}" }
-          },
-          machines: {
-            list: { method: "GET", path: "/entities/Machine" },
-            filter: { method: "GET", path: "/entities/Machine?filter[line_id]={line_id}" },
-            create: { method: "POST", path: "/entities/Machine" },
-            update: { method: "PUT", path: "/entities/Machine/{id}" },
-            delete: { method: "DELETE", path: "/entities/Machine/{id}" }
-          },
-          controlPoints: {
-            list: { method: "GET", path: "/entities/ControlPoint" },
-            filter: { method: "GET", path: "/entities/ControlPoint?filter[machine_id]={machine_id}" },
-            create: { method: "POST", path: "/entities/ControlPoint" },
-            update: { method: "PUT", path: "/entities/ControlPoint/{id}" },
-            delete: { method: "DELETE", path: "/entities/ControlPoint/{id}" }
-          },
-          controlRecords: {
-            list: { method: "GET", path: "/entities/ControlRecord" },
-            create: { method: "POST", path: "/entities/ControlRecord" }
-          },
-          issues: {
-            list: { method: "GET", path: "/entities/Issue" },
-            filter: { method: "GET", path: "/entities/Issue?filter[status]=reported" },
-            create: { method: "POST", path: "/entities/Issue" },
-            update: { method: "PUT", path: "/entities/Issue/{id}" },
-            delete: { method: "DELETE", path: "/entities/Issue/{id}" }
-          },
-          users: {
-            list: { method: "GET", path: "/entities/User" },
-            me: { method: "GET", path: "/auth/me" },
-            update: { method: "PUT", path: "/entities/User/{id}" }
-          }
-        },
-        entities: [
-          "Company", "Line", "Machine", "ControlPoint", "ControlRecord", 
-          "Issue", "Note", "Documentation", "MaintenanceRecord", "SparePart",
-          "VibrationMeasurement", "MachineResponsibility", "PlannedMaintenance",
-          "AuditLog", "User"
-        ]
-      };
-      
-      return {
-        content: JSON.stringify(jsonDoc, null, 2),
-        mimeType: 'application/json',
-        filename: 'hcms-api-documentation.json'
-      };
-    } else if (format === 'markdown') {
-      const markdown = `# HCMS API Documentation
-
-## Základní informace
-
-**Base URL:** \`${apiBaseUrl}\`  
-**Verze:** 1.0  
-**Autentizace:** Bearer Token
-
-## Autentizace
-
-Všechny požadavky musí obsahovat autentizační token v hlavičce:
-
-\`\`\`
-Authorization: Bearer YOUR_TOKEN
-\`\`\`
-
-Token získáte v nastavení uživatele v aplikaci HCMS.
-
-## Formát dat
-
-API používá JSON formát pro všechny požadavky a odpovědi.
-
-**Content-Type:** \`application/json\`
-
-## Endpointy
-
-### Podniky (Companies)
-
-#### Získat seznam podniků
-\`\`\`
-GET ${apiBaseUrl}/entities/Company
-\`\`\`
-
-#### Vytvořit podnik
-\`\`\`
-POST ${apiBaseUrl}/entities/Company
-Content-Type: application/json
-
-{
-  "name": "Název podniku",
-  "address": "Adresa",
-  "contact_person": "Kontaktní osoba",
-  "email": "email@example.com",
-  "phone": "+420123456789",
-  "is_active": true
-}
-\`\`\`
-
-#### Aktualizovat podnik
-\`\`\`
-PUT ${apiBaseUrl}/entities/Company/{id}
-Content-Type: application/json
-
-{
-  "name": "Nový název"
-}
-\`\`\`
-
-#### Smazat podnik
-\`\`\`
-DELETE ${apiBaseUrl}/entities/Company/{id}
-\`\`\`
-
----
-
-### Linky (Lines)
-
-#### Získat linky podniku
-\`\`\`
-GET ${apiBaseUrl}/entities/Line?filter[company_id]={company_id}
-\`\`\`
-
-#### Vytvořit linku
-\`\`\`
-POST ${apiBaseUrl}/entities/Line
-Content-Type: application/json
-
-{
-  "company_id": "company_id",
-  "name": "Název linky",
-  "description": "Popis",
-  "order_index": 1
-}
-\`\`\`
-
----
-
-### Stroje (Machines)
-
-#### Získat stroje linky
-\`\`\`
-GET ${apiBaseUrl}/entities/Machine?filter[line_id]={line_id}
-\`\`\`
-
-#### Vytvořit stroj
-\`\`\`
-POST ${apiBaseUrl}/entities/Machine
-Content-Type: application/json
-
-{
-  "line_id": "line_id",
-  "name": "Název stroje",
-  "description": "Popis",
-  "machine_type": "press",
-  "inventory_number": "INV-001",
-  "location": "Hala A",
-  "order_index": 1
-}
-\`\`\`
-
----
-
-### Kontrolní body (ControlPoints)
-
-#### Získat kontrolní body stroje
-\`\`\`
-GET ${apiBaseUrl}/entities/ControlPoint?filter[machine_id]={machine_id}
-\`\`\`
-
-#### Vytvořit kontrolní bod
-\`\`\`
-POST ${apiBaseUrl}/entities/ControlPoint
-Content-Type: application/json
-
-{
-  "machine_id": "machine_id",
-  "type": "lubrication",
-  "name": "Název bodu",
-  "lubricant_type": "SKF LGWA 2",
-  "lubricant_amount": 10,
-  "interval_hours": 168,
-  "nfc_chip_id": "04:23:45:67:89:AB:CD"
-}
-\`\`\`
-
----
-
-### Záznamy kontrol (ControlRecords)
-
-#### Vytvořit záznam kontroly/mazání
-\`\`\`
-POST ${apiBaseUrl}/entities/ControlRecord
-Content-Type: application/json
-
-{
-  "control_point_id": "control_point_id",
-  "record_type": "lubrication",
-  "performed_at": "2025-01-15T10:30:00Z",
-  "note": "Mazání provedeno dle plánu"
-}
-\`\`\`
-
----
-
-### Závady (Issues)
-
-#### Získat aktivní závady
-\`\`\`
-GET ${apiBaseUrl}/entities/Issue?filter[status]=reported
-\`\`\`
-
-#### Nahlásit závadu
-\`\`\`
-POST ${apiBaseUrl}/entities/Issue
-Content-Type: application/json
-
-{
-  "control_point_id": "control_point_id",
-  "description": "Popis závady",
-  "photo_url": "https://...",
-  "status": "reported"
-}
-\`\`\`
-
-#### Vyřešit závadu
-\`\`\`
-PUT ${apiBaseUrl}/entities/Issue/{id}
-Content-Type: application/json
-
-{
-  "status": "resolved",
-  "resolved_at": "2025-01-15T14:00:00Z",
-  "resolved_by": "email@example.com",
-  "resolution_note": "Závada vyřešena"
-}
-\`\`\`
-
----
-
-### Uživatelé (Users)
-
-#### Získat informace o aktuálním uživateli
-\`\`\`
-GET ${apiBaseUrl}/auth/me
-\`\`\`
-
-**Odpověď:**
-\`\`\`json
-{
-  "id": "user_id",
-  "email": "user@example.com",
-  "full_name": "Jan Novák",
-  "role": "admin",
-  "user_type": "manager",
-  "company_id": "company_id",
-  "last_active_at": "2025-01-15T10:30:00Z"
-}
-\`\`\`
-
-#### Aktualizovat aktivitu uživatele
-\`\`\`
-PUT ${apiBaseUrl}/auth/me
-Content-Type: application/json
-
-{
-  "last_active_at": "2025-01-15T10:30:00Z"
-}
-\`\`\`
-
----
-
-## HTTP Status kódy
-
-- **200 OK** - Požadavek byl úspěšný
-- **201 Created** - Entita byla vytvořena
-- **400 Bad Request** - Chybný formát požadavku
-- **401 Unauthorized** - Chybí nebo je neplatný token
-- **403 Forbidden** - Nedostatečná oprávnění
-- **404 Not Found** - Entita nebyla nalezena
-- **500 Internal Server Error** - Chyba serveru
-
----
-
-## Další entity
-
-Systém podporuje následující další entity:
-
-- **Note** - Poznámky ke kontrolním bodům
-- **Documentation** - Fotodokumentace
-- **MaintenanceRecord** - Záznamy údržby
-- **SparePart** - Náhradní díly
-- **VibrationMeasurement** - Měření vibrací
-- **MachineResponsibility** - Odpovědnosti za stroje
-- **PlannedMaintenance** - Plánovaná údržba
-- **AuditLog** - Audit log změn
-
-Pro detailní schémata těchto entit použijte endpointy výše nebo kontaktujte podporu.
-
----
-
-## Příklad - NFC workflow
-
-### 1. Uživatel naskenuje NFC čip
-Mobilní aplikace přečte \`nfc_chip_id\` z čipu.
-
-### 2. Najít kontrolní bod podle NFC
-\`\`\`
-GET ${apiBaseUrl}/entities/ControlPoint?filter[nfc_chip_id]={nfc_chip_id}
-\`\`\`
-
-### 3. Potvrdit provedení kontroly
-\`\`\`
-POST ${apiBaseUrl}/entities/ControlRecord
-Content-Type: application/json
-
-{
-  "control_point_id": "control_point_id",
-  "record_type": "lubrication",
-  "performed_at": "2025-01-15T10:30:00Z"
-}
-\`\`\`
-
-### 4. Aktualizovat aktivitu uživatele
-\`\`\`
-PUT ${apiBaseUrl}/auth/me
-Content-Type: application/json
-
-{
-  "last_active_at": "2025-01-15T10:30:00Z"
-}
-\`\`\`
-
----
-
-Wygenerowano: ${new Date().toLocaleString('cs-CZ')}
-`;
-      
-      return {
-        content: markdown,
-        mimeType: 'text/markdown',
-        filename: 'hcms-api-documentation.md'
-      };
-    }
-  };
+  const apiBaseUrl = window.location.origin + "/api/v1";
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
-                <BookOpen className="w-8 h-8 text-blue-600" />
-                API Dokumentace
-              </h1>
-              <p className="text-slate-600">
-                REST API pro integraci s HCMS systémem
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => downloadDocumentation('json')}
-                variant="outline"
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Stáhnout JSON
-              </Button>
-              <Button
-                onClick={() => downloadDocumentation('markdown')}
-                className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
-              >
-                <Download className="w-4 h-4" />
-                Stáhnout Markdown
-              </Button>
-            </div>
-          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">REST API Dokumentace</h1>
+          <p className="text-slate-600">
+            Kompletní dokumentace pro připojení mobilní aplikace k HCMS systému
+          </p>
         </div>
 
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-blue-900 font-medium mb-1">
-                  Base URL vašeho API:
-                </p>
-                <div className="flex items-center gap-2 bg-white rounded-lg p-3 border border-blue-200">
-                  <code className="text-sm font-mono text-blue-900 flex-1">
-                    {apiBaseUrl}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => copyToClipboard(apiBaseUrl, 'baseUrl')}
-                    className="flex-shrink-0"
-                  >
-                    {copiedUrl === 'baseUrl' ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <Copy className="w-4 h-4 text-slate-600" />
-                    )}
-                  </Button>
-                </div>
+        {/* Základní informace */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Základní informace</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-2">Base URL</h3>
+              <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-sm flex items-center justify-between">
+                <code>{apiBaseUrl}</code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(apiBaseUrl, 'baseUrl')}
+                  className="text-white hover:text-green-400"
+                >
+                  {copiedSection === 'baseUrl' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-2">Autentizace</h3>
+              <p className="text-sm text-slate-600 mb-3">
+                Všechny požadavky musí obsahovat autentizační token v HTTP hlavičce:
+              </p>
+              <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-sm">
+                <code>Authorization: Bearer YOUR_ACCESS_TOKEN</code>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Token získáte přihlášením přes Base44 OAuth systém nebo z dashboard → settings → API Keys
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-2">Formát dat</h3>
+              <p className="text-sm text-slate-600">
+                Všechna data jsou ve formátu <Badge variant="outline">JSON</Badge>
+              </p>
+              <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-sm mt-2">
+                <code>Content-Type: application/json</code>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="basics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-8 bg-white shadow-sm">
-            <TabsTrigger value="basics">Základy</TabsTrigger>
+        {/* Entity endpointy */}
+        <Tabs defaultValue="companies" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 gap-2">
             <TabsTrigger value="companies">Podniky</TabsTrigger>
             <TabsTrigger value="lines">Linky</TabsTrigger>
             <TabsTrigger value="machines">Stroje</TabsTrigger>
-            <TabsTrigger value="points">Body</TabsTrigger>
+            <TabsTrigger value="controlpoints">Kontrolní body</TabsTrigger>
             <TabsTrigger value="records">Záznamy</TabsTrigger>
             <TabsTrigger value="issues">Závady</TabsTrigger>
-            <TabsTrigger value="users">Uživatelé</TabsTrigger>
           </TabsList>
 
-          {/* Základy API */}
-          <TabsContent value="basics">
-            <div className="space-y-6">
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Code className="w-5 h-5" />
-                    Autentizace
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-slate-600">
-                    Všechny požadavky na API musí obsahovat autentizační token v hlavičce:
-                  </p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">Authorization: Bearer YOUR_TOKEN</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard('Authorization: Bearer YOUR_TOKEN', 'authHeader')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'authHeader' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+          {/* Companies */}
+          <TabsContent value="companies">
+            <Card>
+              <CardHeader>
+                <CardTitle>Company (Podniky)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* List */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-600">GET</Badge>
+                    <code className="text-sm">/entities/Company</code>
                   </div>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p className="text-sm text-amber-900">
-                      <strong>Jak získat token:</strong> Token najdete v nastavení uživatele v aplikaci HCMS.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <p className="text-sm text-slate-600 mb-3">Získání všech podniků</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Požadavek
+GET ${apiBaseUrl}/entities/Company
+Authorization: Bearer YOUR_TOKEN
 
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Formát dat
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-slate-600">
-                    API používá JSON formát pro všechny požadavky a odpovědi.
-                  </p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1">Content-Type: application/json</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard('Content-Type: application/json', 'contentType')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'contentType' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+// Odpověď
+[
+  {
+    "id": "company_123",
+    "name": "Heistech s.r.o.",
+    "address": "Průmyslová 1, Praha",
+    "contact_person": "Jan Novák",
+    "email": "info@heistech.cz",
+    "phone": "+420 123 456 789",
+    "is_active": true,
+    "created_date": "2024-01-15T10:30:00Z",
+    "updated_date": "2024-01-15T10:30:00Z",
+    "created_by": "user@example.com"
+  }
+]`}</pre>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle>HTTP Status kódy</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      { code: "200", label: "OK", desc: "Požadavek byl úspěšný", color: "text-green-600" },
-                      { code: "201", label: "Created", desc: "Entita byla vytvořena", color: "text-green-600" },
-                      { code: "400", label: "Bad Request", desc: "Chybný formát požadavku", color: "text-orange-600" },
-                      { code: "401", label: "Unauthorized", desc: "Chybí nebo je neplatný token", color: "text-red-600" },
-                      { code: "403", label: "Forbidden", desc: "Nedostatečná oprávnění", color: "text-red-600" },
-                      { code: "404", label: "Not Found", desc: "Entita nebyla nalezena", color: "text-orange-600" },
-                      { code: "500", label: "Internal Server Error", desc: "Chyba serveru", color: "text-red-600" },
-                    ].map((status) => (
-                      <div key={status.code} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                        <Badge className={`${status.color} bg-transparent border-2 font-mono`}>
-                          {status.code}
-                        </Badge>
-                        <div>
-                          <p className="font-semibold text-slate-900">{status.label}</p>
-                          <p className="text-sm text-slate-600">{status.desc}</p>
-                        </div>
-                      </div>
-                    ))}
+                {/* Get by ID */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-600">GET</Badge>
+                    <code className="text-sm">/entities/Company/:id</code>
                   </div>
-                </CardContent>
-              </Card>
+                  <p className="text-sm text-slate-600 mb-3">Získání konkrétního podniku</p>
+                </div>
 
-              <Card className="shadow-lg border-2 border-purple-200 bg-purple-50">
-                <CardHeader>
-                  <CardTitle className="text-purple-900">Dostupné entity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                    {[
-                      "Company", "Line", "Machine", "ControlPoint", "ControlRecord",
-                      "Issue", "Note", "Documentation", "MaintenanceRecord", "SparePart",
-                      "VibrationMeasurement", "MachineResponsibility", "PlannedMaintenance",
-                      "AuditLog", "User"
-                    ].map((entity) => (
-                      <Badge key={entity} variant="outline" className="justify-center">
-                        {entity}
-                      </Badge>
-                    ))}
+                {/* Create */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-green-600">POST</Badge>
+                    <code className="text-sm">/entities/Company</code>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <p className="text-sm text-slate-600 mb-3">Vytvoření nového podniku (pouze admin/superAdmin)</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Požadavek
+POST ${apiBaseUrl}/entities/Company
+Authorization: Bearer YOUR_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Nový podnik s.r.o.",
+  "address": "Adresa 123",
+  "contact_person": "Kontaktní osoba",
+  "email": "email@podnik.cz",
+  "phone": "+420 123 456 789",
+  "is_active": true
+}`}</pre>
+                  </div>
+                </div>
+
+                {/* Update */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-yellow-600">PUT</Badge>
+                    <code className="text-sm">/entities/Company/:id</code>
+                  </div>
+                  <p className="text-sm text-slate-600">Aktualizace podniku</p>
+                </div>
+
+                {/* Delete */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-red-600">DELETE</Badge>
+                    <code className="text-sm">/entities/Company/:id</code>
+                  </div>
+                  <p className="text-sm text-slate-600">Smazání podniku</p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          {/* Podniky */}
-          <TabsContent value="companies">
-            <Card className="shadow-lg">
+          {/* Lines */}
+          <TabsContent value="lines">
+            <Card>
               <CardHeader>
-                <CardTitle>Podniky (Companies)</CardTitle>
+                <CardTitle>Line (Linky)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat seznam podniků
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/Company`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/Company`, 'companies-list')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'companies-list' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-600">GET</Badge>
+                    <code className="text-sm">/entities/Line</code>
                   </div>
-                  <p className="text-sm text-slate-600 mb-2">Příklad odpovědi:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`[
+                  <p className="text-sm text-slate-600 mb-3">Získání všech linek</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Odpověď
+[
   {
-    "id": "company_id",
-    "name": "Demo podnik",
-    "address": "Průmyslová 1, Praha",
-    "contact_person": "Jan Novák",
-    "email": "kontakt@example.com",
-    "phone": "+420123456789",
-    "is_active": true,
-    "created_date": "2025-01-01T10:00:00Z"
+    "id": "line_123",
+    "company_id": "company_123",
+    "name": "Linka 1 - Lisovna",
+    "description": "Hlavní výrobní linka",
+    "order_index": 1,
+    "created_date": "2024-01-15T10:30:00Z",
+    "updated_date": "2024-01-15T10:30:00Z",
+    "created_by": "user@example.com"
   }
 ]`}</pre>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                  <h3 className="font-semibold text-slate-900 mb-2">Filtrace</h3>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Filtrovat linky podle company_id
+GET ${apiBaseUrl}/entities/Line?filter={"company_id":"company_123"}
+
+// S řazením podle order_index
+GET ${apiBaseUrl}/entities/Line?filter={"company_id":"company_123"}&sort=order_index`}</pre>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
                     <Badge className="bg-green-600">POST</Badge>
-                    Vytvořit podnik
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`POST ${apiBaseUrl}/entities/Company`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`POST ${apiBaseUrl}/entities/Company`, 'companies-create')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'companies-create' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+                    <code className="text-sm">/entities/Line</code>
                   </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
+                  <p className="text-sm text-slate-600 mb-3">Vytvoření nové linky</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
                     <pre>{`{
-  "name": "Název podniku",
-  "address": "Adresa",
-  "contact_person": "Kontaktní osoba",
-  "email": "email@example.com",
-  "phone": "+420123456789",
-  "is_active": true
+  "company_id": "company_123",
+  "name": "Linka 2 - Montáž",
+  "description": "Montážní linka",
+  "order_index": 2
 }`}</pre>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-blue-600">PUT</Badge>
-                    Aktualizovat podnik
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`PUT ${apiBaseUrl}/entities/Company/{id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`PUT ${apiBaseUrl}/entities/Company/{id}`, 'companies-update')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'companies-update' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-red-600">DELETE</Badge>
-                    Smazat podnik
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`DELETE ${apiBaseUrl}/entities/Company/{id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`DELETE ${apiBaseUrl}/entities/Company/{id}`, 'companies-delete')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'companies-delete' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Linky */}
-          <TabsContent value="lines">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Linky (Lines)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat linky podniku
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/Line?filter[company_id]={company_id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/Line?filter[company_id]={company_id}`, 'lines-filter')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'lines-filter' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-green-600">POST</Badge>
-                    Vytvořit linku
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`POST ${apiBaseUrl}/entities/Line`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`POST ${apiBaseUrl}/entities/Line`, 'lines-create')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'lines-create' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "company_id": "company_id",
-  "name": "Linka 1",
-  "description": "Hlavní výrobní linka",
-  "order_index": 1
-}`}</pre>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-900">
-                    <strong>Atributy:</strong> company_id (povinné), name (povinné), description, order_index
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Stroje */}
+          {/* Machines */}
           <TabsContent value="machines">
-            <Card className="shadow-lg">
+            <Card>
               <CardHeader>
-                <CardTitle>Stroje (Machines)</CardTitle>
+                <CardTitle>Machine (Stroje)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat stroje linky
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/Machine?filter[line_id]={line_id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/Machine?filter[line_id]={line_id}`, 'machines-filter')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'machines-filter' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-600">GET</Badge>
+                    <code className="text-sm">/entities/Machine</code>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3">Získání všech strojů</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Odpověď
+[
+  {
+    "id": "machine_123",
+    "line_id": "line_123",
+    "name": "Lis LH-500",
+    "description": "Hydraulický lis 500t",
+    "inventory_number": "INV-2024-001",
+    "location": "Hala A, sekce 1",
+    "machine_type": "press",
+    "order_index": 1,
+    "created_date": "2024-01-15T10:30:00Z",
+    "updated_date": "2024-01-15T10:30:00Z",
+    "created_by": "user@example.com"
+  }
+]`}</pre>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-green-600">POST</Badge>
-                    Vytvořit stroj
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`POST ${apiBaseUrl}/entities/Machine`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`POST ${apiBaseUrl}/entities/Machine`, 'machines-create')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'machines-create' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "line_id": "line_id",
-  "name": "Lis LH-500",
-  "description": "Hydraulický lis 500t",
-  "machine_type": "press",
-  "inventory_number": "INV-001",
-  "location": "Hala A, Sekce 1",
-  "order_index": 1
-}`}</pre>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-900 mb-2">
-                    <strong>Typy strojů (machine_type):</strong>
-                  </p>
+                  <h3 className="font-semibold text-slate-900 mb-2">Typy strojů (machine_type)</h3>
                   <div className="flex flex-wrap gap-2">
-                    {["press", "conveyor", "pump", "fan", "compressor", "motor", "gearbox", "crane", "robot", "cnc_machine", "welding_machine", "other"].map(type => (
-                      <Badge key={type} variant="outline">{type}</Badge>
-                    ))}
+                    <Badge variant="outline">press</Badge>
+                    <Badge variant="outline">conveyor</Badge>
+                    <Badge variant="outline">pump</Badge>
+                    <Badge variant="outline">fan</Badge>
+                    <Badge variant="outline">compressor</Badge>
+                    <Badge variant="outline">motor</Badge>
+                    <Badge variant="outline">gearbox</Badge>
+                    <Badge variant="outline">crane</Badge>
+                    <Badge variant="outline">robot</Badge>
+                    <Badge variant="outline">cnc_machine</Badge>
+                    <Badge variant="outline">welding_machine</Badge>
+                    <Badge variant="outline">other</Badge>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Kontrolní body */}
-          <TabsContent value="points">
-            <Card className="shadow-lg">
+          {/* Control Points */}
+          <TabsContent value="controlpoints">
+            <Card>
               <CardHeader>
-                <CardTitle>Kontrolní body (ControlPoints)</CardTitle>
+                <CardTitle>ControlPoint (Kontrolní body)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat kontrolní body stroje
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/ControlPoint?filter[machine_id]={machine_id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/ControlPoint?filter[machine_id]={machine_id}`, 'points-filter')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'points-filter' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-600">GET</Badge>
+                    <code className="text-sm">/entities/ControlPoint</code>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3">Získání všech kontrolních bodů</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Odpověď
+[
+  {
+    "id": "cp_123",
+    "machine_id": "machine_123",
+    "type": "lubrication",
+    "number": "1",
+    "name": "Hlavní ložisko",
+    "description": "Mazání hlavního ložiska lisu",
+    "lubricant_type": "SKF LGWA 2",
+    "lubricant_amount": 12,
+    "interval_hours": 168,
+    "nfc_chip_id": "04:5E:3A:2B:1C:90:80",
+    "inspection_tasks": null,
+    "created_date": "2024-01-15T10:30:00Z",
+    "updated_date": "2024-01-15T10:30:00Z",
+    "created_by": "user@example.com"
+  }
+]`}</pre>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Najít bod podle NFC čipu
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/ControlPoint?filter[nfc_chip_id]={nfc_chip_id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/ControlPoint?filter[nfc_chip_id]={nfc_chip_id}`, 'points-nfc')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'points-nfc' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-green-600">POST</Badge>
-                    Vytvořit kontrolní bod
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`POST ${apiBaseUrl}/entities/ControlPoint`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`POST ${apiBaseUrl}/entities/ControlPoint`, 'points-create')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'points-create' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku (mazací bod):</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "machine_id": "machine_id",
-  "type": "lubrication",
-  "name": "Hlavní ložisko",
-  "description": "Mazání hlavního ložiska",
-  "lubricant_type": "SKF LGWA 2",
-  "lubricant_amount": 10,
-  "interval_hours": 168,
-  "nfc_chip_id": "04:23:45:67:89:AB:CD"
-}`}</pre>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2 mt-4">Tělo požadavku (inspekční bod):</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "machine_id": "machine_id",
-  "type": "inspection",
-  "name": "Kontrola úniku oleje",
-  "inspection_tasks": "Zkontrolovat těsnost systému",
-  "interval_hours": 168,
-  "nfc_chip_id": "04:23:45:67:89:AB:CD"
-}`}</pre>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-900">
-                    <strong>Typy bodů:</strong> lubrication (mazání), inspection (inspekce), auto_lubricator (automatický mazací systém)
+                  <h3 className="font-semibold text-slate-900 mb-2">Důležité: NFC čipy</h3>
+                  <p className="text-sm text-slate-600 mb-2">
+                    Pole <code className="bg-slate-100 px-2 py-1 rounded">nfc_chip_id</code> obsahuje ID NFC čipu pro mobilní aplikaci.
                   </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+                    <strong>Použití:</strong> Po přečtení NFC čipu v mobilní aplikaci použijte toto ID pro nalezení správného kontrolního bodu:
+                    <div className="bg-slate-900 text-green-400 p-3 rounded mt-2 font-mono text-xs overflow-x-auto">
+                      <pre>{`GET ${apiBaseUrl}/entities/ControlPoint?filter={"nfc_chip_id":"04:5E:3A:2B:1C:90:80"}`}</pre>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Typy kontrolních bodů (type)</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-600">lubrication</Badge>
+                      <span className="text-sm text-slate-600">Mazání (obsahuje lubricant_type, lubricant_amount)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-purple-600">inspection</Badge>
+                      <span className="text-sm text-slate-600">Inspekce (obsahuje inspection_tasks)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-600">auto_lubricator</Badge>
+                      <span className="text-sm text-slate-600">Automatický mazací systém</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Záznamy kontrol */}
+          {/* Control Records */}
           <TabsContent value="records">
-            <Card className="shadow-lg">
+            <Card>
               <CardHeader>
-                <CardTitle>Záznamy kontrol (ControlRecords)</CardTitle>
+                <CardTitle>ControlRecord (Záznamy o provedení)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-green-600">POST</Badge>
-                    Vytvořit záznam kontroly/mazání
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`POST ${apiBaseUrl}/entities/ControlRecord`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`POST ${apiBaseUrl}/entities/ControlRecord`, 'records-create')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'records-create' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-600">GET</Badge>
+                    <code className="text-sm">/entities/ControlRecord</code>
                   </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "control_point_id": "control_point_id",
+                  <p className="text-sm text-slate-600 mb-3">Získání všech záznamů</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Odpověď
+[
+  {
+    "id": "record_123",
+    "control_point_id": "cp_123",
+    "record_type": "lubrication",
+    "performed_at": "2024-01-20T14:30:00Z",
+    "note": "Mazání provedeno dle plánu",
+    "photo_url": "https://...",
+    "created_date": "2024-01-20T14:30:00Z",
+    "updated_date": "2024-01-20T14:30:00Z",
+    "created_by": "technik@heistech.cz"
+  }
+]`}</pre>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-green-900 mb-2">📱 Klíčový endpoint pro mobilní aplikaci</h3>
+                  <p className="text-sm text-green-800 mb-3">
+                    Po přečtení NFC čipu a provedení mazání/inspekce vytvořte nový záznam:
+                  </p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`POST ${apiBaseUrl}/entities/ControlRecord
+Authorization: Bearer YOUR_TOKEN
+Content-Type: application/json
+
+{
+  "control_point_id": "cp_123",
   "record_type": "lubrication",
-  "performed_at": "2025-01-15T10:30:00Z",
-  "note": "Mazání provedeno dle plánu"
+  "performed_at": "2024-01-20T14:30:00Z",
+  "note": "Provedeno v pořádku",
+  "photo_url": "https://..."  // volitelné
 }`}</pre>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat záznamy kontrolního bodu
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/ControlRecord?filter[control_point_id]={control_point_id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/ControlRecord?filter[control_point_id]={control_point_id}`, 'records-filter')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'records-filter' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Typy záznamů (record_type)</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">lubrication</Badge>
+                    <Badge variant="outline">inspection</Badge>
+                    <Badge variant="outline">lubricator_change</Badge>
                   </div>
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm text-amber-900">
-                    <strong>Poznámka:</strong> Pole <code>performed_at</code> je ve formátu ISO 8601 (např. 2025-01-15T10:30:00Z). 
-                    Pokud není zadáno, automaticky se použije aktuální čas.
-                  </p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Závady */}
+          {/* Issues */}
           <TabsContent value="issues">
-            <Card className="shadow-lg">
+            <Card>
               <CardHeader>
-                <CardTitle>Závady (Issues)</CardTitle>
+                <CardTitle>Issue (Závady)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat aktivní závady
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/Issue?filter[status]=reported`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/Issue?filter[status]=reported`, 'issues-reported')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'issues-reported' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-600">GET</Badge>
+                    <code className="text-sm">/entities/Issue</code>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3">Získání všech závad</p>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`// Odpověď
+[
+  {
+    "id": "issue_123",
+    "control_point_id": "cp_123",
+    "description": "Zjištěn mírný únik maziva",
+    "photo_url": "https://...",
+    "status": "reported",
+    "resolved_at": null,
+    "resolved_by": null,
+    "resolution_note": null,
+    "created_date": "2024-01-20T14:30:00Z",
+    "updated_date": "2024-01-20T14:30:00Z",
+    "created_by": "technik@heistech.cz"
+  }
+]`}</pre>
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-green-600">POST</Badge>
-                    Nahlásit závadu
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`POST ${apiBaseUrl}/entities/Issue`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`POST ${apiBaseUrl}/entities/Issue`, 'issues-create')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'issues-create' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "control_point_id": "control_point_id",
-  "description": "Zjištěn únik maziva z těsnění",
-  "photo_url": "https://...",
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-orange-900 mb-2">📱 Nahlášení závady z mobilní aplikace</h3>
+                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto mt-2">
+                    <pre>{`POST ${apiBaseUrl}/entities/Issue
+Authorization: Bearer YOUR_TOKEN
+Content-Type: application/json
+
+{
+  "control_point_id": "cp_123",
+  "description": "Popis zjištěné závady",
+  "photo_url": "https://...",  // volitelné
   "status": "reported"
 }`}</pre>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-blue-600">PUT</Badge>
-                    Vyřešit závadu
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`PUT ${apiBaseUrl}/entities/Issue/{id}`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`PUT ${apiBaseUrl}/entities/Issue/{id}`, 'issues-resolve')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'issues-resolve' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
+                  <h3 className="font-semibold text-slate-900 mb-2">Stavy závad (status)</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-orange-600">reported</Badge>
+                      <span className="text-sm text-slate-600">Nahlášená (výchozí)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-600">resolved</Badge>
+                      <span className="text-sm text-slate-600">Vyřešená</span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "status": "resolved",
-  "resolved_at": "2025-01-15T14:00:00Z",
-  "resolved_by": "email@example.com",
-  "resolution_note": "Závada vyřešena výměnou těsnění"
-}`}</pre>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Uživatelé */}
-          <TabsContent value="users">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Uživatelé (Users)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat informace o aktuálním uživateli
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/auth/me`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/auth/me`, 'users-me')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'users-me' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">Příklad odpovědi:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "id": "user_id",
-  "email": "user@example.com",
-  "full_name": "Jan Novák",
-  "role": "admin",
-  "user_type": "manager",
-  "company_id": "company_id",
-  "phone": "+420123456789",
-  "custom_display_name": "Jan N.",
-  "last_active_at": "2025-01-15T10:30:00Z",
-  "created_date": "2025-01-01T10:00:00Z"
-}`}</pre>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge className="bg-blue-600">PUT</Badge>
-                    Aktualizovat aktivitu uživatele
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm mb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`PUT ${apiBaseUrl}/auth/me`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`PUT ${apiBaseUrl}/auth/me`, 'users-update-activity')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'users-update-activity' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">Tělo požadavku:</p>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                    <pre>{`{
-  "last_active_at": "2025-01-15T10:30:00Z"
-}`}</pre>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Badge>GET</Badge>
-                    Získat seznam všech uživatelů
-                  </h3>
-                  <div className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <pre className="flex-1 overflow-x-auto">{`GET ${apiBaseUrl}/entities/User`}</pre>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyToClipboard(`GET ${apiBaseUrl}/entities/User`, 'users-list')}
-                        className="flex-shrink-0 text-slate-400 hover:text-white"
-                      >
-                        {copiedUrl === 'users-list' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-3">
-                    <p className="text-sm text-amber-900">
-                      <strong>Poznámka:</strong> Seznam uživatelů je dostupný pouze pro administrátory. 
-                      Běžní uživatelé vidí pouze svoje údaje přes endpoint <code>/auth/me</code>.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-900 mb-2">
-                    <strong>Atributy uživatele:</strong>
-                  </p>
-                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                    <li><code>user_type</code>: superAdmin, admin, manager, technician</li>
-                    <li><code>company_id</code>: ID přiřazeného podniku</li>
-                    <li><code>assigned_company_ids</code>: pole ID podniků (pouze pro admin)</li>
-                    <li><code>custom_display_name</code>: vlastní zobrazované jméno</li>
-                    <li><code>last_active_at</code>: poslední aktivita v systému (ISO 8601)</li>
-                  </ul>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
 
-        {/* NFC Workflow */}
-        <Card className="shadow-lg border-2 border-green-200 bg-green-50">
+        {/* Příklad kompletního flow pro mobilní aplikaci */}
+        <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="text-green-900 flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Příklad: NFC Workflow pro mobilní aplikaci
-            </CardTitle>
+            <CardTitle>📱 Typický flow pro mobilní aplikaci s NFC</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-white rounded-lg p-4 border border-green-200">
-              <h4 className="font-semibold text-slate-900 mb-2">1. Uživatel naskenuje NFC čip</h4>
-              <p className="text-sm text-slate-600">
-                Mobilní aplikace přečte <code>nfc_chip_id</code> z NFC čipu pomocí nativního API.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border border-green-200">
-              <h4 className="font-semibold text-slate-900 mb-2">2. Najít kontrolní bod podle NFC</h4>
-              <div className="bg-slate-900 text-slate-100 rounded-lg p-3 font-mono text-xs mt-2 overflow-x-auto">
-                <pre>{`GET ${apiBaseUrl}/entities/ControlPoint?filter[nfc_chip_id]={nfc_chip_id}`}</pre>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                  1
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Přečíst NFC čip</h4>
+                  <p className="text-sm text-slate-600">Nativní NFC API v mobilní aplikaci přečte ID čipu (např. "04:5E:3A:2B:1C:90:80")</p>
+                </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg p-4 border border-green-200">
-              <h4 className="font-semibold text-slate-900 mb-2">3. Potvrdit provedení kontroly</h4>
-              <div className="bg-slate-900 text-slate-100 rounded-lg p-3 font-mono text-xs mt-2 overflow-x-auto">
-                <pre>{`POST ${apiBaseUrl}/entities/ControlRecord
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                  2
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Najít kontrolní bod</h4>
+                  <div className="bg-slate-900 text-green-400 p-3 rounded-lg font-mono text-xs overflow-x-auto mt-2">
+                    <pre>{`GET ${apiBaseUrl}/entities/ControlPoint?filter={"nfc_chip_id":"04:5E:3A:2B:1C:90:80"}`}</pre>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                  3
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Zobrazit detaily</h4>
+                  <p className="text-sm text-slate-600">Aplikace zobrazí název bodu, typ maziva, množství, instrukce atd.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                  4
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Potvrdit provedení</h4>
+                  <p className="text-sm text-slate-600 mb-2">Technik provede práci a potvrdí v aplikaci</p>
+                  <div className="bg-slate-900 text-green-400 p-3 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`POST ${apiBaseUrl}/entities/ControlRecord
 {
-  "control_point_id": "control_point_id",
+  "control_point_id": "cp_123",
   "record_type": "lubrication",
-  "performed_at": "2025-01-15T10:30:00Z"
+  "performed_at": "2024-01-20T14:30:00Z",
+  "note": "Provedeno OK"
 }`}</pre>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg p-4 border border-green-200">
-              <h4 className="font-semibold text-slate-900 mb-2">4. Aktualizovat aktivitu uživatele</h4>
-              <div className="bg-slate-900 text-slate-100 rounded-lg p-3 font-mono text-xs mt-2 overflow-x-auto">
-                <pre>{`PUT ${apiBaseUrl}/auth/me
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                  5
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Nahlásit závadu (volitelně)</h4>
+                  <p className="text-sm text-slate-600 mb-2">Pokud je zjištěna závada</p>
+                  <div className="bg-slate-900 text-green-400 p-3 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>{`POST ${apiBaseUrl}/entities/Issue
 {
-  "last_active_at": "2025-01-15T10:30:00Z"
+  "control_point_id": "cp_123",
+  "description": "Zjištěn únik maziva",
+  "status": "reported"
 }`}</pre>
+                  </div>
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* HTTP Response Codes */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>HTTP Response Codes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Badge className="bg-green-600">200</Badge>
+                <span className="text-sm">OK - Požadavek byl úspěšný</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-green-600">201</Badge>
+                <span className="text-sm">Created - Záznam byl vytvořen</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-yellow-600">400</Badge>
+                <span className="text-sm">Bad Request - Neplatná data v požadavku</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-yellow-600">401</Badge>
+                <span className="text-sm">Unauthorized - Chybí nebo neplatný token</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-yellow-600">403</Badge>
+                <span className="text-sm">Forbidden - Nemáte oprávnění</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-yellow-600">404</Badge>
+                <span className="text-sm">Not Found - Záznam nebyl nalezen</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-red-600">500</Badge>
+                <span className="text-sm">Internal Server Error - Chyba serveru</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Další entity */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Další dostupné entity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 mb-4">
+              Stejným způsobem můžete pracovat s dalšími entitami:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <code className="text-sm bg-slate-100 px-2 py-1 rounded">/entities/User</code>
+                <p className="text-xs text-slate-500 mt-1">Uživatelé systému</p>
+              </div>
+              <div>
+                <code className="text-sm bg-slate-100 px-2 py-1 rounded">/entities/MaintenanceRecord</code>
+                <p className="text-xs text-slate-500 mt-1">Záznamy o údržbě</p>
+              </div>
+              <div>
+                <code className="text-sm bg-slate-100 px-2 py-1 rounded">/entities/PlannedMaintenance</code>
+                <p className="text-xs text-slate-500 mt-1">Plánované údržby</p>
+              </div>
+              <div>
+                <code className="text-sm bg-slate-100 px-2 py-1 rounded">/entities/SparePart</code>
+                <p className="text-xs text-slate-500 mt-1">Náhradní díly</p>
+              </div>
+              <div>
+                <code className="text-sm bg-slate-100 px-2 py-1 rounded">/entities/Documentation</code>
+                <p className="text-xs text-slate-500 mt-1">Dokumentace strojů</p>
+              </div>
+              <div>
+                <code className="text-sm bg-slate-100 px-2 py-1 rounded">/entities/Note</code>
+                <p className="text-xs text-slate-500 mt-1">Poznámky</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Kontakt */}
+        <Card className="mt-6 border-blue-200 bg-blue-50">
+          <CardContent className="p-6">
+            <h3 className="font-semibold text-blue-900 mb-2">Potřebujete pomoc?</h3>
+            <p className="text-sm text-blue-800">
+              Pro získání přístupového tokenu nebo další technickou podporu kontaktujte tým Heistech.
+            </p>
           </CardContent>
         </Card>
       </div>

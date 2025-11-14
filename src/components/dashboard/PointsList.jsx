@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Droplet, ClipboardCheck, AlertTriangle, ArrowLeft, Activity } from "lucide-react";
+import { Droplet, ClipboardCheck, AlertTriangle, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
