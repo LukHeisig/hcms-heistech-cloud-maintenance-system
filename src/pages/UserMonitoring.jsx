@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -51,7 +50,7 @@ export default function UserMonitoring() {
   const { data: allUsers = [], isLoading, refetch } = useQuery({
     queryKey: ["allUsers"],
     queryFn: () => base44.entities.User.list("-last_active_at"),
-    refetchInterval: 30000, // Auto refresh každých 30 sekund
+    refetchInterval: 30000,
   });
 
   const { data: allCompanies = [] } = useQuery({
@@ -64,7 +63,6 @@ export default function UserMonitoring() {
     queryFn: () => base44.entities.AuditLog.list("-created_date", 500),
   });
 
-  // Filtrovat uživatele podle přístupových práv
   const visibleUsers = useMemo(() => {
     if (!currentUser) return [];
 
@@ -94,7 +92,6 @@ export default function UserMonitoring() {
     return company ? company.name : "Neznámý podnik";
   };
 
-  // Funkce pro určení aktivity statusu
   const getUserActivityStatus = (lastActiveAt) => {
     if (!lastActiveAt) return { 
       status: "unknown", 
@@ -139,14 +136,12 @@ export default function UserMonitoring() {
     }
   };
 
-  // Získat poslední aktivitu z audit logu
   const getUserLastAuditAction = (userEmail) => {
     const userLogs = auditLogs.filter(log => log.changed_by === userEmail);
     if (userLogs.length === 0) return null;
     return userLogs[0];
   };
 
-  // Filtrování uživatelů
   const filteredUsers = useMemo(() => {
     let users = visibleUsers;
 
@@ -176,7 +171,6 @@ export default function UserMonitoring() {
     return users;
   }, [visibleUsers, userFilter, roleFilter, statusFilter, searchQuery]);
 
-  // Statistiky
   const stats = useMemo(() => {
     const online = filteredUsers.filter(u => getUserActivityStatus(u.last_active_at).status === "online").length;
     const recent = filteredUsers.filter(u => getUserActivityStatus(u.last_active_at).status === "recent").length;
@@ -292,7 +286,6 @@ export default function UserMonitoring() {
           </div>
         </div>
 
-        {/* Statistiky */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
             <CardContent className="p-6">
@@ -355,7 +348,6 @@ export default function UserMonitoring() {
           </Card>
         </div>
 
-        {/* Filtry */}
         <Card className="mb-6 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -469,7 +461,6 @@ export default function UserMonitoring() {
           </CardContent>
         </Card>
 
-        {/* Legenda */}
         <Card className="mb-6 shadow-lg border-2 border-blue-200 bg-blue-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -511,7 +502,6 @@ export default function UserMonitoring() {
           </CardContent>
         </Card>
 
-        {/* Seznam uživatelů */}
         <Card className="shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -673,7 +663,6 @@ export default function UserMonitoring() {
           </CardContent>
         </Card>
 
-        {/* Informace o auto-refresh */}
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
