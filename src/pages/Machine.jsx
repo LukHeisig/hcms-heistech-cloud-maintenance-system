@@ -30,20 +30,17 @@ import {
   Users,
   User,
   Bell,
-  // The original imports had these, keeping them for safety but they might not be in the outline's list
-  // Image as ImageIcon, LayoutDashboard, Settings, BarChart2, Factory, Camera, X, FileIcon, FileImage, FileJson, Send, Building2
-  // Re-adding the ones that seem to be used and were not explicitly removed by the outline
   Image as ImageIcon,
   LayoutDashboard,
   Settings,
   BarChart2,
   Building2,
-  Factory, // Not used but was there
-  Camera, // Not used but was there
+  Factory,
+  Camera,
   X,
   FileIcon,
   FileImage,
-  FileJson, // Not used but was there
+  FileJson,
   Send
 } from "lucide-react";
 import { format } from "date-fns";
@@ -107,7 +104,6 @@ export default function Machine() {
   const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
   const [selectedDocPreview, setSelectedDocPreview] = useState(null);
 
-  // Nové stavy pro plánovanou údržbu
   const [showAddPlannedMaintenanceDialog, setShowAddPlannedMaintenanceDialog] = useState(false);
   const [showCompleteMaintenanceDialog, setShowCompleteMaintenanceDialog] = useState(false);
   const [selectedPlannedTask, setSelectedPlannedTask] = useState(null);
@@ -132,10 +128,8 @@ export default function Machine() {
   useEffect(() => {
     loadCurrentUser();
     
-    // Automaticky přepnout na záložku údržba, pokud je v URL hash #maintenance
     if (window.location.hash === "#maintenance") {
       setTimeout(() => {
-        // Updated selector as per outline
         const maintenanceTab = document.querySelector('[value="maintenance"]');
         if (maintenanceTab) {
           maintenanceTab.click();
@@ -150,7 +144,6 @@ export default function Machine() {
       setCurrentUser(user);
     } catch (error) {
       console.error("Failed to load current user:", error);
-      // Handle cases where user might not be logged in, or token is invalid
       setCurrentUser(null);
     }
   };
@@ -241,12 +234,11 @@ export default function Machine() {
     enabled: !!machineId,
   });
 
-  // Nový query pro plánované úkoly údržby
   const { data: plannedMaintenance = [] } = useQuery({
     queryKey: ["plannedMaintenance", machineId],
     queryFn: () => base44.entities.PlannedMaintenance.filter({ 
       machine_id: machineId,
-      status: ["planned", "assigned"] // Filter only active planned tasks
+      status: ["planned", "assigned"]
     }, "planned_date"),
     enabled: !!machineId,
   });
@@ -269,9 +261,7 @@ export default function Machine() {
     enabled: !!machineId,
   });
 
-  // Načíst inspekční záznamy pro tento stroj
   const inspectionRecords = React.useMemo(() => {
-    // controlPoints might be empty if not yet loaded, handle gracefully
     if (!controlPoints || controlPoints.length === 0) return [];
 
     const machineControlPoints = controlPoints.filter(cp => cp.machine_id === machineId);
@@ -279,10 +269,8 @@ export default function Machine() {
     return records.filter(r => r.record_type === "inspection" && machineControlPointIds.includes(r.control_point_id));
   }, [records, controlPoints, machineId]);
 
-  // Statistiky pro náklady
   const totalMaintenanceCost = maintenanceRecords.reduce((sum, r) => sum + (r.cost || 0), 0);
   
-  // Rozdělení nákladů podle typu údržby
   const costByType = React.useMemo(() => {
     const costs = {
       preventive: 0,
@@ -298,7 +286,6 @@ export default function Machine() {
     return costs;
   }, [maintenanceRecords]);
 
-  // Data pro graf nákladů podle typu
   const costByTypeData = [
     { name: "Preventivní", value: costByType.preventive, color: "#10b981" },
     { name: "Korektivní", value: costByType.corrective, color: "#f59e0b" },
@@ -306,11 +293,9 @@ export default function Machine() {
     { name: "Inspekce", value: costByType.inspection, color: "#8b5cf6" },
   ].filter(item => item.value > 0);
 
-  // Náklady podle měsíců (posledních 6 měsíců)
   const costByMonthData = React.useMemo(() => {
     const monthsData = {};
     const now = new Date();
-    // Initialize monthsData for the last 6 months with 0 cost
     for (let i = 0; i < 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       monthsData[format(d, "MM/yyyy", { locale: cs })] = 0;
@@ -319,7 +304,7 @@ export default function Machine() {
     maintenanceRecords.forEach(record => {
       if (record.cost && record.performed_at) {
         const monthYear = format(new Date(record.performed_at), "MM/yyyy", { locale: cs });
-        if (monthsData.hasOwnProperty(monthYear)) { // Only add to the last 6 months data
+        if (monthsData.hasOwnProperty(monthYear)) {
           monthsData[monthYear] = (monthsData[monthYear] || 0) + record.cost;
         }
       }
@@ -356,11 +341,9 @@ export default function Machine() {
     return nextDate;
   };
 
-  // Kombinovat nejbližší kontrolní body a plánované údržby
   const upcomingTasks = React.useMemo(() => {
     const tasks = [];
     
-    // Přidat kontrolní body
     controlPoints.forEach(point => {
       const nextDate = getNextControlDate(point);
       if (nextDate) {
@@ -375,9 +358,8 @@ export default function Machine() {
       }
     });
     
-    // Přidat plánované údržby
     plannedMaintenance.forEach(maintenance => {
-      if (maintenance.planned_date) { // Ensure planned_date is available
+      if (maintenance.planned_date) {
         tasks.push({
           type: "planned_maintenance",
           id: maintenance.id,
@@ -392,7 +374,6 @@ export default function Machine() {
       }
     });
     
-    // Seřadit podle data
     return tasks.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
   }, [controlPoints, plannedMaintenance, records]);
 
@@ -403,9 +384,8 @@ export default function Machine() {
   const overduePoints = controlPoints.filter(p => getPointStatus(p) === "overdue");
   const okPoints = controlPoints.filter(p => getPointStatus(p) === "ok");
 
-  // Funkce pro určení stavu skupiny bodů
   const getGroupStatus = (points) => {
-    if (points.length === 0) return null; // Žádné body = žádná tečka
+    if (points.length === 0) return null;
     const hasOverdue = points.some(p => getPointStatus(p) === "overdue");
     return hasOverdue ? "overdue" : "ok";
   };
@@ -414,11 +394,8 @@ export default function Machine() {
   const inspectionStatus = getGroupStatus(inspectionPoints);
   const lubricatorsStatus = getGroupStatus(lubricatorPoints);
 
-  // Statistiky
   const lowStockParts = spareParts.filter(p => p.quantity_in_stock <= (p.minimum_stock || 0));
-  // totalMaintenanceCost is already defined above
 
-  // Data pro grafy
   const vibrationTrendData = vibrationMeasurements.slice(0, 10).reverse().map(m => ({
     date: format(new Date(m.measurement_date), "d.M.", { locale: cs }),
     vRMS: m.v_rms || 0,
@@ -426,7 +403,6 @@ export default function Machine() {
     temp: m.temperature || 0,
   }));
 
-  // Data pro koláčový graf - typy údržby
   const maintenanceTypeData = [
     { name: "Preventivní", value: maintenanceRecords.filter(r => r.maintenance_type === "preventive").length, color: "#10b981" },
     { name: "Reaktivní", value: maintenanceRecords.filter(r => r.maintenance_type === "corrective").length, color: "#f59e0b" },
@@ -434,7 +410,6 @@ export default function Machine() {
     { name: "Inspekce", value: maintenanceRecords.filter(r => r.maintenance_type === "inspection").length, color: "#8b5cf6" },
   ].filter(item => item.value > 0);
 
-  // Mutace pro plánovanou údržbu
   const createPlannedMaintenanceMutation = useMutation({
     mutationFn: (data) => base44.entities.PlannedMaintenance.create(data),
     onSuccess: () => {
@@ -461,13 +436,11 @@ export default function Machine() {
 
   const createWorkOrderMutation = useMutation({
     mutationFn: async ({ taskId, task }) => {
-      // Změnit status na "assigned" a poslat notifikaci
       await base44.entities.PlannedMaintenance.update(taskId, {
         status: "assigned",
         work_order_created_at: new Date().toISOString(),
       });
       
-      // Poslat email notifikaci technikovi
       if (task.assigned_to) {
         const assignedUserName = getUserDisplayName(task.assigned_to);
         
@@ -489,7 +462,6 @@ export default function Machine() {
 
   const completeMaintenanceMutation = useMutation({
     mutationFn: async ({ taskId, task, completionData }) => {
-      // Vytvořit MaintenanceRecord
       const maintenanceRecord = await base44.entities.MaintenanceRecord.create({
         machine_id: machineId,
         maintenance_type: task.maintenance_type,
@@ -502,7 +474,6 @@ export default function Machine() {
         notes: completionData.notes,
       });
 
-      // Aktualizovat plánovaný úkol
       await base44.entities.PlannedMaintenance.update(taskId, {
         status: "completed",
         completed_at: new Date().toISOString(),
@@ -544,6 +515,121 @@ export default function Machine() {
     currentUser.user_type === "admin" ||
     currentUser.user_type === "superAdmin"
   );
+
+  const getMachineTypeLabel = (type) => {
+    const types = {
+      press: "Lis",
+      conveyor: "Dopravník",
+      pump: "Čerpadlo",
+      fan: "Ventilátor",
+      compressor: "Kompresor",
+      motor: "Motor",
+      gearbox: "Převodovka",
+      crane: "Jeřáb",
+      robot: "Robot",
+      cnc_machine: "CNC stroj",
+      welding_machine: "Svářečka",
+      other: "Jiné"
+    };
+    return types[type] || type;
+  };
+
+  const getFileIcon = (fileType) => {
+    switch (fileType) {
+      case "photo":
+        return <FileImage className="w-8 h-8 text-blue-500" />;
+      case "schema":
+        return <FileText className="w-8 h-8 text-purple-500" />;
+      case "document":
+        return <FileText className="w-8 h-8 text-green-500" />;
+      case "other_file":
+        return <FileIcon className="w-8 h-8 text-slate-500" />;
+      case "application/pdf":
+        return <FileText className="w-8 h-8 text-red-500" />;
+      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      case "application/msword":
+        return <FileText className="w-8 h-8 text-blue-500" />;
+      case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      case "application/vnd.ms-excel":
+        return <FileText className="w-8 h-8 text-green-500" />;
+      case "image/jpeg":
+      case "image/png":
+      case "image/gif":
+        return <FileImage className="w-8 h-8 text-blue-500" />;
+      default:
+        return <FileIcon className="w-8 h-8 text-slate-500" />;
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedUploadFile || !uploadFileName.trim() || !uploadingCategory) return;
+
+    setIsUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: selectedUploadFile });
+      
+      let detectedFileType = "other_file";
+      if (selectedUploadFile.type.startsWith("image/")) {
+        detectedFileType = "photo";
+      } else if (selectedUploadFile.type === "application/pdf") {
+        detectedFileType = "document";
+      } else if (selectedUploadFile.name.toLowerCase().endsWith(".dwg") || selectedUploadFile.name.toLowerCase().endsWith(".dxf")) {
+          detectedFileType = "schema";
+      } else if (selectedUploadFile.type.includes("word") || selectedUploadFile.type.includes("excel")) {
+          detectedFileType = "document";
+      }
+      
+      await base44.entities.Documentation.create({
+        machine_id: machineId,
+        file_url,
+        file_name: uploadFileName,
+        file_type: detectedFileType,
+        category: uploadingCategory,
+      });
+      queryClient.invalidateQueries({ queryKey: ["documentation"] });
+      setShowUploadDialog(false);
+      setSelectedUploadFile(null);
+      setUploadFileName("");
+      setUploadingCategory("drawing");
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Chyba při nahrávání souboru: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteDoc = async () => {
+    if (deleteDocId) {
+      await base44.entities.Documentation.delete(deleteDocId);
+      queryClient.invalidateQueries({ queryKey: ["documentation"] });
+      setDeleteDocId(null);
+    }
+  };
+
+  const handleAddPlannedMaintenance = async () => {
+    await createPlannedMaintenanceMutation.mutateAsync({
+      machine_id: machineId,
+      ...plannedMaintenanceForm,
+    });
+  };
+
+  const handleCreateWorkOrder = async (task) => {
+    if (window.confirm(`Opravdu chcete vytvořit pracovní příkaz a přiřadit ho technikovi ${getUserDisplayName(task.assigned_to)}? Technik obdrží emailovou notifikaci.`)) {
+      await createWorkOrderMutation.mutateAsync({ taskId: task.id, task });
+    }
+  };
+
+  const handleCompleteMaintenance = async () => {
+    await completeMaintenanceMutation.mutateAsync({
+      taskId: selectedPlannedTask.id,
+      task: selectedPlannedTask,
+      completionData: completionForm,
+    });
+  };
+
+  const activePlannedTasks = plannedMaintenance.filter(t => t.status === "planned" || t.status === "assigned");
+  const completedPlannedTasks = plannedMaintenance.filter(t => t.status === "completed");
 
   const renderPointsList = (points, type) => {
     if (points.length === 0) {
@@ -661,227 +747,101 @@ export default function Machine() {
 
   const machineStatus = overduePoints.length > 0 ? "warning" : issues.length > 0 ? "issues" : "ok";
 
-  // Překlad typu stroje
-  const getMachineTypeLabel = (type) => {
-    const types = {
-      press: "Lis",
-      conveyor: "Dopravník",
-      pump: "Čerpadlo",
-      fan: "Ventilátor",
-      compressor: "Kompresor",
-      motor: "Motor",
-      gearbox: "Převodovka",
-      crane: "Jeřáb",
-      robot: "Robot",
-      cnc_machine: "CNC stroj",
-      welding_machine: "Svářečka",
-      other: "Jiné"
-    };
-    return types[type] || type;
-  };
-
-  const getFileIcon = (fileType) => {
-    switch (fileType) {
-      case "photo":
-        return <FileImage className="w-8 h-8 text-blue-500" />;
-      case "schema":
-        return <FileText className="w-8 h-8 text-purple-500" />;
-      case "document": // Use FileText for general documents like PDF, Word, Excel
-        return <FileText className="w-8 h-8 text-green-500" />;
-      case "other_file":
-        return <FileIcon className="w-8 h-8 text-slate-500" />;
-      case "application/pdf":
-        return <FileText className="w-8 h-8 text-red-500" />;
-      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-      case "application/msword":
-        return <FileText className="w-8 h-8 text-blue-500" />;
-      case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-      case "application/vnd.ms-excel":
-        return <FileText className="w-8 h-8 text-green-500" />;
-      case "image/jpeg":
-      case "image/png":
-      case "image/gif":
-        return <FileImage className="w-8 h-8 text-blue-500" />;
-      default:
-        return <FileIcon className="w-8 h-8 text-slate-500" />;
-    }
-  };
-
-  const handleFileUpload = async () => {
-    if (!selectedUploadFile || !uploadFileName.trim() || !uploadingCategory) return;
-
-    setIsUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: selectedUploadFile });
-      
-      let detectedFileType = "other_file";
-      if (selectedUploadFile.type.startsWith("image/")) {
-        detectedFileType = "photo";
-      } else if (selectedUploadFile.type === "application/pdf") {
-        detectedFileType = "document";
-      } else if (selectedUploadFile.name.toLowerCase().endsWith(".dwg") || selectedUploadFile.name.toLowerCase().endsWith(".dxf")) {
-          detectedFileType = "schema";
-      } else if (selectedUploadFile.type.includes("word") || selectedUploadFile.type.includes("excel")) {
-          detectedFileType = "document";
-      }
-      
-      await base44.entities.Documentation.create({
-        machine_id: machineId,
-        file_url,
-        file_name: uploadFileName,
-        file_type: detectedFileType,
-        category: uploadingCategory,
-      });
-      queryClient.invalidateQueries({ queryKey: ["documentation"] });
-      setShowUploadDialog(false);
-      setSelectedUploadFile(null);
-      setUploadFileName("");
-      setUploadingCategory("drawing");
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Chyba při nahrávání souboru: " + error.message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDeleteDoc = async () => {
-    if (deleteDocId) {
-      await base44.entities.Documentation.delete(deleteDocId);
-      queryClient.invalidateQueries({ queryKey: ["documentation"] });
-      setDeleteDocId(null);
-    }
-  };
-
-  const handleAddPlannedMaintenance = async () => {
-    await createPlannedMaintenanceMutation.mutateAsync({
-      machine_id: machineId,
-      ...plannedMaintenanceForm,
-    });
-  };
-
-  const handleCreateWorkOrder = async (task) => {
-    if (window.confirm(`Opravdu chcete vytvořit pracovní příkaz a přiřadit ho technikovi ${getUserDisplayName(task.assigned_to)}? Technik obdrží emailovou notifikaci.`)) {
-      await createWorkOrderMutation.mutateAsync({ taskId: task.id, task });
-    }
-  };
-
-  const handleCompleteMaintenance = async () => {
-    await completeMaintenanceMutation.mutateAsync({
-      taskId: selectedPlannedTask.id,
-      task: selectedPlannedTask,
-      completionData: completionForm,
-    });
-  };
-
-  // Filtrovat plánované úkoly podle statusu
-  const activePlannedTasks = plannedMaintenance.filter(t => t.status === "planned" || t.status === "assigned");
-  const completedPlannedTasks = plannedMaintenance.filter(t => t.status === "completed");
-
-
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Hlavička stroje */}
-        <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* NOVÝ HEADER - menší verze jako u LineDetail */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto p-4">
           <Button
             variant="ghost"
-            onClick={() => navigate(createPageUrl(`Lines?company=${line?.company_id}&line=${machine.line_id}`))}
-            className="mb-4"
+            size="sm"
+            onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}&line=${line?.id}`))}
+            className="text-white hover:bg-white/20 mb-3"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Zpět na {line?.name}
+            Zpět na {line?.name || "linku"}
           </Button>
 
-          {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
-            <Building2 className="w-4 h-4 text-slate-500" />
-            <button
-              onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}`))}
-              className="hover:text-slate-900 transition-colors"
-            >
-              {company?.name || "Podnik"}
-            </button>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-            <button
-              onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}&line=${line?.id}`))}
-              className="hover:text-slate-900 transition-colors"
-            >
-              {line?.name || "Linka"}
-            </button>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-            <span className="font-semibold text-slate-900">{machine.name}</span>
+          <div className="flex items-center gap-2 text-sm mb-3 opacity-90">
+            <Building2 className="w-4 h-4" />
+            <span>{company?.name || "Podnik"}</span>
+            <ChevronRight className="w-4 h-4" />
+            <span>{line?.name || "Linka"}</span>
+            <ChevronRight className="w-4 h-4" />
+            <span className="font-semibold">{machine.name}</span>
           </div>
-          
-          <Card className="border-none shadow-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white overflow-hidden">
-            <CardContent className="p-8">
+
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold mb-1">{machine.name}</h1>
+              {machine.description && (
+                <p className="text-blue-100 text-sm">{machine.description}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+        {/* Statistiky */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-6">
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl ${
-                      machineStatus === "warning" ? "bg-yellow-500" :
-                      machineStatus === "issues" ? "bg-orange-500" :
-                      "bg-green-500"
-                    }`}>
-                      <Settings className="w-9 h-9 text-white" />
-                    </div>
-                    <div>
-                      <h1 className="text-3xl font-bold mb-2">{machine.name}</h1>
-                      <p className="text-slate-300 text-lg">{line?.name}</p>
-                    </div>
-                  </div>
-
-                  {/* Dodatečné informace o stroji */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    {machine.inventory_number && (
-                      <div className="bg-white/10 rounded-lg p-3">
-                        <p className="text-slate-400 text-xs mb-1">Inventární číslo</p>
-                        <p className="text-white font-semibold">{machine.inventory_number}</p>
-                      </div>
-                    )}
-                    {machine.machine_type && (
-                      <div className="bg-white/10 rounded-lg p-3">
-                        <p className="text-slate-400 text-xs mb-1">Typ zařízení</p>
-                        <p className="text-white font-semibold">{getMachineTypeLabel(machine.machine_type)}</p>
-                      </div>
-                    )}
-                    {machine.location && (
-                      <div className="bg-white/10 rounded-lg p-3">
-                        <p className="text-slate-400 text-xs mb-1">Umístění</p>
-                        <p className="text-white font-semibold">{machine.location}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {machine.description && (
-                    <p className="text-slate-200 mb-4">{machine.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <Badge className="bg-white/20 text-white border-white/30">
-                      {controlPoints.length} kontrolních bodů
-                    </Badge>
-                    {overduePoints.length > 0 && (
-                      <Badge className="bg-yellow-500 text-white">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {overduePoints.length} po termínu
-                      </Badge>
-                    )}
-                    {issues.length > 0 && (
-                      <Badge className="bg-orange-500 text-white">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {issues.length} aktivních závad
-                      </Badge>
-                    )}
-                  </div>
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Kontrolní body</p>
+                  <p className="text-3xl font-bold text-slate-900">{controlPoints.length}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {lubricationPoints.length} mazání • {inspectionPoints.length} inspekcí
+                  </p>
                 </div>
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center border-8 ${
-                  machineStatus === "warning" ? "border-yellow-500 bg-yellow-50/20" :
-                  machineStatus === "issues" ? "border-orange-500 bg-orange-50/20" :
-                  "border-green-500 bg-green-50/20"
-                }`}>
-                  <span className="text-3xl font-bold">
-                    {machineStatus === "ok" ? "✓" : machineStatus === "issues" ? "!" : "⏰"}
-                  </span>
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Droplet className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Po termínu</p>
+                  <p className="text-3xl font-bold text-red-600">{overduePoints.length}</p>
+                  <p className="text-xs text-slate-500 mt-1">Vyžaduje pozornost</p>
+                </div>
+                <div className="p-3 bg-red-100 rounded-lg">
+                  <Clock className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Aktivní závady</p>
+                  <p className="text-3xl font-bold text-orange-600">{issues.length}</p>
+                  <p className="text-xs text-slate-500 mt-1">Nahlášené problémy</p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="w-6 h-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">V pořádku</p>
+                  <p className="text-3xl font-bold text-green-600">{okPoints.length}</p>
+                  <p className="text-xs text-slate-500 mt-1">Kontrolní body OK</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -927,68 +887,6 @@ export default function Machine() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-blue-100 text-sm font-medium mb-1">Kontrolní body</p>
-                      <p className="text-4xl font-bold">{controlPoints.length}</p>
-                      <p className="text-blue-100 text-xs mt-2">
-                        {lubricationPoints.length} mazání • {inspectionPoints.length} inspekcí
-                      </p>
-                    </div>
-                    <Droplet className="w-8 h-8 text-white/80" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-lg bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-yellow-100 text-sm font-medium mb-1">Po termínu</p>
-                      <p className="text-4xl font-bold">{overduePoints.length}</p>
-                      <p className="text-yellow-100 text-xs mt-2">
-                        Vyžaduje okamžitou pozornost
-                      </p>
-                    </div>
-                    <Clock className="w-8 h-8 text-white/80" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-orange-100 text-sm font-medium mb-1">Aktivní závady</p>
-                      <p className="text-4xl font-bold">{issues.length}</p>
-                      <p className="text-orange-100 text-xs mt-2">
-                        Nahlášené problémy
-                      </p>
-                    </div>
-                    <AlertTriangle className="w-8 h-8 text-white/80" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-green-100 text-sm font-medium mb-1">V pořádku</p>
-                      <p className="text-4xl font-bold">{okPoints.length}</p>
-                      <p className="text-green-100 text-xs mt-2">
-                        Kontrolní body OK
-                      </p>
-                    </div>
-                    <CheckCircle className="w-8 h-8 text-white/80" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Nejbližší plánované úkony */}
               <Card className="shadow-lg">
