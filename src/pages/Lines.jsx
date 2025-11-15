@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useViewMode } from "@/components/ViewModeContext";
 import {
   Factory,
   Droplet,
@@ -12,6 +13,7 @@ import {
   Filter,
   Building2,
   Loader2,
+  Info,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +33,7 @@ export default function Lines() {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedLine, setSelectedLine] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
+  const { viewMode } = useViewMode();
 
   const navigate = useNavigate();
 
@@ -264,6 +267,25 @@ export default function Lines() {
           {currentCompany && (
             <p className="text-slate-600 mb-6">{currentCompany.name}</p>
           )}
+
+          {viewMode === 'maintenance' && (
+            <Card className="mb-6 border-blue-200 bg-blue-50">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-blue-900 font-medium mb-1">
+                      Karta linky
+                    </p>
+                    <p className="text-xs text-blue-800">
+                      V režimu Údržba můžete kliknout na ikonu "ℹ️" pro zobrazení detailní karty linky s preventivní údržbou, check listem a dalšími informacemi.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="space-y-2">
             {lines.map((line) => {
               const lineMachines = allMachines.filter((m) => m.line_id === line.id);
@@ -284,16 +306,18 @@ export default function Lines() {
               return (
                 <Card
                   key={line.id}
-                  className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
+                  className={`transition-all hover:shadow-md border-l-4 ${
                     lineStatus === "overdue"
                       ? "border-l-yellow-500 bg-yellow-50/50"
                       : "border-l-green-500 bg-green-50/50"
                   }`}
-                  onClick={() => setSelectedLine(line.id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
+                      <div 
+                        className="flex items-center gap-4 flex-1 cursor-pointer"
+                        onClick={() => setSelectedLine(line.id)}
+                      >
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                           lineStatus === "overdue" ? "bg-yellow-100" : "bg-green-100"
                         }`}>
@@ -335,12 +359,29 @@ export default function Lines() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {viewMode === 'maintenance' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(createPageUrl(`LineDetail?id=${line.id}${selectedCompany ? `&company=${selectedCompany}` : ''}`));
+                            }}
+                            className="text-blue-600 hover:bg-blue-100"
+                            title="Detail linky"
+                          >
+                            <Info className="w-5 h-5" />
+                          </Button>
+                        )}
                         <div className={`w-3 h-3 rounded-full ${
                           lineStatus === "overdue"
                             ? "bg-yellow-500"
                             : "bg-green-500"
                         }`} />
-                        <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                        <ChevronRight 
+                          className="w-5 h-5 text-slate-400 flex-shrink-0 cursor-pointer" 
+                          onClick={() => setSelectedLine(line.id)}
+                        />
                       </div>
                     </div>
                   </CardContent>

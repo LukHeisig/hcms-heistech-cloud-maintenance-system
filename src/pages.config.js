@@ -14,6 +14,7 @@ import About from './pages/About';
 import ApiDocumentation from './pages/ApiDocumentation';
 import AuditLog from './pages/AuditLog';
 import UserMonitoring from './pages/UserMonitoring';
+import LineDetail from './pages/LineDetail';
 import Layout from './Layout.jsx';
 
 
@@ -34,6 +35,7 @@ export const PAGES = {
     "ApiDocumentation": ApiDocumentation,
     "AuditLog": AuditLog,
     "UserMonitoring": UserMonitoring,
+    "LineDetail": LineDetail,
 }
 
 export const pagesConfig = {
