@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +37,8 @@ import {
   Loader2,
   GripVertical,
   Copy,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 export default function AdminLineChecks() {
@@ -57,6 +58,7 @@ export default function AdminLineChecks() {
   const [deletePointId, setDeletePointId] = useState(null);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [isCopying, setIsCopying] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
 
   const [sectionForm, setSectionForm] = useState({ name: "" });
   const [pointForm, setPointForm] = useState({ name: "", check_parameters: "" });
@@ -270,6 +272,102 @@ export default function AdminLineChecks() {
     }
   };
 
+  const handleMoveSectionUp = async (section, index) => {
+    if (index === 0) return;
+    
+    setIsMoving(true);
+    try {
+      const prevSection = sections[index - 1];
+      
+      await base44.entities.LineCheckSection.update(section.id, {
+        order_index: prevSection.order_index,
+      });
+      
+      await base44.entities.LineCheckSection.update(prevSection.id, {
+        order_index: section.order_index,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["checkSections"] });
+    } catch (error) {
+      console.error("Error moving section:", error);
+      alert("Chyba při přesunu sekce");
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
+  const handleMoveSectionDown = async (section, index) => {
+    if (index === sections.length - 1) return;
+    
+    setIsMoving(true);
+    try {
+      const nextSection = sections[index + 1];
+      
+      await base44.entities.LineCheckSection.update(section.id, {
+        order_index: nextSection.order_index,
+      });
+      
+      await base44.entities.LineCheckSection.update(nextSection.id, {
+        order_index: section.order_index,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["checkSections"] });
+    } catch (error) {
+      console.error("Error moving section:", error);
+      alert("Chyba při přesunu sekce");
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
+  const handleMovePointUp = async (point, sectionPoints, index) => {
+    if (index === 0) return;
+    
+    setIsMoving(true);
+    try {
+      const prevPoint = sectionPoints[index - 1];
+      
+      await base44.entities.LineCheckPoint.update(point.id, {
+        order_index: prevPoint.order_index,
+      });
+      
+      await base44.entities.LineCheckPoint.update(prevPoint.id, {
+        order_index: point.order_index,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["lineCheckPoints"] });
+    } catch (error) {
+      console.error("Error moving point:", error);
+      alert("Chyba při přesunu bodu");
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
+  const handleMovePointDown = async (point, sectionPoints, index) => {
+    if (index === sectionPoints.length - 1) return;
+    
+    setIsMoving(true);
+    try {
+      const nextPoint = sectionPoints[index + 1];
+      
+      await base44.entities.LineCheckPoint.update(point.id, {
+        order_index: nextPoint.order_index,
+      });
+      
+      await base44.entities.LineCheckPoint.update(nextPoint.id, {
+        order_index: point.order_index,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["lineCheckPoints"] });
+    } catch (error) {
+      console.error("Error moving point:", error);
+      alert("Chyba při přesunu bodu");
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
   if (!line) {
     return (
       <div className="p-8 flex items-center justify-center min-h-screen">
@@ -323,7 +421,7 @@ export default function AdminLineChecks() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {sections.map((section) => {
+            {sections.map((section, sectionIndex) => {
               const sectionPoints = allPoints.filter(p => p.section_id === section.id);
 
               return (
@@ -331,6 +429,26 @@ export default function AdminLineChecks() {
                   <CardHeader className="bg-slate-50">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg flex items-center gap-2">
+                        <div className="flex flex-col gap-0.5">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleMoveSectionUp(section, sectionIndex)}
+                            disabled={sectionIndex === 0 || isMoving}
+                            className="h-5 w-5 p-0 hover:bg-slate-200"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleMoveSectionDown(section, sectionIndex)}
+                            disabled={sectionIndex === sections.length - 1 || isMoving}
+                            className="h-5 w-5 p-0 hover:bg-slate-200"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </div>
                         <GripVertical className="w-5 h-5 text-slate-400" />
                         {section.name}
                       </CardTitle>
@@ -351,7 +469,7 @@ export default function AdminLineChecks() {
                           disabled={isCopying}
                           className="gap-2"
                         >
-                          {isCopying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                          <Copy className="w-4 h-4" />
                           Kopírovat
                         </Button>
                         <Button
@@ -379,19 +497,39 @@ export default function AdminLineChecks() {
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {sectionPoints.map((point) => (
+                        {sectionPoints.map((point, pointIndex) => (
                           <div
                             key={point.id}
                             className="flex items-start justify-between p-3 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors"
                           >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <GripVertical className="w-4 h-4 text-slate-400" />
-                                <p className="font-medium text-slate-900">{point.name}</p>
+                            <div className="flex items-start gap-2 flex-1">
+                              <div className="flex flex-col gap-0.5 mt-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleMovePointUp(point, sectionPoints, pointIndex)}
+                                  disabled={pointIndex === 0 || isMoving}
+                                  className="h-4 w-4 p-0 hover:bg-slate-200"
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleMovePointDown(point, sectionPoints, pointIndex)}
+                                  disabled={pointIndex === sectionPoints.length - 1 || isMoving}
+                                  className="h-4 w-4 p-0 hover:bg-slate-200"
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </Button>
                               </div>
-                              {point.check_parameters && (
-                                <p className="text-sm text-slate-600 ml-6">{point.check_parameters}</p>
-                              )}
+                              <GripVertical className="w-4 h-4 text-slate-400 mt-1" />
+                              <div className="flex-1">
+                                <p className="font-medium text-slate-900">{point.name}</p>
+                                {point.check_parameters && (
+                                  <p className="text-sm text-slate-600">{point.check_parameters}</p>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center gap-1 ml-4">
                               <Button
@@ -401,7 +539,7 @@ export default function AdminLineChecks() {
                                 disabled={isCopying}
                                 title="Kopírovat bod"
                               >
-                                {isCopying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                                <Copy className="w-4 h-4" />
                               </Button>
                               <Button
                                 size="sm"
