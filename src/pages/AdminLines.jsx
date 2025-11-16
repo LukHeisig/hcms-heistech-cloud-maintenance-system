@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +41,8 @@ import {
   ChevronRight,
   Loader2,
   Copy,
-  Building2
+  Building2,
+  User,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -53,7 +60,7 @@ export default function AdminLines() {
   const [copyingLine, setCopyingLine] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyName, setCopyName] = useState("");
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({ name: "", description: "", responsible_person_email: "" });
 
   React.useEffect(() => {
     loadUser();
@@ -93,12 +100,39 @@ export default function AdminLines() {
     queryFn: () => base44.entities.ControlPoint.list(),
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsers"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const companyUsers = React.useMemo(() => {
+    if (!user || !companyId) return [];
+    
+    if (user.user_type === "superAdmin") {
+      return allUsers.filter(u => u.company_id === companyId);
+    }
+    
+    if (user.user_type === "admin") {
+      return allUsers.filter(u => 
+        u.company_id === companyId && 
+        (u.user_type === "manager" || u.user_type === "technician")
+      );
+    }
+    
+    return allUsers.filter(u => u.company_id === companyId);
+  }, [allUsers, companyId, user]);
+
+  const getUserDisplayName = (email) => {
+    const u = allUsers.find(usr => usr.email === email);
+    return u ? (u.custom_display_name || u.full_name || u.email) : email;
+  };
+
   const createLineMutation = useMutation({
     mutationFn: (data) => base44.entities.Line.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lines"] });
       setShowLineDialog(false);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", responsible_person_email: "" });
     },
   });
 
@@ -108,7 +142,7 @@ export default function AdminLines() {
       queryClient.invalidateQueries({ queryKey: ["lines"] });
       setShowLineDialog(false);
       setEditingLine(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", responsible_person_email: "" });
     },
   });
 
@@ -123,10 +157,14 @@ export default function AdminLines() {
   const handleOpenDialog = (line = null) => {
     if (line) {
       setEditingLine(line);
-      setFormData({ name: line.name, description: line.description || "" });
+      setFormData({ 
+        name: line.name, 
+        description: line.description || "",
+        responsible_person_email: line.responsible_person_email || ""
+      });
     } else {
       setEditingLine(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", responsible_person_email: "" });
     }
     setShowLineDialog(true);
   };
@@ -169,6 +207,7 @@ export default function AdminLines() {
         name: copyName,
         description: copyingLine.description || "",
         company_id: copyingLine.company_id,
+        responsible_person_email: copyingLine.responsible_person_email || "",
         order_index: lines.length,
       });
 
@@ -323,7 +362,13 @@ export default function AdminLines() {
                               {line.name}
                             </h3>
                             {line.description && (
-                              <p className="text-sm text-slate-600">{line.description}</p>
+                              <p className="text-sm text-slate-600 mb-2">{line.description}</p>
+                            )}
+                            {line.responsible_person_email && (
+                              <div className="flex items-center gap-1 text-sm text-slate-600">
+                                <User className="w-4 h-4" />
+                                <span>{getUserDisplayName(line.responsible_person_email)}</span>
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center gap-2">
@@ -412,6 +457,27 @@ export default function AdminLines() {
                   placeholder="Volitelný popis linky"
                   rows={3}
                 />
+              </div>
+              <div>
+                <Label htmlFor="responsible_person">Odpovědná osoba</Label>
+                <Select
+                  value={formData.responsible_person_email}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, responsible_person_email: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte odpovědnou osobu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>Bez odpovědné osoby</SelectItem>
+                    {companyUsers.map((usr) => (
+                      <SelectItem key={usr.email} value={usr.email}>
+                        {usr.custom_display_name || usr.full_name || usr.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
