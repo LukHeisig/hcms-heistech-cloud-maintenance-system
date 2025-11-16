@@ -22,6 +22,11 @@ import {
   Wrench,
   TrendingUp,
   CheckSquare,
+  FileText,
+  Settings,
+  Download,
+  Upload,
+  ShieldCheck,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -285,11 +290,16 @@ export default function LineDetail() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white shadow-sm grid w-full grid-cols-4">
+          <TabsList className="bg-white shadow-sm grid w-full grid-cols-3 lg:grid-cols-9 gap-1 p-2">
             <TabsTrigger value="overview">Přehled</TabsTrigger>
-            <TabsTrigger value="maintenance">Preventivní údržba</TabsTrigger>
-            <TabsTrigger value="checklist">Check list</TabsTrigger>
-            <TabsTrigger value="responsibilities">Odpovědné osoby</TabsTrigger>
+            <TabsTrigger value="maintenance">Plán údržby</TabsTrigger>
+            <TabsTrigger value="checklist">Checklisty</TabsTrigger>
+            <TabsTrigger value="interventions">Zásahy</TabsTrigger>
+            <TabsTrigger value="verification">Ověření / Test</TabsTrigger>
+            <TabsTrigger value="audit">Evidence</TabsTrigger>
+            <TabsTrigger value="analytics">Analytika</TabsTrigger>
+            <TabsTrigger value="settings">Nastavení</TabsTrigger>
+            <TabsTrigger value="import-export">Import / Export</TabsTrigger>
           </TabsList>
 
           {/* Přehled */}
@@ -409,256 +419,82 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Preventivní údržba */}
+          {/* Plán údržby */}
           <TabsContent value="maintenance" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Wrench className="w-5 h-5" />
-                  Plánovaná údržba
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {plannedMaintenance.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Žádná plánovaná údržba</p>
-                ) : (
-                  <div className="space-y-2">
-                    {plannedMaintenance.map((pm) => {
-                      const machine = machines.find(m => m.id === pm.machine_id);
-                      const isOverdue = new Date(pm.planned_date) < new Date();
-                      
-                      return (
-                        <div
-                          key={pm.id}
-                          className={`p-4 border rounded-lg ${
-                            pm.status === 'completed' ? 'bg-green-50 border-green-200' :
-                            pm.status === 'assigned' ? 'bg-blue-50 border-blue-200' :
-                            isOverdue ? 'bg-red-50 border-red-200' :
-                            'bg-white'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="font-medium text-slate-900">{pm.title}</p>
-                                {pm.status === 'completed' && (
-                                  <Badge className="bg-green-600">Dokončeno</Badge>
-                                )}
-                                {pm.status === 'assigned' && (
-                                  <Badge className="bg-blue-600">Přiřazeno</Badge>
-                                )}
-                                {isOverdue && pm.status !== 'completed' && (
-                                  <Badge variant="destructive">Po termínu</Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-slate-600 mb-2">{machine?.name}</p>
-                              <div className="flex items-center gap-4 text-xs text-slate-500">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {format(new Date(pm.planned_date), "d.M.yyyy", { locale: cs })}
-                                </span>
-                                {pm.assigned_to && (
-                                  <span>{getUserDisplayName(pm.assigned_to)}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Historie údržby
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {maintenanceRecords.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Žádné záznamy údržby</p>
-                ) : (
-                  <div className="space-y-3">
-                    {maintenanceRecords.slice(0, 10).map((record) => {
-                      const machine = machines.find(m => m.id === record.machine_id);
-                      
-                      return (
-                        <div key={record.id} className="p-3 border rounded-lg">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-medium text-slate-900">{record.title}</p>
-                              <p className="text-sm text-slate-600">{machine?.name}</p>
-                            </div>
-                            {record.cost && (
-                              <Badge variant="outline">{record.cost} Kč</Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500">
-                            {format(new Date(record.performed_at), "d.M.yyyy HH:mm", { locale: cs })}
-                            {record.technician && ` • ${record.technician}`}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              <CardContent className="p-12 text-center">
+                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Plán údržby bude implementován</p>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Check list */}
+          {/* Checklisty */}
           <TabsContent value="checklist" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5" />
-                  Kontrolní body po termínu
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {overduePoints.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ClipboardCheck className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <p className="text-green-700 font-medium">Všechny body jsou v pořádku!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {overduePoints.map((point) => {
-                      const machine = machines.find(m => m.id === point.machine_id);
-                      const pointRecords = records.filter(r => r.control_point_id === point.id);
-                      const lastRecord = pointRecords[0];
-                      
-                      return (
-                        <div
-                          key={point.id}
-                          className="p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
-                          onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="font-medium text-slate-900">{point.name}</p>
-                              <p className="text-sm text-slate-600">{machine?.name}</p>
-                              {lastRecord && (
-                                <p className="text-xs text-slate-500 mt-1">
-                                  Naposledy: {format(new Date(lastRecord.performed_at), "d.M.yyyy", { locale: cs })}
-                                </p>
-                              )}
-                            </div>
-                            <Badge variant="destructive">Po termínu</Badge>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ClipboardCheck className="w-5 h-5" />
-                  Všechny kontrolní body ({controlPoints.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {controlPoints.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Žádné kontrolní body</p>
-                ) : (
-                  <div className="space-y-2">
-                    {controlPoints.map((point) => {
-                      const machine = machines.find(m => m.id === point.machine_id);
-                      const status = getPointStatus(point);
-                      
-                      return (
-                        <div
-                          key={point.id}
-                          className={`p-3 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors ${
-                            status === 'overdue' ? 'border-red-200 bg-red-50' : 'border-slate-200'
-                          }`}
-                          onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {point.type === 'lubrication' && <Droplet className="w-4 h-4 text-blue-600" />}
-                              {point.type === 'inspection' && <ClipboardCheck className="w-4 h-4 text-purple-600" />}
-                              <div>
-                                <p className="font-medium text-slate-900">{point.name}</p>
-                                <p className="text-xs text-slate-600">{machine?.name}</p>
-                              </div>
-                            </div>
-                            <div className={`w-3 h-3 rounded-full ${
-                              status === 'overdue' ? 'bg-red-500' : 'bg-green-500'
-                            }`} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              <CardContent className="p-12 text-center">
+                <CheckSquare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Checklisty budou implementovány</p>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Odpovědné osoby */}
-          <TabsContent value="responsibilities" className="space-y-6">
+          {/* Zásahy */}
+          <TabsContent value="interventions" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Přiřazené odpovědnosti
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {responsibilities.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Žádné přiřazené odpovědnosti</p>
-                ) : (
-                  <div className="space-y-4">
-                    {Object.entries(
-                      responsibilities.reduce((acc, resp) => {
-                        if (!acc[resp.user_email]) {
-                          acc[resp.user_email] = [];
-                        }
-                        acc[resp.user_email].push(resp);
-                        return acc;
-                      }, {})
-                    ).map(([userEmail, userResponsibilities]) => (
-                      <div key={userEmail} className="p-4 border rounded-lg">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-900">{getUserDisplayName(userEmail)}</p>
-                            <p className="text-sm text-slate-600">{userEmail}</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2 ml-13">
-                          {userResponsibilities.map((resp) => {
-                            const machine = machines.find(m => m.id === resp.machine_id);
-                            
-                            return (
-                              <div key={resp.id} className="flex items-center justify-between text-sm">
-                                <span className="text-slate-700">{machine?.name}</span>
-                                <Badge variant="outline">
-                                  {resp.responsibility_type === 'primary' ? 'Hlavní odpovědnost' :
-                                   resp.responsibility_type === 'maintenance' ? 'Údržba' :
-                                   resp.responsibility_type === 'lubrication' ? 'Mazání' :
-                                   resp.responsibility_type === 'inspection' ? 'Inspekce' :
-                                   resp.responsibility_type}
-                                </Badge>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <CardContent className="p-12 text-center">
+                <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Zásahy budou implementovány</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Ověření / Test */}
+          <TabsContent value="verification" className="space-y-6">
+            <Card>
+              <CardContent className="p-12 text-center">
+                <ShieldCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Ověření a testy budou implementovány</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Evidence (Audit) */}
+          <TabsContent value="audit" className="space-y-6">
+            <Card>
+              <CardContent className="p-12 text-center">
+                <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Evidence bude implementována</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytika */}
+          <TabsContent value="analytics" className="space-y-6">
+            <Card>
+              <CardContent className="p-12 text-center">
+                <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Analytika bude implementována</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Nastavení */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Nastavení bude implementováno</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Import / Export */}
+          <TabsContent value="import-export" className="space-y-6">
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Upload className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Import / Export bude implementován</p>
               </CardContent>
             </Card>
           </TabsContent>
