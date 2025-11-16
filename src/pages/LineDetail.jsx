@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +6,25 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Factory,
   Building2,
@@ -33,6 +50,7 @@ import {
   ChevronUp,
   ChevronsDown,
   ChevronsUp,
+  Loader2,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -41,6 +59,18 @@ export default function LineDetail() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSections, setExpandedSections] = useState({});
+  const [showCheckRecordDialog, setShowCheckRecordDialog] = useState(false);
+  const [checkRecordForm, setCheckRecordForm] = useState({
+    section_id: "",
+    check_point_id: "",
+    defect_description: "",
+    device_status: "V provozu",
+    note: "",
+    spare_part_used: "",
+    downtime_estimate: "Hned za provozu",
+    downtime_hours: "",
+    planned_downtime_date: "",
+  });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -119,6 +149,12 @@ export default function LineDetail() {
   const { data: allCheckPoints = [] } = useQuery({
     queryKey: ["lineCheckPoints"],
     queryFn: () => base44.entities.LineCheckPoint.list("order_index"),
+  });
+
+  const { data: checkRecords = [] } = useQuery({
+    queryKey: ["lineCheckRecords", lineId],
+    queryFn: () => base44.entities.LineCheckRecord.filter({ line_id: lineId }, "-created_date"),
+    enabled: !!lineId,
   });
 
   const userMap = useMemo(() => {
@@ -217,6 +253,51 @@ export default function LineDetail() {
 
   const collapseAll = () => {
     setExpandedSections({});
+  };
+
+  const sectionCheckPoints = useMemo(() => {
+    if (!checkRecordForm.section_id) return [];
+    return allCheckPoints.filter(p => p.section_id === checkRecordForm.section_id);
+  }, [checkRecordForm.section_id, allCheckPoints]);
+
+  const createCheckRecordMutation = useMutation({
+    mutationFn: (data) => base44.entities.LineCheckRecord.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lineCheckRecords"] });
+      setShowCheckRecordDialog(false);
+      setCheckRecordForm({
+        section_id: "",
+        check_point_id: "",
+        defect_description: "",
+        device_status: "V provozu",
+        note: "",
+        spare_part_used: "",
+        downtime_estimate: "Hned za provozu",
+        downtime_hours: "",
+        planned_downtime_date: "",
+      });
+    },
+  });
+
+  const handleSaveCheckRecord = async () => {
+    if (!checkRecordForm.section_id || !checkRecordForm.check_point_id || !checkRecordForm.defect_description.trim()) {
+      return;
+    }
+
+    const data = {
+      line_id: lineId,
+      section_id: checkRecordForm.section_id,
+      check_point_id: checkRecordForm.check_point_id,
+      defect_description: checkRecordForm.defect_description,
+      device_status: checkRecordForm.device_status,
+      note: checkRecordForm.note || undefined,
+      spare_part_used: checkRecordForm.spare_part_used || undefined,
+      downtime_estimate: checkRecordForm.downtime_estimate,
+      downtime_hours: checkRecordForm.downtime_estimate === "Vlastní čas" ? parseFloat(checkRecordForm.downtime_hours) : undefined,
+      planned_downtime_date: checkRecordForm.planned_downtime_date || undefined,
+    };
+
+    await createCheckRecordMutation.mutateAsync(data);
   };
 
   if (!line) {
@@ -348,30 +429,6 @@ export default function LineDetail() {
               <CardContent className="p-12 text-center">
                 <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Přehled bude doplněn</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Statistiky tento měsíc
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-900 mb-1">Provedená údržba</p>
-                    <p className="text-2xl font-bold text-blue-700">{stats.maintenanceThisMonth}</p>
-                  </div>
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-900 mb-1">Celkové náklady</p>
-                    <p className="text-2xl font-bold text-green-700">{stats.totalCostThisMonth.toLocaleString()} Kč</p>
-                  </div>
-                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <p className="text-sm text-purple-900 mb-1">Plánované úkoly</p>
-                    <p className="text-2xl font-bold text-purple-700">{stats.plannedCount}</p>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -541,7 +598,6 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Checklisty */}
           <TabsContent value="checklist" className="space-y-6">
             <Card>
               <CardContent className="p-12 text-center">
@@ -551,7 +607,6 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Zásahy */}
           <TabsContent value="interventions" className="space-y-6">
             <Card>
               <CardContent className="p-12 text-center">
@@ -561,7 +616,6 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Ověření / Test */}
           <TabsContent value="verification" className="space-y-6">
             <Card>
               <CardContent className="p-12 text-center">
@@ -571,17 +625,112 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Evidence (Audit) */}
+          {/* Evidence */}
           <TabsContent value="audit" className="space-y-6">
             <Card>
-              <CardContent className="p-12 text-center">
-                <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Evidence bude implementována</p>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Záznamy z kontrol
+                  </CardTitle>
+                  <Button
+                    onClick={() => setShowCheckRecordDialog(true)}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Přidat zápis
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {checkRecords.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 mb-2">Zatím nejsou žádné záznamy z kontrol</p>
+                    <p className="text-xs text-slate-400">Klikněte na "Přidat zápis" pro vytvoření prvního záznamu</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {checkRecords.map((record) => {
+                      const section = checkSections.find(s => s.id === record.section_id);
+                      const checkPoint = allCheckPoints.find(p => p.id === record.check_point_id);
+                      
+                      return (
+                        <div key={record.id} className="border border-slate-200 rounded-lg p-4 bg-white">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-slate-900">{section?.name}</h4>
+                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                                <span className="text-slate-700">{checkPoint?.name}</span>
+                              </div>
+                              <p className="text-xs text-slate-500">
+                                {format(new Date(record.created_date), "d. M. yyyy HH:mm", { locale: cs })} • {getUserDisplayName(record.created_by)}
+                              </p>
+                            </div>
+                            <Badge 
+                              className={
+                                record.device_status === "Opraveno" 
+                                  ? "bg-green-100 text-green-700"
+                                  : record.device_status === "Stojí"
+                                  ? "bg-red-100 text-red-700"
+                                  : record.device_status === "Čeká na opravu"
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-blue-100 text-blue-700"
+                              }
+                            >
+                              {record.device_status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-sm font-medium text-slate-700">Popis závady:</p>
+                              <p className="text-sm text-slate-900">{record.defect_description}</p>
+                            </div>
+                            
+                            {record.note && (
+                              <div>
+                                <p className="text-sm font-medium text-slate-700">Poznámka:</p>
+                                <p className="text-sm text-slate-600">{record.note}</p>
+                              </div>
+                            )}
+                            
+                            {record.spare_part_used && (
+                              <div>
+                                <p className="text-sm font-medium text-slate-700">Spotřebovaný díl:</p>
+                                <p className="text-sm text-slate-600">{record.spare_part_used}</p>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-4 text-sm">
+                              <div>
+                                <span className="text-slate-700 font-medium">Odhad odstávky: </span>
+                                <span className="text-slate-600">
+                                  {record.downtime_estimate}
+                                  {record.downtime_estimate === "Vlastní čas" && record.downtime_hours && ` (${record.downtime_hours}h)`}
+                                </span>
+                              </div>
+                              {record.planned_downtime_date && (
+                                <div>
+                                  <span className="text-slate-700 font-medium">Plánováno: </span>
+                                  <span className="text-slate-600">
+                                    {format(new Date(record.planned_downtime_date), "d. M. yyyy", { locale: cs })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Analytika */}
           <TabsContent value="analytics" className="space-y-6">
             <Card>
               <CardContent className="p-12 text-center">
@@ -591,7 +740,6 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Nastavení */}
           <TabsContent value="settings" className="space-y-6">
             <Card>
               <CardContent className="p-12 text-center">
@@ -601,7 +749,6 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Import / Export */}
           <TabsContent value="import-export" className="space-y-6">
             <Card>
               <CardContent className="p-12 text-center">
@@ -612,6 +759,191 @@ export default function LineDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog pro přidání záznamu z kontroly */}
+      <Dialog open={showCheckRecordDialog} onOpenChange={setShowCheckRecordDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Přidat zápis z kontroly</DialogTitle>
+            <DialogDescription>
+              Zaznamenejte výsledek kontroly kontrolního bodu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="section">Sekce *</Label>
+                <Select
+                  value={checkRecordForm.section_id}
+                  onValueChange={(value) => {
+                    setCheckRecordForm({ 
+                      ...checkRecordForm, 
+                      section_id: value,
+                      check_point_id: ""
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte sekci" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {checkSections.map((section) => (
+                      <SelectItem key={section.id} value={section.id}>
+                        {section.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="check_point">Kontrolní bod *</Label>
+                <Select
+                  value={checkRecordForm.check_point_id}
+                  onValueChange={(value) => setCheckRecordForm({ ...checkRecordForm, check_point_id: value })}
+                  disabled={!checkRecordForm.section_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte bod" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sectionCheckPoints.map((point) => (
+                      <SelectItem key={point.id} value={point.id}>
+                        {point.name}
+                        {point.check_parameters && (
+                          <span className="text-xs text-slate-500 ml-2">({point.check_parameters})</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="defect_description">Popis závady *</Label>
+              <Textarea
+                id="defect_description"
+                value={checkRecordForm.defect_description}
+                onChange={(e) => setCheckRecordForm({ ...checkRecordForm, defect_description: e.target.value })}
+                placeholder="Popište zjištěnou závadu nebo stav..."
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="device_status">Současný stav zařízení *</Label>
+              <Select
+                value={checkRecordForm.device_status}
+                onValueChange={(value) => setCheckRecordForm({ ...checkRecordForm, device_status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="V provozu">V provozu</SelectItem>
+                  <SelectItem value="Opraveno">Opraveno</SelectItem>
+                  <SelectItem value="Stojí">Stojí</SelectItem>
+                  <SelectItem value="Čeká na opravu">Čeká na opravu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="note">Poznámka</Label>
+              <Textarea
+                id="note"
+                value={checkRecordForm.note}
+                onChange={(e) => setCheckRecordForm({ ...checkRecordForm, note: e.target.value })}
+                placeholder="Volitelná poznámka..."
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="spare_part">Spotřebovaný náhradní díl</Label>
+              <Input
+                id="spare_part"
+                value={checkRecordForm.spare_part_used}
+                onChange={(e) => setCheckRecordForm({ ...checkRecordForm, spare_part_used: e.target.value })}
+                placeholder="např. Ložisko 6205"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="downtime_estimate">Časový odhad odstávky</Label>
+                <Select
+                  value={checkRecordForm.downtime_estimate}
+                  onValueChange={(value) => setCheckRecordForm({ ...checkRecordForm, downtime_estimate: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hned za provozu">Hned za provozu</SelectItem>
+                    <SelectItem value="O přestávce">O přestávce</SelectItem>
+                    <SelectItem value="Víkend">Víkend</SelectItem>
+                    <SelectItem value="Vlastní čas">Vlastní čas (hodiny)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {checkRecordForm.downtime_estimate === "Vlastní čas" && (
+                <div>
+                  <Label htmlFor="downtime_hours">Počet hodin</Label>
+                  <Input
+                    id="downtime_hours"
+                    type="number"
+                    value={checkRecordForm.downtime_hours}
+                    onChange={(e) => setCheckRecordForm({ ...checkRecordForm, downtime_hours: e.target.value })}
+                    placeholder="např. 4"
+                    min="0"
+                    step="0.5"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="planned_date">Datum plánované odstávky</Label>
+              <Input
+                id="planned_date"
+                type="date"
+                value={checkRecordForm.planned_downtime_date}
+                onChange={(e) => setCheckRecordForm({ ...checkRecordForm, planned_downtime_date: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCheckRecordDialog(false)}
+            >
+              Zrušit
+            </Button>
+            <Button
+              onClick={handleSaveCheckRecord}
+              disabled={
+                !checkRecordForm.section_id || 
+                !checkRecordForm.check_point_id || 
+                !checkRecordForm.defect_description.trim() ||
+                createCheckRecordMutation.isLoading
+              }
+              className="bg-gradient-to-r from-blue-600 to-blue-700"
+            >
+              {createCheckRecordMutation.isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Ukládám...
+                </>
+              ) : (
+                "Uložit zápis"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
