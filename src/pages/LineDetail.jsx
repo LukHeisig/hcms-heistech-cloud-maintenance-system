@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,10 @@ import {
   Upload,
   ShieldCheck,
   Plus,
+  ChevronDown,
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -35,6 +40,7 @@ import { cs } from "date-fns/locale";
 export default function LineDetail() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [expandedSections, setExpandedSections] = useState({});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -193,6 +199,25 @@ export default function LineDetail() {
       plannedCount: plannedMaintenance.filter(pm => pm.status !== 'completed' && pm.status !== 'cancelled').length,
     };
   }, [machines, controlPoints, overduePoints, issues, maintenanceRecords, plannedMaintenance]);
+
+  const toggleSection = (sectionId) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+  };
+
+  const expandAll = () => {
+    const allExpanded = {};
+    checkSections.forEach(section => {
+      allExpanded[section.id] = true;
+    });
+    setExpandedSections(allExpanded);
+  };
+
+  const collapseAll = () => {
+    setExpandedSections({});
+  };
 
   if (!line) {
     return (
@@ -374,24 +399,48 @@ export default function LineDetail() {
                 </CardContent>
               </Card>
 
-              {/* Kontrolní body linky */}
+              {/* Kontrolní body údržby */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <ClipboardCheck className="w-5 h-5" />
-                      Kontrolní body linky
+                      Kontrolní body údržby
                     </CardTitle>
-                    {canManage && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(createPageUrl(`AdminLineChecks?id=${lineId}${companyId ? `&company=${companyId}` : ''}`))}
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Spravovat
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {checkSections.length > 0 && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={expandAll}
+                            className="gap-1"
+                          >
+                            <ChevronsDown className="w-4 h-4" />
+                            Rozbalit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={collapseAll}
+                            className="gap-1"
+                          >
+                            <ChevronsUp className="w-4 h-4" />
+                            Sbalit
+                          </Button>
+                        </>
+                      )}
+                      {canManage && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(createPageUrl(`AdminLineChecks?id=${lineId}${companyId ? `&company=${companyId}` : ''}`))}
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Spravovat
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -404,30 +453,48 @@ export default function LineDetail() {
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {checkSections.map((section) => {
                         const sectionPoints = allCheckPoints.filter(p => p.section_id === section.id);
+                        const isExpanded = expandedSections[section.id];
                         
                         return (
-                          <div key={section.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                            <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                              {section.name}
-                            </h4>
-                            {sectionPoints.length === 0 ? (
-                              <p className="text-xs text-slate-500 ml-4">Žádné body v této sekci</p>
-                            ) : (
-                              <div className="space-y-1 ml-4">
-                                {sectionPoints.map((point) => (
-                                  <div key={point.id} className="flex items-start gap-2 p-2 rounded bg-white border border-slate-200">
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium text-slate-900">{point.name}</p>
-                                      {point.check_parameters && (
-                                        <p className="text-xs text-slate-600 mt-1">{point.check_parameters}</p>
-                                      )}
-                                    </div>
+                          <div key={section.id} className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                            <div 
+                              className="p-3 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors flex items-center justify-between"
+                              onClick={() => toggleSection(section.id)}
+                            >
+                              <h4 className="font-semibold text-slate-900 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                                {section.name}
+                                <Badge variant="outline" className="text-xs">
+                                  {sectionPoints.length} bodů
+                                </Badge>
+                              </h4>
+                              {isExpanded ? (
+                                <ChevronUp className="w-5 h-5 text-slate-600" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 text-slate-600" />
+                              )}
+                            </div>
+                            {isExpanded && (
+                              <div className="p-3">
+                                {sectionPoints.length === 0 ? (
+                                  <p className="text-xs text-slate-500 text-center py-4">Žádné body v této sekci</p>
+                                ) : (
+                                  <div className="space-y-1">
+                                    {sectionPoints.map((point) => (
+                                      <div key={point.id} className="flex items-start gap-2 p-2 rounded bg-slate-50 border border-slate-200">
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium text-slate-900">{point.name}</p>
+                                          {point.check_parameters && (
+                                            <p className="text-xs text-slate-600 mt-1">{point.check_parameters}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
+                                )}
                               </div>
                             )}
                           </div>
