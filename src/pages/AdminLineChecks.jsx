@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,7 @@ import {
   ClipboardCheck,
   Loader2,
   GripVertical,
+  Copy,
 } from "lucide-react";
 
 export default function AdminLineChecks() {
@@ -54,6 +56,7 @@ export default function AdminLineChecks() {
   const [deleteSectionId, setDeleteSectionId] = useState(null);
   const [deletePointId, setDeletePointId] = useState(null);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [isCopying, setIsCopying] = useState(false);
 
   const [sectionForm, setSectionForm] = useState({ name: "" });
   const [pointForm, setPointForm] = useState({ name: "", check_parameters: "" });
@@ -210,6 +213,63 @@ export default function AdminLineChecks() {
     }
   };
 
+  const handleCopySection = async (section) => {
+    if (!window.confirm(`Opravdu chcete zkopírovat sekci "${section.name}" včetně všech jejích kontrolních bodů?`)) {
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      const maxOrderIndex = sections.reduce((max, s) => Math.max(max, s.order_index || 0), 0);
+      const newSection = await base44.entities.LineCheckSection.create({
+        line_id: lineId,
+        name: `${section.name} (kopie)`,
+        order_index: maxOrderIndex + 1,
+      });
+
+      const sectionPoints = allPoints.filter(p => p.section_id === section.id);
+      
+      for (const point of sectionPoints) {
+        await base44.entities.LineCheckPoint.create({
+          section_id: newSection.id,
+          name: point.name,
+          check_parameters: point.check_parameters,
+          order_index: point.order_index,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["checkSections"] });
+      queryClient.invalidateQueries({ queryKey: ["lineCheckPoints"] });
+    } catch (error) {
+      console.error("Error copying section:", error);
+      alert("Chyba při kopírování sekce");
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
+  const handleCopyPoint = async (point, sectionId) => {
+    setIsCopying(true);
+    try {
+      const sectionPoints = allPoints.filter(p => p.section_id === sectionId);
+      const maxOrderIndex = sectionPoints.reduce((max, p) => Math.max(max, p.order_index || 0), 0);
+      
+      await base44.entities.LineCheckPoint.create({
+        section_id: sectionId,
+        name: `${point.name} (kopie)`,
+        check_parameters: point.check_parameters,
+        order_index: maxOrderIndex + 1,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["lineCheckPoints"] });
+    } catch (error) {
+      console.error("Error copying point:", error);
+      alert("Chyba při kopírování bodu");
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   if (!line) {
     return (
       <div className="p-8 flex items-center justify-center min-h-screen">
@@ -286,6 +346,16 @@ export default function AdminLineChecks() {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => handleCopySection(section)}
+                          disabled={isCopying}
+                          className="gap-2"
+                        >
+                          {isCopying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                          Kopírovat
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           onClick={() => handleOpenSectionDialog(section)}
                         >
@@ -327,6 +397,15 @@ export default function AdminLineChecks() {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                onClick={() => handleCopyPoint(point, section.id)}
+                                disabled={isCopying}
+                                title="Kopírovat bod"
+                              >
+                                {isCopying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => handleOpenPointDialog(section.id, point)}
                               >
                                 <Pencil className="w-4 h-4" />
@@ -351,7 +430,6 @@ export default function AdminLineChecks() {
           </div>
         )}
 
-        {/* Dialog pro sekci */}
         <Dialog open={showSectionDialog} onOpenChange={setShowSectionDialog}>
           <DialogContent>
             <DialogHeader>
@@ -391,7 +469,6 @@ export default function AdminLineChecks() {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog pro kontrolní bod */}
         <Dialog open={showPointDialog} onOpenChange={setShowPointDialog}>
           <DialogContent>
             <DialogHeader>
@@ -441,7 +518,6 @@ export default function AdminLineChecks() {
           </DialogContent>
         </Dialog>
 
-        {/* Alert dialog pro smazání sekce */}
         <AlertDialog open={!!deleteSectionId} onOpenChange={() => setDeleteSectionId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -462,7 +538,6 @@ export default function AdminLineChecks() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Alert dialog pro smazání bodu */}
         <AlertDialog open={!!deletePointId} onOpenChange={() => setDeletePointId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
