@@ -27,6 +27,7 @@ import {
   Download,
   Upload,
   ShieldCheck,
+  Plus,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -101,6 +102,17 @@ export default function LineDetail() {
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
     queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: checkSections = [] } = useQuery({
+    queryKey: ["checkSections", lineId],
+    queryFn: () => base44.entities.LineCheckSection.filter({ line_id: lineId }, "order_index"),
+    enabled: !!lineId,
+  });
+
+  const { data: allCheckPoints = [] } = useQuery({
+    queryKey: ["lineCheckPoints"],
+    queryFn: () => base44.entities.LineCheckPoint.list("order_index"),
   });
 
   const userMap = useMemo(() => {
@@ -197,6 +209,8 @@ export default function LineDetail() {
       navigate(createPageUrl("Lines"));
     }
   };
+
+  const canManage = user && (user.user_type === "manager" || user.user_type === "admin" || user.user_type === "superAdmin");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -305,6 +319,7 @@ export default function LineDetail() {
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Stroje na lince */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -359,31 +374,62 @@ export default function LineDetail() {
                 </CardContent>
               </Card>
 
+              {/* Kontrolní body linky */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-orange-600" />
-                    Aktivní závady ({issues.length})
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <ClipboardCheck className="w-5 h-5" />
+                      Kontrolní body linky
+                    </CardTitle>
+                    {canManage && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(createPageUrl(`AdminLineChecks?id=${lineId}${companyId ? `&company=${companyId}` : ''}`))}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Spravovat
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  {issues.length === 0 ? (
-                    <p className="text-center text-slate-500 py-8">Žádné aktivní závady</p>
+                  {checkSections.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ClipboardCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500 mb-2">Žádné kontrolní body</p>
+                      {canManage && (
+                        <p className="text-xs text-slate-400">Klikněte na "Spravovat" pro přidání sekcí a bodů</p>
+                      )}
+                    </div>
                   ) : (
-                    <div className="space-y-3">
-                      {issues.slice(0, 5).map((issue) => {
-                        const machine = machines.find(m => m.id === issue.machine_id);
-                        const point = controlPoints.find(p => p.id === issue.control_point_id);
+                    <div className="space-y-4">
+                      {checkSections.map((section) => {
+                        const sectionPoints = allCheckPoints.filter(p => p.section_id === section.id);
                         
                         return (
-                          <div key={issue.id} className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                            <p className="text-sm font-medium text-slate-900 mb-1">
-                              {machine?.name || point?.name}
-                            </p>
-                            <p className="text-xs text-slate-600 line-clamp-2">{issue.description}</p>
-                            <p className="text-xs text-slate-500 mt-2">
-                              {format(new Date(issue.created_date), "d.M.yyyy", { locale: cs })} • {getUserDisplayName(issue.created_by)}
-                            </p>
+                          <div key={section.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                            <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                              {section.name}
+                            </h4>
+                            {sectionPoints.length === 0 ? (
+                              <p className="text-xs text-slate-500 ml-4">Žádné body v této sekci</p>
+                            ) : (
+                              <div className="space-y-1 ml-4">
+                                {sectionPoints.map((point) => (
+                                  <div key={point.id} className="flex items-start gap-2 p-2 rounded bg-white border border-slate-200">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-slate-900">{point.name}</p>
+                                      {point.check_parameters && (
+                                        <p className="text-xs text-slate-600 mt-1">{point.check_parameters}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
