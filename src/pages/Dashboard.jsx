@@ -65,10 +65,10 @@ export default function Dashboard() {
 
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
-  const [issuePhoto, setIssuePhoto] = useState(null); // ADDED
+  const [issuePhoto, setIssuePhoto] = useState(null);
   const [isReportingIssue, setIsReportingIssue] = useState(false);
-  const issuePhotoInputRef = useRef(null); // ADDED
-  const issueCameraInputRef = useRef(null); // ADDED
+  const issuePhotoInputRef = useRef(null);
+  const issueCameraInputRef = useRef(null);
 
   const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
   const [selectedDocPreview, setSelectedDocPreview] = useState(null);
@@ -1559,16 +1559,16 @@ export default function Dashboard() {
                       <div className="space-y-6">
                         {activeCompanies.map((company) => {
                           const companyLines = allLines.filter((l) => l.company_id === company.id);
-                          const companyMachines = allMachines.filter((m) => // Use allMachines here
+                          const companyMachines = allMachines.filter((m) =>
                             companyLines.some((l) => l.id === m.line_id)
                           );
-                          const companyPoints = allControlPoints.filter((point) => // Use allControlPoints here
+                          const companyPoints = allControlPoints.filter((point) =>
                             companyMachines.some((m) => m.id === point.machine_id)
                           );
                           const companyOverdue = companyPoints.filter(
                             (point) => getPointStatus(point) === "overdue"
                           ).length;
-                          const companyIssues = allIssues.filter((issue) => // Use allIssues here
+                          const companyIssues = allIssues.filter((issue) =>
                             companyPoints.some((point) => point.id === issue.control_point_id)
                           ).length;
 
@@ -1595,17 +1595,21 @@ export default function Dashboard() {
 
                               <div className="grid gap-3 pl-13">
                                 {companyLines.map((line) => {
-                                  const lineMachines = allMachines.filter((m) => m.line_id === line.id); // Use allMachines here
-                                  const linePoints = allControlPoints.filter((point) => // Use allControlPoints here
+                                  const lineMachines = allMachines.filter((m) => m.line_id === line.id);
+                                  const linePoints = allControlPoints.filter((point) =>
                                     lineMachines.some((m) => m.id === point.machine_id)
                                   );
                                   const lineOverdue = linePoints.filter((point) => getPointStatus(point) === "overdue").length;
-                                  const lineIssues = allIssues.filter((issue) => // Use allIssues here
+                                  const lineIssues = allIssues.filter((issue) =>
                                     linePoints.some((point) => point.id === issue.control_point_id)
                                   ).length;
 
                                   return (
-                                    <Link key={line.id} to={createPageUrl(`Lines?company=${company.id}&line=${line.id}`)}>
+                                    <div
+                                      key={line.id}
+                                      onClick={() => navigate(createPageUrl(`LineDetail?id=${line.id}&company=${company.id}`))}
+                                      className="cursor-pointer"
+                                    >
                                       <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                                         <CardContent className="p-4">
                                           <div className="flex items-start justify-between">
@@ -1640,7 +1644,7 @@ export default function Dashboard() {
                                           </div>
                                         </CardContent>
                                       </Card>
-                                    </Link>
+                                    </div>
                                   );
                                 })}
                               </div>
@@ -1847,7 +1851,11 @@ export default function Dashboard() {
                       ).length;
 
                       return (
-                        <Link key={line.id} to={createPageUrl(`Lines?line=${line.id}`)}>
+                        <div
+                          key={line.id}
+                          onClick={() => navigate(createPageUrl(`LineDetail?id=${line.id}`))}
+                          className="cursor-pointer"
+                        >
                           <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                             <CardContent className="p-5">
                               <div className="flex items-start justify-between">
@@ -1888,7 +1896,7 @@ export default function Dashboard() {
                               </div>
                             </CardContent>
                           </Card>
-                        </Link>
+                        </div>
                       );
                     })}
                   </div>

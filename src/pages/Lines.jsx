@@ -139,6 +139,16 @@ export default function Lines() {
     return getMachineStatus(machine) === filterStatus;
   });
 
+  const handleLineClick = (line) => {
+    if (viewMode === 'maintenance') {
+      // V režimu údržba jít rovnou na kartu linky
+      navigate(createPageUrl(`LineDetail?id=${line.id}${selectedCompany ? `&company=${selectedCompany}` : ''}`));
+    } else {
+      // V režimu DEMIP zobrazit hierarchii strojů
+      setSelectedLine(line.id);
+    }
+  };
+
   // Admin - výběr podniku
   if ((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) {
     return (
@@ -248,7 +258,7 @@ export default function Lines() {
   }
 
   // Výběr linky (pro všechny po výběru podniku)
-  if (!selectedLine) {
+  if (!selectedLine || viewMode === 'maintenance') {
     const currentCompany = companies.find((c) => c.id === selectedCompany);
     
     return (
@@ -266,24 +276,6 @@ export default function Lines() {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Výběr linky</h1>
           {currentCompany && (
             <p className="text-slate-600 mb-6">{currentCompany.name}</p>
-          )}
-
-          {viewMode === 'maintenance' && (
-            <Card className="mb-6 border-blue-200 bg-blue-50">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-blue-900 font-medium mb-1">
-                      Karta linky
-                    </p>
-                    <p className="text-xs text-blue-800">
-                      V režimu Údržba můžete kliknout na ikonu "ℹ️" pro zobrazení detailní karty linky s preventivní údržbou, check listem a dalšími informacemi.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           )}
 
           <div className="space-y-2">
@@ -306,18 +298,16 @@ export default function Lines() {
               return (
                 <Card
                   key={line.id}
-                  className={`transition-all hover:shadow-md border-l-4 ${
+                  className={`transition-all hover:shadow-md border-l-4 cursor-pointer ${
                     lineStatus === "overdue"
                       ? "border-l-yellow-500 bg-yellow-50/50"
                       : "border-l-green-500 bg-green-50/50"
                   }`}
+                  onClick={() => handleLineClick(line)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div 
-                        className="flex items-center gap-4 flex-1 cursor-pointer"
-                        onClick={() => setSelectedLine(line.id)}
-                      >
+                      <div className="flex items-center gap-4 flex-1">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                           lineStatus === "overdue" ? "bg-yellow-100" : "bg-green-100"
                         }`}>
@@ -359,29 +349,12 @@ export default function Lines() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {viewMode === 'maintenance' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(createPageUrl(`LineDetail?id=${line.id}${selectedCompany ? `&company=${selectedCompany}` : ''}`));
-                            }}
-                            className="text-blue-600 hover:bg-blue-100"
-                            title="Detail linky"
-                          >
-                            <Info className="w-5 h-5" />
-                          </Button>
-                        )}
                         <div className={`w-3 h-3 rounded-full ${
                           lineStatus === "overdue"
                             ? "bg-yellow-500"
                             : "bg-green-500"
                         }`} />
-                        <ChevronRight 
-                          className="w-5 h-5 text-slate-400 flex-shrink-0 cursor-pointer" 
-                          onClick={() => setSelectedLine(line.id)}
-                        />
+                        <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
                       </div>
                     </div>
                   </CardContent>
@@ -394,6 +367,7 @@ export default function Lines() {
     );
   }
 
+  // Seznam strojů (pouze v režimu DEMIP)
   const currentLine = lines.find((l) => l.id === selectedLine);
   const currentCompany = companies.find((c) => c.id === selectedCompany);
 
