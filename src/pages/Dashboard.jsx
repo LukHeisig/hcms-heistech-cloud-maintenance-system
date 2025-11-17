@@ -65,10 +65,10 @@ export default function Dashboard() {
 
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
-  const [issuePhoto, setIssuePhoto] = useState(null); // ADDED
+  const [issuePhoto, setIssuePhoto] = useState(null);
   const [isReportingIssue, setIsReportingIssue] = useState(false);
-  const issuePhotoInputRef = useRef(null); // ADDED
-  const issueCameraInputRef = useRef(null); // ADDED
+  const issuePhotoInputRef = useRef(null);
+  const issueCameraInputRef = useRef(null);
 
   const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
   const [selectedDocPreview, setSelectedDocPreview] = useState(null);
@@ -1605,7 +1605,7 @@ export default function Dashboard() {
                                   ).length;
 
                                   return (
-                                    <Link key={line.id} to={createPageUrl(`Lines?company=${company.id}&line=${line.id}`)}>
+                                    <Link key={line.id} to={createPageUrl(`LineDetail?id=${line.id}&company=${company.id}`)}>
                                       <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                                         <CardContent className="p-4">
                                           <div className="flex items-start justify-between">
@@ -1847,7 +1847,7 @@ export default function Dashboard() {
                       ).length;
 
                       return (
-                        <Link key={line.id} to={createPageUrl(`Lines?line=${line.id}`)}>
+                        <Link key={line.id} to={createPageUrl(`LineDetail?id=${line.id}`)}>
                           <Card className="hover:shadow-md transition-all border border-slate-200 hover:border-slate-300">
                             <CardContent className="p-5">
                               <div className="flex items-start justify-between">
