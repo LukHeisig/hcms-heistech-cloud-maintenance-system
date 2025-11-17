@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -310,7 +309,11 @@ export default function LineDetail() {
   }
 
   const handleBackClick = () => {
-    navigate(createPageUrl("Dashboard"));
+    if (companyId) {
+      navigate(createPageUrl(`Lines?company=${companyId}`));
+    } else {
+      navigate(createPageUrl("Lines"));
+    }
   };
 
   const canManage = user && (user.user_type === "manager" || user.user_type === "admin" || user.user_type === "superAdmin");
@@ -326,7 +329,7 @@ export default function LineDetail() {
             className="text-white hover:bg-white/20 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Zpět na Dashboard
+            Zpět na linky
           </Button>
 
           <div className="flex items-center gap-2 text-sm mb-4 opacity-90">

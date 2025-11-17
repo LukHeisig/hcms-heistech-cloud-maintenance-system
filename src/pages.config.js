@@ -16,7 +16,7 @@ import AuditLog from './pages/AuditLog';
 import UserMonitoring from './pages/UserMonitoring';
 import LineDetail from './pages/LineDetail';
 import AdminLineChecks from './pages/AdminLineChecks';
-import __Layout from './Layout.jsx';
+import Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -43,5 +43,5 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "Dashboard",
     Pages: PAGES,
-    Layout: __Layout,
+    Layout: Layout,
 };
