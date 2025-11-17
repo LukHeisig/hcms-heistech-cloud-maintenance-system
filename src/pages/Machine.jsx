@@ -755,7 +755,7 @@ export default function Machine() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}&line=${line?.id}`))}
+            onClick={() => navigate(createPageUrl(`LineDetail?id=${line?.id}${company?.id ? `&company=${company.id}` : ''}`))}
             className="text-white hover:bg-white/20 mb-3"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -927,8 +927,7 @@ export default function Machine() {
                                       <ClipboardCheck className="w-4 h-4 text-purple-600" />
                                     )}
                                     <h4 className="font-semibold text-slate-900">
-                                      {point.number && `${point.number} - `}
-                                      {point.name}
+                                      {point.number && `${point.number} - `}{point.name}
                                     </h4>
                                     {isOverdue && (
                                       <Badge variant="destructive" className="text-xs">
