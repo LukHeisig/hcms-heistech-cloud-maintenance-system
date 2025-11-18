@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -407,16 +406,16 @@ export default function LineDetail() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white shadow-sm grid w-full grid-cols-3 lg:grid-cols-10 gap-1 p-2">
+          <TabsList className="bg-white shadow-sm grid w-full grid-cols-3 lg:grid-cols-9 gap-1 p-2">
             <TabsTrigger value="overview">Přehled</TabsTrigger>
-            <TabsTrigger value="demip">DEMIP</TabsTrigger>
+            <TabsTrigger value="lubrication">Mazání</TabsTrigger>
+            <TabsTrigger value="prevention">Preventivní údržba</TabsTrigger>
             <TabsTrigger value="maintenance">Plán údržby</TabsTrigger>
             <TabsTrigger value="checklist">Checklisty</TabsTrigger>
             <TabsTrigger value="interventions">Zásahy</TabsTrigger>
             <TabsTrigger value="verification">Ověření / Test</TabsTrigger>
             <TabsTrigger value="audit">Evidence</TabsTrigger>
             <TabsTrigger value="analytics">Analytika</TabsTrigger>
-            <TabsTrigger value="settings">Nastavení</TabsTrigger>
             <TabsTrigger value="import-export">Import / Export</TabsTrigger>
           </TabsList>
 
@@ -430,21 +429,21 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* DEMIP */}
-          <TabsContent value="demip" className="space-y-6">
+          {/* Mazání */}
+          <TabsContent value="lubrication" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Factory className="w-5 h-5" />
-                  Stroje na lince
+                  <Droplet className="w-5 h-5" />
+                  Stroje - Mazání
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {machines.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Žádné stroje</p>
+                {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Žádné stroje v kategorii mazání</p>
                 ) : (
                   <div className="space-y-2">
-                    {machines.map((machine) => {
+                    {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
                       const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
                       const issueCount = issues.filter(i => 
@@ -459,7 +458,64 @@ export default function LineDetail() {
                           onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
                         >
                           <div className="flex items-center gap-3">
-                            <Factory className="w-5 h-5 text-slate-600" />
+                            <Droplet className="w-5 h-5 text-blue-600" />
+                            <div>
+                              <p className="font-medium text-slate-900">{machine.name}</p>
+                              <p className="text-xs text-slate-500">{machinePoints.length} bodů</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {overdueCount > 0 && (
+                              <Badge variant="destructive" className="text-xs">
+                                {overdueCount}
+                              </Badge>
+                            )}
+                            {issueCount > 0 && (
+                              <Badge className="bg-orange-500 text-white text-xs">
+                                {issueCount}
+                              </Badge>
+                            )}
+                            <ChevronRight className="w-5 h-5 text-slate-400" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Preventivní údržba */}
+          <TabsContent value="prevention" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardCheck className="w-5 h-5" />
+                  Stroje - Preventivní údržba
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {machines.filter(m => m.maintenance_category === "prevention").length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Žádné stroje v kategorii prevence</p>
+                ) : (
+                  <div className="space-y-2">
+                    {machines.filter(m => m.maintenance_category === "prevention").map((machine) => {
+                      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+                      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+                      const issueCount = issues.filter(i => 
+                        (i.machine_id === machine.id) ||
+                        (i.control_point_id && machinePoints.some(p => p.id === i.control_point_id))
+                      ).length;
+
+                      return (
+                        <div
+                          key={machine.id}
+                          className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                          onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
+                        >
+                          <div className="flex items-center gap-3">
+                            <ClipboardCheck className="w-5 h-5 text-purple-600" />
                             <div>
                               <p className="font-medium text-slate-900">{machine.name}</p>
                               <p className="text-xs text-slate-500">{machinePoints.length} bodů</p>
@@ -490,107 +546,9 @@ export default function LineDetail() {
           {/* Plán údržby */}
           <TabsContent value="maintenance" className="space-y-6">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardCheck className="w-5 h-5" />
-                    Kontrolní body údržby
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    {checkSections.length > 0 && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={expandAll}
-                          className="gap-1"
-                        >
-                          <ChevronsDown className="w-4 h-4" />
-                          Rozbalit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={collapseAll}
-                          className="gap-1"
-                        >
-                          <ChevronsUp className="w-4 h-4" />
-                          Sbalit
-                        </Button>
-                      </>
-                    )}
-                    {canManage && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(createPageUrl(`AdminLineChecks?id=${lineId}${companyId ? `&company=${companyId}` : ''}`))}
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Spravovat
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {checkSections.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ClipboardCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500 mb-2">Žádné kontrolní body</p>
-                    {canManage && (
-                      <p className="text-xs text-slate-400">Klikněte na "Spravovat" pro přidání sekcí a bodů</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {checkSections.map((section) => {
-                      const sectionPoints = allCheckPoints.filter(p => p.section_id === section.id);
-                      const isExpanded = expandedSections[section.id];
-                      
-                      return (
-                        <div key={section.id} className="border border-slate-200 rounded-lg bg-white overflow-hidden">
-                          <div 
-                            className="p-3 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors flex items-center justify-between"
-                            onClick={() => toggleSection(section.id)}
-                          >
-                            <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                              {section.name}
-                              <Badge variant="outline" className="text-xs">
-                                {sectionPoints.length} bodů
-                              </Badge>
-                            </h4>
-                            {isExpanded ? (
-                              <ChevronUp className="w-5 h-5 text-slate-600" />
-                            ) : (
-                              <ChevronDown className="w-5 h-5 text-slate-600" />
-                            )}
-                          </div>
-                          {isExpanded && (
-                            <div className="p-3">
-                              {sectionPoints.length === 0 ? (
-                                <p className="text-xs text-slate-500 text-center py-4">Žádné body v této sekci</p>
-                              ) : (
-                                <div className="space-y-1">
-                                  {sectionPoints.map((point) => (
-                                    <div key={point.id} className="flex items-start gap-2 p-2 rounded bg-slate-50 border border-slate-200">
-                                      <div className="flex-1">
-                                        <p className="text-sm font-medium text-slate-900">{point.name}</p>
-                                        {point.check_parameters && (
-                                          <p className="text-xs text-slate-600 mt-1">{point.check_parameters}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              <CardContent className="p-12 text-center">
+                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Plán údržby bude implementován</p>
               </CardContent>
             </Card>
           </TabsContent>
