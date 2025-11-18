@@ -704,6 +704,8 @@ export default function Dashboard() {
         );
       }
 
+      const currentMachineForPoint = demipMachines.find(m => m.id === currentPoint.machine_id);
+      
       const pointRecords = records.filter(r => r.control_point_id === selectedPoint);
       const pointIssues = demipIssues.filter(i => i.control_point_id === selectedPoint);
       const status = getPointStatus(currentPoint);
@@ -712,6 +714,12 @@ export default function Dashboard() {
       const isOverdue = status === "overdue";
 
       const canEdit = user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin";
+      
+      // Určit, zda zobrazit tlačítko potvrzení
+      const shouldShowConfirmButton = currentPoint.type === "prevention" && 
+        currentMachineForPoint?.prevention_confirmation_method === "manual" 
+        ? true 
+        : nfcScanned;
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -817,7 +825,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {nfcScanned && (
+            {shouldShowConfirmButton && (
               <Button
                 onClick={() => handleConfirmControl(currentPoint)}
                 disabled={isConfirmingControl}
