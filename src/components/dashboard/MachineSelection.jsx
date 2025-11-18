@@ -16,7 +16,9 @@ export default function MachineSelection({
   getPointStatus,
 }) {
   const navigate = useNavigate();
-  const [maintenanceFilter, setMaintenanceFilter] = useState("lubrication");
+  const urlParams = new URLSearchParams(window.location.search);
+  const categoryParam = urlParams.get('category') || 'lubrication';
+  const [maintenanceFilter, setMaintenanceFilter] = useState(categoryParam);
 
   const filteredMachines = useMemo(() => {
     return lineMachines.filter(m => (m.maintenance_category || "lubrication") === maintenanceFilter);
@@ -73,8 +75,8 @@ export default function MachineSelection({
                 className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
                 onClick={() => {
                   const url = selectedCompany
-                    ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${machine.id}`
-                    : `Dashboard?line=${selectedLine}&machine=${machine.id}`;
+                    ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${machine.id}&category=${maintenanceFilter}`
+                    : `Dashboard?line=${selectedLine}&machine=${machine.id}&category=${maintenanceFilter}`;
                   navigate(createPageUrl(url));
                 }}
               >

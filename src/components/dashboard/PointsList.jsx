@@ -22,6 +22,8 @@ export default function PointsList({
   getNextControlDate,
 }) {
   const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const categoryParam = urlParams.get('category') || 'lubrication';
 
   const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
   const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
@@ -46,8 +48,8 @@ export default function PointsList({
         variant="ghost"
         onClick={() => {
           const url = selectedCompany
-            ? `Dashboard?company=${selectedCompany}&line=${selectedLine}`
-            : `Dashboard?line=${selectedLine}`;
+            ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&category=${categoryParam}`
+            : `Dashboard?line=${selectedLine}&category=${categoryParam}`;
           navigate(createPageUrl(url));
         }}
         className="mb-4"
