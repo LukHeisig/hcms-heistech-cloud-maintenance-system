@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -133,8 +132,9 @@ export default function AdminControlPoints() {
   });
 
   const resetForm = () => {
+    const defaultType = machine?.maintenance_category === "lubrication" ? "prevention" : "lubrication";
     setFormData({
-      type: "lubrication",
+      type: defaultType,
       name: "",
       description: "",
       lubricant_type: "",
@@ -181,7 +181,7 @@ export default function AdminControlPoints() {
       dataToSave.lubricant_amount = formData.lubricant_amount
         ? parseFloat(formData.lubricant_amount)
         : undefined;
-    } else if (formData.type === "inspection") {
+    } else if (formData.type === "inspection" || formData.type === "prevention") {
       dataToSave.inspection_tasks = formData.inspection_tasks || undefined;
     }
 
@@ -200,6 +200,7 @@ export default function AdminControlPoints() {
 
   const lubricationPoints = controlPoints.filter((p) => p.type === "lubrication");
   const inspectionPoints = controlPoints.filter((p) => p.type === "inspection");
+  const preventionPoints = controlPoints.filter((p) => p.type === "prevention");
   const lubricatorPoints = controlPoints.filter((p) => p.type === "auto_lubricator");
 
   if (isLoading) {
@@ -246,7 +247,7 @@ export default function AdminControlPoints() {
               onClick={() => navigate(createPageUrl(`AdminMachines?line=${machine?.line_id}`))}
               className="hover:text-slate-900 transition-colors"
             >
-              {machine?.name || "Stroj"}
+              {machine?.maintenance_category === "lubrication" ? (machine?.name || "Část linky") : (machine?.name || "Stroj")}
             </button>
             <ChevronRight className="w-4 h-4" />
             <span className="font-semibold text-slate-900">Kontrolní body</span>
@@ -308,6 +309,8 @@ export default function AdminControlPoints() {
                               ? "bg-blue-100 text-blue-800"
                               : point.type === "inspection"
                               ? "bg-purple-100 text-purple-800"
+                              : point.type === "prevention"
+                              ? "bg-orange-100 text-orange-800"
                               : "bg-green-100 text-green-800"
                           }
                         >
@@ -315,6 +318,8 @@ export default function AdminControlPoints() {
                             ? "Mazání"
                             : point.type === "inspection"
                             ? "Inspekce"
+                            : point.type === "prevention"
+                            ? "Prevence"
                             : "Maznice"}
                         </Badge>
                       </div>
@@ -395,16 +400,23 @@ export default function AdminControlPoints() {
                   onValueChange={(value) =>
                     setFormData({ ...formData, type: value })
                   }
+                  disabled={machine?.maintenance_category === "lubrication"}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="lubrication">Mazací bod</SelectItem>
-                    <SelectItem value="inspection">Inspekční bod</SelectItem>
-                    <SelectItem value="auto_lubricator">
-                      Automatická maznice
-                    </SelectItem>
+                    {machine?.maintenance_category === "lubrication" ? (
+                      <SelectItem value="prevention">Prevence</SelectItem>
+                    ) : (
+                      <>
+                        <SelectItem value="lubrication">Mazací bod</SelectItem>
+                        <SelectItem value="inspection">Inspekční bod</SelectItem>
+                        <SelectItem value="auto_lubricator">
+                          Automatická maznice
+                        </SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -470,9 +482,11 @@ export default function AdminControlPoints() {
                 </>
               )}
 
-              {formData.type === "inspection" && (
+              {(formData.type === "inspection" || formData.type === "prevention") && (
                 <div>
-                  <Label htmlFor="inspection_tasks">Inspekční úkoly</Label>
+                  <Label htmlFor="inspection_tasks">
+                    {formData.type === "prevention" ? "Preventivní úkoly" : "Inspekční úkoly"}
+                  </Label>
                   <Textarea
                     id="inspection_tasks"
                     value={formData.inspection_tasks}
@@ -482,7 +496,7 @@ export default function AdminControlPoints() {
                         inspection_tasks: e.target.value,
                       })
                     }
-                    placeholder="Popis činností při inspekci"
+                    placeholder={formData.type === "prevention" ? "Popis činností při prevenci" : "Popis činností při inspekci"}
                     rows={3}
                   />
                 </div>
