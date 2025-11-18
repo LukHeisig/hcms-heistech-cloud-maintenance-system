@@ -780,10 +780,10 @@ export default function Dashboard() {
                     <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
                   </div>
                 )}
-                {currentPoint.type === "prevention" && currentPoint.description && (
+                {currentPoint.type === "prevention" && currentPoint.inspection_tasks && (
                   <div className="py-2 border-b border-slate-200">
                     <p className="text-sm text-slate-600 mb-1">Preventivní úkoly:</p>
-                    <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.description}</p>
+                    <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between py-2 border-b border-slate-200">

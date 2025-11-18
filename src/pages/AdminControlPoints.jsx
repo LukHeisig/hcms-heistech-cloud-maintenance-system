@@ -426,14 +426,30 @@ export default function AdminControlPoints() {
                   </div>
 
                   <div>
-                    <Label htmlFor="description">Popis prevence</Label>
+                    <Label htmlFor="description">Popis</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) =>
                         setFormData({ ...formData, description: e.target.value })
                       }
-                      placeholder="Popis preventivních opatření..."
+                      placeholder="Volitelný popis kontrolního bodu"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="inspection_tasks">Preventivní úkoly</Label>
+                    <Textarea
+                      id="inspection_tasks"
+                      value={formData.inspection_tasks}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          inspection_tasks: e.target.value,
+                        })
+                      }
+                      placeholder="Seznam preventivních úkolů (každý na nový řádek)"
                       rows={4}
                     />
                   </div>
