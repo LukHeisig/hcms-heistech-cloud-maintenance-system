@@ -34,7 +34,7 @@ export default function PointsList({
       case "inspection": return inspectionPoints;
       case "prevention": return preventionPoints;
       case "lubricator": return lubricatorPoints;
-      default: return currentMachine?.maintenance_category === "lubrication" ? preventionPoints : lubricationPoints;
+      default: return currentMachine?.maintenance_category === "prevention" ? preventionPoints : lubricationPoints;
     }
   };
 
@@ -62,7 +62,7 @@ export default function PointsList({
       <p className="text-slate-600 mb-6">{machinePoints.length} kontrolních bodů</p>
 
       <div className="flex gap-2 mb-6 overflow-x-auto">
-        {currentMachine?.maintenance_category === "lubrication" ? (
+        {currentMachine?.maintenance_category === "prevention" ? (
           <Button
             onClick={() => setActiveTab("prevention")}
             variant={activeTab === "prevention" ? "default" : "outline"}
