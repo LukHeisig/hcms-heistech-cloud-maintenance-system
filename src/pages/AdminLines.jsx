@@ -60,7 +60,7 @@ export default function AdminLines() {
   const [copyingLine, setCopyingLine] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyName, setCopyName] = useState("");
-  const [formData, setFormData] = useState({ name: "", description: "", responsible_person_email: "", prevention_confirmation_method: "manual" });
+  const [formData, setFormData] = useState({ name: "", description: "", responsible_person_email: "" });
 
   React.useEffect(() => {
     loadUser();
@@ -160,12 +160,11 @@ export default function AdminLines() {
       setFormData({ 
         name: line.name, 
         description: line.description || "",
-        responsible_person_email: line.responsible_person_email || "",
-        prevention_confirmation_method: line.prevention_confirmation_method || "manual"
+        responsible_person_email: line.responsible_person_email || ""
       });
     } else {
       setEditingLine(null);
-      setFormData({ name: "", description: "", responsible_person_email: "", prevention_confirmation_method: "manual" });
+      setFormData({ name: "", description: "", responsible_person_email: "" });
     }
     setShowLineDialog(true);
   };
@@ -477,23 +476,6 @@ export default function AdminLines() {
                         {usr.custom_display_name || usr.full_name || usr.email}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="prevention_confirmation">Způsob potvrzení prevence</Label>
-                <Select
-                  value={formData.prevention_confirmation_method}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, prevention_confirmation_method: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">Ruční potvrzení tlačítkem</SelectItem>
-                    <SelectItem value="nfc">Sken NFC čipu</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
