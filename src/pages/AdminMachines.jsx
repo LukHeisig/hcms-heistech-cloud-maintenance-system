@@ -70,7 +70,8 @@ export default function AdminMachines() {
     inventory_number: "",
     location: "",
     machine_type: null,
-    maintenance_category: "lubrication"
+    maintenance_category: "lubrication",
+    interval_hours: ""
   });
 
   useEffect(() => {
@@ -144,7 +145,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication", interval_hours: "" });
     },
   });
 
@@ -168,7 +169,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
       setEditingMachine(null);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication", interval_hours: "" });
     },
   });
 
@@ -196,7 +197,8 @@ export default function AdminMachines() {
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
         machine_type: machine.machine_type || null,
-        maintenance_category: machine.maintenance_category || "lubrication"
+        maintenance_category: machine.maintenance_category || "lubrication",
+        interval_hours: machine.interval_hours || ""
       });
     } else {
       setEditingMachine(null);
@@ -206,7 +208,8 @@ export default function AdminMachines() {
         inventory_number: "",
         location: "",
         machine_type: null,
-        maintenance_category: "lubrication"
+        maintenance_category: "lubrication",
+        interval_hours: ""
       });
     }
     setShowMachineDialog(true);
@@ -222,6 +225,7 @@ export default function AdminMachines() {
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
       maintenance_category: formData.maintenance_category || "lubrication",
+      interval_hours: formData.interval_hours ? parseFloat(formData.interval_hours) : null,
     };
 
     if (editingMachine) {
@@ -497,81 +501,17 @@ export default function AdminMachines() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingMachine ? "Upravit stroj" : "Nový stroj"}
+                {editingMachine 
+                  ? (formData.maintenance_category === "prevention" ? "Upravit sekci" : "Upravit stroj")
+                  : (formData.maintenance_category === "prevention" ? "Nová sekce" : "Nový stroj")}
               </DialogTitle>
               <DialogDescription>
                 {editingMachine
-                  ? "Upravte informace o stroji"
-                  : "Vytvořte nový stroj"}
+                  ? (formData.maintenance_category === "prevention" ? "Upravte informace o sekci" : "Upravte informace o stroji")
+                  : (formData.maintenance_category === "prevention" ? "Vytvořte novou sekci" : "Vytvořte nový stroj")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Název stroje *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="např. Lis LH-500"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="inventory_number">Inventární číslo</Label>
-                  <Input
-                    id="inventory_number"
-                    value={formData.inventory_number}
-                    onChange={(e) =>
-                      setFormData({ ...formData, inventory_number: e.target.value })
-                    }
-                    placeholder="např. ST-001"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="machine_type">Typ zařízení</Label>
-                  <Select
-                    value={formData.machine_type || ""}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, machine_type: value || null })
-                    }
-                  >
-                    <SelectTrigger id="machine_type">
-                      <SelectValue placeholder="Vyberte typ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="press">Lis</SelectItem>
-                      <SelectItem value="conveyor">Dopravník</SelectItem>
-                      <SelectItem value="pump">Čerpadlo</SelectItem>
-                      <SelectItem value="fan">Ventilátor</SelectItem>
-                      <SelectItem value="compressor">Kompresor</SelectItem>
-                      <SelectItem value="motor">Motor</SelectItem>
-                      <SelectItem value="gearbox">Převodovka</SelectItem>
-                      <SelectItem value="crane">Jeřáb</SelectItem>
-                      <SelectItem value="robot">Robot</SelectItem>
-                      <SelectItem value="cnc_machine">CNC stroj</SelectItem>
-                      <SelectItem value="welding_machine">Svářečka</SelectItem>
-                      <SelectItem value="other">Jiné</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="location">Umístění</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                    placeholder="např. Hala A, sekce 2"
-                  />
-                </div>
-              </div>
-
               <div>
                 <Label htmlFor="maintenance_category">Kategorie údržby</Label>
                 <Select
@@ -590,6 +530,91 @@ export default function AdminMachines() {
                 </Select>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">
+                    {formData.maintenance_category === "prevention" ? "Název sekce *" : "Název stroje *"}
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder={formData.maintenance_category === "prevention" ? "např. Kontrola bezpečnosti" : "např. Lis LH-500"}
+                  />
+                </div>
+                {formData.maintenance_category === "prevention" ? (
+                  <div>
+                    <Label htmlFor="interval_hours">Časový interval (hodiny) *</Label>
+                    <Input
+                      id="interval_hours"
+                      type="number"
+                      value={formData.interval_hours}
+                      onChange={(e) =>
+                        setFormData({ ...formData, interval_hours: e.target.value })
+                      }
+                      placeholder="např. 168 (1 týden)"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label htmlFor="inventory_number">Inventární číslo</Label>
+                    <Input
+                      id="inventory_number"
+                      value={formData.inventory_number}
+                      onChange={(e) =>
+                        setFormData({ ...formData, inventory_number: e.target.value })
+                      }
+                      placeholder="např. ST-001"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {formData.maintenance_category !== "prevention" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="machine_type">Typ zařízení</Label>
+                    <Select
+                      value={formData.machine_type || ""}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, machine_type: value || null })
+                      }
+                    >
+                      <SelectTrigger id="machine_type">
+                        <SelectValue placeholder="Vyberte typ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="press">Lis</SelectItem>
+                        <SelectItem value="conveyor">Dopravník</SelectItem>
+                        <SelectItem value="pump">Čerpadlo</SelectItem>
+                        <SelectItem value="fan">Ventilátor</SelectItem>
+                        <SelectItem value="compressor">Kompresor</SelectItem>
+                        <SelectItem value="motor">Motor</SelectItem>
+                        <SelectItem value="gearbox">Převodovka</SelectItem>
+                        <SelectItem value="crane">Jeřáb</SelectItem>
+                        <SelectItem value="robot">Robot</SelectItem>
+                        <SelectItem value="cnc_machine">CNC stroj</SelectItem>
+                        <SelectItem value="welding_machine">Svářečka</SelectItem>
+                        <SelectItem value="other">Jiné</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="location">Umístění</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) =>
+                        setFormData({ ...formData, location: e.target.value })
+                      }
+                      placeholder="např. Hala A, sekce 2"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="description">Popis</Label>
                 <Textarea
@@ -598,7 +623,7 @@ export default function AdminMachines() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Volitelný popis stroje"
+                  placeholder={formData.maintenance_category === "prevention" ? "Volitelný popis sekce" : "Volitelný popis stroje"}
                   rows={3}
                 />
               </div>
@@ -615,7 +640,9 @@ export default function AdminMachines() {
                 disabled={!formData.name.trim()}
                 className="bg-gradient-to-r from-red-600 to-red-700"
               >
-                {editingMachine ? "Uložit změny" : "Vytvořit stroj"}
+                {editingMachine 
+                  ? "Uložit změny" 
+                  : (formData.maintenance_category === "prevention" ? "Vytvořit sekci" : "Vytvořit stroj")}
               </Button>
             </DialogFooter>
           </DialogContent>
