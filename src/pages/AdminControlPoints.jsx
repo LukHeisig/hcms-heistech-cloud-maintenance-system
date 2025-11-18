@@ -132,7 +132,7 @@ export default function AdminControlPoints() {
   });
 
   const resetForm = () => {
-    const defaultType = machine?.maintenance_category === "lubrication" ? "prevention" : "lubrication";
+    const defaultType = machine?.maintenance_category === "prevention" ? "prevention" : "lubrication";
     setFormData({
       type: defaultType,
       name: "",
@@ -400,13 +400,13 @@ export default function AdminControlPoints() {
                   onValueChange={(value) =>
                     setFormData({ ...formData, type: value })
                   }
-                  disabled={machine?.maintenance_category === "lubrication"}
+                  disabled={machine?.maintenance_category === "prevention"}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {machine?.maintenance_category === "lubrication" ? (
+                    {machine?.maintenance_category === "prevention" ? (
                       <SelectItem value="prevention">Prevence</SelectItem>
                     ) : (
                       <>
