@@ -716,10 +716,11 @@ export default function Dashboard() {
       const canEdit = user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin";
       
       // Určit, zda zobrazit tlačítko potvrzení
-      const shouldShowConfirmButton = currentPoint.type === "prevention" && 
-        currentMachineForPoint?.prevention_confirmation_method === "manual" 
-        ? true 
-        : nfcScanned;
+      // Pro prevention s ručním potvrzením - zobrazit vždy
+      // Pro prevention s NFC nebo jiné typy bodů - zobrazit pouze po NFC skenu
+      const shouldShowConfirmButton = 
+        (currentPoint.type === "prevention" && currentMachineForPoint?.prevention_confirmation_method === "manual") || 
+        nfcScanned;
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
