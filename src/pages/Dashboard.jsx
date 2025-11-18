@@ -100,18 +100,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Automaticky nastavit activeTab podle maintenance_category stroje
-  useEffect(() => {
-    if (selectedMachine && allMachines.length > 0) {
-      const machine = allMachines.find(m => m.id === selectedMachine);
-      if (machine?.maintenance_category === "prevention") {
-        setActiveTab("prevention");
-      } else {
-        setActiveTab("lubrication");
-      }
-    }
-  }, [selectedMachine, allMachines]);
-
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
@@ -250,6 +238,18 @@ export default function Dashboard() {
       navigate(createPageUrl("Setup"));
     }
   }, [user, lines, navigate]);
+
+  // Automaticky nastavit activeTab podle maintenance_category stroje
+  useEffect(() => {
+    if (selectedMachine && allMachines.length > 0) {
+      const machine = allMachines.find(m => m.id === selectedMachine);
+      if (machine?.maintenance_category === "prevention") {
+        setActiveTab("prevention");
+      } else {
+        setActiveTab("lubrication");
+      }
+    }
+  }, [selectedMachine, allMachines]);
 
   const getPointStatus = useCallback((point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
