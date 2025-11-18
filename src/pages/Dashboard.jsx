@@ -681,29 +681,29 @@ export default function Dashboard() {
     setImageErrors(prev => ({ ...prev, [docId]: true }));
   };
 
+  const selectedCompany = urlParams.get('company');
+  const selectedLine = urlParams.get('line');
+  const selectedMachine = urlParams.get('machine');
+
+  const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+    ? activeCompanies
+    : [];
+
+  const demipAllLines = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+    ? allLines
+    : lines;
+
+  const demipMachines = useMemo(() => machines, [machines]); // Use the useMemo 'machines' which is already filtered correctly by role.
+
+  const demipControlPoints = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+    ? activeControlPoints
+    : controlPoints; // Use the useMemo 'controlPoints' which is already filtered correctly by role.
+
+  const demipIssues = (user?.user_type === "admin" || user?.user_type === "superAdmin")
+    ? activeIssues
+    : issues; // Use the useMemo 'issues' which is already filtered correctly by role.
+
   if (viewMode === 'demip') {
-    const selectedCompany = urlParams.get('company');
-    const selectedLine = urlParams.get('line');
-    const selectedMachine = urlParams.get('machine');
-
-    const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
-      ? activeCompanies
-      : [];
-
-    const demipAllLines = (user?.user_type === "admin" || user?.user_type === "superAdmin")
-      ? allLines
-      : lines;
-
-    const demipMachines = useMemo(() => machines, [machines]); // Use the useMemo 'machines' which is already filtered correctly by role.
-
-    const demipControlPoints = (user?.user_type === "admin" || user?.user_type === "superAdmin")
-      ? activeControlPoints
-      : controlPoints; // Use the useMemo 'controlPoints' which is already filtered correctly by role.
-
-    const demipIssues = (user?.user_type === "admin" || user?.user_type === "superAdmin")
-      ? activeIssues
-      : issues; // Use the useMemo 'issues' which is already filtered correctly by role.
-
     if (selectedPoint) {
       const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
       
