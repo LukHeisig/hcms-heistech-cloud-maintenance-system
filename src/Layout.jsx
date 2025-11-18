@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -240,7 +239,10 @@ function LayoutContent({ children }) {
 
   const ViewModeToggle = () => (
     <Button
-      onClick={toggleViewMode}
+      onClick={() => {
+        toggleViewMode();
+        navigate(createPageUrl("Dashboard"));
+      }}
       variant="outline"
       size="sm"
       className="gap-2 border-2"
