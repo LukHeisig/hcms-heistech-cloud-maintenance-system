@@ -62,6 +62,9 @@ export default function Dashboard() {
   const { viewMode } = useViewMode();
   const location = useLocation();
 
+  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const selectedMachine = urlParams.get('machine');
+
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
   const [issuePhoto, setIssuePhoto] = useState(null);
@@ -87,7 +90,6 @@ export default function Dashboard() {
   const [isNfcScanning, setIsNfcScanning] = useState(false);
   const [isConfirmingControl, setIsConfirmingControl] = useState(false);
 
-  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const selectedPoint = urlParams.get('point');
   const nfcScanned = urlParams.get('nfc_scanned') === 'true';
 
@@ -97,6 +99,18 @@ export default function Dashboard() {
       setNfcSupported(true);
     }
   }, []);
+
+  // Automaticky nastavit activeTab podle maintenance_category stroje
+  useEffect(() => {
+    if (selectedMachine && demipMachines.length > 0) {
+      const machine = demipMachines.find(m => m.id === selectedMachine);
+      if (machine?.maintenance_category === "prevention") {
+        setActiveTab("prevention");
+      } else {
+        setActiveTab("lubrication");
+      }
+    }
+  }, [selectedMachine, demipMachines]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
@@ -680,7 +694,7 @@ export default function Dashboard() {
       ? allLines
       : lines;
 
-    const demipMachines = machines; // Use the useMemo 'machines' which is already filtered correctly by role.
+    const demipMachines = useMemo(() => machines, [machines]); // Use the useMemo 'machines' which is already filtered correctly by role.
 
     const demipControlPoints = (user?.user_type === "admin" || user?.user_type === "superAdmin")
       ? activeControlPoints
