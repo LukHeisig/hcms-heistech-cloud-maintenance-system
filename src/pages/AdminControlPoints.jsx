@@ -393,139 +393,179 @@ export default function AdminControlPoints() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div>
-                <Label htmlFor="type">Typ bodu *</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, type: value })
-                  }
-                  disabled={machine?.maintenance_category === "prevention"}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {machine?.maintenance_category === "prevention" ? (
-                      <SelectItem value="prevention">Prevence</SelectItem>
-                    ) : (
-                      <>
+              {machine?.maintenance_category === "prevention" ? (
+                <>
+                  <div>
+                    <Label htmlFor="type">Typ bodu *</Label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, type: value })
+                      }
+                      disabled
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="prevention">Prevence</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="name">Název kontrolního bodu *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="např. Kontrola bezpečnosti"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Popis prevence</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      placeholder="Popis preventivních opatření..."
+                      rows={4}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label htmlFor="type">Typ bodu *</Label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, type: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
                         <SelectItem value="lubrication">Mazací bod</SelectItem>
                         <SelectItem value="inspection">Inspekční bod</SelectItem>
                         <SelectItem value="auto_lubricator">
                           Automatická maznice
                         </SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="name">Název bodu *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="např. Hlavní ložisko"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="name">Název bodu *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="např. Hlavní ložisko"
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="description">Popis</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Volitelný popis"
-                  rows={2}
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="description">Popis</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      placeholder="Volitelný popis"
+                      rows={2}
+                    />
+                  </div>
 
-              {formData.type === "lubrication" && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
+                  {formData.type === "lubrication" && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="lubricant_type">Typ maziva</Label>
+                          <Input
+                            id="lubricant_type"
+                            value={formData.lubricant_type}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                lubricant_type: e.target.value,
+                              })
+                            }
+                            placeholder="např. SKF LGWA 2"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="lubricant_amount">Množství (g)</Label>
+                          <Input
+                            id="lubricant_amount"
+                            type="number"
+                            value={formData.lubricant_amount}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                lubricant_amount: e.target.value,
+                              })
+                            }
+                            placeholder="např. 12"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {formData.type === "inspection" && (
                     <div>
-                      <Label htmlFor="lubricant_type">Typ maziva</Label>
-                      <Input
-                        id="lubricant_type"
-                        value={formData.lubricant_type}
+                      <Label htmlFor="inspection_tasks">Inspekční úkoly</Label>
+                      <Textarea
+                        id="inspection_tasks"
+                        value={formData.inspection_tasks}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            lubricant_type: e.target.value,
+                            inspection_tasks: e.target.value,
                           })
                         }
-                        placeholder="např. SKF LGWA 2"
+                        placeholder="Popis činností při inspekci"
+                        rows={3}
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="lubricant_amount">Množství (g)</Label>
-                      <Input
-                        id="lubricant_amount"
-                        type="number"
-                        value={formData.lubricant_amount}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            lubricant_amount: e.target.value,
-                          })
-                        }
-                        placeholder="např. 12"
-                      />
-                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="interval_hours">Interval (hodiny)</Label>
+                    <Input
+                      id="interval_hours"
+                      type="number"
+                      value={formData.interval_hours}
+                      onChange={(e) =>
+                        setFormData({ ...formData, interval_hours: e.target.value })
+                      }
+                      placeholder="např. 168 (1 týden)"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="nfc_chip_id">NFC čip ID</Label>
+                    <Input
+                      id="nfc_chip_id"
+                      value={formData.nfc_chip_id}
+                      onChange={(e) =>
+                        setFormData({ ...formData, nfc_chip_id: e.target.value })
+                      }
+                      placeholder="Volitelné ID NFC čipu"
+                    />
                   </div>
                 </>
               )}
-
-              {(formData.type === "inspection" || formData.type === "prevention") && (
-                <div>
-                  <Label htmlFor="inspection_tasks">
-                    {formData.type === "prevention" ? "Preventivní úkoly" : "Inspekční úkoly"}
-                  </Label>
-                  <Textarea
-                    id="inspection_tasks"
-                    value={formData.inspection_tasks}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        inspection_tasks: e.target.value,
-                      })
-                    }
-                    placeholder={formData.type === "prevention" ? "Popis činností při prevenci" : "Popis činností při inspekci"}
-                    rows={3}
-                  />
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="interval_hours">Interval (hodiny)</Label>
-                <Input
-                  id="interval_hours"
-                  type="number"
-                  value={formData.interval_hours}
-                  onChange={(e) =>
-                    setFormData({ ...formData, interval_hours: e.target.value })
-                  }
-                  placeholder="např. 168 (1 týden)"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="nfc_chip_id">NFC čip ID</Label>
-                <Input
-                  id="nfc_chip_id"
-                  value={formData.nfc_chip_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nfc_chip_id: e.target.value })
-                  }
-                  placeholder="Volitelné ID NFC čipu"
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button
