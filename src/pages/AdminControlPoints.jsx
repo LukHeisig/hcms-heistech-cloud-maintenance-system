@@ -65,6 +65,7 @@ export default function AdminControlPoints() {
     lubricant_type: "",
     lubricant_amount: "",
     interval_hours: "",
+    interval_unit: "hours",
     inspection_tasks: "",
     nfc_chip_id: "",
   });
@@ -140,21 +141,41 @@ export default function AdminControlPoints() {
       lubricant_type: "",
       lubricant_amount: "",
       interval_hours: "",
+      interval_unit: "hours",
       inspection_tasks: "",
       nfc_chip_id: "",
     });
   };
 
+  const detectIntervalUnit = (hours) => {
+    if (!hours) return { value: "", unit: "hours" };
+    if (hours % 730 === 0) return { value: hours / 730, unit: "months" };
+    if (hours % 168 === 0) return { value: hours / 168, unit: "weeks" };
+    return { value: hours, unit: "hours" };
+  };
+
+  const convertToHours = (value, unit) => {
+    if (!value) return null;
+    const val = parseFloat(value);
+    switch (unit) {
+      case "weeks": return val * 168;
+      case "months": return val * 730;
+      default: return val;
+    }
+  };
+
   const handleOpenDialog = (point = null) => {
     if (point) {
       setEditingPoint(point);
+      const detected = detectIntervalUnit(point.interval_hours);
       setFormData({
         type: point.type,
         name: point.name,
         description: point.description || "",
         lubricant_type: point.lubricant_type || "",
         lubricant_amount: point.lubricant_amount || "",
-        interval_hours: point.interval_hours || "",
+        interval_hours: detected.value,
+        interval_unit: detected.unit,
         inspection_tasks: point.inspection_tasks || "",
         nfc_chip_id: point.nfc_chip_id || "",
       });
@@ -172,7 +193,7 @@ export default function AdminControlPoints() {
       type: formData.type,
       name: formData.name,
       description: formData.description || undefined,
-      interval_hours: formData.interval_hours ? parseInt(formData.interval_hours) : undefined,
+      interval_hours: formData.interval_hours ? convertToHours(formData.interval_hours, formData.interval_unit) : undefined,
       nfc_chip_id: formData.nfc_chip_id || undefined,
     };
 
@@ -455,16 +476,34 @@ export default function AdminControlPoints() {
                   </div>
 
                   <div>
-                    <Label htmlFor="interval_hours">Časový interval (hodiny)</Label>
-                    <Input
-                      id="interval_hours"
-                      type="number"
-                      value={formData.interval_hours}
-                      onChange={(e) =>
-                        setFormData({ ...formData, interval_hours: e.target.value })
-                      }
-                      placeholder="např. 168 (1 týden)"
-                    />
+                    <Label htmlFor="interval_hours">Časový interval</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="interval_hours"
+                        type="number"
+                        value={formData.interval_hours}
+                        onChange={(e) =>
+                          setFormData({ ...formData, interval_hours: e.target.value })
+                        }
+                        placeholder="např. 1"
+                        className="flex-1"
+                      />
+                      <Select
+                        value={formData.interval_unit}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, interval_unit: value })
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hours">Hodiny</SelectItem>
+                          <SelectItem value="weeks">Týdny</SelectItem>
+                          <SelectItem value="months">Měsíce</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -570,16 +609,34 @@ export default function AdminControlPoints() {
                   )}
 
                   <div>
-                    <Label htmlFor="interval_hours">Interval (hodiny)</Label>
-                    <Input
-                      id="interval_hours"
-                      type="number"
-                      value={formData.interval_hours}
-                      onChange={(e) =>
-                        setFormData({ ...formData, interval_hours: e.target.value })
-                      }
-                      placeholder="např. 168 (1 týden)"
-                    />
+                    <Label htmlFor="interval_hours">Časový interval</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="interval_hours"
+                        type="number"
+                        value={formData.interval_hours}
+                        onChange={(e) =>
+                          setFormData({ ...formData, interval_hours: e.target.value })
+                        }
+                        placeholder="např. 1"
+                        className="flex-1"
+                      />
+                      <Select
+                        value={formData.interval_unit}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, interval_unit: value })
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hours">Hodiny</SelectItem>
+                          <SelectItem value="weeks">Týdny</SelectItem>
+                          <SelectItem value="months">Měsíce</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div>
