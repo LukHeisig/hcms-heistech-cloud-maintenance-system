@@ -70,7 +70,8 @@ export default function AdminMachines() {
     inventory_number: "",
     location: "",
     machine_type: null,
-    maintenance_category: "lubrication"
+    maintenance_category: "lubrication",
+    prevention_confirmation_method: "manual"
   });
 
   useEffect(() => {
@@ -196,7 +197,8 @@ export default function AdminMachines() {
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
         machine_type: machine.machine_type || null,
-        maintenance_category: machine.maintenance_category || "lubrication"
+        maintenance_category: machine.maintenance_category || "lubrication",
+        prevention_confirmation_method: machine.prevention_confirmation_method || "manual"
       });
     } else {
       setEditingMachine(null);
@@ -206,7 +208,8 @@ export default function AdminMachines() {
         inventory_number: "",
         location: "",
         machine_type: null,
-        maintenance_category: "lubrication"
+        maintenance_category: "lubrication",
+        prevention_confirmation_method: "manual"
       });
     }
     setShowMachineDialog(true);
@@ -222,6 +225,7 @@ export default function AdminMachines() {
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
       maintenance_category: formData.maintenance_category || "lubrication",
+      prevention_confirmation_method: formData.prevention_confirmation_method || "manual",
     };
 
     if (editingMachine) {
@@ -589,6 +593,26 @@ export default function AdminMachines() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.maintenance_category === "prevention" && (
+                <div>
+                  <Label htmlFor="prevention_confirmation">Způsob potvrzení prevence</Label>
+                  <Select
+                    value={formData.prevention_confirmation_method}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, prevention_confirmation_method: value })
+                    }
+                  >
+                    <SelectTrigger id="prevention_confirmation">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Ruční potvrzení tlačítkem</SelectItem>
+                      <SelectItem value="nfc">Sken NFC čipu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="description">Popis</Label>
