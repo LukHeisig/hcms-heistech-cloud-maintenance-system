@@ -19,7 +19,7 @@ export default function MachineSelection({
   const [maintenanceFilter, setMaintenanceFilter] = useState("lubrication");
 
   const filteredMachines = useMemo(() => {
-    return lineMachines.filter(m => m.maintenance_category === maintenanceFilter);
+    return lineMachines.filter(m => (m.maintenance_category || "lubrication") === maintenanceFilter);
   }, [lineMachines, maintenanceFilter]);
 
   return (
