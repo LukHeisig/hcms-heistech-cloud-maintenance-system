@@ -54,6 +54,19 @@ import LineSelection from "../components/dashboard/LineSelection";
 import MachineSelection from "../components/dashboard/MachineSelection";
 import PointsList from "../components/dashboard/PointsList";
 
+const formatInterval = (hours) => {
+  if (!hours) return "-";
+  if (hours % 730 === 0) {
+    const months = hours / 730;
+    return `${months} ${months === 1 ? 'měsíc' : months < 5 ? 'měsíce' : 'měsíců'}`;
+  }
+  if (hours % 168 === 0) {
+    const weeks = hours / 168;
+    return `${weeks} ${weeks === 1 ? 'týden' : weeks < 5 ? 'týdny' : 'týdnů'}`;
+  }
+  return `${hours} ${hours === 1 ? 'hodina' : hours < 5 ? 'hodiny' : 'hodin'}`;
+};
+
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("lubrication");
@@ -801,11 +814,21 @@ export default function Dashboard() {
                     <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
                   </div>
                 )}
-                {currentPoint.type === "prevention" && currentPoint.inspection_tasks && (
-                  <div className="py-2 border-b border-slate-200">
-                    <p className="text-sm text-slate-600 mb-1">Preventivní úkoly:</p>
-                    <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
-                  </div>
+                {currentPoint.type === "prevention" && (
+                  <>
+                    {currentPoint.inspection_tasks && (
+                      <div className="py-2 border-b border-slate-200">
+                        <p className="text-sm text-slate-600 mb-1">Preventivní úkoly:</p>
+                        <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Časový interval:</span>
+                      <span className="font-semibold text-slate-900">
+                        {formatInterval(currentPoint.interval_hours)}
+                      </span>
+                    </div>
+                  </>
                 )}
                 <div className="flex items-center justify-between py-2 border-b border-slate-200">
                   <span className="text-sm text-slate-600">
@@ -821,7 +844,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between py-2 border-b border-slate-200">
                   <span className="text-sm text-slate-600">Interval:</span>
                   <span className="font-semibold text-slate-900">
-                    {currentPoint.interval_hours ? `${currentPoint.interval_hours} hodin` : "-"}
+                    {formatInterval(currentPoint.interval_hours)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-3">

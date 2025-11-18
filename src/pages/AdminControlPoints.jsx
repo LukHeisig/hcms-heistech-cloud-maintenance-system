@@ -49,6 +49,19 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 
+const formatInterval = (hours) => {
+  if (!hours) return "-";
+  if (hours % 730 === 0) {
+    const months = hours / 730;
+    return `${months} ${months === 1 ? 'měsíc' : months < 5 ? 'měsíce' : 'měsíců'}`;
+  }
+  if (hours % 168 === 0) {
+    const weeks = hours / 168;
+    return `${weeks} ${weeks === 1 ? 'týden' : weeks < 5 ? 'týdny' : 'týdnů'}`;
+  }
+  return `${hours} ${hours === 1 ? 'hodina' : hours < 5 ? 'hodiny' : 'hodin'}`;
+};
+
 export default function AdminControlPoints() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -365,7 +378,7 @@ export default function AdminControlPoints() {
                         {point.interval_hours && (
                           <div>
                             <span className="text-slate-500">Interval:</span>
-                            <p className="font-medium">{point.interval_hours} h</p>
+                            <p className="font-medium">{formatInterval(point.interval_hours)}</p>
                           </div>
                         )}
                         {point.nfc_chip_id && (
