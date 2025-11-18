@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -626,7 +625,7 @@ export default function Dashboard() {
         setShowNfcScanDialog(false);
         abortController.abort();
 
-        const targetControlPoints = (viewMode === 'demip' ? activeControlPoints : controlPoints); // Use the correct controlPoints based on viewMode
+        const targetControlPoints = controlPoints;
         const point = targetControlPoints.find(p => p.nfc_chip_id === serialNumber);
 
         if (point) {
@@ -1277,7 +1276,7 @@ export default function Dashboard() {
     const showFloatingNfcButton = !selectedPoint;
 
     const companyId = selectedCompany || user?.company_id;
-    const currentCompany = [...demipCompanies, ...allCompanies].find(c => c.id === companyId);
+    const currentCompany = allCompanies.find(c => c.id === companyId);
     const companyLines = demipAllLines.filter(l => l.company_id === companyId);
 
     const currentLine = demipAllLines.find(l => l.id === selectedLine);
