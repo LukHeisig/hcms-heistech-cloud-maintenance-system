@@ -100,11 +100,11 @@ export default function MachineSelection({
                     <ChevronRight className="w-5 h-5 text-slate-400" />
                   </div>
                 </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
+                </Card>
+                );
+                })
+                )}
+                </div>
     </div>
   );
 }
