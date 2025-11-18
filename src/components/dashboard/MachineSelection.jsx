@@ -15,6 +15,11 @@ export default function MachineSelection({
   getPointStatus,
 }) {
   const navigate = useNavigate();
+  const [maintenanceFilter, setMaintenanceFilter] = useState("lubrication");
+
+  const filteredMachines = useMemo(() => {
+    return lineMachines.filter(m => m.maintenance_category === maintenanceFilter);
+  }, [lineMachines, maintenanceFilter]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -34,7 +39,17 @@ export default function MachineSelection({
       <h1 className="text-3xl font-bold text-slate-900 mb-2">Výběr stroje - DEMIP</h1>
       {currentLine && <p className="text-slate-600 mb-6">{currentLine.name}</p>}
       <div className="space-y-2">
-        {lineMachines.map((machine) => {
+        {filteredMachines.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Factory className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">
+                Žádné stroje v kategorii "{maintenanceFilter === "lubrication" ? "Mazání" : "Prevence"}"
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredMachines.map((machine) => {
           const machinePoints = demipControlPoints.filter(p => p.machine_id === machine.id);
           const machineOverdue = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
 

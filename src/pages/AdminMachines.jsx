@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,7 +64,8 @@ export default function AdminMachines() {
     description: "",
     inventory_number: "",
     location: "",
-    machine_type: null
+    machine_type: null,
+    maintenance_category: "lubrication"
   });
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication" });
     },
   });
 
@@ -163,7 +163,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
       setEditingMachine(null);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication" });
     },
   });
 
@@ -190,7 +190,8 @@ export default function AdminMachines() {
         description: machine.description || "",
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
-        machine_type: machine.machine_type || null
+        machine_type: machine.machine_type || null,
+        maintenance_category: machine.maintenance_category || "lubrication"
       });
     } else {
       setEditingMachine(null);
@@ -199,7 +200,8 @@ export default function AdminMachines() {
         description: "",
         inventory_number: "",
         location: "",
-        machine_type: null
+        machine_type: null,
+        maintenance_category: "lubrication"
       });
     }
     setShowMachineDialog(true);
@@ -214,6 +216,7 @@ export default function AdminMachines() {
       inventory_number: formData.inventory_number.trim() || null,
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
+      maintenance_category: formData.maintenance_category || "lubrication",
     };
 
     if (editingMachine) {
@@ -254,7 +257,8 @@ export default function AdminMachines() {
         order_index: machines.length,
         inventory_number: null, // Do not copy inventory number by default
         location: copyingMachine.location || null,
-        machine_type: copyingMachine.machine_type || null
+        machine_type: copyingMachine.machine_type || null,
+        maintenance_category: copyingMachine.maintenance_category || "lubrication"
       });
 
       // 2. Najít všechny kontrolní body původního stroje
@@ -536,6 +540,24 @@ export default function AdminMachines() {
                     placeholder="např. Hala A, sekce 2"
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="maintenance_category">Kategorie údržby</Label>
+                <Select
+                  value={formData.maintenance_category}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, maintenance_category: value })
+                  }
+                >
+                  <SelectTrigger id="maintenance_category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lubrication">Mazání</SelectItem>
+                    <SelectItem value="prevention">Prevence</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
