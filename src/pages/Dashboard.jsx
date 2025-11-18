@@ -681,10 +681,6 @@ export default function Dashboard() {
     setImageErrors(prev => ({ ...prev, [docId]: true }));
   };
 
-  const selectedCompany = urlParams.get('company');
-  const selectedLine = urlParams.get('line');
-  const selectedMachine = urlParams.get('machine');
-
   const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
     ? activeCompanies
     : [];
