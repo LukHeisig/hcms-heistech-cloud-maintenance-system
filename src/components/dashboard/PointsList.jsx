@@ -25,14 +25,16 @@ export default function PointsList({
 
   const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
   const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
+  const preventionPoints = machinePoints.filter(p => p.type === "prevention");
   const lubricatorPoints = machinePoints.filter(p => p.type === "auto_lubricator");
 
   const getDisplayPoints = () => {
     switch (activeTab) {
       case "lubrication": return lubricationPoints;
       case "inspection": return inspectionPoints;
+      case "prevention": return preventionPoints;
       case "lubricator": return lubricatorPoints;
-      default: return lubricationPoints;
+      default: return currentMachine?.maintenance_category === "lubrication" ? preventionPoints : lubricationPoints;
     }
   };
 
@@ -60,27 +62,39 @@ export default function PointsList({
       <p className="text-slate-600 mb-6">{machinePoints.length} kontrolních bodů</p>
 
       <div className="flex gap-2 mb-6 overflow-x-auto">
-        <Button
-          onClick={() => setActiveTab("lubrication")}
-          variant={activeTab === "lubrication" ? "default" : "outline"}
-          className={activeTab === "lubrication" ? "bg-blue-600 text-white" : ""}
-        >
-          Mazání ({lubricationPoints.length})
-        </Button>
-        <Button
-          onClick={() => setActiveTab("inspection")}
-          variant={activeTab === "inspection" ? "default" : "outline"}
-          className={activeTab === "inspection" ? "bg-blue-600 text-white" : ""}
-        >
-          Inspekce ({inspectionPoints.length})
-        </Button>
-        <Button
-          onClick={() => setActiveTab("lubricator")}
-          variant={activeTab === "lubricator" ? "default" : "outline"}
-          className={activeTab === "lubricator" ? "bg-blue-600 text-white" : ""}
-        >
-          Maznice ({lubricatorPoints.length})
-        </Button>
+        {currentMachine?.maintenance_category === "lubrication" ? (
+          <Button
+            onClick={() => setActiveTab("prevention")}
+            variant={activeTab === "prevention" ? "default" : "outline"}
+            className={activeTab === "prevention" ? "bg-blue-600 text-white" : ""}
+          >
+            Prevence ({preventionPoints.length})
+          </Button>
+        ) : (
+          <>
+            <Button
+              onClick={() => setActiveTab("lubrication")}
+              variant={activeTab === "lubrication" ? "default" : "outline"}
+              className={activeTab === "lubrication" ? "bg-blue-600 text-white" : ""}
+            >
+              Mazání ({lubricationPoints.length})
+            </Button>
+            <Button
+              onClick={() => setActiveTab("inspection")}
+              variant={activeTab === "inspection" ? "default" : "outline"}
+              className={activeTab === "inspection" ? "bg-blue-600 text-white" : ""}
+            >
+              Inspekce ({inspectionPoints.length})
+            </Button>
+            <Button
+              onClick={() => setActiveTab("lubricator")}
+              variant={activeTab === "lubricator" ? "default" : "outline"}
+              className={activeTab === "lubricator" ? "bg-blue-600 text-white" : ""}
+            >
+              Maznice ({lubricatorPoints.length})
+            </Button>
+          </>
+        )}
       </div>
 
       <Card className="shadow-lg">
@@ -118,7 +132,7 @@ export default function PointsList({
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                           isOverdue ? "bg-yellow-100" : "bg-green-100"
                         }`}>
-                          {point.type === "inspection" ? (
+                          {point.type === "inspection" || point.type === "prevention" ? (
                             <ClipboardCheck className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
                           ) : (
                             <Droplet className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
