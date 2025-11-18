@@ -102,15 +102,15 @@ export default function Dashboard() {
 
   // Automaticky nastavit activeTab podle maintenance_category stroje
   useEffect(() => {
-    if (selectedMachine && machines.length > 0) {
-      const machine = machines.find(m => m.id === selectedMachine);
+    if (selectedMachine && allMachines.length > 0) {
+      const machine = allMachines.find(m => m.id === selectedMachine);
       if (machine?.maintenance_category === "prevention") {
         setActiveTab("prevention");
       } else {
         setActiveTab("lubrication");
       }
     }
-  }, [selectedMachine, machines]);
+  }, [selectedMachine, allMachines]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
