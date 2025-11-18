@@ -145,7 +145,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication", prevention_confirmation_method: "manual" });
     },
   });
 
@@ -169,7 +169,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
       setEditingMachine(null);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication", prevention_confirmation_method: "manual" });
     },
   });
 
