@@ -1299,10 +1299,12 @@ export default function Dashboard() {
             </DialogContent>
           </Dialog>
         </div>
-      );
-    }
+        );
+        }
+        }
 
-    const showFloatingNfcButton = !selectedPoint;
+        if (viewMode === 'demip') {
+        const showFloatingNfcButton = !selectedPoint;
 
     const companyId = selectedCompany || user?.company_id;
     const currentCompany = allCompanies.find(c => c.id === companyId);
