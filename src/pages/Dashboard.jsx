@@ -1465,10 +1465,10 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
       </div>
-    );
-  }
+      );
+      }
 
-  if (viewMode === 'maintenance') {
+      if (viewMode === 'maintenance') {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       return (
         <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
