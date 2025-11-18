@@ -453,6 +453,19 @@ export default function AdminControlPoints() {
                       rows={4}
                     />
                   </div>
+
+                  <div>
+                    <Label htmlFor="interval_hours">Časový interval (hodiny)</Label>
+                    <Input
+                      id="interval_hours"
+                      type="number"
+                      value={formData.interval_hours}
+                      onChange={(e) =>
+                        setFormData({ ...formData, interval_hours: e.target.value })
+                      }
+                      placeholder="např. 168 (1 týden)"
+                    />
+                  </div>
                 </>
               ) : (
                 <>
