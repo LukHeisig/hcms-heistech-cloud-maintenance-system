@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Clock, ChevronRight, ArrowLeft } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Activity, Clock, ChevronRight, ArrowLeft, Droplet, ClipboardCheck, Factory } from "lucide-react";
 
 export default function MachineSelection({
   selectedCompany,
@@ -37,7 +38,20 @@ export default function MachineSelection({
         Zpět na linky
       </Button>
       <h1 className="text-3xl font-bold text-slate-900 mb-2">Výběr stroje - DEMIP</h1>
-      {currentLine && <p className="text-slate-600 mb-6">{currentLine.name}</p>}
+      {currentLine && <p className="text-slate-600 mb-4">{currentLine.name}</p>}
+      
+      <Tabs value={maintenanceFilter} onValueChange={setMaintenanceFilter} className="mb-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="lubrication" className="gap-2">
+            <Droplet className="w-4 h-4" />
+            Mazání
+          </TabsTrigger>
+          <TabsTrigger value="prevention" className="gap-2">
+            <ClipboardCheck className="w-4 h-4" />
+            Prevence
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
       <div className="space-y-2">
         {filteredMachines.length === 0 ? (
           <Card>
@@ -88,7 +102,8 @@ export default function MachineSelection({
               </CardContent>
             </Card>
           );
-        })}
+          })
+        )}
       </div>
     </div>
   );
