@@ -64,44 +64,44 @@ export default function MachineSelection({
           </Card>
         ) : (
           filteredMachines.map((machine) => {
-          const machinePoints = demipControlPoints.filter(p => p.machine_id === machine.id);
-          const machineOverdue = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+            const machinePoints = demipControlPoints.filter(p => p.machine_id === machine.id);
+            const machineOverdue = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
 
-          return (
-            <Card
-              key={machine.id}
-              className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
-              onClick={() => {
-                const url = selectedCompany
-                  ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${machine.id}`
-                  : `Dashboard?line=${selectedLine}&machine=${machine.id}`;
-                navigate(createPageUrl(url));
-              }}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-100">
-                      <Activity className="w-5 h-5 text-blue-700" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-slate-900 text-base">{machine.name}</h3>
-                        {machineOverdue > 0 && (
-                          <Badge variant="destructive" className="gap-1">
-                            <Clock className="w-3 h-3" />
-                            {machineOverdue}
-                          </Badge>
-                        )}
+            return (
+              <Card
+                key={machine.id}
+                className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
+                onClick={() => {
+                  const url = selectedCompany
+                    ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${machine.id}`
+                    : `Dashboard?line=${selectedLine}&machine=${machine.id}`;
+                  navigate(createPageUrl(url));
+                }}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-100">
+                        <Activity className="w-5 h-5 text-blue-700" />
                       </div>
-                      <p className="text-sm text-slate-600">{machinePoints.length} kontrolních bodů</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-slate-900 text-base">{machine.name}</h3>
+                          {machineOverdue > 0 && (
+                            <Badge variant="destructive" className="gap-1">
+                              <Clock className="w-3 h-3" />
+                              {machineOverdue}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-600">{machinePoints.length} kontrolních bodů</p>
+                      </div>
                     </div>
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400" />
-                </div>
-              </CardContent>
-            </Card>
-          );
+                </CardContent>
+              </Card>
+            );
           })
         )}
       </div>
