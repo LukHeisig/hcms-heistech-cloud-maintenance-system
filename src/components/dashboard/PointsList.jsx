@@ -23,7 +23,7 @@ export default function PointsList({
 }) {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
-  const categoryParam = urlParams.get('category') || 'lubrication';
+  const categoryParam = urlParams.get('category') || (currentMachine?.maintenance_category || 'lubrication');
 
   const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
   const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
@@ -47,9 +47,10 @@ export default function PointsList({
       <Button
         variant="ghost"
         onClick={() => {
+          const category = currentMachine?.maintenance_category || 'lubrication';
           const url = selectedCompany
-            ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&category=${categoryParam}`
-            : `Dashboard?line=${selectedLine}&category=${categoryParam}`;
+            ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&category=${category}`
+            : `Dashboard?line=${selectedLine}&category=${category}`;
           navigate(createPageUrl(url));
         }}
         className="mb-4"
