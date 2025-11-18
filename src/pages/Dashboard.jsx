@@ -63,6 +63,8 @@ export default function Dashboard() {
   const location = useLocation();
 
   const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const selectedCompany = urlParams.get('company');
+  const selectedLine = urlParams.get('line');
   const selectedMachine = urlParams.get('machine');
 
   const [showIssueDialog, setShowIssueDialog] = useState(false);
