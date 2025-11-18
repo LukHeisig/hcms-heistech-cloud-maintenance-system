@@ -41,8 +41,12 @@ import {
   Loader2,
   Copy,
   ChevronRight,
-  Building2
+  Building2,
+  Droplet,
+  ClipboardCheck
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -59,6 +63,7 @@ export default function AdminMachines() {
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyName, setCopyName] = useState("");
   const [user, setUser] = useState(null);
+  const [maintenanceFilter, setMaintenanceFilter] = useState("all");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -362,6 +367,20 @@ export default function AdminMachines() {
           </div>
         </div>
 
+        <Tabs value={maintenanceFilter} onValueChange={setMaintenanceFilter} className="mb-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="all">Vše ({machines.length})</TabsTrigger>
+            <TabsTrigger value="lubrication" className="gap-2">
+              <Droplet className="w-4 h-4" />
+              Mazání ({machines.filter(m => m.maintenance_category === "lubrication").length})
+            </TabsTrigger>
+            <TabsTrigger value="prevention" className="gap-2">
+              <ClipboardCheck className="w-4 h-4" />
+              Prevence ({machines.filter(m => m.maintenance_category === "prevention").length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {machines.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
@@ -383,7 +402,9 @@ export default function AdminMachines() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {machines.map((machine) => {
+            {machines
+              .filter(m => maintenanceFilter === "all" || m.maintenance_category === maintenanceFilter)
+              .map((machine) => {
               const machinePoints = controlPoints.filter(
                 (p) => p.machine_id === machine.id
               );
@@ -395,9 +416,18 @@ export default function AdminMachines() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-slate-900 mb-1">
-                          {machine.name}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-xl font-bold text-slate-900">
+                            {machine.name}
+                          </h3>
+                          <Badge className={
+                            machine.maintenance_category === "lubrication"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-orange-100 text-orange-700"
+                          }>
+                            {machine.maintenance_category === "lubrication" ? "Mazání" : "Prevence"}
+                          </Badge>
+                        </div>
                         {machine.inventory_number && (
                           <p className="text-sm text-slate-600">
                             Inventární číslo: {machine.inventory_number}
