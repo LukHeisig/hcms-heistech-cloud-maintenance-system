@@ -286,7 +286,6 @@ export default function AdminMachines() {
           lubricant_type: point.lubricant_type || null,
           lubricant_amount: point.lubricant_amount || null,
           interval_hours: point.interval_hours || null,
-          nfc_chip_id: point.nfc_chip_id || null,
           inspection_tasks: point.inspection_tasks || null,
         });
       }
@@ -671,7 +670,7 @@ export default function AdminMachines() {
                 <ul className="text-sm text-blue-800 mt-2 space-y-1 list-disc list-inside">
                   <li>Všechny kontrolní body stroje</li>
                   <li>Nastavení mazání a intervalů</li>
-                  <li>NFC čipy a inspekční úkoly</li>
+                  <li>Inspekční úkoly</li>
                 </ul>
                 <p className="text-xs text-blue-700 mt-2">
                   Poznámka: Historie záznamů, závady a dokumentace se nekopírují
