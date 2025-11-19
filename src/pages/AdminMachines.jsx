@@ -71,9 +71,7 @@ export default function AdminMachines() {
     description: "",
     inventory_number: "",
     location: "",
-    machine_type: null,
-    maintenance_category: "lubrication",
-    prevention_confirmation_method: "manual"
+    machine_type: null
   });
 
   useEffect(() => {
@@ -147,7 +145,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["machines"] });
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication", prevention_confirmation_method: "manual" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
     },
   });
 
@@ -171,7 +169,7 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setShowMachineDialog(false);
       setEditingMachine(null);
-      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null, maintenance_category: "lubrication", prevention_confirmation_method: "manual" });
+      setFormData({ name: "", description: "", inventory_number: "", location: "", machine_type: null });
     },
   });
 
@@ -225,9 +223,7 @@ export default function AdminMachines() {
         description: machine.description || "",
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
-        machine_type: machine.machine_type || null,
-        maintenance_category: machine.maintenance_category || "lubrication",
-        prevention_confirmation_method: machine.prevention_confirmation_method || "manual"
+        machine_type: machine.machine_type || null
       });
     } else {
       setEditingMachine(null);
@@ -236,9 +232,7 @@ export default function AdminMachines() {
         description: "",
         inventory_number: "",
         location: "",
-        machine_type: null,
-        maintenance_category: "lubrication",
-        prevention_confirmation_method: "manual"
+        machine_type: null
       });
     }
     setShowMachineDialog(true);
@@ -253,8 +247,6 @@ export default function AdminMachines() {
       inventory_number: formData.inventory_number.trim() || null,
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
-      maintenance_category: formData.maintenance_category || "lubrication",
-      prevention_confirmation_method: formData.prevention_confirmation_method || "manual",
     };
 
     if (editingMachine) {
@@ -293,10 +285,9 @@ export default function AdminMachines() {
         description: copyingMachine.description || null,
         line_id: copyingMachine.line_id,
         order_index: machines.length,
-        inventory_number: null, // Do not copy inventory number by default
+        inventory_number: null,
         location: copyingMachine.location || null,
-        machine_type: copyingMachine.machine_type || null,
-        maintenance_category: copyingMachine.maintenance_category || "lubrication"
+        machine_type: copyingMachine.machine_type || null
       });
 
       // 2. Najít všechny kontrolní body původního stroje
@@ -316,6 +307,7 @@ export default function AdminMachines() {
           lubricant_amount: point.lubricant_amount || null,
           interval_hours: point.interval_hours || null,
           inspection_tasks: point.inspection_tasks || null,
+          prevention_confirmation_method: point.prevention_confirmation_method || "manual",
         });
       }
 
@@ -399,19 +391,7 @@ export default function AdminMachines() {
           </div>
         </div>
 
-        <Tabs value={maintenanceFilter} onValueChange={setMaintenanceFilter} className="mb-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="all">Vše ({machines.length})</TabsTrigger>
-            <TabsTrigger value="lubrication" className="gap-2">
-              <Droplet className="w-4 h-4" />
-              Mazání ({machines.filter(m => m.maintenance_category === "lubrication").length})
-            </TabsTrigger>
-            <TabsTrigger value="prevention" className="gap-2">
-              <ClipboardCheck className="w-4 h-4" />
-              Prevence ({machines.filter(m => m.maintenance_category === "prevention").length})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+
 
         {machines.length === 0 ? (
           <Card>
@@ -434,9 +414,7 @@ export default function AdminMachines() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {(() => {
-              const filteredMachines = machines.filter(m => maintenanceFilter === "all" || m.maintenance_category === maintenanceFilter);
-              return filteredMachines.map((machine, index) => {
+            {machines.map((machine, index) => {
               const machinePoints = controlPoints.filter(
                 (p) => p.machine_id === machine.id
               );
@@ -452,7 +430,7 @@ export default function AdminMachines() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => handleMoveUp(index, filteredMachines)}
+                          onClick={() => handleMoveUp(index, machines)}
                           disabled={index === 0}
                         >
                           <ArrowUp className="w-4 h-4" />
@@ -461,8 +439,8 @@ export default function AdminMachines() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => handleMoveDown(index, filteredMachines)}
-                          disabled={index === filteredMachines.length - 1}
+                          onClick={() => handleMoveDown(index, machines)}
+                          disabled={index === machines.length - 1}
                         >
                           <ArrowDown className="w-4 h-4" />
                         </Button>
@@ -472,13 +450,6 @@ export default function AdminMachines() {
                           <h3 className="text-xl font-bold text-slate-900">
                             {machine.name}
                           </h3>
-                          <Badge className={
-                            machine.maintenance_category === "lubrication"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-orange-100 text-orange-700"
-                          }>
-                            {machine.maintenance_category === "lubrication" ? "Mazání" : "Prevence"}
-                          </Badge>
                         </div>
                         {machine.inventory_number && (
                           <p className="text-sm text-slate-600">
@@ -541,8 +512,7 @@ export default function AdminMachines() {
                   </CardContent>
                 </Card>
               );
-              });
-              })()}
+              })}
               </div>
               )}
 
@@ -624,44 +594,6 @@ export default function AdminMachines() {
                   />
                 </div>
               </div>
-
-              <div>
-                <Label htmlFor="maintenance_category">Kategorie údržby</Label>
-                <Select
-                  value={formData.maintenance_category}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, maintenance_category: value })
-                  }
-                >
-                  <SelectTrigger id="maintenance_category">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lubrication">Mazání</SelectItem>
-                    <SelectItem value="prevention">Prevence</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.maintenance_category === "prevention" && (
-                <div>
-                  <Label htmlFor="prevention_confirmation">Způsob potvrzení prevence</Label>
-                  <Select
-                    value={formData.prevention_confirmation_method}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, prevention_confirmation_method: value })
-                    }
-                  >
-                    <SelectTrigger id="prevention_confirmation">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="manual">Ruční potvrzení tlačítkem</SelectItem>
-                      <SelectItem value="nfc">Sken NFC čipu</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               <div>
                 <Label htmlFor="description">Popis</Label>
