@@ -569,7 +569,7 @@ export default function Dashboard() {
     await updateControlPointMutation.mutateAsync({
       id: editingPoint.id,
       data: {
-        nfc_chip_id: nfcChipId.trim() || null,
+        nfc_chip_id: nfcChipId.trim() ? nfcChipId.trim() : null,
       },
     });
   };

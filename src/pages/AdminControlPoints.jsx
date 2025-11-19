@@ -207,7 +207,7 @@ export default function AdminControlPoints() {
       name: formData.name,
       description: formData.description || undefined,
       interval_hours: formData.interval_hours ? convertToHours(formData.interval_hours, formData.interval_unit) : undefined,
-      nfc_chip_id: formData.nfc_chip_id || undefined,
+      nfc_chip_id: formData.nfc_chip_id.trim() || null,
     };
 
     if (formData.type === "lubrication") {
