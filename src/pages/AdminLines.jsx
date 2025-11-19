@@ -222,6 +222,11 @@ export default function AdminLines() {
           description: machine.description || "",
           line_id: newLine.id,
           order_index: machine.order_index,
+          maintenance_category: machine.maintenance_category || "lubrication",
+          prevention_confirmation_method: machine.prevention_confirmation_method || "manual",
+          inventory_number: machine.inventory_number || null,
+          location: machine.location || null,
+          machine_type: machine.machine_type || null,
         });
 
         // Najít všechny kontrolní body tohoto stroje
