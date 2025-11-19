@@ -499,7 +499,6 @@ export default function AdminMachines() {
                           {machinePoints.length} kontrolních bodů
                         </p>
                       </div>
-                      </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
