@@ -84,6 +84,7 @@ export default function AdminControlPoints() {
     inspection_tasks: "",
     nfc_chip_id: "",
     prevention_confirmation_method: "manual",
+    first_confirmation_date: "",
   });
 
   const { data: machine } = useQuery({
@@ -197,6 +198,7 @@ export default function AdminControlPoints() {
       inspection_tasks: "",
       nfc_chip_id: "",
       prevention_confirmation_method: "manual",
+      first_confirmation_date: "",
     });
   };
 
@@ -232,6 +234,7 @@ export default function AdminControlPoints() {
         inspection_tasks: point.inspection_tasks || "",
         nfc_chip_id: point.nfc_chip_id || "",
         prevention_confirmation_method: point.prevention_confirmation_method || "manual",
+        first_confirmation_date: point.first_confirmation_date ? new Date(point.first_confirmation_date).toISOString().slice(0, 16) : "",
       });
     } else {
       setEditingPoint(null);
@@ -249,6 +252,7 @@ export default function AdminControlPoints() {
       description: formData.description || undefined,
       interval_hours: formData.interval_hours ? convertToHours(formData.interval_hours, formData.interval_unit) : undefined,
       nfc_chip_id: formData.nfc_chip_id.trim() || null,
+      first_confirmation_date: formData.first_confirmation_date ? new Date(formData.first_confirmation_date).toISOString() : null,
     };
 
     if (formData.type === "lubrication") {
@@ -654,6 +658,21 @@ export default function AdminControlPoints() {
                   }
                   placeholder="Volitelné ID NFC čipu"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="first_confirmation_date">Datum prvního potvrzení</Label>
+                <Input
+                  id="first_confirmation_date"
+                  type="datetime-local"
+                  value={formData.first_confirmation_date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, first_confirmation_date: e.target.value })
+                  }
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Od tohoto data se počítá interval pro další kontrolu
+                </p>
               </div>
             </div>
             <DialogFooter>
