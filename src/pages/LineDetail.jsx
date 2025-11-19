@@ -406,7 +406,7 @@ export default function LineDetail() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white shadow-sm grid w-full grid-cols-3 lg:grid-cols-9 gap-1 p-2">
+          <TabsList className="bg-white shadow-sm flex flex-wrap gap-1 p-2">
             <TabsTrigger value="overview">Přehled</TabsTrigger>
             <TabsTrigger value="lubrication">Mazání</TabsTrigger>
             <TabsTrigger value="prevention">Preventivní údržba</TabsTrigger>
