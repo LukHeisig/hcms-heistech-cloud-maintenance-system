@@ -240,7 +240,6 @@ export default function AdminLines() {
             lubricant_type: point.lubricant_type || "",
             lubricant_amount: point.lubricant_amount || null,
             interval_hours: point.interval_hours || null,
-            nfc_chip_id: point.nfc_chip_id || "",
             inspection_tasks: point.inspection_tasks || "",
           });
         }
