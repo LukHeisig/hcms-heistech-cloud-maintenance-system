@@ -43,6 +43,8 @@ import {
   Copy,
   Building2,
   User,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -153,6 +155,33 @@ export default function AdminLines() {
       setDeleteLineId(null);
     },
   });
+
+  const moveLineMutation = useMutation({
+    mutationFn: ({ id, newIndex }) => base44.entities.Line.update(id, { order_index: newIndex }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lines"] });
+    },
+  });
+
+  const handleMoveUp = async (index) => {
+    if (index === 0) return;
+    const line1 = lines[index];
+    const line2 = lines[index - 1];
+    await Promise.all([
+      moveLineMutation.mutateAsync({ id: line1.id, newIndex: index - 1 }),
+      moveLineMutation.mutateAsync({ id: line2.id, newIndex: index }),
+    ]);
+  };
+
+  const handleMoveDown = async (index) => {
+    if (index === lines.length - 1) return;
+    const line1 = lines[index];
+    const line2 = lines[index + 1];
+    await Promise.all([
+      moveLineMutation.mutateAsync({ id: line1.id, newIndex: index + 1 }),
+      moveLineMutation.mutateAsync({ id: line2.id, newIndex: index }),
+    ]);
+  };
 
   const handleOpenDialog = (line = null) => {
     if (line) {
@@ -342,7 +371,7 @@ export default function AdminLines() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {lines.map((line) => {
+            {lines.map((line, index) => {
               const lineMachines = machines.filter((m) => m.line_id === line.id);
               const lineMachineIds = lineMachines.map(m => m.id);
               const linePoints = controlPoints.filter((p) => 
@@ -356,8 +385,25 @@ export default function AdminLines() {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 mt-1">
-                        <GripVertical className="w-5 h-5 text-slate-400" />
+                      <div className="flex-shrink-0 mt-1 flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleMoveUp(index)}
+                          disabled={index === 0}
+                        >
+                          <ArrowUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleMoveDown(index)}
+                          disabled={index === lines.length - 1}
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </Button>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-3">

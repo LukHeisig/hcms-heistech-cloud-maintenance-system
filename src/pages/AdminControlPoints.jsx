@@ -43,7 +43,9 @@ import {
   ChevronRight,
   Building2,
   Factory,
-  Settings
+  Settings,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -118,6 +120,16 @@ export default function AdminControlPoints() {
     enabled: !!machineId,
   });
 
+  // Seřadit kontrolní body podle order_index, pokud existuje, jinak podle created_date
+  const sortedControlPoints = React.useMemo(() => {
+    return [...controlPoints].sort((a, b) => {
+      if (a.order_index !== undefined && b.order_index !== undefined) {
+        return a.order_index - b.order_index;
+      }
+      return new Date(a.created_date) - new Date(b.created_date);
+    });
+  }, [controlPoints]);
+
   const createPointMutation = useMutation({
     mutationFn: (data) => base44.entities.ControlPoint.create(data),
     onSuccess: () => {
@@ -144,6 +156,33 @@ export default function AdminControlPoints() {
       setDeletePointId(null);
     },
   });
+
+  const movePointMutation = useMutation({
+    mutationFn: ({ id, newIndex }) => base44.entities.ControlPoint.update(id, { order_index: newIndex }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+    },
+  });
+
+  const handleMoveUp = async (index) => {
+    if (index === 0) return;
+    const point1 = sortedControlPoints[index];
+    const point2 = sortedControlPoints[index - 1];
+    await Promise.all([
+      movePointMutation.mutateAsync({ id: point1.id, newIndex: index - 1 }),
+      movePointMutation.mutateAsync({ id: point2.id, newIndex: index }),
+    ]);
+  };
+
+  const handleMoveDown = async (index) => {
+    if (index === sortedControlPoints.length - 1) return;
+    const point1 = sortedControlPoints[index];
+    const point2 = sortedControlPoints[index + 1];
+    await Promise.all([
+      movePointMutation.mutateAsync({ id: point1.id, newIndex: index + 1 }),
+      movePointMutation.mutateAsync({ id: point2.id, newIndex: index }),
+    ]);
+  };
 
   const resetForm = () => {
     const defaultType = machine?.maintenance_category === "prevention" ? "prevention" : "lubrication";
@@ -228,14 +267,12 @@ export default function AdminControlPoints() {
       await createPointMutation.mutateAsync({
         ...dataToSave,
         machine_id: machineId,
+        order_index: sortedControlPoints.length,
       });
     }
   };
 
-  const lubricationPoints = controlPoints.filter((p) => p.type === "lubrication");
-  const inspectionPoints = controlPoints.filter((p) => p.type === "inspection");
-  const preventionPoints = controlPoints.filter((p) => p.type === "prevention");
-  const lubricatorPoints = controlPoints.filter((p) => p.type === "auto_lubricator");
+
 
   if (isLoading) {
     return (
@@ -325,13 +362,33 @@ export default function AdminControlPoints() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {controlPoints.map((point) => (
+            {sortedControlPoints.map((point, index) => (
               <Card
                 key={point.id}
                 className="hover:shadow-lg transition-all border-2 border-slate-200 hover:border-slate-300"
               >
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1 flex flex-col gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === sortedControlPoints.length - 1}
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </Button>
+                    </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-bold text-slate-900">
@@ -390,6 +447,7 @@ export default function AdminControlPoints() {
                           </div>
                         )}
                       </div>
+                    </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button

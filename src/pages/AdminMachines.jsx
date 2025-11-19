@@ -43,7 +43,9 @@ import {
   ChevronRight,
   Building2,
   Droplet,
-  ClipboardCheck
+  ClipboardCheck,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -187,6 +189,33 @@ export default function AdminMachines() {
       setDeleteMachineId(null);
     },
   });
+
+  const moveMachineMutation = useMutation({
+    mutationFn: ({ id, newIndex }) => base44.entities.Machine.update(id, { order_index: newIndex }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["machines"] });
+    },
+  });
+
+  const handleMoveUp = async (index, filteredMachines) => {
+    if (index === 0) return;
+    const machine1 = filteredMachines[index];
+    const machine2 = filteredMachines[index - 1];
+    await Promise.all([
+      moveMachineMutation.mutateAsync({ id: machine1.id, newIndex: machine2.order_index }),
+      moveMachineMutation.mutateAsync({ id: machine2.id, newIndex: machine1.order_index }),
+    ]);
+  };
+
+  const handleMoveDown = async (index, filteredMachines) => {
+    if (index === filteredMachines.length - 1) return;
+    const machine1 = filteredMachines[index];
+    const machine2 = filteredMachines[index + 1];
+    await Promise.all([
+      moveMachineMutation.mutateAsync({ id: machine1.id, newIndex: machine2.order_index }),
+      moveMachineMutation.mutateAsync({ id: machine2.id, newIndex: machine1.order_index }),
+    ]);
+  };
 
   const handleOpenDialog = (machine = null) => {
     if (machine) {
@@ -405,9 +434,9 @@ export default function AdminMachines() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {machines
-              .filter(m => maintenanceFilter === "all" || m.maintenance_category === maintenanceFilter)
-              .map((machine) => {
+            {(() => {
+              const filteredMachines = machines.filter(m => maintenanceFilter === "all" || m.maintenance_category === maintenanceFilter);
+              return filteredMachines.map((machine, index) => {
               const machinePoints = controlPoints.filter(
                 (p) => p.machine_id === machine.id
               );
@@ -417,7 +446,27 @@ export default function AdminMachines() {
                   className="hover:shadow-lg transition-all border-2 border-slate-200 hover:border-slate-300"
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1 flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleMoveUp(index, filteredMachines)}
+                          disabled={index === 0}
+                        >
+                          <ArrowUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleMoveDown(index, filteredMachines)}
+                          disabled={index === filteredMachines.length - 1}
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </Button>
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-xl font-bold text-slate-900">
@@ -449,6 +498,7 @@ export default function AdminMachines() {
                         <p className="text-sm text-slate-600">
                           {machinePoints.length} kontrolních bodů
                         </p>
+                      </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -492,9 +542,10 @@ export default function AdminMachines() {
                   </CardContent>
                 </Card>
               );
-            })}
-          </div>
-        )}
+              });
+              })()}
+              </div>
+              )}
 
         <Dialog open={showMachineDialog} onOpenChange={setShowMachineDialog}>
           <DialogContent className="max-w-2xl">
