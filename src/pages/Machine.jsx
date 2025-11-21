@@ -40,8 +40,10 @@ import {
   FileIcon,
   FileImage,
   FileJson,
-  Send
+  Send,
+  FileSpreadsheet
 } from "lucide-react";
+import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -105,6 +107,8 @@ export default function Machine() {
 
   const [showAddPlannedMaintenanceDialog, setShowAddPlannedMaintenanceDialog] = useState(false);
   const [showCompleteMaintenanceDialog, setShowCompleteMaintenanceDialog] = useState(false);
+  const [showVibrationDialog, setShowVibrationDialog] = useState(false);
+  const [editingVibrationJob, setEditingVibrationJob] = useState(null);
   const [selectedPlannedTask, setSelectedPlannedTask] = useState(null);
   const [plannedMaintenanceForm, setPlannedMaintenanceForm] = useState({
     title: "",
@@ -252,6 +256,12 @@ export default function Machine() {
     queryKey: ["vibrationMeasurements", machineId],
     queryFn: () => base44.entities.VibrationMeasurement.filter({ machine_id: machineId }, "-measurement_date"),
     enabled: !!machineId,
+  });
+
+  const { data: vibrationJobs = [] } = useQuery({
+    queryKey: ["vibrationJobs", machineId],
+    queryFn: () => base44.entities.VibrationJob.filter({ machine_id: machineId }, "-date"),
+    enabled: !!machineId
   });
 
   const { data: responsibilities = [] } = useQuery({
@@ -871,7 +881,7 @@ export default function Machine() {
               <span className="hidden md:inline">Díly</span>
             </TabsTrigger>
             <TabsTrigger value="vibration" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
-              <Activity className="w-4 h-4" />
+              <FileSpreadsheet className="w-4 h-4" />
               <span className="hidden md:inline">Vibrace</span>
             </TabsTrigger>
             <TabsTrigger value="responsibility" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-teal-700 data-[state=active]:text-white">
@@ -2039,170 +2049,66 @@ export default function Machine() {
 
           {/* Vibrodiagnostika */}
           <TabsContent value="vibration" className="space-y-6">
-            {vibrationMeasurements.length > 0 && (
-              <Card className="border-none shadow-lg">
-                <CardHeader className="border-b border-slate-100">
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-red-600" />
-                    Trendy vibračních veličin
-                  </CardTitle>
+            <Card className="border-none shadow-lg">
+                <CardHeader className="border-b border-slate-100 flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                        <FileSpreadsheet className="w-5 h-5 text-red-600" />
+                        Vibrodiagnostika - Zakázky
+                    </CardTitle>
+                    <Button 
+                        onClick={() => { setEditingVibrationJob(null); setShowVibrationDialog(true); }} 
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        <Plus className="w-4 h-4 mr-2" /> Nové měření
+                    </Button>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={vibrationTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="date" stroke="#64748b" />
-                      <YAxis stroke="#64748b" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "white",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="vRMS"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        name="vRMS (mm/s)"
-                        dot={{ fill: "#3b82f6", r: 4 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="aRMS"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        name="aRMS (m/s²)"
-                        dot={{ fill: "#ef4444", r: 4 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="temp"
-                        stroke="#f59e0b"
-                        strokeWidth={2}
-                        name="Teplota (°C)"
-                        dot={{ fill: "#f59e0b", r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                    {vibrationJobs.length === 0 ? (
+                        <div className="text-center py-12 text-slate-500">
+                             <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                             <p>Zatím nebyla provedena žádná měření</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4">
+                            {vibrationJobs.map(job => (
+                                <div key={job.id} className="border rounded-lg p-4 hover:bg-slate-50 transition-colors bg-white shadow-sm">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900">
+                                                Zakázka č. {job.order_number}
+                                                <Badge variant="outline" className="ml-2 font-normal">
+                                                    {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
+                                                </Badge>
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1">
+                                                Technik: <span className="font-medium">{job.technician || "-"}</span>
+                                            </p>
+                                        </div>
+                                        <Button variant="outline" size="sm" onClick={() => { setEditingVibrationJob(job); setShowVibrationDialog(true); }}>
+                                            <Pencil className="w-4 h-4 mr-2" /> Detail / Upravit
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        {job.findings && (
+                                            <div className="bg-slate-50 p-3 rounded border border-slate-100">
+                                                <span className="text-xs font-bold text-slate-500 uppercase mb-1 block">Nález</span>
+                                                <p className="text-sm text-slate-800 line-clamp-3">{job.findings}</p>
+                                            </div>
+                                        )}
+                                        
+                                        {job.conclusion && (
+                                            <div className="bg-blue-50 p-3 rounded border border-blue-100">
+                                                <span className="text-xs font-bold text-blue-600 uppercase mb-1 block">Závěr</span>
+                                                <p className="text-sm text-blue-900 font-medium line-clamp-3">{job.conclusion}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
-              </Card>
-            )}
-
-            <Card className="border-none shadow-lg">
-              <CardHeader className="border-b border-slate-100">
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-red-600" />
-                  Historie měření vibrací
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {vibrationMeasurements.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 mb-2">Zatím nejsou záznamy o měření vibrací</p>
-                    <p className="text-sm text-slate-400">První měření můžete přidat v administraci</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {vibrationMeasurements.map((measurement) => (
-                      <Card key={measurement.id} className={`border ${
-                        measurement.condition_rating === "unacceptable" ? "border-red-300 bg-red-50/30" :
-                        measurement.condition_rating === "unsatisfactory" ? "border-orange-300 bg-orange-50/30" :
-                        measurement.condition_rating === "acceptable" ? "border-yellow-300 bg-yellow-50/30" :
-                        "border-green-300 bg-green-50/30"
-                      }`}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-bold text-slate-900">{measurement.measuring_point}</h3>
-                                <Badge className={
-                                  measurement.measurement_type === "online" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
-                                }>
-                                  {measurement.measurement_type === "online" ? "Online" : "Offline"}
-                                </Badge>
-                                {measurement.condition_rating && (
-                                  <Badge className={
-                                    measurement.condition_rating === "good" ? "bg-green-500" :
-                                    measurement.condition_rating === "acceptable" ? "bg-yellow-500" :
-                                    measurement.condition_rating === "unsatisfactory" ? "bg-orange-500" :
-                                    "bg-red-500"
-                                  }>
-                                    {measurement.condition_rating === "good" ? "Dobrý" :
-                                     measurement.condition_rating === "acceptable" ? "Přijatelný" :
-                                     measurement.condition_rating === "unsatisfactory" ? "Neuspokojivý" :
-                                     "Nepřijatelný"}
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-slate-500">
-                                {format(new Date(measurement.measurement_date), "d.M. yyyy HH:mm", { locale: cs })}
-                                {measurement.measured_by && ` • ${getUserDisplayName(measurement.measured_by)}`}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
-                            {measurement.v_rms !== null && (
-                              <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                <p className="text-xs text-slate-500 mb-1">vRMS</p>
-                                <p className="text-lg font-bold text-slate-900">{measurement.v_rms}</p>
-                                <p className="text-xs text-slate-500">mm/s</p>
-                              </div>
-                            )}
-                            {measurement.a_rms !== null && (
-                              <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                <p className="text-xs text-slate-500 mb-1">aRMS</p>
-                                <p className="text-lg font-bold text-slate-900">{measurement.a_rms}</p>
-                                <p className="text-xs text-slate-500">m/s²</p>
-                              </div>
-                            )}
-                            {/* Corrected property access if a_envelope exists */}
-                            {measurement.a_envelope !== null && (
-                              <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                <p className="text-xs text-slate-500 mb-1">A obálka</p>
-                                <p className="text-lg font-bold text-slate-900">{measurement.a_envelope}</p>
-                                <p className="text-xs text-slate-500">g</p>
-                              </div>
-                            )}
-                            {measurement.overall_acceleration !== null && (
-                              <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                <p className="text-xs text-slate-500 mb-1">OA</p>
-                                <p className="text-lg font-bold text-slate-900">{measurement.overall_acceleration}</p>
-                                <p className="text-xs text-slate-500">m/s²</p>
-                              </div>
-                            )}
-                            {measurement.temperature !== null && (
-                              <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                <p className="text-xs text-slate-500 mb-1">Teplota</p>
-                                <p className="text-lg font-bold text-slate-900">{measurement.temperature}</p>
-                                <p className="text-xs text-slate-500">°C</p>
-                              </div>
-                            )}
-                          </div>
-
-                          {measurement.findings && (
-                            <div className="bg-white rounded-lg p-3 border border-slate-200 mb-2">
-                              <p className="text-xs font-semibold text-slate-700 mb-1">Zjištění:</p>
-                              <p className="text-sm text-slate-600">{measurement.findings}</p>
-                            </div>
-                          )}
-
-                          {measurement.recommendations && (
-                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                              <p className="text-xs font-semibold text-blue-900 mb-1">Doporučení:</p>
-                              <p className="text-sm text-blue-800">{measurement.recommendations}</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
             </Card>
           </TabsContent>
 

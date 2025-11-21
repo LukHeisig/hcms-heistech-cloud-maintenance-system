@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Factory, FileText, Users, Wrench, Building2, Settings } from "lucide-react";
+import { Factory, FileText, Users, Wrench, Building2, Settings, Activity } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -43,19 +43,21 @@ export default function Admin() {
             </Card>
           </Link>
 
-          <Card className="opacity-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5 text-slate-400" />
-                Nastavení
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600">
-                Obecná nastavení aplikace
-              </p>
-            </CardContent>
-          </Card>
+          <Link to={createPageUrl("AdminVibrations")}>
+            <Card className="hover:shadow-lg transition-all cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-purple-600" />
+                  Vibrodiagnostika
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600">
+                  Nastavení norem a schémat měření pro vibrační diagnostiku
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
     </div>
