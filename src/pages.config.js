@@ -17,6 +17,7 @@ import UserMonitoring from './pages/UserMonitoring';
 import LineDetail from './pages/LineDetail';
 import AdminLineChecks from './pages/AdminLineChecks';
 import AdminVibrations from './pages/AdminVibrations';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -40,6 +41,7 @@ export const PAGES = {
     "LineDetail": LineDetail,
     "AdminLineChecks": AdminLineChecks,
     "AdminVibrations": AdminVibrations,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {

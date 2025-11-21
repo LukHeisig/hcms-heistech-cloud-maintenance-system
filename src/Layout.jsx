@@ -20,6 +20,7 @@ import {
   Wrench,
   Droplet,
   Activity,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -207,12 +208,17 @@ function LayoutContent({ children }) {
           {
             title: "Administrace",
             url: createPageUrl("Admin"),
-            icon: Settings,
+            icon: Building2, // Changed icon to avoid conflict or better represent Admin
           },
           {
             title: "Uživatelé",
             url: createPageUrl("Users"),
             icon: Users,
+          },
+          {
+            title: "Nastavení",
+            url: createPageUrl("Settings"),
+            icon: Settings,
           },
         ]
       : []),
