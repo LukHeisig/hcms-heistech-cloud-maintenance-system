@@ -16,6 +16,7 @@ import AuditLog from './pages/AuditLog';
 import UserMonitoring from './pages/UserMonitoring';
 import LineDetail from './pages/LineDetail';
 import AdminLineChecks from './pages/AdminLineChecks';
+import AdminVibrations from './pages/AdminVibrations';
 import __Layout from './Layout.jsx';
 
 
@@ -38,6 +39,7 @@ export const PAGES = {
     "UserMonitoring": UserMonitoring,
     "LineDetail": LineDetail,
     "AdminLineChecks": AdminLineChecks,
+    "AdminVibrations": AdminVibrations,
 }
 
 export const pagesConfig = {

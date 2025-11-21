@@ -130,8 +130,18 @@ export default function AdminMachines() {
   });
 
   const { data: controlPoints = [] } = useQuery({
-    queryKey: ["controlPoints"],
-    queryFn: () => base44.entities.ControlPoint.list(),
+  queryKey: ["controlPoints"],
+  queryFn: () => base44.entities.ControlPoint.list(),
+  });
+
+  const { data: vibrationStandards = [] } = useQuery({
+  queryKey: ["vibrationStandards"],
+  queryFn: () => base44.entities.VibrationStandard.list(),
+  });
+
+  const { data: vibrationSchemas = [] } = useQuery({
+  queryKey: ["vibrationSchemas"],
+  queryFn: () => base44.entities.VibrationSchema.list(),
   });
 
   const createMachineMutation = useMutation({
@@ -223,7 +233,9 @@ export default function AdminMachines() {
         description: machine.description || "",
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
-        machine_type: machine.machine_type || null
+        machine_type: machine.machine_type || null,
+        vibration_standard_id: machine.vibration_standard_id || null,
+        vibration_schema_id: machine.vibration_schema_id || null
       });
     } else {
       setEditingMachine(null);
@@ -232,7 +244,9 @@ export default function AdminMachines() {
         description: "",
         inventory_number: "",
         location: "",
-        machine_type: null
+        machine_type: null,
+        vibration_standard_id: null,
+        vibration_schema_id: null
       });
     }
     setShowMachineDialog(true);
@@ -247,6 +261,8 @@ export default function AdminMachines() {
       inventory_number: formData.inventory_number.trim() || null,
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
+      vibration_standard_id: formData.vibration_standard_id || null,
+      vibration_schema_id: formData.vibration_schema_id || null
     };
 
     if (editingMachine) {
@@ -606,6 +622,46 @@ export default function AdminMachines() {
                   placeholder="Volitelný popis stroje"
                   rows={3}
                 />
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <h4 className="font-semibold mb-3 text-slate-800">Nastavení vibrodiagnostiky</h4>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label>Norma vibrací</Label>
+                        <Select
+                            value={formData.vibration_standard_id || "none"}
+                            onValueChange={(val) => setFormData({...formData, vibration_standard_id: val === "none" ? null : val})}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Vyberte normu" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">-- Žádná --</SelectItem>
+                                {vibrationStandards.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label>Schéma měření</Label>
+                        <Select
+                            value={formData.vibration_schema_id || "none"}
+                            onValueChange={(val) => setFormData({...formData, vibration_schema_id: val === "none" ? null : val})}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Vyberte schéma" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">-- Žádné --</SelectItem>
+                                {vibrationSchemas.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
               </div>
             </div>
             <DialogFooter>

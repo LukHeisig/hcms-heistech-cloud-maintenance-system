@@ -1,0 +1,387 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Plus, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+// Helper to get band based on value and limits
+const getBand = (val, limits) => {
+    if (val === "" || val === null || isNaN(val)) return null;
+    const v = parseFloat(val);
+    if (v <= limits.limit_ab) return "A";
+    if (v <= limits.limit_bc) return "B";
+    if (v <= limits.limit_cd) return "C";
+    return "D";
+};
+
+const bandColors = {
+    "A": "bg-green-100 text-green-800 border-green-200",
+    "B": "bg-yellow-100 text-yellow-800 border-yellow-200",
+    "C": "bg-orange-100 text-orange-800 border-orange-200",
+    "D": "bg-red-100 text-red-800 border-red-200",
+};
+
+const bandLabels = {
+    "A": "Nový stroj",
+    "B": "Neomezený provoz",
+    "C": "Omezený provoz",
+    "D": "Nepřípustné"
+};
+
+export default function VibrationJobDialog({ machine, open, onOpenChange, job = null }) {
+  const queryClient = useQueryClient();
+  
+  // Fetch Standards and Schemas
+  const { data: standard } = useQuery({
+    queryKey: ["vibrationStandard", machine?.vibration_standard_id],
+    queryFn: async () => {
+        if (!machine?.vibration_standard_id) return null;
+        const list = await base44.entities.VibrationStandard.list();
+        return list.find(s => s.id === machine.vibration_standard_id);
+    },
+    enabled: !!machine?.vibration_standard_id
+  });
+
+  const { data: schema } = useQuery({
+    queryKey: ["vibrationSchema", machine?.vibration_schema_id],
+    queryFn: async () => {
+        if (!machine?.vibration_schema_id) return null;
+        const list = await base44.entities.VibrationSchema.list();
+        return list.find(s => s.id === machine.vibration_schema_id);
+    },
+    enabled: !!machine?.vibration_schema_id
+  });
+
+  // If editing, fetch readings
+  const { data: existingReadings = [] } = useQuery({
+    queryKey: ["vibrationReadings", job?.id],
+    queryFn: () => job ? base44.entities.VibrationReading.filter({ job_id: job.id }) : [],
+    enabled: !!job
+  });
+
+  const [formData, setFormData] = useState({
+    order_number: "",
+    date: new Date().toISOString().split('T')[0],
+    technician: "",
+    description: "",
+    findings: "",
+    recommendation: "",
+    conclusion: ""
+  });
+
+  // Stores readings as { "L1_H": { value: 1.2, band: "A", bearing: "A" } }
+  const [readings, setReadings] = useState({});
+
+  useEffect(() => {
+    if (job) {
+        setFormData({
+            order_number: job.order_number,
+            date: job.date.split('T')[0],
+            technician: job.technician || "",
+            description: job.description || "",
+            findings: job.findings || "",
+            recommendation: job.recommendation || "",
+            conclusion: job.conclusion || ""
+        });
+    } else {
+        // Reset
+        setFormData({
+            order_number: "",
+            date: new Date().toISOString().split('T')[0],
+            technician: "",
+            description: "",
+            findings: "",
+            recommendation: "",
+            conclusion: ""
+        });
+        setReadings({});
+    }
+  }, [job, open]);
+
+  useEffect(() => {
+    if (existingReadings.length > 0) {
+        const map = {};
+        existingReadings.forEach(r => {
+            map[`${r.point_label}_${r.direction}`] = {
+                value: r.value_rms,
+                band: r.band,
+                bearing: r.bearing_status
+            };
+        });
+        setReadings(map);
+    }
+  }, [existingReadings]);
+
+
+  const handleReadingChange = (pointLabel, direction, field, value) => {
+    const key = `${pointLabel}_${direction}`;
+    const current = readings[key] || {};
+    
+    let newValue = value;
+    let newBand = current.band;
+
+    if (field === 'value') {
+        newValue = value === "" ? "" : parseFloat(value);
+        if (standard) {
+            newBand = getBand(newValue, standard);
+        }
+    }
+
+    setReadings(prev => ({
+        ...prev,
+        [key]: {
+            ...prev[key],
+            [field]: newValue,
+            ...(field === 'value' ? { band: newBand } : {})
+        }
+    }));
+  };
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+        // 1. Create Job
+        const jobData = {
+            ...formData,
+            machine_id: machine.id
+        };
+        const newJob = await base44.entities.VibrationJob.create(jobData);
+
+        // 2. Create Readings
+        const readingsToCreate = [];
+        Object.keys(readings).forEach(key => {
+            const [point, dir] = key.split('_');
+            const r = readings[key];
+            if (r.value !== "" && r.value !== undefined) {
+                readingsToCreate.push({
+                    job_id: newJob.id,
+                    point_label: point,
+                    direction: dir,
+                    value_rms: parseFloat(r.value),
+                    band: r.band,
+                    bearing_status: r.bearing
+                });
+            }
+        });
+
+        if (readingsToCreate.length > 0) {
+            await base44.entities.VibrationReading.bulkCreate(readingsToCreate);
+        }
+        return newJob;
+    },
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["vibrationJobs"] });
+        onOpenChange(false);
+    }
+  });
+
+  // Simplified update (delete all readings + recreate) for prototype speed
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+        // 1. Update Job
+        await base44.entities.VibrationJob.update(job.id, formData);
+
+        // 2. Delete old readings
+        // Note: In a real app, you might want to diff update, but bulk delete/create is safer for consistency here
+        const oldReadings = await base44.entities.VibrationReading.filter({ job_id: job.id });
+        for (const r of oldReadings) {
+            await base44.entities.VibrationReading.delete(r.id);
+        }
+
+        // 3. Create new readings
+        const readingsToCreate = [];
+        Object.keys(readings).forEach(key => {
+            const [point, dir] = key.split('_');
+            const r = readings[key];
+            if (r.value !== "" && r.value !== undefined) {
+                readingsToCreate.push({
+                    job_id: job.id,
+                    point_label: point,
+                    direction: dir,
+                    value_rms: parseFloat(r.value),
+                    band: r.band,
+                    bearing_status: r.bearing
+                });
+            }
+        });
+
+        if (readingsToCreate.length > 0) {
+            await base44.entities.VibrationReading.bulkCreate(readingsToCreate);
+        }
+    },
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["vibrationJobs"] });
+        queryClient.invalidateQueries({ queryKey: ["vibrationReadings"] });
+        onOpenChange(false);
+    }
+  });
+
+  const handleSave = () => {
+    if (job) {
+        updateMutation.mutate();
+    } else {
+        createMutation.mutate();
+    }
+  };
+
+  const schemaRows = useMemo(() => {
+    if (!schema) return [];
+    try {
+        return JSON.parse(schema.rows_definition);
+    } catch (e) {
+        return [];
+    }
+  }, [schema]);
+
+  if (!machine) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{job ? "Upravit měření" : "Nové měření vibrací"}</DialogTitle>
+        </DialogHeader>
+        
+        {/* Header Info */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50 rounded-lg border">
+            <div>
+                <Label>Číslo zakázky</Label>
+                <Input value={formData.order_number} onChange={e => setFormData({...formData, order_number: e.target.value})} placeholder="2025/001" />
+            </div>
+            <div>
+                <Label>Datum měření</Label>
+                <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+            </div>
+            <div>
+                <Label>Technik</Label>
+                <Input value={formData.technician} onChange={e => setFormData({...formData, technician: e.target.value})} />
+            </div>
+            <div className="md:col-span-3">
+                <Label>Vstupní podmínky / Popis stroje</Label>
+                <Input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="např. 1490 rpm, 80% výkon" />
+            </div>
+        </div>
+
+        {/* Measurement Table */}
+        {!schema || !standard ? (
+            <div className="text-center py-8 text-slate-500">
+                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-orange-500" />
+                <p>Pro tento stroj není nastavena norma nebo schéma měření.</p>
+                <p className="text-sm">Kontaktujte administrátora pro nastavení.</p>
+            </div>
+        ) : (
+            <div className="mb-6 overflow-x-auto">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    Naměřené hodnoty
+                    <Badge variant="outline" className="font-normal text-xs">Norma: {standard.name}</Badge>
+                </h3>
+                <Table className="border">
+                    <TableHeader>
+                        <TableRow className="bg-slate-100">
+                            <TableHead className="w-16">Místo</TableHead>
+                            <TableHead className="w-16">Směr</TableHead>
+                            <TableHead className="w-32">RMS [mm/s]</TableHead>
+                            <TableHead className="w-32">Pásmo</TableHead>
+                            <TableHead className="w-32">Stav ložisek</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {schemaRows.map(row => (
+                            row.directions.map((dir, dirIdx) => {
+                                const key = `${row.label}_${dir}`;
+                                const data = readings[key] || {};
+                                return (
+                                    <TableRow key={key} className={dirIdx === 0 ? "border-t-2" : ""}>
+                                        {dirIdx === 0 && (
+                                            <TableCell rowSpan={row.directions.length} className="font-bold bg-slate-50 align-top border-r">
+                                                {row.label}
+                                                {row.name && <div className="text-xs text-slate-500 font-normal">{row.name}</div>}
+                                            </TableCell>
+                                        )}
+                                        <TableCell className="text-center font-medium">{dir}</TableCell>
+                                        <TableCell>
+                                            <Input 
+                                                type="number" 
+                                                step="0.01" 
+                                                className="h-8" 
+                                                value={data.value || ""} 
+                                                onChange={e => handleReadingChange(row.label, dir, 'value', e.target.value)}
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            {data.band && (
+                                                <div className={`px-2 py-1 rounded text-center text-xs font-bold border ${bandColors[data.band]}`}>
+                                                    {data.band}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Select 
+                                                value={data.bearing || ""} 
+                                                onValueChange={v => handleReadingChange(row.label, dir, 'bearing', v)}
+                                            >
+                                                <SelectTrigger className="h-8">
+                                                    <SelectValue placeholder="-" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="A">A - Bezvadný</SelectItem>
+                                                    <SelectItem value="B">B - Opotřebení</SelectItem>
+                                                    <SelectItem value="C">C - Viditelné</SelectItem>
+                                                    <SelectItem value="D">D - Havarijní</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        )}
+
+        {/* Text Areas */}
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <Label>Nález</Label>
+                    <Textarea value={formData.findings} onChange={e => setFormData({...formData, findings: e.target.value})} rows={4} />
+                </div>
+                <div>
+                    <Label>Závěry</Label>
+                    <Textarea value={formData.conclusion} onChange={e => setFormData({...formData, conclusion: e.target.value})} rows={4} />
+                </div>
+            </div>
+            <div>
+                <Label>Doporučení</Label>
+                <Textarea value={formData.recommendation} onChange={e => setFormData({...formData, recommendation: e.target.value})} rows={3} />
+            </div>
+        </div>
+
+        <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Zrušit</Button>
+            <Button onClick={handleSave} disabled={!formData.order_number || !schema}>Uložit měření</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
