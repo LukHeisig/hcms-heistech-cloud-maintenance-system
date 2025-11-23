@@ -92,6 +92,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
   // Stores readings as { "L1_H": { value: 1.2, band: "A", bearing: "A" } }
   const [readings, setReadings] = useState({});
   const [visibleDirections, setVisibleDirections] = useState({ H: true, V: true, A: true });
+  const [rowVisibility, setRowVisibility] = useState({});
 
   useEffect(() => {
     if (job) {
@@ -325,61 +326,124 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
                     </TableHeader>
                     <TableBody>
                         {schemaRows.map(row => {
-                            // Filter directions based on visibility settings
-                            const visibleRowDirections = row.directions.filter(d => visibleDirections[d] !== false);
+                            // Get local visibility settings for this row (default to all directions present in schema)
+                            const localVisibility = rowVisibility[row.label] || row.directions.reduce((acc, d) => ({...acc, [d]: true}), {});
                             
-                            // If no directions are visible for this row, we skip rendering the row entirely OR render a placeholder?
-                            // Let's skip rendering if empty, but that might look weird if the row label disappears.
-                            // However, if user unchecks all directions, table will be empty. That's expected.
-                            if (visibleRowDirections.length === 0) return null;
-
-                            return visibleRowDirections.map((dir, dirIdx) => {
-                                const key = `${row.label}_${dir}`;
-                                const data = readings[key] || {};
-                                return (
-                                    <TableRow key={key} className={dirIdx === 0 ? "border-t-2" : ""}>
-                                        {dirIdx === 0 && (
-                                            <TableCell rowSpan={visibleRowDirections.length} className="font-bold bg-slate-50 align-top border-r">
-                                                {row.label}
-                                                {row.name && <div className="text-xs text-slate-500 font-normal">{row.name}</div>}
-                                            </TableCell>
-                                        )}
-                                        <TableCell className="text-center font-medium">{dir}</TableCell>
-                                        <TableCell>
-                                            <Input 
-                                                type="number" 
-                                                step="0.01" 
-                                                className="h-8" 
-                                                value={data.value || ""} 
-                                                onChange={e => handleReadingChange(row.label, dir, 'value', e.target.value)}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            {data.band && (
-                                                <div className={`px-2 py-1 rounded text-center text-xs font-bold border ${bandColors[data.band]}`}>
-                                                    {data.band}
-                                                </div>
+                            // Filter directions based on BOTH global visibility and local per-row visibility
+                            const visibleRowDirections = row.directions.filter(d => 
+                                visibleDirections[d] !== false && localVisibility[d] !== false
+                            );
+                            
+                            // Render rows for visible directions
+                            if (visibleRowDirections.length > 0) {
+                                return visibleRowDirections.map((dir, dirIdx) => {
+                                    const key = `${row.label}_${dir}`;
+                                    const data = readings[key] || {};
+                                    return (
+                                        <TableRow key={key} className={dirIdx === 0 ? "border-t-2" : ""}>
+                                            {dirIdx === 0 && (
+                                                <TableCell rowSpan={visibleRowDirections.length} className="font-bold bg-slate-50 align-top border-r p-2">
+                                                    <div>{row.label}</div>
+                                                    {row.name && <div className="text-xs text-slate-500 font-normal mb-2">{row.name}</div>}
+                                                    
+                                                    {/* Per-row direction toggles */}
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {row.directions.map(d => (
+                                                            <button
+                                                                key={d}
+                                                                onClick={() => setRowVisibility(prev => ({
+                                                                    ...prev,
+                                                                    [row.label]: {
+                                                                        ...(prev[row.label] || row.directions.reduce((acc, dir) => ({...acc, [dir]: true}), {})),
+                                                                        [d]: !localVisibility[d]
+                                                                    }
+                                                                }))}
+                                                                className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                                                                    localVisibility[d] !== false 
+                                                                        ? "bg-blue-100 text-blue-700 border-blue-300 font-bold" 
+                                                                        : "bg-slate-100 text-slate-400 border-slate-200 line-through"
+                                                                }`}
+                                                                title={`Přepnout směr ${d}`}
+                                                            >
+                                                                {d}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </TableCell>
                                             )}
+                                            <TableCell className="text-center font-medium">{dir}</TableCell>
+                                            <TableCell>
+                                                <Input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    className="h-8" 
+                                                    value={data.value || ""} 
+                                                    onChange={e => handleReadingChange(row.label, dir, 'value', e.target.value)}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                {data.band && (
+                                                    <div className={`px-2 py-1 rounded text-center text-xs font-bold border ${bandColors[data.band]}`}>
+                                                        {data.band}
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Select 
+                                                    value={data.bearing || ""} 
+                                                    onValueChange={v => handleReadingChange(row.label, dir, 'bearing', v)}
+                                                >
+                                                    <SelectTrigger className="h-8">
+                                                        <SelectValue placeholder="-" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="A">A - Bezvadný</SelectItem>
+                                                        <SelectItem value="B">B - Opotřebení</SelectItem>
+                                                        <SelectItem value="C">C - Viditelné</SelectItem>
+                                                        <SelectItem value="D">D - Havarijní</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                });
+                            } else {
+                                // Special case: All directions hidden for this row, but we still show the label cell to allow toggling back
+                                return (
+                                    <TableRow key={`${row.label}_hidden`} className="border-t-2">
+                                        <TableCell className="font-bold bg-slate-50 align-top border-r p-2">
+                                            <div>{row.label}</div>
+                                            {row.name && <div className="text-xs text-slate-500 font-normal mb-2">{row.name}</div>}
+                                            
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {row.directions.map(d => (
+                                                    <button
+                                                        key={d}
+                                                        onClick={() => setRowVisibility(prev => ({
+                                                            ...prev,
+                                                            [row.label]: {
+                                                                ...(prev[row.label] || row.directions.reduce((acc, dir) => ({...acc, [dir]: true}), {})),
+                                                                [d]: !localVisibility[d]
+                                                            }
+                                                        }))}
+                                                        className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                                                            localVisibility[d] !== false 
+                                                                ? "bg-blue-100 text-blue-700 border-blue-300 font-bold" 
+                                                                : "bg-slate-100 text-slate-400 border-slate-200 line-through"
+                                                        }`}
+                                                        title={`Přepnout směr ${d}`}
+                                                    >
+                                                        {d}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <Select 
-                                                value={data.bearing || ""} 
-                                                onValueChange={v => handleReadingChange(row.label, dir, 'bearing', v)}
-                                            >
-                                                <SelectTrigger className="h-8">
-                                                    <SelectValue placeholder="-" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="A">A - Bezvadný</SelectItem>
-                                                    <SelectItem value="B">B - Opotřebení</SelectItem>
-                                                    <SelectItem value="C">C - Viditelné</SelectItem>
-                                                    <SelectItem value="D">D - Havarijní</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                        <TableCell colSpan={4} className="text-center text-slate-400 text-sm italic bg-slate-50/50">
+                                            Žádné vybrané směry
                                         </TableCell>
                                     </TableRow>
                                 );
-                            });
+                            }
                         })}
                     </TableBody>
                 </Table>
