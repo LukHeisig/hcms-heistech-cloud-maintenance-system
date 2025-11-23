@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,8 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
   const [visibleDirections, setVisibleDirections] = useState({ H: true, V: true, A: true });
   const [rowVisibility, setRowVisibility] = useState({});
   const [copyLastTexts, setCopyLastTexts] = useState(false);
+  
+  const hasPopulatedRef = useRef(false);
 
   // Fetch templates
   const { data: templates = [] } = useQuery({
@@ -151,6 +153,9 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
         setReadings({});
         setRowVisibility({}); // Reset visibility
         setCopyLastTexts(false);
+        hasPopulatedRef.current = false;
+    } else {
+        hasPopulatedRef.current = false;
     }
   }, [job, open]);
 
@@ -206,7 +211,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
   useEffect(() => {
     const sourceReadings = job ? existingReadings : (open ? lastReadings : []);
     
-    if (sourceReadings.length > 0) {
+    if (sourceReadings.length > 0 && !hasPopulatedRef.current) {
         const map = {};
         const visibility = {};
         
@@ -225,14 +230,10 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
         });
         
         setReadings(map);
+        hasPopulatedRef.current = true;
         
         // If copying from last job, set row visibility to match what was recorded
         if (!job && Object.keys(visibility).length > 0) {
-             // We need to respect that some directions might NOT be in the map because they weren't measured.
-             // If we set rowVisibility, we are explicitly saying "show these, hide others".
-             // But we should be careful not to hide things by default if the last job was partial?
-             // Actually, if the user wants to "copy data", they probably want the same view.
-             // Let's merge with current state or just set it.
              setRowVisibility(visibility);
         }
     }
