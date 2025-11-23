@@ -71,8 +71,10 @@ export default function AdminMachines() {
     description: "",
     inventory_number: "",
     location: "",
-    machine_type: null
+    machine_type: null,
+    photo_url: ""
   });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -234,6 +236,7 @@ export default function AdminMachines() {
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
         machine_type: machine.machine_type || null,
+        photo_url: machine.photo_url || "",
         vibration_standard_id: machine.vibration_standard_id || null,
         vibration_schema_id: machine.vibration_schema_id || null
       });
@@ -245,6 +248,7 @@ export default function AdminMachines() {
         inventory_number: "",
         location: "",
         machine_type: null,
+        photo_url: "",
         vibration_standard_id: null,
         vibration_schema_id: null
       });
@@ -261,6 +265,7 @@ export default function AdminMachines() {
       inventory_number: formData.inventory_number.trim() || null,
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
+      photo_url: formData.photo_url || null,
       vibration_standard_id: formData.vibration_standard_id || null,
       vibration_schema_id: formData.vibration_schema_id || null
     };
@@ -345,7 +350,23 @@ export default function AdminMachines() {
       console.error("Error copying machine:", error);
       alert("Chyba při kopírování stroje: " + error.message);
     }
-  };
+    };
+
+    const handleFileUpload = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      setUploading(true);
+      try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          setFormData({ ...formData, photo_url: file_url });
+      } catch (error) {
+          console.error("Error uploading file:", error);
+          alert("Chyba při nahrávání souboru");
+      } finally {
+          setUploading(false);
+      }
+    };
 
   if (isLoading) {
     return (
@@ -622,6 +643,33 @@ export default function AdminMachines() {
                   placeholder="Volitelný popis stroje"
                   rows={3}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="photo">Fotka stroje</Label>
+                <div className="flex items-center gap-4 mt-2">
+                    {formData.photo_url && (
+                        <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 relative group">
+                            <img src={formData.photo_url} alt="Preview" className="w-full h-full object-cover" />
+                            <button 
+                                onClick={() => setFormData({...formData, photo_url: ""})}
+                                className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+                    <div className="flex-1">
+                        <Input 
+                            id="photo" 
+                            type="file" 
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            disabled={uploading}
+                        />
+                        {uploading && <p className="text-xs text-slate-500 mt-1">Nahrávám...</p>}
+                    </div>
+                </div>
               </div>
 
               <div className="border-t pt-4 mt-4">
