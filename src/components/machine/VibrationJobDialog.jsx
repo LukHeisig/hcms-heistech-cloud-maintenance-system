@@ -79,6 +79,23 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
     enabled: !!job
   });
 
+  // If creating new, fetch last job and its readings to pre-fill
+  const { data: lastJob } = useQuery({
+    queryKey: ["lastVibrationJob", machine?.id],
+    queryFn: async () => {
+        if (!machine?.id) return null;
+        const jobs = await base44.entities.VibrationJob.filter({ machine_id: machine.id }, "-date", 1);
+        return jobs[0] || null;
+    },
+    enabled: !!machine?.id && !job && open
+  });
+
+  const { data: lastReadings = [] } = useQuery({
+    queryKey: ["lastVibrationReadings", lastJob?.id],
+    queryFn: () => lastJob ? base44.entities.VibrationReading.filter({ job_id: lastJob.id }) : [],
+    enabled: !!lastJob
+  });
+
   const [formData, setFormData] = useState({
     order_number: "",
     date: new Date().toISOString().split('T')[0],
@@ -106,7 +123,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
             conclusion: job.conclusion || ""
         });
     } else {
-        // Reset
+        // Reset first
         setFormData({
             order_number: "",
             date: new Date().toISOString().split('T')[0],
@@ -117,22 +134,56 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
             conclusion: ""
         });
         setReadings({});
+        setRowVisibility({}); // Reset visibility
     }
   }, [job, open]);
 
+  // Handle pre-filling from last job
   useEffect(() => {
-    if (existingReadings.length > 0) {
+    if (!job && open && lastJob) {
+        setFormData(prev => ({
+            ...prev,
+            technician: lastJob.technician || "",
+            description: lastJob.description || ""
+        }));
+    }
+  }, [job, open, lastJob]);
+
+  // Handle readings population (either from existing job or last job)
+  useEffect(() => {
+    const sourceReadings = job ? existingReadings : (open ? lastReadings : []);
+    
+    if (sourceReadings.length > 0) {
         const map = {};
-        existingReadings.forEach(r => {
+        const visibility = {};
+        
+        sourceReadings.forEach(r => {
             map[`${r.point_label}_${r.direction}`] = {
                 value: r.value_rms,
                 band: r.band,
                 bearing: r.bearing_status
             };
+            
+            // If we are copying from last job (not editing), we might want to infer visibility
+            if (!job) {
+                if (!visibility[r.point_label]) visibility[r.point_label] = {};
+                visibility[r.point_label][r.direction] = true;
+            }
         });
+        
         setReadings(map);
+        
+        // If copying from last job, set row visibility to match what was recorded
+        if (!job && Object.keys(visibility).length > 0) {
+             // We need to respect that some directions might NOT be in the map because they weren't measured.
+             // If we set rowVisibility, we are explicitly saying "show these, hide others".
+             // But we should be careful not to hide things by default if the last job was partial?
+             // Actually, if the user wants to "copy data", they probably want the same view.
+             // Let's merge with current state or just set it.
+             setRowVisibility(visibility);
+        }
     }
-  }, [existingReadings]);
+  }, [existingReadings, lastReadings, job, open]);
 
 
   const handleReadingChange = (pointLabel, direction, field, value) => {
