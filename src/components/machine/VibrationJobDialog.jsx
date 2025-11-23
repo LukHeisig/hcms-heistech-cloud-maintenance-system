@@ -155,7 +155,10 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
         setCopyLastTexts(false);
         hasPopulatedRef.current = false;
     } else {
-        hasPopulatedRef.current = false;
+        // IMPORTANT: When closing, reset populated ref so it can re-populate next open
+        if (!open) {
+            hasPopulatedRef.current = false;
+        }
     }
   }, [job, open]);
 
