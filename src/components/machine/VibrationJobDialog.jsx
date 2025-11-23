@@ -154,11 +154,11 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
         setRowVisibility({}); // Reset visibility
         setCopyLastTexts(false);
         hasPopulatedRef.current = false;
-    } else {
-        // IMPORTANT: When closing, reset populated ref so it can re-populate next open
-        if (!open) {
-            hasPopulatedRef.current = false;
-        }
+    }
+
+    // IMPORTANT: When closing, reset populated ref so it can re-populate next open
+    if (!open) {
+        hasPopulatedRef.current = false;
     }
   }, [job, open]);
 
