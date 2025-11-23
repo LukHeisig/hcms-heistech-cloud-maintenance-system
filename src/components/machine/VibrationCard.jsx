@@ -15,10 +15,13 @@ import {
     CheckCircle2,
     Image as ImageIcon,
     AlertCircle,
-    ArrowRight
+    ArrowRight,
+    TrendingUp
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import VibrationTrendDialog from "./VibrationTrendDialog";
 
 const bandColors = {
     "A": "bg-green-100 text-green-800 border-green-200",
@@ -29,6 +32,7 @@ const bandColors = {
 
 export default function VibrationCard({ machine, jobs = [] }) {
     const [selectedJobId, setSelectedJobId] = useState(null);
+    const [trendDialogState, setTrendDialogState] = useState({ open: false, pointLabel: null });
 
     useEffect(() => {
         if (jobs.length > 0 && !selectedJobId) {
@@ -54,7 +58,7 @@ export default function VibrationCard({ machine, jobs = [] }) {
         enabled: !!machine?.vibration_standard_id
     });
 
-    // Group readings by point label
+    // Group readings by point label and deduplicate
     const readingsByPoint = React.useMemo(() => {
         const groups = {};
         // Sort readings by point label then direction
@@ -65,10 +69,19 @@ export default function VibrationCard({ machine, jobs = [] }) {
         
         sorted.forEach(r => {
             if (!groups[r.point_label]) groups[r.point_label] = [];
-            groups[r.point_label].push(r);
+            
+            // Deduplicate: check if a reading with this direction already exists in the group
+            const exists = groups[r.point_label].find(ex => ex.direction === r.direction);
+            if (!exists) {
+                groups[r.point_label].push(r);
+            }
         });
         return groups;
     }, [readings]);
+
+    const handleOpenTrend = (pointLabel = null) => {
+        setTrendDialogState({ open: true, pointLabel });
+    };
 
     return (
         <div className="space-y-6">
@@ -268,6 +281,15 @@ export default function VibrationCard({ machine, jobs = [] }) {
                         )}
                     </CardContent>
                 </Card>
+            )}
+
+            <VibrationTrendDialog 
+                open={trendDialogState.open} 
+                onOpenChange={(open) => setTrendDialogState(prev => ({ ...prev, open }))}
+                jobs={jobs}
+                pointLabel={trendDialogState.pointLabel}
+                machineName={machine.name}
+            />
         </div>
     );
 }
