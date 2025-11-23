@@ -21,8 +21,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { Loader2, Plus, AlertTriangle, CheckCircle2, Info, Copy, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Helper to get band based on value and limits
 const getBand = (val, limits) => {
@@ -110,6 +117,14 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
   const [readings, setReadings] = useState({});
   const [visibleDirections, setVisibleDirections] = useState({ H: true, V: true, A: true });
   const [rowVisibility, setRowVisibility] = useState({});
+  const [copyLastTexts, setCopyLastTexts] = useState(false);
+
+  // Fetch templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ["vibrationTextTemplates"],
+    queryFn: () => base44.entities.VibrationTextTemplate.list(),
+    enabled: open
+  });
 
   useEffect(() => {
     if (job) {
@@ -135,6 +150,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
         });
         setReadings({});
         setRowVisibility({}); // Reset visibility
+        setCopyLastTexts(false);
     }
   }, [job, open]);
 
@@ -144,10 +160,47 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
         setFormData(prev => ({
             ...prev,
             technician: lastJob.technician || "",
-            description: lastJob.description || ""
+            description: lastJob.description || "",
+            // Only copy texts if specifically requested
+            findings: copyLastTexts ? (lastJob.findings || "") : prev.findings,
+            recommendation: copyLastTexts ? (lastJob.recommendation || "") : prev.recommendation,
+            conclusion: copyLastTexts ? (lastJob.conclusion || "") : prev.conclusion
         }));
     }
-  }, [job, open, lastJob]);
+  }, [job, open, lastJob, copyLastTexts]);
+
+  const insertTemplate = (field, content) => {
+    setFormData(prev => ({
+        ...prev,
+        [field]: prev[field] ? `${prev[field]}\n${content}` : content
+    }));
+  };
+
+  const TemplateSelector = ({ type, onSelect }) => {
+    const availableTemplates = templates.filter(t => t.type === type);
+    if (availableTemplates.length === 0) return null;
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-slate-500 hover:text-blue-600">
+                    <FileText className="w-3 h-3" />
+                    Šablona
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+                {availableTemplates.map(t => (
+                    <DropdownMenuItem key={t.id} onClick={() => onSelect(t.content)}>
+                        <div className="flex flex-col gap-1">
+                            <span className="font-medium text-xs">{t.title}</span>
+                            <span className="text-[10px] text-slate-400 line-clamp-2">{t.content}</span>
+                        </div>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+  };
 
   // Handle readings population (either from existing job or last job)
   useEffect(() => {
@@ -332,6 +385,20 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
                 <Label>Vstupní podmínky / Popis stroje</Label>
                 <Input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="např. 1490 rpm, 80% výkon" />
             </div>
+
+            {!job && lastJob && (
+              <div className="md:col-span-3 flex items-center gap-2 pt-2 border-t border-slate-200">
+                  <Checkbox 
+                      id="copyTexts" 
+                      checked={copyLastTexts} 
+                      onCheckedChange={setCopyLastTexts} 
+                  />
+                  <Label htmlFor="copyTexts" className="cursor-pointer text-sm text-slate-700 flex items-center gap-2">
+                      <Copy className="w-3 h-3" />
+                      Kopírovat nálezy, doporučení a závěry z minulého měření ({lastJob.order_number})
+                  </Label>
+              </div>
+            )}
         </div>
 
         {/* Measurement Table */}
@@ -505,16 +572,25 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
         <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <Label>Nález</Label>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label>Nález</Label>
+                      <TemplateSelector type="findings" onSelect={(content) => insertTemplate('findings', content)} />
+                    </div>
                     <Textarea value={formData.findings} onChange={e => setFormData({...formData, findings: e.target.value})} rows={4} />
                 </div>
                 <div>
-                    <Label>Závěry</Label>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label>Závěry</Label>
+                      <TemplateSelector type="conclusion" onSelect={(content) => insertTemplate('conclusion', content)} />
+                    </div>
                     <Textarea value={formData.conclusion} onChange={e => setFormData({...formData, conclusion: e.target.value})} rows={4} />
                 </div>
             </div>
             <div>
-                <Label>Doporučení</Label>
+                <div className="flex justify-between items-center mb-1">
+                  <Label>Doporučení</Label>
+                  <TemplateSelector type="recommendation" onSelect={(content) => insertTemplate('recommendation', content)} />
+                </div>
                 <Textarea value={formData.recommendation} onChange={e => setFormData({...formData, recommendation: e.target.value})} rows={3} />
             </div>
         </div>

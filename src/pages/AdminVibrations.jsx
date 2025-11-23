@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,10 +23,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Pencil, Trash2, Activity, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Activity, FileSpreadsheet, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminVibrations() {
   const navigate = useNavigate();
@@ -53,6 +55,15 @@ export default function AdminVibrations() {
     rows_config: [{ label: "L1", name: "Ložisko 1", directions: ["H", "V", "A"] }]
   });
 
+  // Templates State
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [templateForm, setTemplateForm] = useState({
+    title: "",
+    content: "",
+    type: "findings"
+  });
+
   // Queries
   const { data: standards = [] } = useQuery({
     queryKey: ["vibrationStandards"],
@@ -62,6 +73,11 @@ export default function AdminVibrations() {
   const { data: schemas = [] } = useQuery({
     queryKey: ["vibrationSchemas"],
     queryFn: () => base44.entities.VibrationSchema.list(),
+  });
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ["vibrationTextTemplates"],
+    queryFn: () => base44.entities.VibrationTextTemplate.list(),
   });
 
   // Standard Mutations
@@ -113,6 +129,28 @@ export default function AdminVibrations() {
   const deleteSchemaMutation = useMutation({
     mutationFn: (id) => base44.entities.VibrationSchema.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vibrationSchemas"] }),
+  });
+
+  // Template Mutations
+  const createTemplateMutation = useMutation({
+    mutationFn: (data) => base44.entities.VibrationTextTemplate.create(data),
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["vibrationTextTemplates"] });
+        setShowTemplateDialog(false);
+    }
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.VibrationTextTemplate.update(id, data),
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["vibrationTextTemplates"] });
+        setShowTemplateDialog(false);
+    }
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id) => base44.entities.VibrationTextTemplate.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vibrationTextTemplates"] }),
   });
 
   // Handlers - Standards
@@ -217,6 +255,29 @@ export default function AdminVibrations() {
     setSchemaForm({ ...schemaForm, rows_count: newCount, rows_config: newConfig });
   };
 
+  // Handlers - Templates
+  const handleSaveTemplate = () => {
+    if (editingTemplate) {
+        updateTemplateMutation.mutate({ id: editingTemplate.id, data: templateForm });
+    } else {
+        createTemplateMutation.mutate(templateForm);
+    }
+  };
+
+  const openTemplateDialog = (template = null) => {
+    setEditingTemplate(template);
+    if (template) {
+        setTemplateForm({
+            title: template.title,
+            content: template.content,
+            type: template.type
+        });
+    } else {
+        setTemplateForm({ title: "", content: "", type: "findings" });
+    }
+    setShowTemplateDialog(true);
+  };
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -235,6 +296,9 @@ export default function AdminVibrations() {
             </TabsTrigger>
             <TabsTrigger value="schemas" className="gap-2">
               <FileSpreadsheet className="w-4 h-4" /> Schémata měření
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="gap-2">
+              <FileText className="w-4 h-4" /> Šablony textů
             </TabsTrigger>
           </TabsList>
 
@@ -303,6 +367,41 @@ export default function AdminVibrations() {
                   </Card>
                 );
               })}
+            </div>
+          </TabsContent>
+
+          {/* TEMPLATES TAB */}
+          <TabsContent value="templates">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => openTemplateDialog()} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" /> Nová šablona
+              </Button>
+            </div>
+            <div className="grid gap-4">
+              {templates.map((tmpl) => (
+                <Card key={tmpl.id}>
+                  <CardContent className="p-6 flex justify-between items-center">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-lg">{tmpl.title}</h3>
+                            <Badge variant="outline">
+                                {tmpl.type === 'findings' ? 'Nález' : 
+                                 tmpl.type === 'recommendation' ? 'Doporučení' : 'Závěr'}
+                            </Badge>
+                        </div>
+                        <p className="text-sm text-slate-500 line-clamp-2">{tmpl.content}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => openTemplateDialog(tmpl)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-red-600" onClick={() => deleteTemplateMutation.mutate(tmpl.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </TabsContent>
         </Tabs>
@@ -402,11 +501,47 @@ export default function AdminVibrations() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowSchemaDialog(false)}>Zrušit</Button>
               <Button onClick={handleSaveSchema} disabled={!schemaForm.name}>Uložit</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </DialogFooter>
+              </DialogContent>
+              </Dialog>
 
-      </div>
-    </div>
-  );
-}
+              {/* TEMPLATE DIALOG */}
+              <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+              <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>{editingTemplate ? "Upravit šablonu" : "Nová šablona"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <div>
+                      <Label>Název (zkratka)</Label>
+                      <Input value={templateForm.title} onChange={(e) => setTemplateForm({...templateForm, title: e.target.value})} placeholder="např. Ložiska OK" />
+                  </div>
+                  <div>
+                      <Label>Typ</Label>
+                      <Select value={templateForm.type} onValueChange={(v) => setTemplateForm({...templateForm, type: v})}>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Vyberte typ šablony" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="findings">Nález</SelectItem>
+                              <SelectItem value="recommendation">Doporučení</SelectItem>
+                              <SelectItem value="conclusion">Závěr</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div>
+                      <Label>Text šablony</Label>
+                      <Textarea value={templateForm.content} onChange={(e) => setTemplateForm({...templateForm, content: e.target.value})} rows={5} />
+                  </div>
+              </div>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowTemplateDialog(false)}>Zrušit</Button>
+                  <Button onClick={handleSaveTemplate} disabled={!templateForm.title || !templateForm.content}>Uložit</Button>
+              </DialogFooter>
+              </DialogContent>
+              </Dialog>
+
+              </div>
+              </div>
+              );
+              }
