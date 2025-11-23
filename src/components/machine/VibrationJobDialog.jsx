@@ -176,7 +176,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
     }));
   };
 
-  const TemplateSelector = ({ type, onSelect }) => {
+  const renderTemplateSelector = (type, field) => {
     const availableTemplates = templates.filter(t => t.type === type);
     if (availableTemplates.length === 0) return null;
 
@@ -190,7 +190,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
                 {availableTemplates.map(t => (
-                    <DropdownMenuItem key={t.id} onClick={() => onSelect(t.content)}>
+                    <DropdownMenuItem key={t.id} onClick={() => insertTemplate(field, t.content)}>
                         <div className="flex flex-col gap-1">
                             <span className="font-medium text-xs">{t.title}</span>
                             <span className="text-[10px] text-slate-400 line-clamp-2">{t.content}</span>
@@ -247,7 +247,8 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
     let newBand = current.band;
 
     if (field === 'value') {
-        newValue = value === "" ? "" : parseFloat(value);
+        // Keep raw string to allow typing decimals
+        newValue = value;
         if (standard) {
             newBand = getBand(newValue, standard);
         }
@@ -574,14 +575,14 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
                 <div>
                     <div className="flex justify-between items-center mb-1">
                       <Label>Nález</Label>
-                      <TemplateSelector type="findings" onSelect={(content) => insertTemplate('findings', content)} />
+                      {renderTemplateSelector('findings', 'findings')}
                     </div>
                     <Textarea value={formData.findings} onChange={e => setFormData({...formData, findings: e.target.value})} rows={4} />
                 </div>
                 <div>
                     <div className="flex justify-between items-center mb-1">
                       <Label>Závěry</Label>
-                      <TemplateSelector type="conclusion" onSelect={(content) => insertTemplate('conclusion', content)} />
+                      {renderTemplateSelector('conclusion', 'conclusion')}
                     </div>
                     <Textarea value={formData.conclusion} onChange={e => setFormData({...formData, conclusion: e.target.value})} rows={4} />
                 </div>
@@ -589,7 +590,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
             <div>
                 <div className="flex justify-between items-center mb-1">
                   <Label>Doporučení</Label>
-                  <TemplateSelector type="recommendation" onSelect={(content) => insertTemplate('recommendation', content)} />
+                  {renderTemplateSelector('recommendation', 'recommendation')}
                 </div>
                 <Textarea value={formData.recommendation} onChange={e => setFormData({...formData, recommendation: e.target.value})} rows={3} />
             </div>
