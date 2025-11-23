@@ -83,6 +83,23 @@ export default function VibrationCard({ machine, jobs = [] }) {
         setTrendDialogState({ open: true, pointLabel });
     };
 
+    // Helper for machine overall status color
+    const getMachineStatusColor = () => {
+        if (!readings || readings.length === 0) return "bg-slate-200";
+        
+        let hasD = false;
+        let hasC = false;
+        
+        for (const r of readings) {
+            if (r.band === 'D' || r.bearing_status === 'D') hasD = true;
+            if (r.band === 'C' || r.bearing_status === 'C') hasC = true;
+        }
+        
+        if (hasD) return "bg-red-500"; // Red if any D
+        if (hasC) return "bg-yellow-400"; // Yellow if any C (and no D)
+        return "bg-green-500"; // Green otherwise (all A or B)
+    };
+
     return (
         <div className="space-y-6">
             {/* Tabs for Jobs */}
@@ -118,9 +135,7 @@ export default function VibrationCard({ machine, jobs = [] }) {
             <Card className="overflow-hidden border-t-4 border-t-blue-600 shadow-lg">
                     <div className="bg-slate-50 border-b p-4 flex flex-wrap justify-between items-center gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white rounded-lg border flex items-center justify-center shadow-sm">
-                                <span className="text-2xl font-bold text-slate-800">!</span>
-                            </div>
+                            <div className={`w-12 h-12 rounded-lg border shadow-sm ${getMachineStatusColor()}`}></div>
                             <div>
                                 <h2 className="text-xl font-bold text-slate-900">{machine.name}</h2>
                                 <div className="flex gap-4 text-sm text-slate-600">
@@ -197,9 +212,20 @@ export default function VibrationCard({ machine, jobs = [] }) {
                                                         {idx === 0 && (
                                                             <TableCell 
                                                                 rowSpan={pointReadings.length} 
-                                                                className="font-bold text-center bg-slate-50/50 border-r align-middle text-lg"
+                                                                className="font-bold text-center bg-slate-50/50 border-r align-middle"
                                                             >
-                                                                {pointLabel}
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <span className="text-lg">{pointLabel}</span>
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        size="sm" 
+                                                                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                                                                        onClick={() => handleOpenTrend(pointLabel)}
+                                                                        title="Zobrazit trend"
+                                                                    >
+                                                                        <TrendingUp className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
                                                             </TableCell>
                                                         )}
                                                         <TableCell className="text-center font-medium text-slate-600">{r.direction}</TableCell>
