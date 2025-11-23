@@ -91,6 +91,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
 
   // Stores readings as { "L1_H": { value: 1.2, band: "A", bearing: "A" } }
   const [readings, setReadings] = useState({});
+  const [visibleDirections, setVisibleDirections] = useState({ H: true, V: true, A: true });
 
   useEffect(() => {
     if (job) {
@@ -290,10 +291,28 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
             </div>
         ) : (
             <div className="mb-6 overflow-x-auto">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    Naměřené hodnoty
-                    <Badge variant="outline" className="font-normal text-xs">Norma: {standard.name}</Badge>
-                </h3>
+                <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+                    <h3 className="font-semibold flex items-center gap-2">
+                        Naměřené hodnoty
+                        <Badge variant="outline" className="font-normal text-xs">Norma: {standard.name}</Badge>
+                    </h3>
+                    <div className="flex items-center gap-4 text-sm">
+                        <span className="text-slate-500 font-medium">Zobrazit směry:</span>
+                        <div className="flex gap-4">
+                            {['H', 'V', 'A'].map(dir => (
+                                <label key={dir} className="flex items-center gap-2 cursor-pointer hover:text-slate-900">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={visibleDirections[dir]} 
+                                        onChange={e => setVisibleDirections(prev => ({ ...prev, [dir]: e.target.checked }))}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className={visibleDirections[dir] ? "font-bold text-slate-900" : "text-slate-500"}>{dir}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                </div>
                 <Table className="border">
                     <TableHeader>
                         <TableRow className="bg-slate-100">
@@ -305,14 +324,22 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {schemaRows.map(row => (
-                            row.directions.map((dir, dirIdx) => {
+                        {schemaRows.map(row => {
+                            // Filter directions based on visibility settings
+                            const visibleRowDirections = row.directions.filter(d => visibleDirections[d] !== false);
+                            
+                            // If no directions are visible for this row, we skip rendering the row entirely OR render a placeholder?
+                            // Let's skip rendering if empty, but that might look weird if the row label disappears.
+                            // However, if user unchecks all directions, table will be empty. That's expected.
+                            if (visibleRowDirections.length === 0) return null;
+
+                            return visibleRowDirections.map((dir, dirIdx) => {
                                 const key = `${row.label}_${dir}`;
                                 const data = readings[key] || {};
                                 return (
                                     <TableRow key={key} className={dirIdx === 0 ? "border-t-2" : ""}>
                                         {dirIdx === 0 && (
-                                            <TableCell rowSpan={row.directions.length} className="font-bold bg-slate-50 align-top border-r">
+                                            <TableCell rowSpan={visibleRowDirections.length} className="font-bold bg-slate-50 align-top border-r">
                                                 {row.label}
                                                 {row.name && <div className="text-xs text-slate-500 font-normal">{row.name}</div>}
                                             </TableCell>
@@ -352,8 +379,8 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
                                         </TableCell>
                                     </TableRow>
                                 );
-                            })
-                        ))}
+                            });
+                        })}
                     </TableBody>
                 </Table>
             </div>
