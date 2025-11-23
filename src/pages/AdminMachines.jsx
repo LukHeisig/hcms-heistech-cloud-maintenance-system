@@ -647,7 +647,7 @@ export default function AdminMachines() {
                 </div>
 
                 <div>
-                <Label>Fotografie stroje</Label>
+                <Label>Fotografie stroje (pro vibrační kartu)</Label>
                 <div className="flex items-center gap-4 mt-2">
                   {formData.photo_url && (
                       <img src={formData.photo_url} alt="Preview" className="h-20 w-20 object-cover rounded border" />

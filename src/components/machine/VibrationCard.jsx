@@ -70,45 +70,39 @@ export default function VibrationCard({ machine, jobs = [] }) {
         return groups;
     }, [readings]);
 
-    if (jobs.length === 0) {
-        return (
-            <Card className="border-dashed">
-                <CardContent className="p-8 text-center text-slate-500">
-                    <Activity className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>Pro tento stroj zatím nebyla provedena žádná měření vibrací.</p>
-                </CardContent>
-            </Card>
-        );
-    }
-
     return (
         <div className="space-y-6">
             {/* Tabs for Jobs */}
-            <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
-                {jobs.map(job => (
-                    <button
-                        key={job.id}
-                        onClick={() => setSelectedJobId(job.id)}
-                        className={`
-                            flex flex-col items-start p-3 rounded-lg border min-w-[140px] transition-all
-                            ${selectedJobId === job.id 
-                                ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500" 
-                                : "bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50"
-                            }
-                        `}
-                    >
-                        <span className={`text-xs font-bold ${selectedJobId === job.id ? "text-blue-700" : "text-slate-500"}`}>
-                            {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
-                        </span>
-                        <span className={`text-sm font-medium truncate w-full ${selectedJobId === job.id ? "text-blue-900" : "text-slate-700"}`}>
-                            Zakázka {job.order_number}
-                        </span>
-                    </button>
-                ))}
-            </div>
+            {jobs.length > 0 ? (
+                <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
+                    {jobs.map(job => (
+                        <button
+                            key={job.id}
+                            onClick={() => setSelectedJobId(job.id)}
+                            className={`
+                                flex flex-col items-start p-3 rounded-lg border min-w-[140px] transition-all
+                                ${selectedJobId === job.id 
+                                    ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500" 
+                                    : "bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50"
+                                }
+                            `}
+                        >
+                            <span className={`text-xs font-bold ${selectedJobId === job.id ? "text-blue-700" : "text-slate-500"}`}>
+                                {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
+                            </span>
+                            <span className={`text-sm font-medium truncate w-full ${selectedJobId === job.id ? "text-blue-900" : "text-slate-700"}`}>
+                                Zakázka {job.order_number}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            ) : (
+                <div className="p-2 text-slate-500 text-sm italic border rounded bg-slate-50 inline-block">
+                    Žádná měření k dispozici
+                </div>
+            )}
 
-            {selectedJob && (
-                <Card className="overflow-hidden border-t-4 border-t-blue-600 shadow-lg">
+            <Card className="overflow-hidden border-t-4 border-t-blue-600 shadow-lg">
                     <div className="bg-slate-50 border-b p-4 flex flex-wrap justify-between items-center gap-4">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-white rounded-lg border flex items-center justify-center shadow-sm">
@@ -117,13 +111,10 @@ export default function VibrationCard({ machine, jobs = [] }) {
                             <div>
                                 <h2 className="text-xl font-bold text-slate-900">{machine.name}</h2>
                                 <div className="flex gap-4 text-sm text-slate-600">
-                                    <span>Číslo zakázky: <strong>{selectedJob.order_number}</strong></span>
+                                    {selectedJob && <span>Číslo zakázky: <strong>{selectedJob.order_number}</strong></span>}
                                     {standard && <span>Norma: <strong>{standard.name}</strong></span>}
                                 </div>
                             </div>
-                        </div>
-                        <div className="flex gap-2">
-                           {/* Additional header info if needed */}
                         </div>
                     </div>
 
@@ -136,13 +127,15 @@ export default function VibrationCard({ machine, jobs = [] }) {
                                 <div className="space-y-2 text-sm">
                                     <div className="grid grid-cols-2 gap-2">
                                         <span className="text-slate-500">Datum měření:</span>
-                                        <span className="font-medium">{format(new Date(selectedJob.date), "d. M. yyyy", { locale: cs })}</span>
+                                        <span className="font-medium">
+                                            {selectedJob ? format(new Date(selectedJob.date), "d. M. yyyy", { locale: cs }) : "-"}
+                                        </span>
                                         
                                         <span className="text-slate-500">Technik:</span>
-                                        <span className="font-medium">{selectedJob.technician || "-"}</span>
+                                        <span className="font-medium">{selectedJob?.technician || "-"}</span>
                                         
                                         <span className="text-slate-500">Vstupní podmínky:</span>
-                                        <span className="font-medium col-span-2 md:col-span-1">{selectedJob.description || "-"}</span>
+                                        <span className="font-medium col-span-2 md:col-span-1">{selectedJob?.description || "-"}</span>
                                     </div>
                                 </div>
 
@@ -227,53 +220,54 @@ export default function VibrationCard({ machine, jobs = [] }) {
                         </div>
 
                         {/* Bottom Section: Analysis Text */}
-                        <div className="border-t divide-y">
-                            {/* Summary Header */}
-                            <div className="bg-slate-50 px-6 py-2 text-center font-bold text-slate-700 uppercase text-sm tracking-wider">
-                                Stručný přehled
-                            </div>
-
-                            <div className="p-6 space-y-6">
-                                
-                                {/* Conclusion - Most important */}
-                                <div>
-                                    <h3 className="flex items-center gap-2 font-bold text-lg text-slate-900 mb-2 border-b pb-1">
-                                        <AlertCircle className="w-5 h-5 text-blue-600" />
-                                        Závěry
-                                    </h3>
-                                    <div className="text-sm text-slate-800 leading-relaxed whitespace-pre-line pl-2">
-                                        {selectedJob.conclusion || "Bez závěru"}
-                                    </div>
+                        {selectedJob && (
+                            <div className="border-t divide-y">
+                                {/* Summary Header */}
+                                <div className="bg-slate-50 px-6 py-2 text-center font-bold text-slate-700 uppercase text-sm tracking-wider">
+                                    Stručný přehled
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Findings */}
+                                <div className="p-6 space-y-6">
+                                    
+                                    {/* Conclusion - Most important */}
                                     <div>
-                                        <h3 className="flex items-center gap-2 font-bold text-slate-900 mb-2 border-b pb-1">
-                                            <Info className="w-4 h-4 text-orange-600" />
-                                            Nález
+                                        <h3 className="flex items-center gap-2 font-bold text-lg text-slate-900 mb-2 border-b pb-1">
+                                            <AlertCircle className="w-5 h-5 text-blue-600" />
+                                            Závěry
                                         </h3>
-                                        <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line pl-2">
-                                            {selectedJob.findings || "Bez nálezu"}
+                                        <div className="text-sm text-slate-800 leading-relaxed whitespace-pre-line pl-2">
+                                            {selectedJob.conclusion || "Bez závěru"}
                                         </div>
                                     </div>
 
-                                    {/* Recommendations */}
-                                    <div>
-                                        <h3 className="flex items-center gap-2 font-bold text-slate-900 mb-2 border-b pb-1">
-                                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                            Doporučení
-                                        </h3>
-                                        <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line pl-2">
-                                            {selectedJob.recommendation || "Bez doporučení"}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Findings */}
+                                        <div>
+                                            <h3 className="flex items-center gap-2 font-bold text-slate-900 mb-2 border-b pb-1">
+                                                <Info className="w-4 h-4 text-orange-600" />
+                                                Nález
+                                            </h3>
+                                            <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line pl-2">
+                                                {selectedJob.findings || "Bez nálezu"}
+                                            </div>
+                                        </div>
+
+                                        {/* Recommendations */}
+                                        <div>
+                                            <h3 className="flex items-center gap-2 font-bold text-slate-900 mb-2 border-b pb-1">
+                                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                                Doporučení
+                                            </h3>
+                                            <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line pl-2">
+                                                {selectedJob.recommendation || "Bez doporučení"}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
-            )}
         </div>
     );
 }
