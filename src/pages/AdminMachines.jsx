@@ -71,8 +71,11 @@ export default function AdminMachines() {
     description: "",
     inventory_number: "",
     location: "",
-    machine_type: null
+    machine_type: null,
+    photo_url: ""
   });
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -235,7 +238,8 @@ export default function AdminMachines() {
         location: machine.location || "",
         machine_type: machine.machine_type || null,
         vibration_standard_id: machine.vibration_standard_id || null,
-        vibration_schema_id: machine.vibration_schema_id || null
+        vibration_schema_id: machine.vibration_schema_id || null,
+        photo_url: machine.photo_url || ""
       });
     } else {
       setEditingMachine(null);
@@ -246,10 +250,27 @@ export default function AdminMachines() {
         location: "",
         machine_type: null,
         vibration_standard_id: null,
-        vibration_schema_id: null
+        vibration_schema_id: null,
+        photo_url: ""
       });
     }
     setShowMachineDialog(true);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploadingPhoto(true);
+    try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        setFormData(prev => ({ ...prev, photo_url: file_url }));
+    } catch (error) {
+        console.error("Upload failed", error);
+        alert("Nepodařilo se nahrát fotku.");
+    } finally {
+        setUploadingPhoto(false);
+    }
   };
 
   const handleSaveMachine = async () => {
@@ -262,7 +283,8 @@ export default function AdminMachines() {
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
       vibration_standard_id: formData.vibration_standard_id || null,
-      vibration_schema_id: formData.vibration_schema_id || null
+      vibration_schema_id: formData.vibration_schema_id || null,
+      photo_url: formData.photo_url || null
     };
 
     if (editingMachine) {
@@ -614,17 +636,33 @@ export default function AdminMachines() {
               <div>
                 <Label htmlFor="description">Popis</Label>
                 <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Volitelný popis stroje"
-                  rows={3}
+                id="description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="Volitelný popis stroje"
+                rows={3}
                 />
-              </div>
+                </div>
 
-              <div className="border-t pt-4 mt-4">
+                <div>
+                <Label>Fotografie stroje</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  {formData.photo_url && (
+                      <img src={formData.photo_url} alt="Preview" className="h-20 w-20 object-cover rounded border" />
+                  )}
+                  <Input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handlePhotoUpload} 
+                      disabled={uploadingPhoto}
+                  />
+                  {uploadingPhoto && <Loader2 className="w-4 h-4 animate-spin" />}
+                </div>
+                </div>
+
+                <div className="border-t pt-4 mt-4">
                 <h4 className="font-semibold mb-3 text-slate-800">Nastavení vibrodiagnostiky</h4>
                 <div className="grid grid-cols-2 gap-4">
                     <div>

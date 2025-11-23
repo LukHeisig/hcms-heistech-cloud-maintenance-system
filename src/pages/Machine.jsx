@@ -44,6 +44,7 @@ import {
   FileSpreadsheet
 } from "lucide-react";
 import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
+import VibrationCard from "@/components/machine/VibrationCard";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -2049,67 +2050,36 @@ export default function Machine() {
 
           {/* Vibrodiagnostika */}
           <TabsContent value="vibration" className="space-y-6">
-            <Card className="border-none shadow-lg">
-                <CardHeader className="border-b border-slate-100 flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                        <FileSpreadsheet className="w-5 h-5 text-red-600" />
-                        Vibrodiagnostika - Zakázky
-                    </CardTitle>
-                    <Button 
-                        onClick={() => { setEditingVibrationJob(null); setShowVibrationDialog(true); }} 
-                        className="bg-blue-600 hover:bg-blue-700"
-                    >
-                        <Plus className="w-4 h-4 mr-2" /> Nové měření
-                    </Button>
-                </CardHeader>
-                <CardContent className="p-6">
-                    {vibrationJobs.length === 0 ? (
-                        <div className="text-center py-12 text-slate-500">
-                             <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                             <p>Zatím nebyla provedena žádná měření</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4">
-                            {vibrationJobs.map(job => (
-                                <div key={job.id} className="border rounded-lg p-4 hover:bg-slate-50 transition-colors bg-white shadow-sm">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900">
-                                                Zakázka č. {job.order_number}
-                                                <Badge variant="outline" className="ml-2 font-normal">
-                                                    {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
-                                                </Badge>
-                                            </h3>
-                                            <p className="text-sm text-slate-600 mt-1">
-                                                Technik: <span className="font-medium">{job.technician || "-"}</span>
-                                            </p>
-                                        </div>
-                                        <Button variant="outline" size="sm" onClick={() => { setEditingVibrationJob(job); setShowVibrationDialog(true); }}>
-                                            <Pencil className="w-4 h-4 mr-2" /> Detail / Upravit
-                                        </Button>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                        {job.findings && (
-                                            <div className="bg-slate-50 p-3 rounded border border-slate-100">
-                                                <span className="text-xs font-bold text-slate-500 uppercase mb-1 block">Nález</span>
-                                                <p className="text-sm text-slate-800 line-clamp-3">{job.findings}</p>
-                                            </div>
-                                        )}
-                                        
-                                        {job.conclusion && (
-                                            <div className="bg-blue-50 p-3 rounded border border-blue-100">
-                                                <span className="text-xs font-bold text-blue-600 uppercase mb-1 block">Závěr</span>
-                                                <p className="text-sm text-blue-900 font-medium line-clamp-3">{job.conclusion}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+             <div className="flex justify-end mb-4">
+                 <Button 
+                     onClick={() => { setEditingVibrationJob(null); setShowVibrationDialog(true); }} 
+                     className="bg-blue-600 hover:bg-blue-700"
+                 >
+                     <Plus className="w-4 h-4 mr-2" /> Nové měření
+                 </Button>
+             </div>
+             
+             <VibrationCard machine={machine} jobs={vibrationJobs} />
+             
+             {/* Edit buttons for jobs - keep them accessible or maybe integrate into card? 
+                 For now, let's add a small list below for editing if needed, or rely on Admin access.
+                 Actually, let's keep the edit functionality available.
+             */}
+             {vibrationJobs.length > 0 && (
+                <div className="mt-8 pt-8 border-t">
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Správa měření</h3>
+                    <div className="grid gap-2">
+                         {vibrationJobs.map(job => (
+                            <div key={job.id} className="flex items-center justify-between p-3 bg-white border rounded-lg text-sm">
+                                <span>{format(new Date(job.date), "d. M. yyyy", { locale: cs })} - Zakázka {job.order_number}</span>
+                                <Button variant="ghost" size="sm" onClick={() => { setEditingVibrationJob(job); setShowVibrationDialog(true); }}>
+                                    <Pencil className="w-3 h-3 mr-2" /> Upravit
+                                </Button>
+                            </div>
+                         ))}
+                    </div>
+                </div>
+             )}
           </TabsContent>
 
           {/* Odpovědnost */}
