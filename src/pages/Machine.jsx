@@ -2636,6 +2636,14 @@ export default function Machine() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Dialog pro měření vibrací */}
+        <VibrationJobDialog 
+          open={showVibrationDialog} 
+          onOpenChange={setShowVibrationDialog} 
+          machine={machine} 
+          job={editingVibrationJob} 
+        />
       </div>
     </div>
   );
