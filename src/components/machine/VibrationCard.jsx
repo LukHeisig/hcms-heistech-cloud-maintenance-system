@@ -126,84 +126,95 @@ export default function VibrationCard({ machine, jobs = [] }) {
                 return a.point_label.localeCompare(b.point_label);
             });
 
+            // Calculate Status for Conclusion Color
+            let overallStatus = 'A';
+            for (const r of jobReadings) {
+                if (r.band === 'D' || r.bearing_status === 'D') overallStatus = 'D';
+                else if ((r.band === 'C' || r.bearing_status === 'C') && overallStatus !== 'D') overallStatus = 'C';
+                else if ((r.band === 'B' || r.bearing_status === 'B') && overallStatus !== 'D' && overallStatus !== 'C') overallStatus = 'B';
+            }
+
+            const conclusionStyles = {
+                D: { bg: '#fef2f2', border: '#ef4444', title: '#b91c1c' }, // Red
+                C: { bg: '#fefce8', border: '#eab308', title: '#854d0e' }, // Yellow
+                B: { bg: '#f0fdf4', border: '#22c55e', title: '#15803d' }, // Green
+                A: { bg: '#f0fdf4', border: '#22c55e', title: '#15803d' }, // Green
+            }[overallStatus] || { bg: '#f8fafc', border: '#cbd5e1', title: '#334155' };
+
+
             // Build HTML content
             container.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10mm; border-bottom: 2px solid #e2e8f0; padding-bottom: 5mm;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5mm; border-bottom: 2px solid #e2e8f0; padding-bottom: 3mm;">
                     <div>
-                        <h1 style="color: #2563eb; font-size: 24px; margin: 0; font-weight: bold;">Protokol o měření vibrací</h1>
-                        <p style="color: #64748b; font-size: 12px; margin: 5px 0 0 0;">HCMS - Heistech Cloud Maintenance System</p>
+                        <h1 style="color: #2563eb; font-size: 20px; margin: 0; font-weight: bold;">Protokol o měření vibrací</h1>
+                        <p style="color: #64748b; font-size: 10px; margin: 2px 0 0 0;">HCMS - Heistech Cloud Maintenance System</p>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 12px; color: #64748b;">Vygenerováno</div>
-                        <div style="font-weight: bold;">${new Date().toLocaleDateString('cs-CZ')}</div>
+                        <div style="font-size: 10px; color: #64748b;">${new Date().toLocaleDateString('cs-CZ')}</div>
                     </div>
                 </div>
 
-                <div style="margin-bottom: 10mm;">
-                    <h2 style="font-size: 20px; margin: 0 0 5mm 0; color: #0f172a;">${machine.name}</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
-                        <div>
-                            <div style="color: #64748b; font-size: 12px;">Číslo zakázky</div>
+                <div style="display: flex; gap: 8mm; margin-bottom: 5mm;">
+                    <div style="flex: 1;">
+                        <h2 style="font-size: 18px; margin: 0 0 3mm 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">${machine.name}</h2>
+                        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 6px; font-size: 12px;">
+                            <div style="color: #64748b;">Zakázka:</div>
                             <div style="font-weight: bold;">${job.order_number}</div>
-                        </div>
-                        <div>
-                            <div style="color: #64748b; font-size: 12px;">Datum měření</div>
+                            
+                            <div style="color: #64748b;">Datum:</div>
                             <div style="font-weight: bold;">${new Date(job.date).toLocaleDateString('cs-CZ')}</div>
-                        </div>
-                        <div>
-                            <div style="color: #64748b; font-size: 12px;">Technik</div>
+                            
+                            <div style="color: #64748b;">Technik:</div>
                             <div style="font-weight: bold;">${job.technician || '-'}</div>
-                        </div>
-                        <div>
-                            <div style="color: #64748b; font-size: 12px;">Umístění</div>
+                            
+                            <div style="color: #64748b;">Umístění:</div>
                             <div style="font-weight: bold;">${machine.location || '-'}</div>
+                            
+                            ${standard ? `
+                            <div style="color: #64748b;">Norma:</div>
+                            <div style="font-weight: bold;">${standard.name}</div>
+                            <div style="color: #64748b;">Limity:</div>
+                            <div style="font-size: 10px;">${standard.limit_ab}/${standard.limit_bc}/${standard.limit_cd} mm/s</div>
+                            ` : ''}
                         </div>
                         ${job.description ? `
-                        <div style="grid-column: span 2;">
-                            <div style="color: #64748b; font-size: 12px;">Vstupní podmínky / Popis</div>
+                        <div style="margin-top: 3mm; font-size: 11px; background: #f8fafc; padding: 2mm; border-radius: 4px;">
+                            <div style="color: #64748b; font-size: 10px; margin-bottom: 1px;">Vstupní podmínky:</div>
                             <div>${job.description}</div>
                         </div>` : ''}
                     </div>
+
+                    ${machine.photo_url ? `
+                    <div style="width: 80mm; display: flex; align-items: flex-start; justify-content: center;">
+                        <img src="${machine.photo_url}" style="max-height: 60mm; max-width: 100%; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 6px;" crossorigin="anonymous" />
+                    </div>` : ''}
                 </div>
 
-                ${machine.photo_url ? `
-                <div style="margin-bottom: 5mm; display: flex; justify-content: center;">
-                    <img src="${machine.photo_url}" style="max-height: 50mm; max-width: 100%; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 8px;" crossorigin="anonymous" />
-                </div>` : ''}
-
-                ${standard ? `
-                <div style="background: #f8fafc; padding: 5mm; border-radius: 8px; margin-bottom: 10mm; font-size: 12px; border: 1px solid #e2e8f0;">
-                    <strong style="color: #0f172a;">Použitá norma: ${standard.name}</strong>
-                    <div style="margin-top: 2px; color: #64748b;">
-                        Limity [mm/s]: A/B=${standard.limit_ab} | B/C=${standard.limit_bc} | C/D=${standard.limit_cd}
-                    </div>
-                </div>` : ''}
-
-                <div style="margin-bottom: 10mm;">
-                    <h3 style="font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2mm; margin-bottom: 5mm;">Naměřené hodnoty</h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <div style="margin-bottom: 5mm;">
+                    <h3 style="font-size: 14px; font-weight: bold; background: #f1f5f9; padding: 2mm 4mm; margin: 0 0 2mm 0; color: #334155;">Naměřené hodnoty</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
-                            <tr style="background: #f1f5f9; color: #475569;">
-                                <th style="text-align: left; padding: 8px; border-bottom: 2px solid #e2e8f0;">Místo</th>
-                                <th style="text-align: center; padding: 8px; border-bottom: 2px solid #e2e8f0;">Směr</th>
-                                <th style="text-align: right; padding: 8px; border-bottom: 2px solid #e2e8f0;">RMS [mm/s]</th>
-                                <th style="text-align: center; padding: 8px; border-bottom: 2px solid #e2e8f0;">Pásmo</th>
-                                <th style="text-align: center; padding: 8px; border-bottom: 2px solid #e2e8f0;">Ložisko</th>
+                            <tr style="color: #64748b; border-bottom: 1px solid #cbd5e1;">
+                                <th style="text-align: left; padding: 4px;">Místo</th>
+                                <th style="text-align: center; padding: 4px;">Směr</th>
+                                <th style="text-align: right; padding: 4px;">RMS [mm/s]</th>
+                                <th style="text-align: center; padding: 4px;">Pásmo</th>
+                                <th style="text-align: center; padding: 4px;">Ložisko</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${jobReadings.map(r => {
+                            ${jobReadings.map((r, i) => {
                                 const bandColor = r.band === 'D' ? '#fee2e2' : r.band === 'C' ? '#fef9c3' : r.band === 'B' || r.band === 'A' ? '#dcfce7' : 'white';
                                 const bandTextColor = r.band === 'D' ? '#991b1b' : r.band === 'C' ? '#854d0e' : r.band === 'B' || r.band === 'A' ? '#166534' : '#475569';
                                 return `
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                                    <td style="padding: 8px; font-weight: bold;">${r.point_label}</td>
-                                    <td style="padding: 8px; text-align: center;">${r.direction}</td>
-                                    <td style="padding: 8px; text-align: right; font-family: monospace;">${r.value_rms?.toFixed(2) || '-'}</td>
-                                    <td style="padding: 8px; text-align: center;">
-                                        <span style="background: ${bandColor}; color: ${bandTextColor}; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${r.band || '-'}</span>
+                                    <td style="padding: 3px 4px; font-weight: bold;">${r.point_label}</td>
+                                    <td style="padding: 3px 4px; text-align: center;">${r.direction}</td>
+                                    <td style="padding: 3px 4px; text-align: right; font-family: monospace;">${r.value_rms?.toFixed(2) || '-'}</td>
+                                    <td style="padding: 3px 4px; text-align: center;">
+                                        <span style="background: ${bandColor}; color: ${bandTextColor}; padding: 1px 6px; border-radius: 3px; font-weight: bold; font-size: 10px;">${r.band || '-'}</span>
                                     </td>
-                                    <td style="padding: 8px; text-align: center;">${r.bearing_status || '-'}</td>
+                                    <td style="padding: 3px 4px; text-align: center;">${r.bearing_status || '-'}</td>
                                 </tr>
                                 `;
                             }).join('')}
@@ -211,25 +222,27 @@ export default function VibrationCard({ machine, jobs = [] }) {
                     </table>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 5mm;">
+                <div style="display: flex; flex-direction: column; gap: 4mm;">
                     <div>
-                        <h3 style="font-size: 16px; color: #dc2626; margin: 0 0 2mm 0; font-weight: bold;">1. Závěr</h3>
-                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fef2f2; padding: 4mm; border-radius: 6px; border-left: 4px solid #dc2626;">
+                        <h3 style="font-size: 14px; color: ${conclusionStyles.title}; margin: 0 0 1mm 0; font-weight: bold;">1. Závěr</h3>
+                        <div style="font-size: 11px; line-height: 1.4; white-space: pre-line; background: ${conclusionStyles.bg}; padding: 3mm; border-radius: 4px; border-left: 4px solid ${conclusionStyles.border}; min-height: 10mm;">
                             ${job.conclusion || "Bez závěru"}
                         </div>
                     </div>
 
-                    <div>
-                        <h3 style="font-size: 16px; color: #ea580c; margin: 0 0 2mm 0; font-weight: bold;">2. Nález</h3>
-                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fff7ed; padding: 4mm; border-radius: 6px; border-left: 4px solid #ea580c;">
-                            ${job.findings || "Bez nálezu"}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4mm;">
+                        <div>
+                            <h3 style="font-size: 14px; color: #ea580c; margin: 0 0 1mm 0; font-weight: bold;">2. Nález</h3>
+                            <div style="font-size: 11px; line-height: 1.4; white-space: pre-line; background: #fff7ed; padding: 3mm; border-radius: 4px; border-left: 4px solid #ea580c;">
+                                ${job.findings || "Bez nálezu"}
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div>
-                        <h3 style="font-size: 16px; color: #16a34a; margin: 0 0 2mm 0; font-weight: bold;">3. Doporučení</h3>
-                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #f0fdf4; padding: 4mm; border-radius: 6px; border-left: 4px solid #16a34a;">
-                            ${job.recommendation || "Bez doporučení"}
+                        
+                        <div>
+                            <h3 style="font-size: 14px; color: #16a34a; margin: 0 0 1mm 0; font-weight: bold;">3. Doporučení</h3>
+                            <div style="font-size: 11px; line-height: 1.4; white-space: pre-line; background: #f0fdf4; padding: 3mm; border-radius: 4px; border-left: 4px solid #16a34a;">
+                                ${job.recommendation || "Bez doporučení"}
+                            </div>
                         </div>
                     </div>
                 </div>
