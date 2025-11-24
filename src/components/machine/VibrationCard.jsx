@@ -32,13 +32,22 @@ const bandColors = {
 
 export default function VibrationCard({ machine, jobs = [] }) {
     const [selectedJobId, setSelectedJobId] = useState(null);
+    const [selectedYear, setSelectedYear] = useState(null);
     const [trendDialogState, setTrendDialogState] = useState({ open: false, pointLabel: null });
 
     useEffect(() => {
-        if (jobs.length > 0 && !selectedJobId) {
-            setSelectedJobId(jobs[0].id);
+        if (jobs.length > 0) {
+            if (!selectedJobId) {
+                setSelectedJobId(jobs[0].id);
+            }
+            
+            // Initialize selected year based on current job
+            const currentJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : jobs[0];
+            if (currentJob && !selectedYear) {
+                setSelectedYear(new Date(currentJob.date).getFullYear());
+            }
         }
-    }, [jobs]);
+    }, [jobs, selectedJobId, selectedYear]);
 
     const selectedJob = jobs.find(j => j.id === selectedJobId);
 
@@ -113,36 +122,51 @@ export default function VibrationCard({ machine, jobs = [] }) {
 
     return (
         <div className="space-y-6">
-            {/* Tabs for Jobs - Grouped by Year */}
+            {/* Tabs for Jobs - Filtered by Year */}
             {jobs.length > 0 ? (
                 <div className="space-y-4">
-                    {jobsByYear.map(([year, yearJobs]) => (
-                        <div key={year}>
-                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">{year}</h4>
-                            <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
-                                {yearJobs.map(job => (
-                                    <button
-                                        key={job.id}
-                                        onClick={() => setSelectedJobId(job.id)}
-                                        className={`
-                                            flex flex-col items-start p-3 rounded-lg border min-w-[140px] transition-all
-                                            ${selectedJobId === job.id 
-                                                ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500" 
-                                                : "bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50"
-                                            }
-                                        `}
-                                    >
-                                        <span className={`text-xs font-bold ${selectedJobId === job.id ? "text-blue-700" : "text-slate-500"}`}>
-                                            {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
-                                        </span>
-                                        <span className={`text-sm font-medium truncate w-full ${selectedJobId === job.id ? "text-blue-900" : "text-slate-700"}`}>
-                                            Zakázka {job.order_number}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                    {/* Year Selection */}
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                        {jobsByYear.map(([year]) => (
+                            <button
+                                key={year}
+                                onClick={() => setSelectedYear(Number(year))}
+                                className={`
+                                    px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap shadow-sm
+                                    ${selectedYear === Number(year)
+                                        ? "bg-slate-900 text-white"
+                                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                                    }
+                                `}
+                            >
+                                {year}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Jobs List for Selected Year */}
+                    <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar min-h-[80px]">
+                        {jobsByYear.find(([y]) => Number(y) === selectedYear)?.[1].map(job => (
+                            <button
+                                key={job.id}
+                                onClick={() => setSelectedJobId(job.id)}
+                                className={`
+                                    flex flex-col items-start p-3 rounded-lg border min-w-[140px] transition-all
+                                    ${selectedJobId === job.id 
+                                        ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500 shadow-sm" 
+                                        : "bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50"
+                                    }
+                                `}
+                            >
+                                <span className={`text-xs font-bold ${selectedJobId === job.id ? "text-blue-700" : "text-slate-500"}`}>
+                                    {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
+                                </span>
+                                <span className={`text-sm font-medium truncate w-full ${selectedJobId === job.id ? "text-blue-900" : "text-slate-700"}`}>
+                                    Zakázka {job.order_number}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             ) : (
                 <div className="p-2 text-slate-500 text-sm italic border rounded bg-slate-50 inline-block">
