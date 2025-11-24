@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -16,7 +26,8 @@ import {
     Image as ImageIcon,
     AlertCircle,
     ArrowRight,
-    TrendingUp
+    TrendingUp,
+    Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,9 +42,26 @@ const bandColors = {
 };
 
 export default function VibrationCard({ machine, jobs = [] }) {
+    const queryClient = useQueryClient();
     const [selectedJobId, setSelectedJobId] = useState(null);
     const [selectedYear, setSelectedYear] = useState(null);
     const [trendDialogState, setTrendDialogState] = useState({ open: false, pointLabel: null });
+    const [jobToDelete, setJobToDelete] = useState(null);
+
+    const { data: user } = useQuery({
+        queryKey: ["currentUser"],
+        queryFn: () => base44.auth.me(),
+    });
+
+    const deleteJobMutation = useMutation({
+        mutationFn: (id) => base44.entities.VibrationJob.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["vibrationJobs"] });
+            queryClient.invalidateQueries({ queryKey: ["vibrationReadings"] });
+            setJobToDelete(null);
+            setSelectedJobId(null);
+        }
+    });
 
     useEffect(() => {
         if (jobs.length > 0) {
@@ -186,9 +214,20 @@ export default function VibrationCard({ machine, jobs = [] }) {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                        {selectedJob && user?.user_type === "superAdmin" && (
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => setJobToDelete(selectedJob)}
+                                title="Smazat měření"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </Button>
+                        )}
+                        </div>
 
-                    <CardContent className="p-0">
+                        <CardContent className="p-0">
                         <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x">
                             
                             {/* Left Column: Machine Info & Photo */}
@@ -358,6 +397,27 @@ export default function VibrationCard({ machine, jobs = [] }) {
                 pointLabel={trendDialogState.pointLabel}
                 machineName={machine.name}
             />
+
+            <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Opravdu smazat měření?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Chystáte se smazat měření č. {jobToDelete?.order_number} ze dne {jobToDelete && format(new Date(jobToDelete.date), "d. M. yyyy", { locale: cs })}.
+                            Tato akce je nevratná a smaže všechny naměřené hodnoty k tomuto měření.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => deleteJobMutation.mutate(jobToDelete.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Smazat
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
