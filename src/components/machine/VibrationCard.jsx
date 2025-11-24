@@ -167,8 +167,8 @@ export default function VibrationCard({ machine, jobs = [] }) {
                 </div>
 
                 ${machine.photo_url ? `
-                <div style="margin-bottom: 10mm; display: flex; justify-content: center;">
-                    <img src="${machine.photo_url}" style="max-height: 80mm; max-width: 100%; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 8px;" crossorigin="anonymous" />
+                <div style="margin-bottom: 5mm; display: flex; justify-content: center;">
+                    <img src="${machine.photo_url}" style="max-height: 50mm; max-width: 100%; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 8px;" crossorigin="anonymous" />
                 </div>` : ''}
 
                 ${standard ? `
@@ -211,24 +211,27 @@ export default function VibrationCard({ machine, jobs = [] }) {
                     </table>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr; gap: 10mm;">
-                    ${job.findings ? `
+                <div style="display: flex; flex-direction: column; gap: 5mm;">
                     <div>
-                        <h3 style="font-size: 16px; color: #ea580c; margin: 0 0 2mm 0;">Nález</h3>
-                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fff7ed; padding: 5mm; border-radius: 8px;">${job.findings}</div>
-                    </div>` : ''}
+                        <h3 style="font-size: 16px; color: #dc2626; margin: 0 0 2mm 0; font-weight: bold;">1. Závěr</h3>
+                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fef2f2; padding: 4mm; border-radius: 6px; border-left: 4px solid #dc2626;">
+                            ${job.conclusion || "Bez závěru"}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 style="font-size: 16px; color: #ea580c; margin: 0 0 2mm 0; font-weight: bold;">2. Nález</h3>
+                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fff7ed; padding: 4mm; border-radius: 6px; border-left: 4px solid #ea580c;">
+                            ${job.findings || "Bez nálezu"}
+                        </div>
+                    </div>
                     
-                    ${job.conclusion ? `
                     <div>
-                        <h3 style="font-size: 16px; color: #dc2626; margin: 0 0 2mm 0;">Závěr</h3>
-                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fef2f2; padding: 5mm; border-radius: 8px;">${job.conclusion}</div>
-                    </div>` : ''}
-                    
-                    ${job.recommendation ? `
-                    <div>
-                        <h3 style="font-size: 16px; color: #16a34a; margin: 0 0 2mm 0;">Doporučení</h3>
-                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #f0fdf4; padding: 5mm; border-radius: 8px;">${job.recommendation}</div>
-                    </div>` : ''}
+                        <h3 style="font-size: 16px; color: #16a34a; margin: 0 0 2mm 0; font-weight: bold;">3. Doporučení</h3>
+                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #f0fdf4; padding: 4mm; border-radius: 6px; border-left: 4px solid #16a34a;">
+                            ${job.recommendation || "Bez doporučení"}
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -243,7 +246,7 @@ export default function VibrationCard({ machine, jobs = [] }) {
 
             // Generate
             const canvas = await window.html2canvas(container, {
-                scale: 2, // Higher quality
+                scale: 1.5, // Reduced from 2 to 1.5 for smaller file size while maintaining readability
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#ffffff'
@@ -255,12 +258,13 @@ export default function VibrationCard({ machine, jobs = [] }) {
             // Create PDF
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
+            // Use JPEG with 0.6 quality instead of PNG to significantly reduce file size
+            const imgData = canvas.toDataURL('image/jpeg', 0.6);
             const imgProps = doc.getImageProperties(imgData);
             const pdfWidth = doc.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
             
-            doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
             doc.save(`Protokol_${job.order_number}_${new Date().toISOString().slice(0,10)}.pdf`);
 
             setToast({ type: 'success', message: 'Protokol byl úspěšně stažen.' });
