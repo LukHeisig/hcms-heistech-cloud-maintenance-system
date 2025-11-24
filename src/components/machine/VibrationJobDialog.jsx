@@ -43,8 +43,8 @@ const getBand = (val, limits) => {
 
 const bandColors = {
     "A": "bg-green-100 text-green-800 border-green-200",
-    "B": "bg-yellow-100 text-yellow-800 border-yellow-200",
-    "C": "bg-orange-100 text-orange-800 border-orange-200",
+    "B": "bg-green-100 text-green-800 border-green-200",
+    "C": "bg-yellow-100 text-yellow-800 border-yellow-200",
     "D": "bg-red-100 text-red-800 border-red-200",
 };
 
