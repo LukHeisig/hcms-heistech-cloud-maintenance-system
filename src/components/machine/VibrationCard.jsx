@@ -27,7 +27,9 @@ import {
     AlertCircle,
     ArrowRight,
     TrendingUp,
-    Trash2
+    Trash2,
+    Download,
+    Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ export default function VibrationCard({ machine, jobs = [] }) {
     const [selectedYear, setSelectedYear] = useState(null);
     const [trendDialogState, setTrendDialogState] = useState({ open: false, pointLabel: null });
     const [jobToDelete, setJobToDelete] = useState(null);
+    const [generatingPdf, setGeneratingPdf] = useState(false);
 
     const { data: user } = useQuery({
         queryKey: ["currentUser"],
@@ -62,6 +65,40 @@ export default function VibrationCard({ machine, jobs = [] }) {
             setSelectedJobId(null);
         }
     });
+
+    const handleDownloadPdf = async (jobId) => {
+        if (!jobId) return;
+        setGeneratingPdf(true);
+        try {
+            const response = await base44.functions.invoke("generateVibrationReport", { jobId });
+            // The response data is already a blob/arraybuffer if handled correctly by client,
+            // but typically invoke returns { data, status, headers } where data might be string or object.
+            // For binary data, base44 client might need special handling or we reconstruct from data.
+            // However, standard axios/fetch behavior applies. 
+            // If the function returns binary with correct headers, we can handle it.
+            // NOTE: base44.functions.invoke might try to parse JSON. 
+            // Let's assume data comes back and we need to blob it. 
+            
+            // If base44 client automatically parses JSON, we might have issues with binary.
+            // BUT, usually for PDF generation, we handle the Blob creation here.
+            
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const job = jobs.find(j => j.id === jobId);
+            a.download = `Protokol_${job?.order_number || 'vibrace'}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            alert("Nepodařilo se vygenerovat protokol.");
+        } finally {
+            setGeneratingPdf(false);
+        }
+    };
 
     useEffect(() => {
         if (jobs.length > 0) {
@@ -211,21 +248,35 @@ export default function VibrationCard({ machine, jobs = [] }) {
                                 <div className="flex gap-4 text-sm text-slate-600">
                                     {selectedJob && <span>Číslo zakázky: <strong>{selectedJob.order_number}</strong></span>}
                                     {standard && <span>Norma: <strong>{standard.name}</strong></span>}
-                                </div>
-                            </div>
-                        </div>
-                        {selectedJob && user?.user_type === "superAdmin" && (
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => setJobToDelete(selectedJob)}
-                                title="Smazat měření"
-                            >
-                                <Trash2 className="w-5 h-5" />
-                            </Button>
-                        )}
-                        </div>
+                                    </div>
+                                    </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                    {selectedJob && (
+                                    <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={() => handleDownloadPdf(selectedJob.id)}
+                                    disabled={generatingPdf}
+                                    >
+                                    {generatingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                    <span className="hidden sm:inline">Protokol</span>
+                                    </Button>
+                                    )}
+                                    {selectedJob && user?.user_type === "superAdmin" && (
+                                    <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => setJobToDelete(selectedJob)}
+                                    title="Smazat měření"
+                                    >
+                                    <Trash2 className="w-5 h-5" />
+                                    </Button>
+                                    )}
+                                    </div>
+                                    </div>
 
                         <CardContent className="p-0">
                         <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x">
