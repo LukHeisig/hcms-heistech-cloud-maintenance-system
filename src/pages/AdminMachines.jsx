@@ -72,7 +72,8 @@ export default function AdminMachines() {
     inventory_number: "",
     location: "",
     machine_type: null,
-    photo_url: ""
+    photo_url: "",
+    parent_id: null
   });
 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -239,7 +240,8 @@ export default function AdminMachines() {
         machine_type: machine.machine_type || null,
         vibration_standard_id: machine.vibration_standard_id || null,
         vibration_schema_id: machine.vibration_schema_id || null,
-        photo_url: machine.photo_url || ""
+        photo_url: machine.photo_url || "",
+        parent_id: machine.parent_id || null
       });
     } else {
       setEditingMachine(null);
@@ -251,7 +253,8 @@ export default function AdminMachines() {
         machine_type: null,
         vibration_standard_id: null,
         vibration_schema_id: null,
-        photo_url: ""
+        photo_url: "",
+        parent_id: null
       });
     }
     setShowMachineDialog(true);
@@ -284,7 +287,8 @@ export default function AdminMachines() {
       machine_type: formData.machine_type || null,
       vibration_standard_id: formData.vibration_standard_id || null,
       vibration_schema_id: formData.vibration_schema_id || null,
-      photo_url: formData.photo_url || null
+      photo_url: formData.photo_url || null,
+      parent_id: formData.parent_id === "none" ? null : formData.parent_id
     };
 
     if (editingMachine) {
@@ -488,6 +492,19 @@ export default function AdminMachines() {
                           <h3 className="text-xl font-bold text-slate-900">
                             {machine.name}
                           </h3>
+                          {machine.machine_type && (
+                            <Badge variant="secondary" className="text-xs">
+                              {machine.machine_type === 'switchboard' ? 'Rozvaděč' :
+                               machine.machine_type === 'transformer' ? 'Transformátor' :
+                               machine.machine_type === 'press' ? 'Lis' :
+                               machine.machine_type}
+                            </Badge>
+                          )}
+                          {machine.parent_id && (
+                            <Badge variant="outline" className="text-xs bg-slate-50">
+                              Podřízený
+                            </Badge>
+                          )}
                         </div>
                         {machine.inventory_number && (
                           <p className="text-sm text-slate-600">
@@ -616,10 +633,35 @@ export default function AdminMachines() {
                       <SelectItem value="robot">Robot</SelectItem>
                       <SelectItem value="cnc_machine">CNC stroj</SelectItem>
                       <SelectItem value="welding_machine">Svářečka</SelectItem>
+                      <SelectItem value="switchboard">Rozvaděč</SelectItem>
+                      <SelectItem value="transformer">Transformátor</SelectItem>
                       <SelectItem value="other">Jiné</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div>
+                  <Label htmlFor="parent_id">Nadřazený stroj</Label>
+                  <Select
+                    value={formData.parent_id || "none"}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, parent_id: value === "none" ? null : value })
+                    }
+                  >
+                    <SelectTrigger id="parent_id">
+                      <SelectValue placeholder="Vyberte nadřazený stroj" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Žádný (hlavní stroj) --</SelectItem>
+                      {machines
+                        .filter(m => m.id !== editingMachine?.id)
+                        .map(m => (
+                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <Label htmlFor="location">Umístění</Label>
                   <Input
