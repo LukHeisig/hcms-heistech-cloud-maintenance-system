@@ -413,6 +413,14 @@ export default function Machine() {
     temp: m.temperature || 0,
   }));
 
+  // Visibility Logic
+  const showDemip = company?.enable_demip !== false && controlPoints.length > 0;
+  const showMaintenance = company?.enable_maintenance !== false && (maintenanceRecords.length > 0 || plannedMaintenance.length > 0);
+  const showParts = company?.enable_parts !== false && spareParts.length > 0;
+  const showVibration = company?.enable_vibration !== false && (machine?.monitor_vibration || vibrationMeasurements.length > 0 || vibrationJobs.length > 0);
+  const showThermo = company?.enable_thermo !== false && machine?.monitor_thermo;
+  const showTribo = company?.enable_tribo !== false && machine?.monitor_tribo;
+
   const maintenanceTypeData = [
     { name: "Preventivní", value: maintenanceRecords.filter(r => r.maintenance_type === "preventive").length, color: "#10b981" },
     { name: "Reaktivní", value: maintenanceRecords.filter(r => r.maintenance_type === "corrective").length, color: "#f59e0b" },
@@ -860,36 +868,65 @@ export default function Machine() {
 
         {/* Záložky */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 bg-white shadow-md p-2 h-auto gap-2">
-            <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
+          <TabsList className="flex flex-wrap w-full bg-white shadow-md p-2 h-auto gap-2">
+            <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden md:inline">Přehled</span>
             </TabsTrigger>
-            <TabsTrigger value="control-points" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
-              <Droplet className="w-4 h-4" />
-              <span className="hidden md:inline">DEMIP</span>
-            </TabsTrigger>
-            <TabsTrigger value="documentation" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white">
+            
+            {showDemip && (
+              <TabsTrigger value="control-points" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
+                <Droplet className="w-4 h-4" />
+                <span className="hidden md:inline">DEMIP</span>
+              </TabsTrigger>
+            )}
+            
+            <TabsTrigger value="documentation" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white">
               <ImageIcon className="w-4 h-4" />
               <span className="hidden md:inline">Dokumentace</span>
             </TabsTrigger>
-            <TabsTrigger value="maintenance" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-700 data-[state=active]:text-white">
-              <Wrench className="w-4 h-4" />
-              <span className="hidden md:inline">Údržba</span>
-            </TabsTrigger>
-            <TabsTrigger value="spare-parts" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-700 data-[state=active]:text-white">
-              <Package className="w-4 h-4" />
-              <span className="hidden md:inline">Díly</span>
-            </TabsTrigger>
-            <TabsTrigger value="vibration" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
-              <FileSpreadsheet className="w-4 h-4" />
-              <span className="hidden md:inline">Vibrace</span>
-            </TabsTrigger>
-            <TabsTrigger value="responsibility" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-teal-700 data-[state=active]:text-white">
+            
+            {showMaintenance && (
+              <TabsTrigger value="maintenance" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-700 data-[state=active]:text-white">
+                <Wrench className="w-4 h-4" />
+                <span className="hidden md:inline">Údržba</span>
+              </TabsTrigger>
+            )}
+            
+            {showParts && (
+              <TabsTrigger value="spare-parts" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-700 data-[state=active]:text-white">
+                <Package className="w-4 h-4" />
+                <span className="hidden md:inline">Díly</span>
+              </TabsTrigger>
+            )}
+            
+            {showVibration && (
+              <TabsTrigger value="vibration" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
+                <FileSpreadsheet className="w-4 h-4" />
+                <span className="hidden md:inline">Vibrace</span>
+              </TabsTrigger>
+            )}
+
+            {showThermo && (
+              <TabsTrigger value="thermo" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-600 data-[state=active]:to-amber-700 data-[state=active]:text-white">
+                <Activity className="w-4 h-4" />
+                <span className="hidden md:inline">Termo</span>
+              </TabsTrigger>
+            )}
+
+            {showTribo && (
+              <TabsTrigger value="tribo" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
+                <Droplet className="w-4 h-4" />
+                <span className="hidden md:inline">Tribo</span>
+              </TabsTrigger>
+            )}
+            
+            <TabsTrigger value="responsibility" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-teal-700 data-[state=active]:text-white">
               <Users className="w-4 h-4" />
               <span className="hidden md:inline">Odpovědnost</span>
             </TabsTrigger>
-            <TabsTrigger value="statistics" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-pink-700 data-[state=active]:text-white">
+            
+            <TabsTrigger value="statistics" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-pink-700 data-[state=active]:text-white">
               <BarChart2 className="w-4 h-4" />
               <span className="hidden md:inline">Statistiky</span>
             </TabsTrigger>
@@ -2129,6 +2166,26 @@ export default function Machine() {
                   </div>
                 )}
               </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Termodiagnostika Placeholder */}
+          <TabsContent value="thermo" className="space-y-6">
+            <Card>
+                <CardContent className="p-12 text-center">
+                    <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">Modul Termodiagnostika je aktivní, ale zatím nejsou data.</p>
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tribodiagnostika Placeholder */}
+          <TabsContent value="tribo" className="space-y-6">
+            <Card>
+                <CardContent className="p-12 text-center">
+                    <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">Modul Tribodiagnostika je aktivní, ale zatím nejsou data.</p>
+                </CardContent>
             </Card>
           </TabsContent>
 
