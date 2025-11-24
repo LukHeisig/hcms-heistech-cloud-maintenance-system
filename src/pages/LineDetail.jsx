@@ -438,43 +438,48 @@ export default function LineDetail() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             <div className="space-y-3">
                 {machines.map(machine => {
                   const styles = getMachineStatusStyles(machine.id);
                   const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
-                  
+                  const borderClass = styles.text.includes('red') ? 'border-l-red-500' : 
+                                    styles.text.includes('orange') ? 'border-l-orange-500' : 
+                                    'border-l-green-500';
+
                   return (
                     <Card 
                       key={machine.id} 
-                      className="cursor-pointer hover:shadow-md transition-all border-l-4"
-                      style={{ borderLeftColor: styles.text.replace('text-', 'var(--').replace('-600', '-500') }} // Fallback inline style approximation or use class logic
+                      className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${borderClass}`}
                       onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className={`p-2 rounded-lg ${styles.bg} ${styles.text}`}>
-                             {machine.machine_type === 'switchboard' ? <Settings className="w-6 h-6" /> : <Factory className="w-6 h-6" />}
-                          </div>
-                          {machine.parent_id && <Badge variant="outline" className="text-xs">Podřízený</Badge>}
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${styles.bg} ${styles.text}`}>
+                           {machine.machine_type === 'switchboard' ? <Settings className="w-6 h-6" /> : <Factory className="w-6 h-6" />}
                         </div>
-                        <div>
-                          <h3 className="font-bold text-lg text-slate-900 mb-1">{machine.name}</h3>
-                          <p className="text-sm text-slate-500 mb-3">
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-lg text-slate-900 truncate">{machine.name}</h3>
+                              {machine.parent_id && <Badge variant="outline" className="text-xs flex-shrink-0">Podřízený</Badge>}
+                          </div>
+                          <p className="text-sm text-slate-500 truncate">
                             {machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'} • {machinePoints.length} bodů
                           </p>
-                          
-                          <div className="flex gap-1 flex-wrap">
-                              {machine.monitor_vibration && <Badge variant="secondary" className="text-[10px]">Vibrace</Badge>}
-                              {machine.monitor_thermo && <Badge variant="secondary" className="text-[10px]">Termo</Badge>}
-                              {machine.monitor_tribo && <Badge variant="secondary" className="text-[10px]">Tribo</Badge>}
-                          </div>
                         </div>
+
+                        <div className="hidden sm:flex gap-1 flex-wrap justify-end items-center">
+                            {machine.monitor_vibration && <Badge variant="secondary" className="text-[10px]">Vibrace</Badge>}
+                            {machine.monitor_thermo && <Badge variant="secondary" className="text-[10px]">Termo</Badge>}
+                            {machine.monitor_tribo && <Badge variant="secondary" className="text-[10px]">Tribo</Badge>}
+                        </div>
+
+                        <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" />
                       </CardContent>
                     </Card>
                   );
                 })}
                 {machines.length === 0 && (
-                  <div className="col-span-full text-center py-12 bg-white rounded-lg border border-dashed">
+                  <div className="text-center py-12 bg-white rounded-lg border border-dashed">
                     <Factory className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                     <p className="text-slate-500">Zatím zde nejsou žádné stroje</p>
                   </div>
