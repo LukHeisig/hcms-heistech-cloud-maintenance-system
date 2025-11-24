@@ -83,6 +83,17 @@ export default function VibrationCard({ machine, jobs = [] }) {
         setTrendDialogState({ open: true, pointLabel });
     };
 
+    // Group jobs by year
+    const jobsByYear = React.useMemo(() => {
+        const groups = {};
+        jobs.forEach(job => {
+            const year = new Date(job.date).getFullYear();
+            if (!groups[year]) groups[year] = [];
+            groups[year].push(job);
+        });
+        return Object.entries(groups).sort((a, b) => b[0] - a[0]);
+    }, [jobs]);
+
     // Helper for machine overall status color
     const getMachineStatusColor = () => {
         if (!readings || readings.length === 0) return "bg-slate-200";
@@ -102,28 +113,35 @@ export default function VibrationCard({ machine, jobs = [] }) {
 
     return (
         <div className="space-y-6">
-            {/* Tabs for Jobs */}
+            {/* Tabs for Jobs - Grouped by Year */}
             {jobs.length > 0 ? (
-                <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
-                    {jobs.map(job => (
-                        <button
-                            key={job.id}
-                            onClick={() => setSelectedJobId(job.id)}
-                            className={`
-                                flex flex-col items-start p-3 rounded-lg border min-w-[140px] transition-all
-                                ${selectedJobId === job.id 
-                                    ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500" 
-                                    : "bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50"
-                                }
-                            `}
-                        >
-                            <span className={`text-xs font-bold ${selectedJobId === job.id ? "text-blue-700" : "text-slate-500"}`}>
-                                {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
-                            </span>
-                            <span className={`text-sm font-medium truncate w-full ${selectedJobId === job.id ? "text-blue-900" : "text-slate-700"}`}>
-                                Zakázka {job.order_number}
-                            </span>
-                        </button>
+                <div className="space-y-4">
+                    {jobsByYear.map(([year, yearJobs]) => (
+                        <div key={year}>
+                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">{year}</h4>
+                            <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
+                                {yearJobs.map(job => (
+                                    <button
+                                        key={job.id}
+                                        onClick={() => setSelectedJobId(job.id)}
+                                        className={`
+                                            flex flex-col items-start p-3 rounded-lg border min-w-[140px] transition-all
+                                            ${selectedJobId === job.id 
+                                                ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500" 
+                                                : "bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50"
+                                            }
+                                        `}
+                                    >
+                                        <span className={`text-xs font-bold ${selectedJobId === job.id ? "text-blue-700" : "text-slate-500"}`}>
+                                            {format(new Date(job.date), "d. M. yyyy", { locale: cs })}
+                                        </span>
+                                        <span className={`text-sm font-medium truncate w-full ${selectedJobId === job.id ? "text-blue-900" : "text-slate-700"}`}>
+                                            Zakázka {job.order_number}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             ) : (
