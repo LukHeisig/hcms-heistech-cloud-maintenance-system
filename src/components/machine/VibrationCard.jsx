@@ -612,7 +612,6 @@ export default function VibrationCard({ machine, jobs = [] }) {
                         )}
                     </CardContent>
                 </Card>
-            )}
 
             {/* Custom Toast */}
             {toast && (
