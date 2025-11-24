@@ -203,6 +203,20 @@ export default function LineDetail() {
     return allResponsibilities.filter(r => machineIds.includes(r.machine_id));
   }, [allResponsibilities, machineIds]);
 
+  const getMachineStatusStyles = (machineId) => {
+    const activeIssues = issues.filter(i => i.machine_id === machineId || 
+        (i.control_point_id && controlPoints.find(cp => cp.id === i.control_point_id && cp.machine_id === machineId)));
+    
+    if (activeIssues.length > 0) return { bg: "bg-red-100", text: "text-red-600", border: "border-red-200" };
+
+    const mPoints = controlPoints.filter(p => p.machine_id === machineId);
+    const hasOverdue = mPoints.some(p => getPointStatus(p) === "overdue");
+    
+    if (hasOverdue) return { bg: "bg-orange-100", text: "text-orange-600", border: "border-orange-200" };
+
+    return { bg: "bg-green-100", text: "text-green-600", border: "border-green-200" };
+  };
+
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
     if (pointRecords.length === 0) return "overdue";
@@ -424,12 +438,48 @@ export default function LineDetail() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
-            <Card>
-              <CardContent className="p-12 text-center">
-                <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Přehled bude doplněn</p>
-              </CardContent>
-            </Card>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {machines.map(machine => {
+                  const styles = getMachineStatusStyles(machine.id);
+                  const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+                  
+                  return (
+                    <Card 
+                      key={machine.id} 
+                      className="cursor-pointer hover:shadow-md transition-all border-l-4"
+                      style={{ borderLeftColor: styles.text.replace('text-', 'var(--').replace('-600', '-500') }} // Fallback inline style approximation or use class logic
+                      onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className={`p-2 rounded-lg ${styles.bg} ${styles.text}`}>
+                             {machine.machine_type === 'switchboard' ? <Settings className="w-6 h-6" /> : <Factory className="w-6 h-6" />}
+                          </div>
+                          {machine.parent_id && <Badge variant="outline" className="text-xs">Podřízený</Badge>}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg text-slate-900 mb-1">{machine.name}</h3>
+                          <p className="text-sm text-slate-500 mb-3">
+                            {machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'} • {machinePoints.length} bodů
+                          </p>
+                          
+                          <div className="flex gap-1 flex-wrap">
+                              {machine.monitor_vibration && <Badge variant="secondary" className="text-[10px]">Vibrace</Badge>}
+                              {machine.monitor_thermo && <Badge variant="secondary" className="text-[10px]">Termo</Badge>}
+                              {machine.monitor_tribo && <Badge variant="secondary" className="text-[10px]">Tribo</Badge>}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+                {machines.length === 0 && (
+                  <div className="col-span-full text-center py-12 bg-white rounded-lg border border-dashed">
+                    <Factory className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">Zatím zde nejsou žádné stroje</p>
+                  </div>
+                )}
+             </div>
           </TabsContent>
 
           {/* Technická diagnostika */}
@@ -449,7 +499,7 @@ export default function LineDetail() {
                       className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
                     >
                       <div className="flex items-center gap-2">
-                        <Waves className="w-4 h-4" />
+                        <Activity className="w-4 h-4" />
                         Vibrační diagnostika
                       </div>
                     </TabsTrigger>
@@ -479,7 +529,7 @@ export default function LineDetail() {
                     ) : (
                       <div className="space-y-2">
                         {machines.filter(m => m.monitor_vibration).map((machine) => {
-                           const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+                           const styles = getMachineStatusStyles(machine.id);
                            return (
                              <div
                                key={machine.id}
@@ -487,8 +537,8 @@ export default function LineDetail() {
                                onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#vibration`))}
                              >
                                <div className="flex items-center gap-3">
-                                 <div className="p-2 bg-blue-50 rounded text-blue-600">
-                                   <Waves className="w-5 h-5" />
+                                 <div className={`p-2 rounded ${styles.bg} ${styles.text}`}>
+                                   <Activity className="w-5 h-5" />
                                  </div>
                                  <div>
                                    <p className="font-medium text-slate-900">{machine.name}</p>
@@ -511,26 +561,29 @@ export default function LineDetail() {
                       <p className="text-center text-slate-500 py-8">Žádné stroje/rozvaděče s aktivní termodiagnostikou</p>
                     ) : (
                       <div className="space-y-2">
-                        {machines.filter(m => m.monitor_thermo).map((machine) => (
-                             <div
-                               key={machine.id}
-                               className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
-                               onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#thermo`))}
-                             >
-                               <div className="flex items-center gap-3">
-                                 <div className="p-2 bg-orange-50 rounded text-orange-600">
-                                   <Thermometer className="w-5 h-5" />
-                                 </div>
-                                 <div>
-                                   <p className="font-medium text-slate-900">{machine.name}</p>
-                                   <div className="flex gap-2 text-xs text-slate-500">
-                                      <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
+                        {machines.filter(m => m.monitor_thermo).map((machine) => {
+                             const styles = getMachineStatusStyles(machine.id);
+                             return (
+                               <div
+                                 key={machine.id}
+                                 className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                                 onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#thermo`))}
+                               >
+                                 <div className="flex items-center gap-3">
+                                   <div className={`p-2 rounded ${styles.bg.replace('blue', 'orange')} ${styles.text.replace('blue', 'orange')}`}>
+                                     <Thermometer className="w-5 h-5" />
+                                   </div>
+                                   <div>
+                                     <p className="font-medium text-slate-900">{machine.name}</p>
+                                     <div className="flex gap-2 text-xs text-slate-500">
+                                        <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
+                                     </div>
                                    </div>
                                  </div>
+                                 <ChevronRight className="w-5 h-5 text-slate-400" />
                                </div>
-                               <ChevronRight className="w-5 h-5 text-slate-400" />
-                             </div>
-                        ))}
+                             );
+                        })}
                       </div>
                     )}
                   </TabsContent>
@@ -540,26 +593,29 @@ export default function LineDetail() {
                       <p className="text-center text-slate-500 py-8">Žádné stroje s aktivní tribodiagnostikou</p>
                     ) : (
                       <div className="space-y-2">
-                        {machines.filter(m => m.monitor_tribo).map((machine) => (
-                             <div
-                               key={machine.id}
-                               className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
-                               onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#tribo`))}
-                             >
-                               <div className="flex items-center gap-3">
-                                 <div className="p-2 bg-purple-50 rounded text-purple-600">
-                                   <Droplet className="w-5 h-5" />
-                                 </div>
-                                 <div>
-                                   <p className="font-medium text-slate-900">{machine.name}</p>
-                                   <div className="flex gap-2 text-xs text-slate-500">
-                                      <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
+                        {machines.filter(m => m.monitor_tribo).map((machine) => {
+                             const styles = getMachineStatusStyles(machine.id);
+                             return (
+                               <div
+                                 key={machine.id}
+                                 className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                                 onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#tribo`))}
+                               >
+                                 <div className="flex items-center gap-3">
+                                   <div className={`p-2 rounded ${styles.bg.replace('blue', 'purple')} ${styles.text.replace('blue', 'purple')}`}>
+                                     <Droplet className="w-5 h-5" />
+                                   </div>
+                                   <div>
+                                     <p className="font-medium text-slate-900">{machine.name}</p>
+                                     <div className="flex gap-2 text-xs text-slate-500">
+                                        <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
+                                     </div>
                                    </div>
                                  </div>
+                                 <ChevronRight className="w-5 h-5 text-slate-400" />
                                </div>
-                               <ChevronRight className="w-5 h-5 text-slate-400" />
-                             </div>
-                        ))}
+                             );
+                        })}
                       </div>
                     )}
                   </TabsContent>
