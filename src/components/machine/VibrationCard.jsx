@@ -233,14 +233,14 @@ export default function VibrationCard({ machine, jobs = [] }) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4mm;">
                         <div>
                             <h3 style="font-size: 14px; color: #ea580c; margin: 0 0 1mm 0; font-weight: bold;">2. Nález</h3>
-                            <div style="font-size: 11px; line-height: 1.4; white-space: pre-line; background: #fff7ed; padding: 3mm; border-radius: 4px; border-left: 4px solid #ea580c;">
+                            <div style="font-size: 11px; line-height: 1.4; white-space: pre-line; border: 1px solid #e2e8f0; padding: 3mm; border-radius: 4px; border-left: 4px solid #ea580c;">
                                 ${job.findings || "Bez nálezu"}
                             </div>
                         </div>
                         
                         <div>
                             <h3 style="font-size: 14px; color: #16a34a; margin: 0 0 1mm 0; font-weight: bold;">3. Doporučení</h3>
-                            <div style="font-size: 11px; line-height: 1.4; white-space: pre-line; background: #f0fdf4; padding: 3mm; border-radius: 4px; border-left: 4px solid #16a34a;">
+                            <div style="font-size: 11px; line-height: 1.4; white-space: pre-line; border: 1px solid #e2e8f0; padding: 3mm; border-radius: 4px; border-left: 4px solid #16a34a;">
                                 ${job.recommendation || "Bez doporučení"}
                             </div>
                         </div>
