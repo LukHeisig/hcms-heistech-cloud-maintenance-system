@@ -205,9 +205,9 @@ export default function Machine() {
   });
 
   const { data: records = [] } = useQuery({
-    queryKey: ["records", machineId],
+    queryKey: ["records", machineId, controlPoints.map(cp => cp.id).join(',')],
     queryFn: async () => {
-      const allRecords = await base44.entities.ControlRecord.list("-performed_at");
+      const allRecords = await base44.entities.ControlRecord.list("-performed_at", 500);
       return allRecords.filter(record =>
         controlPoints.some(point => point.id === record.control_point_id)
       );
