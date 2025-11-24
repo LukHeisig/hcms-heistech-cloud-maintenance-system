@@ -29,7 +29,9 @@ import {
     TrendingUp,
     Trash2,
     Download,
-    Loader2
+    Loader2,
+    Check,
+    X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,15 @@ export default function VibrationCard({ machine, jobs = [] }) {
     const [trendDialogState, setTrendDialogState] = useState({ open: false, pointLabel: null });
     const [jobToDelete, setJobToDelete] = useState(null);
     const [generatingPdf, setGeneratingPdf] = useState(false);
+    const [toast, setToast] = useState(null); // { type: 'info' | 'success' | 'error', message: '' }
+
+    // Auto-dismiss toast
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
 
     const { data: user } = useQuery({
         queryKey: ["currentUser"],
@@ -66,35 +77,197 @@ export default function VibrationCard({ machine, jobs = [] }) {
         }
     });
 
+    const loadScript = (src) => {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) {
+                resolve();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    };
+
     const handleDownloadPdf = async (jobId) => {
         if (!jobId) return;
+        const job = jobs.find(j => j.id === jobId);
+        if (!job) return;
+
         setGeneratingPdf(true);
+        setToast({ type: 'info', message: 'Generuji protokol...' });
+
         try {
-            const response = await base44.functions.invoke("generateVibrationReport", { jobId });
-            // The response data is already a blob/arraybuffer if handled correctly by client,
-            // but typically invoke returns { data, status, headers } where data might be string or object.
-            // For binary data, base44 client might need special handling or we reconstruct from data.
-            // However, standard axios/fetch behavior applies. 
-            // If the function returns binary with correct headers, we can handle it.
-            // NOTE: base44.functions.invoke might try to parse JSON. 
-            // Let's assume data comes back and we need to blob it. 
+            // 1. Load libraries
+            await Promise.all([
+                loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"),
+                loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")
+            ]);
+
+            // 2. Create temp container
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.style.width = '210mm'; // A4 width
+            container.style.minHeight = '297mm'; // A4 height
+            container.style.backgroundColor = 'white';
+            container.style.padding = '20mm';
+            container.style.fontFamily = 'Arial, sans-serif';
+            container.style.color = '#1e293b';
             
-            // If base44 client automatically parses JSON, we might have issues with binary.
-            // BUT, usually for PDF generation, we handle the Blob creation here.
+            // Prepare data
+            const jobReadings = readings.filter(r => r.job_id === jobId);
+            // Sort readings
+            jobReadings.sort((a, b) => {
+                if (a.point_label === b.point_label) return a.direction.localeCompare(b.direction);
+                return a.point_label.localeCompare(b.point_label);
+            });
+
+            // Build HTML content
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10mm; border-bottom: 2px solid #e2e8f0; padding-bottom: 5mm;">
+                    <div>
+                        <h1 style="color: #2563eb; font-size: 24px; margin: 0; font-weight: bold;">Protokol o měření vibrací</h1>
+                        <p style="color: #64748b; font-size: 12px; margin: 5px 0 0 0;">HCMS - Heistech Cloud Maintenance System</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 12px; color: #64748b;">Vygenerováno</div>
+                        <div style="font-weight: bold;">${new Date().toLocaleDateString('cs-CZ')}</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10mm;">
+                    <h2 style="font-size: 20px; margin: 0 0 5mm 0; color: #0f172a;">${machine.name}</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                        <div>
+                            <div style="color: #64748b; font-size: 12px;">Číslo zakázky</div>
+                            <div style="font-weight: bold;">${job.order_number}</div>
+                        </div>
+                        <div>
+                            <div style="color: #64748b; font-size: 12px;">Datum měření</div>
+                            <div style="font-weight: bold;">${new Date(job.date).toLocaleDateString('cs-CZ')}</div>
+                        </div>
+                        <div>
+                            <div style="color: #64748b; font-size: 12px;">Technik</div>
+                            <div style="font-weight: bold;">${job.technician || '-'}</div>
+                        </div>
+                        <div>
+                            <div style="color: #64748b; font-size: 12px;">Umístění</div>
+                            <div style="font-weight: bold;">${machine.location || '-'}</div>
+                        </div>
+                        ${job.description ? `
+                        <div style="grid-column: span 2;">
+                            <div style="color: #64748b; font-size: 12px;">Vstupní podmínky / Popis</div>
+                            <div>${job.description}</div>
+                        </div>` : ''}
+                    </div>
+                </div>
+
+                ${machine.photo_url ? `
+                <div style="margin-bottom: 10mm; display: flex; justify-content: center;">
+                    <img src="${machine.photo_url}" style="max-height: 80mm; max-width: 100%; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 8px;" crossorigin="anonymous" />
+                </div>` : ''}
+
+                ${standard ? `
+                <div style="background: #f8fafc; padding: 5mm; border-radius: 8px; margin-bottom: 10mm; font-size: 12px; border: 1px solid #e2e8f0;">
+                    <strong style="color: #0f172a;">Použitá norma: ${standard.name}</strong>
+                    <div style="margin-top: 2px; color: #64748b;">
+                        Limity [mm/s]: A/B=${standard.limit_ab} | B/C=${standard.limit_bc} | C/D=${standard.limit_cd}
+                    </div>
+                </div>` : ''}
+
+                <div style="margin-bottom: 10mm;">
+                    <h3 style="font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2mm; margin-bottom: 5mm;">Naměřené hodnoty</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #f1f5f9; color: #475569;">
+                                <th style="text-align: left; padding: 8px; border-bottom: 2px solid #e2e8f0;">Místo</th>
+                                <th style="text-align: center; padding: 8px; border-bottom: 2px solid #e2e8f0;">Směr</th>
+                                <th style="text-align: right; padding: 8px; border-bottom: 2px solid #e2e8f0;">RMS [mm/s]</th>
+                                <th style="text-align: center; padding: 8px; border-bottom: 2px solid #e2e8f0;">Pásmo</th>
+                                <th style="text-align: center; padding: 8px; border-bottom: 2px solid #e2e8f0;">Ložisko</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${jobReadings.map(r => {
+                                const bandColor = r.band === 'D' ? '#fee2e2' : r.band === 'C' ? '#fef9c3' : r.band === 'B' || r.band === 'A' ? '#dcfce7' : 'white';
+                                const bandTextColor = r.band === 'D' ? '#991b1b' : r.band === 'C' ? '#854d0e' : r.band === 'B' || r.band === 'A' ? '#166534' : '#475569';
+                                return `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 8px; font-weight: bold;">${r.point_label}</td>
+                                    <td style="padding: 8px; text-align: center;">${r.direction}</td>
+                                    <td style="padding: 8px; text-align: right; font-family: monospace;">${r.value_rms?.toFixed(2) || '-'}</td>
+                                    <td style="padding: 8px; text-align: center;">
+                                        <span style="background: ${bandColor}; color: ${bandTextColor}; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${r.band || '-'}</span>
+                                    </td>
+                                    <td style="padding: 8px; text-align: center;">${r.bearing_status || '-'}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10mm;">
+                    ${job.findings ? `
+                    <div>
+                        <h3 style="font-size: 16px; color: #ea580c; margin: 0 0 2mm 0;">Nález</h3>
+                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fff7ed; padding: 5mm; border-radius: 8px;">${job.findings}</div>
+                    </div>` : ''}
+                    
+                    ${job.conclusion ? `
+                    <div>
+                        <h3 style="font-size: 16px; color: #dc2626; margin: 0 0 2mm 0;">Závěr</h3>
+                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fef2f2; padding: 5mm; border-radius: 8px;">${job.conclusion}</div>
+                    </div>` : ''}
+                    
+                    ${job.recommendation ? `
+                    <div>
+                        <h3 style="font-size: 16px; color: #16a34a; margin: 0 0 2mm 0;">Doporučení</h3>
+                        <div style="font-size: 12px; line-height: 1.5; white-space: pre-line; background: #f0fdf4; padding: 5mm; border-radius: 8px;">${job.recommendation}</div>
+                    </div>` : ''}
+                </div>
+            `;
+
+            document.body.appendChild(container);
+
+            // Wait for images to load
+            const images = container.querySelectorAll('img');
+            await Promise.all(Array.from(images).map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+            }));
+
+            // Generate
+            const canvas = await window.html2canvas(container, {
+                scale: 2, // Higher quality
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+
+            // Cleanup
+            document.body.removeChild(container);
+
+            // Create PDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const imgData = canvas.toDataURL('image/png');
+            const imgProps = doc.getImageProperties(imgData);
+            const pdfWidth = doc.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
             
-            const blob = new Blob([response.data], { type: 'application/pdf' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const job = jobs.find(j => j.id === jobId);
-            a.download = `Protokol_${job?.order_number || 'vibrace'}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
+            doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            doc.save(`Protokol_${job.order_number}_${new Date().toISOString().slice(0,10)}.pdf`);
+
+            setToast({ type: 'success', message: 'Protokol byl úspěšně stažen.' });
+
         } catch (error) {
-            console.error("PDF generation failed", error);
-            alert("Nepodařilo se vygenerovat protokol.");
+            console.error("Client PDF Generation Error:", error);
+            setToast({ type: 'error', message: 'Chyba při generování protokolu.' });
         } finally {
             setGeneratingPdf(false);
         }
@@ -439,6 +612,20 @@ export default function VibrationCard({ machine, jobs = [] }) {
                         )}
                     </CardContent>
                 </Card>
+            )}
+
+            {/* Custom Toast */}
+            {toast && (
+                <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 animate-in slide-in-from-bottom-5 z-50 ${
+                    toast.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' :
+                    toast.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' :
+                    'bg-blue-50 text-blue-800 border-blue-200'
+                }`}>
+                    {toast.type === 'success' && <Check className="w-5 h-5 text-green-600" />}
+                    {toast.type === 'error' && <X className="w-5 h-5 text-red-600" />}
+                    {toast.type === 'info' && <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />}
+                    <span className="font-medium text-sm">{toast.message}</span>
+                </div>
             )}
 
             <VibrationTrendDialog 
