@@ -51,6 +51,8 @@ import {
   ChevronsDown,
   ChevronsUp,
   Loader2,
+  Thermometer,
+  Waves,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -408,6 +410,7 @@ export default function LineDetail() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white shadow-sm flex flex-wrap gap-1 p-2">
             <TabsTrigger value="overview">Přehled</TabsTrigger>
+            <TabsTrigger value="diagnostics">Technická diagnostika</TabsTrigger>
             <TabsTrigger value="lubrication">Mazání</TabsTrigger>
             <TabsTrigger value="prevention">Preventivní údržba</TabsTrigger>
             <TabsTrigger value="maintenance">Plán údržby</TabsTrigger>
@@ -416,7 +419,6 @@ export default function LineDetail() {
             <TabsTrigger value="verification">Ověření / Test</TabsTrigger>
             <TabsTrigger value="audit">Evidence</TabsTrigger>
             <TabsTrigger value="analytics">Analytika</TabsTrigger>
-            <TabsTrigger value="import-export">Import / Export</TabsTrigger>
           </TabsList>
 
           {/* Přehled */}
@@ -425,6 +427,142 @@ export default function LineDetail() {
               <CardContent className="p-12 text-center">
                 <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Přehled bude doplněn</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Technická diagnostika */}
+          <TabsContent value="diagnostics" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Technická diagnostika
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="vibration">
+                  <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent space-x-6 mb-6">
+                    <TabsTrigger 
+                      value="vibration"
+                      className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Waves className="w-4 h-4" />
+                        Vibrační diagnostika
+                      </div>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="thermo"
+                      className="data-[state=active]:border-b-2 data-[state=active]:border-orange-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Thermometer className="w-4 h-4" />
+                        Termodiagnostika
+                      </div>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="tribo"
+                      className="data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Droplet className="w-4 h-4" />
+                        Tribodiagnostika
+                      </div>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="vibration" className="mt-0">
+                    {machines.filter(m => m.monitor_vibration).length === 0 ? (
+                      <p className="text-center text-slate-500 py-8">Žádné stroje s aktivní vibrační diagnostikou</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {machines.filter(m => m.monitor_vibration).map((machine) => {
+                           const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+                           return (
+                             <div
+                               key={machine.id}
+                               className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                               onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#vibration`))}
+                             >
+                               <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-blue-50 rounded text-blue-600">
+                                   <Waves className="w-5 h-5" />
+                                 </div>
+                                 <div>
+                                   <p className="font-medium text-slate-900">{machine.name}</p>
+                                   <div className="flex gap-2 text-xs text-slate-500">
+                                      <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
+                                      {machine.vibration_standard_id && <span>• Norma nastavena</span>}
+                                   </div>
+                                 </div>
+                               </div>
+                               <ChevronRight className="w-5 h-5 text-slate-400" />
+                             </div>
+                           );
+                        })}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="thermo" className="mt-0">
+                    {machines.filter(m => m.monitor_thermo).length === 0 ? (
+                      <p className="text-center text-slate-500 py-8">Žádné stroje/rozvaděče s aktivní termodiagnostikou</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {machines.filter(m => m.monitor_thermo).map((machine) => (
+                             <div
+                               key={machine.id}
+                               className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                               onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#thermo`))}
+                             >
+                               <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-orange-50 rounded text-orange-600">
+                                   <Thermometer className="w-5 h-5" />
+                                 </div>
+                                 <div>
+                                   <p className="font-medium text-slate-900">{machine.name}</p>
+                                   <div className="flex gap-2 text-xs text-slate-500">
+                                      <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
+                                   </div>
+                                 </div>
+                               </div>
+                               <ChevronRight className="w-5 h-5 text-slate-400" />
+                             </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="tribo" className="mt-0">
+                    {machines.filter(m => m.monitor_tribo).length === 0 ? (
+                      <p className="text-center text-slate-500 py-8">Žádné stroje s aktivní tribodiagnostikou</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {machines.filter(m => m.monitor_tribo).map((machine) => (
+                             <div
+                               key={machine.id}
+                               className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                               onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#tribo`))}
+                             >
+                               <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-purple-50 rounded text-purple-600">
+                                   <Droplet className="w-5 h-5" />
+                                 </div>
+                                 <div>
+                                   <p className="font-medium text-slate-900">{machine.name}</p>
+                                   <div className="flex gap-2 text-xs text-slate-500">
+                                      <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
+                                   </div>
+                                 </div>
+                               </div>
+                               <ChevronRight className="w-5 h-5 text-slate-400" />
+                             </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>
@@ -704,14 +842,6 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="import-export" className="space-y-6">
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Upload className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Import / Export bude implementován</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
 
