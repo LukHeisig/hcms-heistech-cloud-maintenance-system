@@ -53,6 +53,7 @@ import {
   Loader2,
   Thermometer,
   Waves,
+  Activity,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
