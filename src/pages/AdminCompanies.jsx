@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,8 +31,10 @@ import {
   Trash2,
   Building2,
   ChevronRight,
-  Loader2
+  Loader2,
+  CheckSquare
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -49,6 +50,12 @@ export default function AdminCompanies() {
     contact_person: "",
     email: "",
     phone: "",
+    enable_demip: true,
+    enable_maintenance: true,
+    enable_parts: true,
+    enable_vibration: true,
+    enable_thermo: true,
+    enable_tribo: true,
   });
 
   const { data: allCompanies = [], isLoading } = useQuery({
@@ -112,6 +119,12 @@ export default function AdminCompanies() {
       contact_person: "",
       email: "",
       phone: "",
+      enable_demip: true,
+      enable_maintenance: true,
+      enable_parts: true,
+      enable_vibration: true,
+      enable_thermo: true,
+      enable_tribo: true,
     });
   };
 
@@ -124,6 +137,12 @@ export default function AdminCompanies() {
         contact_person: company.contact_person || "",
         email: company.email || "",
         phone: company.phone || "",
+        enable_demip: company.enable_demip !== false,
+        enable_maintenance: company.enable_maintenance !== false,
+        enable_parts: company.enable_parts !== false,
+        enable_vibration: company.enable_vibration !== false,
+        enable_thermo: company.enable_thermo !== false,
+        enable_tribo: company.enable_tribo !== false,
       });
     } else {
       setEditingCompany(null);
@@ -341,6 +360,63 @@ export default function AdminCompanies() {
                     }
                     placeholder="+420 123 456 789"
                   />
+                </div>
+              </div>
+
+              <div className="border p-4 rounded-lg bg-slate-50 space-y-4">
+                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4" />
+                    Aktivní moduly
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_demip" 
+                            checked={formData.enable_demip}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_demip: checked})}
+                        />
+                        <Label htmlFor="enable_demip" className="cursor-pointer">DEMIP (Kontrolní body)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_maintenance" 
+                            checked={formData.enable_maintenance}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_maintenance: checked})}
+                        />
+                        <Label htmlFor="enable_maintenance" className="cursor-pointer">Údržba</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_parts" 
+                            checked={formData.enable_parts}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_parts: checked})}
+                        />
+                        <Label htmlFor="enable_parts" className="cursor-pointer">Náhradní díly</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_vibration" 
+                            checked={formData.enable_vibration}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_vibration: checked})}
+                        />
+                        <Label htmlFor="enable_vibration" className="cursor-pointer">Vibrodiagnostika</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_thermo" 
+                            checked={formData.enable_thermo}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_thermo: checked})}
+                        />
+                        <Label htmlFor="enable_thermo" className="cursor-pointer">Termodiagnostika</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_tribo" 
+                            checked={formData.enable_tribo}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_tribo: checked})}
+                        />
+                        <Label htmlFor="enable_tribo" className="cursor-pointer">Tribodiagnostika</Label>
+                    </div>
                 </div>
               </div>
             </div>
