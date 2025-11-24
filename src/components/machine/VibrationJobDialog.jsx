@@ -139,6 +139,11 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
             recommendation: job.recommendation || "",
             conclusion: job.conclusion || ""
         });
+        // Reset readings and visibility for edit mode to ensure we load fresh data from existingReadings
+        // and don't show stale data from previous "New" session or previous edit
+        setReadings({});
+        setRowVisibility({});
+        hasPopulatedRef.current = false;
     } else {
         // Reset first
         setFormData({
