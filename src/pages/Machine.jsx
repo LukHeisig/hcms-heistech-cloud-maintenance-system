@@ -45,6 +45,8 @@ import {
 } from "lucide-react";
 import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
 import VibrationCard from "@/components/machine/VibrationCard";
+import ThermoJobDialog from "@/components/machine/ThermoJobDialog";
+import ThermoCard from "@/components/machine/ThermoCard";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -110,6 +112,8 @@ export default function Machine() {
   const [showCompleteMaintenanceDialog, setShowCompleteMaintenanceDialog] = useState(false);
   const [showVibrationDialog, setShowVibrationDialog] = useState(false);
   const [editingVibrationJob, setEditingVibrationJob] = useState(null);
+  const [showThermoDialog, setShowThermoDialog] = useState(false);
+  const [editingThermoJob, setEditingThermoJob] = useState(null);
   const [selectedPlannedTask, setSelectedPlannedTask] = useState(null);
   const [plannedMaintenanceForm, setPlannedMaintenanceForm] = useState({
     title: "",
@@ -262,6 +266,12 @@ export default function Machine() {
   const { data: vibrationJobs = [] } = useQuery({
     queryKey: ["vibrationJobs", machineId],
     queryFn: () => base44.entities.VibrationJob.filter({ machine_id: machineId }, "-date"),
+    enabled: !!machineId
+  });
+
+  const { data: thermoJobs = [] } = useQuery({
+    queryKey: ["thermoJobs", machineId],
+    queryFn: () => base44.entities.ThermoJob.filter({ machine_id: machineId }, "-measurement_date"),
     enabled: !!machineId
   });
 
@@ -418,7 +428,7 @@ export default function Machine() {
   const showMaintenance = company?.enable_maintenance !== false && (maintenanceRecords.length > 0 || plannedMaintenance.length > 0);
   const showParts = company?.enable_parts !== false && spareParts.length > 0;
   const showVibration = company?.enable_vibration !== false && (machine?.monitor_vibration || vibrationMeasurements.length > 0 || vibrationJobs.length > 0);
-  const showThermo = company?.enable_thermo !== false && machine?.monitor_thermo;
+  const showThermo = company?.enable_thermo !== false && (machine?.monitor_thermo || thermoJobs.length > 0);
   const showTribo = company?.enable_tribo !== false && machine?.monitor_tribo;
 
   const maintenanceTypeData = [
@@ -2169,14 +2179,22 @@ export default function Machine() {
             </Card>
           </TabsContent>
 
-          {/* Termodiagnostika Placeholder */}
+          {/* Termodiagnostika */}
           <TabsContent value="thermo" className="space-y-6">
-            <Card>
-                <CardContent className="p-12 text-center">
-                    <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500">Modul Termodiagnostika je aktivní, ale zatím nejsou data.</p>
-                </CardContent>
-            </Card>
+             <div className="flex justify-end mb-4">
+                 <Button 
+                     onClick={() => { setEditingThermoJob(null); setShowThermoDialog(true); }} 
+                     className="bg-orange-600 hover:bg-orange-700"
+                 >
+                     <Plus className="w-4 h-4 mr-2" /> Nové měření
+                 </Button>
+             </div>
+             
+             <ThermoCard 
+                machine={machine} 
+                jobs={thermoJobs} 
+                onEdit={(job) => { setEditingThermoJob(job); setShowThermoDialog(true); }}
+             />
           </TabsContent>
 
           {/* Tribodiagnostika Placeholder */}
@@ -2670,6 +2688,13 @@ export default function Machine() {
           onOpenChange={setShowVibrationDialog} 
           machine={machine} 
           job={editingVibrationJob} 
+        />
+
+        <ThermoJobDialog 
+          open={showThermoDialog} 
+          onOpenChange={setShowThermoDialog} 
+          machine={machine} 
+          job={editingThermoJob} 
         />
       </div>
     </div>

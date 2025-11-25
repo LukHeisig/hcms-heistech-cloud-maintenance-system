@@ -34,6 +34,26 @@ export default function Settings() {
             </CardContent>
           </Card>
 
+          {/* Termodiagnostika */}
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-orange-500"
+            onClick={() => navigate(createPageUrl("AdminThermo"))}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-slate-800">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <Activity className="w-6 h-6 text-orange-600" />
+                </div>
+                Termodiagnostika
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600">
+                Nastavení výchozích hodnot pro termodiagnostiku (diagnostik, kamera, kalibrace).
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Placeholder pro další nastavení */}
           <Card className="opacity-60 border-dashed border-2">
             <CardHeader>
