@@ -76,16 +76,33 @@ export default function AdminThermo() {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
+      // Clean data - remove empty strings for date fields and optional fields to avoid validation errors
+      const cleanData = { ...data };
+      
+      if (!cleanData.calibration_date) {
+        delete cleanData.calibration_date;
+      }
+      
+      // Clean other optional fields if they are empty strings, just in case
+      if (cleanData.diagnostician_name === "") delete cleanData.diagnostician_name;
+      if (cleanData.diagnostician_qualification === "") delete cleanData.diagnostician_qualification;
+      if (cleanData.camera_model === "") delete cleanData.camera_model;
+      if (cleanData.camera_manufacturer === "") delete cleanData.camera_manufacturer;
+
       if (settings) {
-        return base44.entities.ThermoSettings.update(settings.id, data);
+        return base44.entities.ThermoSettings.update(settings.id, cleanData);
       } else {
-        return base44.entities.ThermoSettings.create({ ...data, company_id: selectedCompanyId });
+        return base44.entities.ThermoSettings.create({ ...cleanData, company_id: selectedCompanyId });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["thermoSettings"] });
       alert("Nastavení uloženo");
     },
+    onError: (error) => {
+      console.error("Chyba při ukládání nastavení:", error);
+      alert("Nepodařilo se uložit nastavení: " + (error.message || "Neznámá chyba"));
+    }
   });
 
   const handleSave = () => {
