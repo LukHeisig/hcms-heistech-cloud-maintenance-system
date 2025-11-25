@@ -56,31 +56,71 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
     enabled: !!job
   });
 
+  // Reset form when opening or changing job
   useEffect(() => {
-    if (job) {
-      setFormData({
-        measurement_date: job.measurement_date,
-        evaluation_date: job.evaluation_date || new Date().toISOString().split('T')[0],
-        diagnostician_name: job.diagnostician_name || "",
-        diagnostician_qualification: job.diagnostician_qualification || "",
-        camera_model: job.camera_model || "",
-        camera_manufacturer: job.camera_manufacturer || "",
-        calibration_date: job.calibration_date || "",
-        description: job.description || "",
-        conclusion: job.conclusion || ""
-      });
-    } else if (open && settings) {
-      // Pre-fill from settings for new job
-      setFormData(prev => ({
-        ...prev,
-        diagnostician_name: settings.diagnostician_name || "",
-        diagnostician_qualification: settings.diagnostician_qualification || "",
-        camera_model: settings.camera_model || "",
-        camera_manufacturer: settings.camera_manufacturer || "",
-        calibration_date: settings.calibration_date || "",
-      }));
+    if (open) {
+      if (job) {
+        setFormData({
+          measurement_date: job.measurement_date,
+          evaluation_date: job.evaluation_date || new Date().toISOString().split('T')[0],
+          diagnostician_name: job.diagnostician_name || "",
+          diagnostician_qualification: job.diagnostician_qualification || "",
+          camera_model: job.camera_model || "",
+          camera_manufacturer: job.camera_manufacturer || "",
+          calibration_date: job.calibration_date || "",
+          description: job.description || "",
+          conclusion: job.conclusion || ""
+        });
+      } else {
+        // Default values for new job
+        setFormData({
+          measurement_date: new Date().toISOString().split('T')[0],
+          evaluation_date: new Date().toISOString().split('T')[0],
+          diagnostician_name: "",
+          diagnostician_qualification: "",
+          camera_model: "",
+          camera_manufacturer: "",
+          calibration_date: "",
+          description: "",
+          conclusion: ""
+        });
+      }
     }
-  }, [job, settings, open]);
+  }, [open, job]);
+
+  // Apply settings to new job (only if fields are empty to avoid overwriting user input)
+  useEffect(() => {
+    if (open && !job && settings) {
+      setFormData(prev => {
+        // Only update if values are actually different and empty in current form
+        const newData = { ...prev };
+        let changed = false;
+
+        if (!prev.diagnostician_name && settings.diagnostician_name) {
+          newData.diagnostician_name = settings.diagnostician_name;
+          changed = true;
+        }
+        if (!prev.diagnostician_qualification && settings.diagnostician_qualification) {
+          newData.diagnostician_qualification = settings.diagnostician_qualification;
+          changed = true;
+        }
+        if (!prev.camera_model && settings.camera_model) {
+          newData.camera_model = settings.camera_model;
+          changed = true;
+        }
+        if (!prev.camera_manufacturer && settings.camera_manufacturer) {
+          newData.camera_manufacturer = settings.camera_manufacturer;
+          changed = true;
+        }
+        if (!prev.calibration_date && settings.calibration_date) {
+          newData.calibration_date = settings.calibration_date;
+          changed = true;
+        }
+
+        return changed ? newData : prev;
+      });
+    }
+  }, [open, job, settings]);
 
   useEffect(() => {
     if (existingImages.length > 0) {
