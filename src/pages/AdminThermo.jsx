@@ -142,9 +142,8 @@ export default function AdminThermo() {
       toast({
         title: "Nastavení uloženo",
         description: "Změny v nastavení termodiagnostiky byly úspěšně uloženy.",
-        variant: "success",
         className: "bg-green-50 border-green-200 text-green-900",
-        duration: 3000,
+        duration: 2000,
       });
     },
     onError: (error) => {
