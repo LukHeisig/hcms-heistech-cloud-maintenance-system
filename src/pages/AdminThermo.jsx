@@ -9,9 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Save, ArrowLeft, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useToast } from "@/components/ui/use-toast";
+import { format } from "date-fns";
 
 export default function AdminThermo() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [formData, setFormData] = useState({
@@ -52,18 +55,32 @@ export default function AdminThermo() {
       return res[0] || null;
     },
     enabled: !!selectedCompanyId,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
     if (settings) {
+      let formattedDate = "";
+      if (settings.calibration_date) {
+        try {
+          formattedDate = format(new Date(settings.calibration_date), 'yyyy-MM-dd');
+        } catch (e) {
+          console.error("Invalid date format:", settings.calibration_date);
+          formattedDate = settings.calibration_date; // Fallback
+        }
+      }
+
       setFormData({
         diagnostician_name: settings.diagnostician_name || "",
         diagnostician_qualification: settings.diagnostician_qualification || "",
         camera_model: settings.camera_model || "",
         camera_manufacturer: settings.camera_manufacturer || "",
-        calibration_date: settings.calibration_date || "",
+        calibration_date: formattedDate,
       });
     } else {
+      // Only reset if we don't have settings (and not just loading)
+      // But here we rely on 'settings' being the source of truth.
+      // If we switched companies, we want to reset.
       setFormData({
         diagnostician_name: "",
         diagnostician_qualification: "",
@@ -97,11 +114,20 @@ export default function AdminThermo() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["thermoSettings"] });
-      alert("Nastavení uloženo");
+      toast({
+        title: "Nastavení uloženo",
+        description: "Změny v nastavení termodiagnostiky byly úspěšně uloženy.",
+        variant: "success", // Using standard variant or 'default' with green styling if available, or just rely on title
+        className: "bg-green-50 border-green-200 text-green-900",
+      });
     },
     onError: (error) => {
       console.error("Chyba při ukládání nastavení:", error);
-      alert("Nepodařilo se uložit nastavení: " + (error.message || "Neznámá chyba"));
+      toast({
+        title: "Chyba při ukládání",
+        description: "Nepodařilo se uložit nastavení: " + (error.message || "Neznámá chyba"),
+        variant: "destructive",
+      });
     }
   });
 
