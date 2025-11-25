@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -64,10 +63,8 @@ export default function Users() {
     queryFn: () => base44.entities.User.list("-created_date"),
   });
 
-  const { data: customers = [] } = useQuery({
-    queryKey: ["customers"],
-    queryFn: () => base44.entities.Customer.list(),
-  });
+  // Customer entity removed as it is not used/defined
+  const customers = [];
 
   const { data: allCompanies = [] } = useQuery({
     queryKey: ["companies"],
@@ -180,10 +177,7 @@ export default function Users() {
     }
   };
 
-  const getCustomerName = (customerId) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.name || "-";
-  };
+  // getCustomerName removed
 
   const getCompanyName = (companyId) => {
     if (!companyId) return "Není přiřazen";

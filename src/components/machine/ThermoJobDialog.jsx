@@ -34,7 +34,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
     queryFn: async () => {
         if (!machine?.line_id) return null;
         const lines = await base44.entities.Line.filter({ id: machine.line_id });
-        return lines[0];
+        return lines[0] || null;
     },
     enabled: !!machine?.line_id
   });
@@ -44,7 +44,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
     queryFn: async () => {
         if (!line?.company_id) return null;
         const s = await base44.entities.ThermoSettings.filter({ company_id: line.company_id });
-        return s[0];
+        return s[0] || null;
     },
     enabled: !!line?.company_id && !job
   });
