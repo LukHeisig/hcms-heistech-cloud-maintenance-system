@@ -90,6 +90,8 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
           description: "",
           conclusion: ""
         });
+        // Clear images for new job
+        setImages([]);
       }
     }
   }, [open, job]);
@@ -114,8 +116,6 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
     if (job && existingImages.length > 0) {
         // Check if we really need to update to avoid loop
         setImages(current => {
-             // Simple check: if length is different or first ID is different, update.
-             // This is a basic heuristic to prevent infinite loops if object refs change but content is same.
              const newImagesMapped = existingImages.map(img => ({
                 id: img.id,
                 url: img.image_url,
@@ -125,7 +125,6 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
              if (current.length !== newImagesMapped.length) return newImagesMapped;
              if (current.length > 0 && newImagesMapped.length > 0 && current[0].id !== newImagesMapped[0].id) return newImagesMapped;
              
-             // If exact deep check needed:
              const isDifferent = newImagesMapped.some((img, i) => 
                 img.id !== current[i].id || 
                 img.url !== current[i].url || 
@@ -134,11 +133,10 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
              
              return isDifferent ? newImagesMapped : current;
         });
-    } else if (!job && open) {
-       // Only clear if not already empty (prevent loop if [] !== [])
-       setImages(prev => prev.length === 0 ? prev : []);
     }
-  }, [existingImages, job, open]);
+    // Note: we removed the else block that clears images for !job because it was interfering with uploads.
+    // Clearing for new job is now handled in the 'open' effect above.
+  }, [existingImages, job]);
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
