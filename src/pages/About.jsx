@@ -14,7 +14,9 @@ import {
   Bell,
   FileText,
   Settings,
-  ArrowRight
+  ArrowRight,
+  Activity,
+  Thermometer
 } from "lucide-react";
 
 export default function About() {
@@ -178,6 +180,30 @@ export default function About() {
               </div>
 
               <div className="text-center p-4">
+                <div className="w-16 h-16 bg-rose-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Activity className="w-8 h-8 text-rose-600" />
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-2">
+                  Vibrodiagnostika
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Měření a analýza vibrací strojů, sledování trendů a odhalování závad ložisek.
+                </p>
+              </div>
+
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Thermometer className="w-8 h-8 text-amber-600" />
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-2">
+                  Termodiagnostika
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Bezkontaktní měření teplot a vyhodnocování termogramů pro prevenci přehřívání.
+                </p>
+              </div>
+
+              <div className="text-center p-4">
                 <div className="w-16 h-16 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <LineChart className="w-8 h-8 text-orange-600" />
                 </div>
@@ -316,7 +342,7 @@ export default function About() {
             </div>
             <div className="mt-6 pt-6 border-t border-blue-400">
               <p className="text-xs text-blue-200">
-                HCMS v1.0 | © 2024 Heistech s.r.o. | Vyvinuto na platformě Base44
+                HCMS v1.2 | © 2025 Heistech s.r.o. | Vyvinuto na platformě Base44
               </p>
             </div>
           </CardContent>
