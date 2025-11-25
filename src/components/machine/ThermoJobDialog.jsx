@@ -56,9 +56,13 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
     enabled: !!job
   });
 
+  const settingsAppliedRef = useRef(false);
+
   // Reset form when opening or changing job
   useEffect(() => {
     if (open) {
+      settingsAppliedRef.current = false; // Reset flag on open
+      
       if (job) {
         setFormData({
           measurement_date: job.measurement_date,
@@ -88,51 +92,51 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
     }
   }, [open, job]);
 
-  // Apply settings to new job (only if fields are empty to avoid overwriting user input)
+  // Apply settings to new job (one-time)
   useEffect(() => {
-    if (open && !job && settings) {
-      setFormData(prev => {
-        // Only update if values are actually different and empty in current form
-        const newData = { ...prev };
-        let changed = false;
-
-        if (!prev.diagnostician_name && settings.diagnostician_name) {
-          newData.diagnostician_name = settings.diagnostician_name;
-          changed = true;
-        }
-        if (!prev.diagnostician_qualification && settings.diagnostician_qualification) {
-          newData.diagnostician_qualification = settings.diagnostician_qualification;
-          changed = true;
-        }
-        if (!prev.camera_model && settings.camera_model) {
-          newData.camera_model = settings.camera_model;
-          changed = true;
-        }
-        if (!prev.camera_manufacturer && settings.camera_manufacturer) {
-          newData.camera_manufacturer = settings.camera_manufacturer;
-          changed = true;
-        }
-        if (!prev.calibration_date && settings.calibration_date) {
-          newData.calibration_date = settings.calibration_date;
-          changed = true;
-        }
-
-        return changed ? newData : prev;
-      });
+    if (open && !job && settings && !settingsAppliedRef.current) {
+      setFormData(prev => ({
+        ...prev,
+        diagnostician_name: settings.diagnostician_name || prev.diagnostician_name,
+        diagnostician_qualification: settings.diagnostician_qualification || prev.diagnostician_qualification,
+        camera_model: settings.camera_model || prev.camera_model,
+        camera_manufacturer: settings.camera_manufacturer || prev.camera_manufacturer,
+        calibration_date: settings.calibration_date || prev.calibration_date,
+      }));
+      settingsAppliedRef.current = true;
     }
   }, [open, job, settings]);
 
+  // Sync images only when existingImages changes deeply or job changes
   useEffect(() => {
-    if (existingImages.length > 0) {
-      setImages(existingImages.map(img => ({
-        id: img.id,
-        url: img.image_url,
-        description: img.description
-      })));
-    } else if (!job) {
-      setImages([]);
+    if (job && existingImages.length > 0) {
+        // Check if we really need to update to avoid loop
+        setImages(current => {
+             // Simple check: if length is different or first ID is different, update.
+             // This is a basic heuristic to prevent infinite loops if object refs change but content is same.
+             const newImagesMapped = existingImages.map(img => ({
+                id: img.id,
+                url: img.image_url,
+                description: img.description
+              }));
+              
+             if (current.length !== newImagesMapped.length) return newImagesMapped;
+             if (current.length > 0 && newImagesMapped.length > 0 && current[0].id !== newImagesMapped[0].id) return newImagesMapped;
+             
+             // If exact deep check needed:
+             const isDifferent = newImagesMapped.some((img, i) => 
+                img.id !== current[i].id || 
+                img.url !== current[i].url || 
+                img.description !== current[i].description
+             );
+             
+             return isDifferent ? newImagesMapped : current;
+        });
+    } else if (!job && open) {
+       // Only clear if not already empty (prevent loop if [] !== [])
+       setImages(prev => prev.length === 0 ? prev : []);
     }
-  }, [existingImages, job]);
+  }, [existingImages, job, open]);
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
