@@ -23,6 +23,7 @@ export default function AdminThermo() {
     camera_model: "",
     camera_manufacturer: "",
     calibration_date: "",
+    technicians: [],
   });
 
   const { data: user } = useQuery({
@@ -76,20 +77,44 @@ export default function AdminThermo() {
         camera_model: settings.camera_model || "",
         camera_manufacturer: settings.camera_manufacturer || "",
         calibration_date: formattedDate,
+        technicians: settings.technicians || [],
       });
     } else {
-      // Only reset if we don't have settings (and not just loading)
-      // But here we rely on 'settings' being the source of truth.
-      // If we switched companies, we want to reset.
       setFormData({
         diagnostician_name: "",
         diagnostician_qualification: "",
         camera_model: "",
         camera_manufacturer: "",
         calibration_date: "",
+        technicians: [],
       });
     }
   }, [settings, selectedCompanyId]);
+
+  const addTechnician = () => {
+    setFormData({
+      ...formData,
+      technicians: [...(formData.technicians || []), { name: "", qualification: "" }]
+    });
+  };
+
+  const removeTechnician = (index) => {
+    const newTechnicians = [...(formData.technicians || [])];
+    newTechnicians.splice(index, 1);
+    setFormData({
+      ...formData,
+      technicians: newTechnicians
+    });
+  };
+
+  const updateTechnician = (index, field, value) => {
+    const newTechnicians = [...(formData.technicians || [])];
+    newTechnicians[index] = { ...newTechnicians[index], [field]: value };
+    setFormData({
+      ...formData,
+      technicians: newTechnicians
+    });
+  };
 
   const mutation = useMutation({
     mutationFn: async (data) => {
@@ -117,8 +142,9 @@ export default function AdminThermo() {
       toast({
         title: "Nastavení uloženo",
         description: "Změny v nastavení termodiagnostiky byly úspěšně uloženy.",
-        variant: "success", // Using standard variant or 'default' with green styling if available, or just rely on title
+        variant: "success",
         className: "bg-green-50 border-green-200 text-green-900",
+        duration: 3000,
       });
     },
     onError: (error) => {
@@ -210,6 +236,53 @@ export default function AdminThermo() {
                   value={formData.calibration_date} 
                   onChange={e => setFormData({...formData, calibration_date: e.target.value})} 
                 />
+              </div>
+            </div>
+
+            <div className="border-t pt-6 mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Seznam techniků</h3>
+                <Button type="button" variant="outline" size="sm" onClick={addTechnician}>
+                  + Přidat technika
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {formData.technicians?.map((tech, index) => (
+                  <div key={index} className="flex gap-3 items-end p-3 bg-slate-50 rounded-lg border">
+                    <div className="flex-1">
+                      <Label className="text-xs mb-1 block">Jméno</Label>
+                      <Input 
+                        value={tech.name} 
+                        onChange={(e) => updateTechnician(index, "name", e.target.value)}
+                        placeholder="Jméno technika"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-xs mb-1 block">Kvalifikace</Label>
+                      <Input 
+                        value={tech.qualification} 
+                        onChange={(e) => updateTechnician(index, "qualification", e.target.value)}
+                        placeholder="Kvalifikace"
+                        className="h-9"
+                      />
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      size="icon" 
+                      className="h-9 w-9 flex-shrink-0"
+                      onClick={() => removeTechnician(index)}
+                    >
+                      <Loader2 className="h-4 w-4 hidden" /> 
+                      <span className="text-lg">×</span>
+                    </Button>
+                  </div>
+                ))}
+                {(!formData.technicians || formData.technicians.length === 0) && (
+                  <p className="text-sm text-slate-500 italic text-center py-4">Zatím žádní technici v seznamu.</p>
+                )}
               </div>
             </div>
 

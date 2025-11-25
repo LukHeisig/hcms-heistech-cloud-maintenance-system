@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Upload, X, Image as ImageIcon, Thermometer } from "lucide-react";
 import { format } from "date-fns";
 
@@ -50,7 +51,8 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
   });
 
   // Load existing images if editing
-  const { data: existingImages = [] } = useQuery({
+  const EMPTY_ARRAY = [];
+  const { data: existingImages = EMPTY_ARRAY } = useQuery({
     queryKey: ["thermoImages", job?.id],
     queryFn: () => job ? base44.entities.ThermoImage.filter({ job_id: job.id }, "order_index") : [],
     enabled: !!job
@@ -269,13 +271,56 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
             <div className="p-4 bg-slate-50 rounded-lg border space-y-3">
               <h4 className="font-semibold text-sm text-slate-700">Diagnostik a vybavení</h4>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Jméno</Label>
-                  <Input className="h-8 text-sm" value={formData.diagnostician_name} onChange={e => setFormData({...formData, diagnostician_name: e.target.value})} />
-                </div>
-                <div>
-                  <Label className="text-xs">Kvalifikace</Label>
-                  <Input className="h-8 text-sm" value={formData.diagnostician_qualification} onChange={e => setFormData({...formData, diagnostician_qualification: e.target.value})} />
+                <div className="col-span-2">
+                  <Label className="text-xs">Technik</Label>
+                  {settings?.technicians && settings.technicians.length > 0 ? (
+                    <div className="flex gap-2">
+                      <Select 
+                        value="select" 
+                        onValueChange={(idx) => {
+                           if (idx === "custom") return;
+                           const tech = settings.technicians[parseInt(idx)];
+                           if (tech) {
+                             setFormData({
+                               ...formData,
+                               diagnostician_name: tech.name,
+                               diagnostician_qualification: tech.qualification
+                             });
+                           }
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-sm mb-2">
+                          <SelectValue placeholder="Vybrat ze seznamu..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {settings.technicians.map((tech, idx) => (
+                            <SelectItem key={idx} value={idx.toString()}>
+                              {tech.name} ({tech.qualification})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                        <Input 
+                           className="h-8 text-sm" 
+                           value={formData.diagnostician_name} 
+                           onChange={e => setFormData({...formData, diagnostician_name: e.target.value})} 
+                           placeholder="Jméno"
+                        />
+                     </div>
+                     <div>
+                        <Input 
+                           className="h-8 text-sm" 
+                           value={formData.diagnostician_qualification} 
+                           onChange={e => setFormData({...formData, diagnostician_qualification: e.target.value})} 
+                           placeholder="Kvalifikace"
+                        />
+                     </div>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs">Kamera Model</Label>
