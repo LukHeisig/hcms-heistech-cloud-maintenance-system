@@ -301,37 +301,80 @@ export default function About() {
           </CardHeader>
           <CardContent>
             <p className="text-slate-600 mb-6">
-              Bezpečnost vašich dat je pro nás prioritou. HCMS využívá nejmodernější standardy pro zajištění ochrany informací a integrity dat.
+              Bezpečnost vašich dat a spolehlivost systému jsou základními pilíři HCMS. Využíváme robustní bezpečnostní opatření pro zajištění maximální ochrany, dostupnosti a integrity vašich informací.
             </p>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <Lock className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-slate-900">Šifrování dat</h3>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Veškerá komunikace je šifrována protokolem HTTPS (TLS 1.2+). Citlivá data jsou šifrována i v databázi (AES-256).
-                </p>
+            
+            <div className="grid gap-6">
+              {/* Šifrování a Ochrana dat */}
+              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 hover:shadow-sm transition-shadow">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Lock className="w-5 h-5 text-blue-600" />
+                  </div>
+                  Šifrování a Ochrana dat
+                </h3>
+                <ul className="space-y-3 text-sm text-slate-600">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                    <span><strong>Šifrování při přenosu (Data in Transit):</strong> Veškerá komunikace mezi vaším zařízením a našimi servery je šifrována pomocí protokolu TLS 1.3 (HTTPS). To zajišťuje, že data nemohou být během přenosu odposlechnuta ani modifikována.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                    <span><strong>Šifrování v klidu (Data at Rest):</strong> Vaše data jsou v databázi uložena na šifrovaných discích (AES-256). Citlivé údaje, jako jsou hesla, jsou hashována pomocí silných kryptografických algoritmů a nejsou nikdy ukládána v čitelné podobě.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                    <span><strong>Izolace dat (Multitenancy):</strong> Architektura systému zajišťuje striktní logické oddělení dat jednotlivých zákazníků. Každý požadavek na data je validován proti oprávnění uživatele a jeho příslušnosti k podniku.</span>
+                  </li>
+                </ul>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <ShieldCheck className="w-5 h-5 text-green-600" />
-                  <h3 className="font-semibold text-slate-900">Bezpečná infrastruktura</h3>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Hostováno na zabezpečené cloudové platformě Base44 s ochranou proti DDoS útokům a pravidelnými bezpečnostními aktualizacemi.
-                </p>
+              {/* Řízení přístupu a Audit */}
+              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 hover:shadow-sm transition-shadow">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <ShieldCheck className="w-5 h-5 text-green-600" />
+                  </div>
+                  Řízení přístupu a Audit
+                </h3>
+                <ul className="space-y-3 text-sm text-slate-600">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                    <span><strong>Role-Based Access Control (RBAC):</strong> Pokročilý systém rolí (Technik, Manager, Admin, SuperAdmin) zajišťuje princip nejnižších nutných oprávnění. Uživatelé mají přístup pouze k funkcím a datům nezbytným pro jejich práci.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                    <span><strong>Komplexní Audit Log:</strong> Systém zaznamenává detailní historii aktivit (kdo, co, kdy, odkud). Zaznamenávají se přihlášení, změny v konfiguraci, úpravy dat i přístupy k citlivým informacím, což umožňuje zpětnou kontrolu a compliance.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                    <span><strong>Bezpečná autentizace:</strong> Využíváme moderní autentizační standardy s ochranou proti běžným útokům (Brute-force, Session hijacking). Relace jsou spravovány pomocí bezpečných HTTP-only cookies.</span>
+                  </li>
+                </ul>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <Database className="w-5 h-5 text-purple-600" />
-                  <h3 className="font-semibold text-slate-900">Zálohování</h3>
+              {/* Infrastruktura a Dostupnost */}
+              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 hover:shadow-sm transition-shadow">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Database className="w-5 h-5 text-purple-600" />
+                  </div>
+                  Infrastruktura a Spolehlivost
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Cloudová bezpečnost</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Aplikace je hostována v zabezpečeném cloudovém prostředí s certifikací ISO 27001 a SOC 2. Infrastruktura je chráněna firewally, systémy detekce průniků (IDS/IPS) a ochranou proti DDoS útokům na vrstvě sítě i aplikace.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-2">Zálohování a Disaster Recovery</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Provádíme automatické denní zálohy dat s retencí 30 dní. Zálohy jsou šifrovány a replikovány do geograficky oddělených datových center, což zajišťuje obnovitelnost dat i v případě rozsáhlého výpadku primární lokality.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-slate-600">
-                  Automatické denní zálohování dat s georedundancí pro zajištění maximální dostupnosti a prevenci ztráty dat.
-                </p>
               </div>
             </div>
           </CardContent>
