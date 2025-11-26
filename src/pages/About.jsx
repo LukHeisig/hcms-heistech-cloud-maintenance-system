@@ -16,7 +16,10 @@ import {
   Settings,
   ArrowRight,
   Activity,
-  Thermometer
+  Thermometer,
+  Lock,
+  ShieldCheck,
+  Database
 } from "lucide-react";
 
 export default function About() {
@@ -283,6 +286,52 @@ export default function About() {
                     Během několika hodin můžete mít systém plně nakonfigurovaný a připravený k použití.
                   </p>
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bezpečnost */}
+        <Card className="mb-8 border-2 border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-3">
+              <ShieldCheck className="w-8 h-8 text-green-600" />
+              Kybernetická bezpečnost a ochrana dat
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-slate-600 mb-6">
+              Bezpečnost vašich dat je pro nás prioritou. HCMS využívá nejmodernější standardy pro zajištění ochrany informací a integrity dat.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <Lock className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-semibold text-slate-900">Šifrování dat</h3>
+                </div>
+                <p className="text-sm text-slate-600">
+                  Veškerá komunikace je šifrována protokolem HTTPS (TLS 1.2+). Citlivá data jsou šifrována i v databázi (AES-256).
+                </p>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <ShieldCheck className="w-5 h-5 text-green-600" />
+                  <h3 className="font-semibold text-slate-900">Bezpečná infrastruktura</h3>
+                </div>
+                <p className="text-sm text-slate-600">
+                  Hostováno na zabezpečené cloudové platformě Base44 s ochranou proti DDoS útokům a pravidelnými bezpečnostními aktualizacemi.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <Database className="w-5 h-5 text-purple-600" />
+                  <h3 className="font-semibold text-slate-900">Zálohování</h3>
+                </div>
+                <p className="text-sm text-slate-600">
+                  Automatické denní zálohování dat s georedundancí pro zajištění maximální dostupnosti a prevenci ztráty dat.
+                </p>
               </div>
             </div>
           </CardContent>
