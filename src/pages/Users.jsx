@@ -225,8 +225,8 @@ export default function Users() {
           </div>
         </div>
 
-        {/* Návod pro přidání uživatelů - pouze pro superAdminy */}
-        {currentUser?.user_type === "superAdmin" && (
+        {/* Návod pro přidání uživatelů */}
+        {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin") && (
           <Card className="mb-6 border-blue-200 bg-blue-50">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">

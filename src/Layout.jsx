@@ -204,12 +204,12 @@ function LayoutContent({ children }) {
           },
         ]
       : []),
-    ...(user?.user_type === "superAdmin"
+    ...(user?.user_type === "superAdmin" || user?.user_type === "admin"
       ? [
           {
             title: "Administrace",
             url: createPageUrl("Admin"),
-            icon: Building2, // Changed icon to avoid conflict or better represent Admin
+            icon: Building2,
           },
           {
             title: "Uživatelé",

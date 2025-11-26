@@ -31,22 +31,33 @@ export default function AdminThermo() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: companies = [] } = useQuery({
+  const { data: allCompanies = [] } = useQuery({
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list("name"),
     enabled: !!user,
   });
 
+  const companies = React.useMemo(() => {
+    if (!user) return [];
+    if (user.user_type === "superAdmin") return allCompanies;
+    if (user.user_type === "admin") {
+      return allCompanies.filter(c => user.assigned_company_ids?.includes(c.id));
+    }
+    return [];
+  }, [allCompanies, user]);
+
   // Determine which company to edit
   useEffect(() => {
-    if (user) {
-      if (user.company_id) {
+    if (user && companies.length > 0 && !selectedCompanyId) {
+      // If user has a primary company_id and it's in the list, use it
+      if (user.company_id && companies.some(c => c.id === user.company_id)) {
         setSelectedCompanyId(user.company_id);
-      } else if (companies.length > 0 && !selectedCompanyId) {
+      } else {
+        // Otherwise select the first available company
         setSelectedCompanyId(companies[0].id);
       }
     }
-  }, [user, companies]);
+  }, [user, companies, selectedCompanyId]);
 
   const { data: settings } = useQuery({
     queryKey: ["thermoSettings", selectedCompanyId],
@@ -163,7 +174,7 @@ export default function AdminThermo() {
 
   if (!user) return null;
 
-  const canSelectCompany = user.user_type === "superAdmin";
+  const canSelectCompany = user.user_type === "superAdmin" || (user.user_type === "admin" && companies.length > 0);
 
   return (
     <div className="p-4 md:p-8 bg-slate-50 min-h-screen">

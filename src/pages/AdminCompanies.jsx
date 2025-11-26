@@ -264,7 +264,7 @@ export default function AdminCompanies() {
                           Linky
                           <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
-                        {currentUser?.user_type === "superAdmin" && (
+                        {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin") && (
                           <>
                             <Button
                               variant="ghost"
