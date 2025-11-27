@@ -216,14 +216,31 @@ export default function ControlPoint() {
   });
 
   const getPointStatus = () => {
-    if (records.length === 0) return "overdue";
+    const vizType = company?.overdue_visualization_type || "two_colors";
+    const tolerance = company?.overdue_tolerance_percent || 4;
+    const interval = point?.interval_hours || 0;
+
+    if (records.length === 0) {
+         return vizType === "traffic_light" ? "critical" : "warning";
+    }
 
     const latestRecord = records[0];
     const lastPerformed = new Date(latestRecord.performed_at);
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
-    return hoursSince > (point?.interval_hours || 0) ? "overdue" : "ok";
+    if (hoursSince <= interval) return "ok";
+
+    if (vizType === "two_colors") {
+        return "warning";
+    } else {
+        const overduePercent = ((hoursSince - interval) / interval) * 100;
+        if (overduePercent <= tolerance) {
+            return "warning";
+        } else {
+            return "critical";
+        }
+    }
   };
 
   const getNextControlDate = () => {
@@ -372,7 +389,9 @@ export default function ControlPoint() {
             <div className="flex items-start gap-6">
               <div
                 className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
-                  status === "overdue" 
+                  status === "critical"
+                    ? "bg-gradient-to-br from-red-500 to-red-600"
+                    : status === "warning" || status === "overdue" 
                     ? "bg-gradient-to-br from-yellow-500 to-yellow-600" 
                     : "bg-gradient-to-br from-green-500 to-green-600"
                 }`}
@@ -389,13 +408,22 @@ export default function ControlPoint() {
                     {point.number && `${point.number} - `}
                     {point.name}
                   </h1>
-                  {status === "overdue" && (
+                  {(status === "warning" || status === "overdue") && (
                     <Badge
                       variant="outline"
                       className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300"
                     >
                       <Clock className="w-3 h-3" />
                       Po termínu
+                    </Badge>
+                  )}
+                  {status === "critical" && (
+                    <Badge
+                      variant="outline"
+                      className="gap-1 bg-red-100 text-red-800 border-red-300"
+                    >
+                      <Clock className="w-3 h-3" />
+                      KRITICKÉ
                     </Badge>
                   )}
                   {status === "ok" && (
@@ -541,12 +569,17 @@ export default function ControlPoint() {
                             : "Následující mazání"}
                         </p>
                         <p className={`text-lg font-semibold ${
-                          status === "overdue" ? "text-yellow-700" : "text-slate-900"
+                          status === "critical" ? "text-red-700" : (status === "warning" || status === "overdue" ? "text-yellow-700" : "text-slate-900")
                         }`}>
                           {format(nextDate, "d. M. yyyy", { locale: cs })}
-                          {status === "overdue" && (
+                          {(status === "warning" || status === "overdue") && (
                             <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-300">
                               Po termínu
+                            </Badge>
+                          )}
+                          {status === "critical" && (
+                            <Badge variant="outline" className="ml-2 bg-red-100 text-red-800 border-red-300">
+                              KRITICKÉ
                             </Badge>
                           )}
                         </p>
