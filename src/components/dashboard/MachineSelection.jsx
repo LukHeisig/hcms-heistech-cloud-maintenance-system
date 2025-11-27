@@ -116,7 +116,11 @@ export default function MachineSelection({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
-                        <Activity className={`w-5 h-5 ${iconColor}`} />
+                        {maintenanceFilter === "lubrication" ? (
+                          <Droplet className={`w-5 h-5 ${iconColor}`} />
+                        ) : (
+                          <ClipboardCheck className={`w-5 h-5 ${iconColor}`} />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
