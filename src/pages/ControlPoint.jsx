@@ -275,6 +275,8 @@ export default function ControlPoint() {
         ? "lubricator_change"
         : point.type === "inspection"
         ? "inspection"
+        : point.type === "prevention"
+        ? "prevention"
         : "lubrication";
 
     await recordMutation.mutateAsync({
@@ -614,43 +616,62 @@ export default function ControlPoint() {
 
             {/* Tlačítka pro akce */}
             <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                onClick={handleConfirmRecord}
-                disabled={isProcessing}
-                className={`h-14 text-lg shadow-lg ${
-                  point.type === "inspection"
-                    ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-                    : point.type === "auto_lubricator"
-                    ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-                    : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-                }`}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Ukládání...
-                  </>
-                ) : (
-                  <>
-                    {point.type === "inspection" ? (
-                      <>
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Potvrdit inspekci
-                      </>
-                    ) : point.type === "auto_lubricator" ? (
-                      <>
-                        <Droplet className="w-5 h-5 mr-2" />
-                        Potvrdit výměnu maznice
-                      </>
-                    ) : (
-                      <>
-                        <Droplet className="w-5 h-5 mr-2" />
-                        Potvrdit mazání
-                      </>
-                    )}
-                  </>
-                )}
-              </Button>
+              {point.type === "prevention" && point.prevention_confirmation_method === "nfc" ? (
+                <div className="h-14 flex items-center justify-center bg-slate-100 border-2 border-slate-200 rounded-lg text-slate-500 font-medium">
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <path d="M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                    <path d="M12 13v4" />
+                    <path d="M10 15h4" />
+                  </svg>
+                  Nutné potvrzení přes NFC
+                </div>
+              ) : (
+                <Button
+                  onClick={handleConfirmRecord}
+                  disabled={isProcessing}
+                  className={`h-14 text-lg shadow-lg ${
+                    point.type === "inspection"
+                      ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                      : point.type === "prevention"
+                      ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                      : point.type === "auto_lubricator"
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                      : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                  }`}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Ukládání...
+                    </>
+                  ) : (
+                    <>
+                      {point.type === "inspection" ? (
+                        <>
+                          <CheckCircle className="w-5 h-5 mr-2" />
+                          Potvrdit inspekci
+                        </>
+                      ) : point.type === "prevention" ? (
+                        <>
+                          <ClipboardCheck className="w-5 h-5 mr-2" />
+                          Potvrdit preventivní údržbu
+                        </>
+                      ) : point.type === "auto_lubricator" ? (
+                        <>
+                          <Droplet className="w-5 h-5 mr-2" />
+                          Potvrdit výměnu maznice
+                        </>
+                      ) : (
+                        <>
+                          <Droplet className="w-5 h-5 mr-2" />
+                          Potvrdit mazání
+                        </>
+                      )}
+                    </>
+                  )}
+                </Button>
+              )}
 
               <Button
                 variant="outline"
