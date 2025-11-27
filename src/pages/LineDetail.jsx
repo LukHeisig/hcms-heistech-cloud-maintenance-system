@@ -697,7 +697,7 @@ export default function LineDetail() {
               </CardHeader>
               <CardContent>
                 {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Žádné stroje v kategorii prevence</p>
+                  <p className="text-center text-slate-500 py-8">Žádné stroje s kontrolním bodem prevence</p>
                 ) : (
                   <div className="space-y-2">
                     {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).map((machine) => {
