@@ -222,9 +222,11 @@ export default function LineDetail() {
     if (activeIssues.length > 0) return { bg: "bg-red-100", text: "text-red-600", border: "border-red-200" };
 
     const mPoints = controlPoints.filter(p => p.machine_id === machineId);
-    const hasOverdue = mPoints.some(p => getPointStatus(p) === "overdue");
+    const hasCritical = mPoints.some(p => getPointStatus(p) === "critical");
+    const hasWarning = mPoints.some(p => getPointStatus(p) === "warning");
     
-    if (hasOverdue) return { bg: "bg-orange-100", text: "text-orange-600", border: "border-orange-200" };
+    if (hasCritical) return { bg: "bg-red-100", text: "text-red-600", border: "border-red-200" };
+    if (hasWarning) return { bg: "bg-orange-100", text: "text-orange-600", border: "border-orange-200" };
 
     return { bg: "bg-green-100", text: "text-green-600", border: "border-green-200" };
   };
@@ -232,23 +234,38 @@ export default function LineDetail() {
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
     
+    const vizType = company?.overdue_visualization_type || "two_colors";
+    const tolerance = company?.overdue_tolerance_percent || 4;
+    const interval = point.interval_hours || 0;
+
     let lastPerformed;
     if (pointRecords.length > 0) {
       lastPerformed = new Date(pointRecords[0].performed_at);
     } else if (point.first_confirmation_date) {
       lastPerformed = new Date(point.first_confirmation_date);
     } else {
-      return "overdue";
+      return vizType === "traffic_light" ? "critical" : "warning";
     }
 
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
-    return hoursSince > point.interval_hours ? "overdue" : "ok";
+    if (hoursSince <= interval) return "ok";
+
+    if (vizType === "two_colors") {
+      return "warning";
+    } else {
+      const overduePercent = ((hoursSince - interval) / interval) * 100;
+      if (overduePercent <= tolerance) {
+        return "warning";
+      } else {
+        return "critical";
+      }
+    }
   };
 
   const overduePoints = useMemo(() => {
-    return controlPoints.filter(p => getPointStatus(p) === "overdue");
+    return controlPoints.filter(p => ["warning", "critical"].includes(getPointStatus(p)));
   }, [controlPoints, records]);
 
   const stats = useMemo(() => {
