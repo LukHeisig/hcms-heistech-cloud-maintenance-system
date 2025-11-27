@@ -37,14 +37,14 @@ export default function PointsList({
       case "inspection": return inspectionPoints;
       case "prevention": return preventionPoints;
       case "lubricator": return lubricatorPoints;
-      default: return currentMachine?.maintenance_category === "prevention" ? preventionPoints : lubricationPoints;
-    }
-  };
+      default: return categoryParam === "prevention" ? preventionPoints : lubricationPoints;
+      }
+      };
 
-  const displayPoints = getDisplayPoints();
+      const displayPoints = getDisplayPoints();
 
-  return (
-    <div className="max-w-5xl mx-auto">
+      return (
+      <div className="max-w-5xl mx-auto">
       <Button
         variant="ghost"
         onClick={() => {
@@ -66,7 +66,7 @@ export default function PointsList({
       <p className="text-slate-600 mb-6">{currentLine?.name || "Linka"}</p>
 
       <div className="flex gap-2 mb-6 overflow-x-auto">
-        {currentMachine?.maintenance_category === "prevention" ? (
+        {categoryParam === "prevention" ? (
           <Button
             onClick={() => setActiveTab("prevention")}
             variant={activeTab === "prevention" ? "default" : "outline"}
