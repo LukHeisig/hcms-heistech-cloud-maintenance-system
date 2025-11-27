@@ -531,6 +531,14 @@ export default function ControlPoint() {
                         {point.interval_hours ? `${point.interval_hours} h` : "-"}
                       </p>
                     </div>
+                    {point.first_confirmation_date && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-1">Datum prvního potvrzení</p>
+                        <p className="text-lg font-semibold text-slate-900">
+                          {format(new Date(point.first_confirmation_date), "d. M. yyyy HH:mm", { locale: cs })}
+                        </p>
+                      </div>
+                    )}
                     {point.type === "inspection" && point.inspection_tasks && (
                       <div>
                         <p className="text-xs text-slate-500 mb-2">
