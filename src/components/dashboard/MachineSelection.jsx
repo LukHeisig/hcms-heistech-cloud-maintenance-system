@@ -134,7 +134,7 @@ export default function MachineSelection({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600">{machinePoints.length} kontrolních bodů</p>
+                        <p className="text-sm text-slate-600">{currentLine?.name || "Linka"}</p>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-400" />

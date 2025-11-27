@@ -1491,6 +1491,7 @@ export default function Dashboard() {
               selectedCompany={selectedCompany}
               selectedLine={selectedLine}
               selectedMachine={selectedMachine}
+              currentLine={currentLine}
               currentMachine={currentMachine}
               machinePoints={machinePoints}
               activeTab={activeTab}

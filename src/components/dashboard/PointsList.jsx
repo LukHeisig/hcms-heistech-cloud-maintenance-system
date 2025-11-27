@@ -12,6 +12,7 @@ export default function PointsList({
   selectedCompany,
   selectedLine,
   selectedMachine,
+  currentLine,
   currentMachine,
   machinePoints,
   activeTab,
@@ -62,7 +63,7 @@ export default function PointsList({
       <h1 className="text-3xl font-bold text-slate-900 mb-2">
         {currentMachine?.name || "Stroj"}
       </h1>
-      <p className="text-slate-600 mb-6">{machinePoints.length} kontrolních bodů</p>
+      <p className="text-slate-600 mb-6">{currentLine?.name || "Linka"}</p>
 
       <div className="flex gap-2 mb-6 overflow-x-auto">
         {currentMachine?.maintenance_category === "prevention" ? (
