@@ -103,10 +103,11 @@ export default function ControlPoint() {
     queryKey: ["company", line?.company_id],
     queryFn: async () => {
       if (!line?.company_id) return null;
-      const companies = await base44.entities.Company.list();
-      return companies.find((c) => c.id === line.company_id);
+      const companies = await base44.entities.Company.filter({ id: line.company_id });
+      return companies[0];
     },
     enabled: !!line?.company_id,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: allUsers = [] } = useQuery({

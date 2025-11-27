@@ -179,10 +179,11 @@ export default function Machine() {
     queryKey: ["company", line?.company_id],
     queryFn: async () => {
       if (!line?.company_id) return null;
-      const companies = await base44.entities.Company.list();
-      return companies.find(c => c.id === line.company_id);
+      const companies = await base44.entities.Company.filter({ id: line.company_id });
+      return companies[0];
     },
     enabled: !!line?.company_id,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: allUsers = [] } = useQuery({
@@ -217,6 +218,7 @@ export default function Machine() {
       );
     },
     enabled: !!machineId && controlPoints.length > 0,
+    staleTime: 1000 * 60,
   });
 
   const { data: issues = [] } = useQuery({
@@ -341,14 +343,32 @@ export default function Machine() {
 
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
-    if (pointRecords.length === 0) return "overdue";
+    
+    const vizType = company?.overdue_visualization_type || "two_colors";
+    const tolerance = company?.overdue_tolerance_percent || 4;
+    const interval = point.interval_hours || 0;
+
+    if (pointRecords.length === 0) {
+         return vizType === "traffic_light" ? "critical" : "warning";
+    }
 
     const latestRecord = pointRecords[0];
     const lastPerformed = new Date(latestRecord.performed_at);
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
-    return hoursSince > (point.interval_hours || 0) ? "overdue" : "ok";
+    if (hoursSince <= interval) return "ok";
+
+    if (vizType === "two_colors") {
+        return "warning";
+    } else {
+        const overduePercent = ((hoursSince - interval) / interval) * 100;
+        if (overduePercent <= tolerance) {
+            return "warning";
+        } else {
+            return "critical";
+        }
+    }
   };
 
   const getNextControlDate = (point) => {
@@ -683,11 +703,15 @@ export default function Machine() {
           const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
           const nextDate = getNextControlDate(point);
 
+          const isCritical = status === "critical";
+          const isWarning = status === "warning" || status === "overdue";
+          
           return (
             <Card
               key={point.id}
               className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
-                status === "overdue" ? "border-l-yellow-500 bg-yellow-50/50" :
+                isCritical ? "border-l-red-500 bg-red-50/50" :
+                isWarning ? "border-l-yellow-500 bg-yellow-50/50" :
                 "border-l-green-500 bg-green-50/50"
               }`}
               onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))}
@@ -696,14 +720,15 @@ export default function Machine() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 flex-1">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      status === "overdue" ? "bg-yellow-100" : "bg-green-100"
+                      isCritical ? "bg-red-100" :
+                      isWarning ? "bg-yellow-100" : "bg-green-100"
                     }`}>
                       {type === "lubrication" ? (
-                        <Droplet className={`w-5 h-5 ${status === "overdue" ? "text-yellow-700" : "text-green-700"}`} />
+                        <Droplet className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
                       ) : type === "inspection" ? (
-                        <ClipboardCheck className={`w-5 h-5 ${status === "overdue" ? "text-yellow-700" : "text-green-700"}`} />
+                        <ClipboardCheck className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
                       ) : (
-                        <Droplet className={`w-5 h-5 ${status === "overdue" ? "text-yellow-700" : "text-green-700"}`} />
+                        <Droplet className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -711,10 +736,16 @@ export default function Machine() {
                         <h3 className="font-bold text-slate-900 text-base">
                           {point.number && `${point.number} - `}{point.name}
                         </h3>
-                        {status === "overdue" && (
+                        {isWarning && (
                           <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
                             <Clock className="w-3 h-3 mr-1" />
                             Po termínu
+                          </Badge>
+                        )}
+                        {isCritical && (
+                          <Badge variant="outline" className="gap-1 bg-red-100 text-red-800 border-red-300">
+                            <Clock className="w-3 h-3 mr-1" />
+                            KRITICKÉ
                           </Badge>
                         )}
                         {pointIssues.length > 0 && (
@@ -739,7 +770,7 @@ export default function Machine() {
                           )}
                         </div>
                         {nextDate && (
-                          <span className={status === "overdue" ? "text-yellow-700 font-medium" : "text-slate-600"}>
+                          <span className={isCritical ? "text-red-700 font-medium" : isWarning ? "text-yellow-700 font-medium" : "text-slate-600"}>
                             Následující: {format(nextDate, "d.M. yyyy", { locale: cs })}
                           </span>
                         )}
@@ -748,7 +779,8 @@ export default function Machine() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
-                      status === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                      isCritical ? "bg-red-500" :
+                      isWarning ? "bg-yellow-500" : "bg-green-500"
                     }`} />
                     <ChevronRight className="w-5 h-5 text-slate-400" />
                   </div>
