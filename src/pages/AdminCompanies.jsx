@@ -56,6 +56,8 @@ export default function AdminCompanies() {
     enable_vibration: true,
     enable_thermo: true,
     enable_tribo: true,
+    overdue_visualization_type: "two_colors",
+    overdue_tolerance_percent: 4,
   });
 
   const { data: allCompanies = [], isLoading } = useQuery({
@@ -417,6 +419,48 @@ export default function AdminCompanies() {
                         />
                         <Label htmlFor="enable_tribo" className="cursor-pointer">Tribodiagnostika</Label>
                     </div>
+                </div>
+              </div>
+
+              <div className="border p-4 rounded-lg bg-slate-50 space-y-4">
+                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4" />
+                    Vizualizace intervalů
+                </h3>
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="viz_type">Způsob zobrazení překročení</Label>
+                        <select 
+                            id="viz_type"
+                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={formData.overdue_visualization_type}
+                            onChange={(e) => setFormData({...formData, overdue_visualization_type: e.target.value})}
+                        >
+                            <option value="two_colors">Dvě barvy (Zelená / Žlutá)</option>
+                            <option value="traffic_light">Semafor (Zelená / Žlutá / Červená)</option>
+                        </select>
+                        <p className="text-xs text-slate-500 mt-1">
+                            {formData.overdue_visualization_type === "two_colors" 
+                                ? "Po překročení intervalu se zobrazí žlutá." 
+                                : "V toleranci se zobrazí žlutá, po překročení tolerance červená."}
+                        </p>
+                    </div>
+                    
+                    {formData.overdue_visualization_type === "traffic_light" && (
+                        <div>
+                            <Label htmlFor="tolerance">Tolerance (%) pro žlutou barvu</Label>
+                            <Input
+                                id="tolerance"
+                                type="number"
+                                min="0"
+                                value={formData.overdue_tolerance_percent}
+                                onChange={(e) => setFormData({...formData, overdue_tolerance_percent: parseInt(e.target.value) || 0})}
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                                Např. 4% znamená, že do 104% intervalu bude barva žlutá, poté červená.
+                            </p>
+                        </div>
+                    )}
                 </div>
               </div>
             </div>
