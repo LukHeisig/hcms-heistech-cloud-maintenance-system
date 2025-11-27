@@ -650,17 +650,19 @@ export default function LineDetail() {
                 ) : (
                   <div className="space-y-2">
                     {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").map((machine) => {
-                      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+                      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type));
                       const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
                       const issueCount = issues.filter(i => 
                         (i.machine_id === machine.id) ||
                         (i.control_point_id && machinePoints.some(p => p.id === i.control_point_id))
                       ).length;
+                      
+                      const statusColor = overdueCount > 0 ? "border-l-red-500" : "border-l-green-500";
 
                       return (
                         <div
                           key={machine.id}
-                          className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                          className={`flex items-center justify-between p-3 rounded-lg border border-l-4 hover:bg-slate-50 cursor-pointer transition-colors ${statusColor}`}
                           onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
                         >
                           <div className="flex items-center gap-3">
@@ -707,17 +709,19 @@ export default function LineDetail() {
                 ) : (
                   <div className="space-y-2">
                     {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).map((machine) => {
-                      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
+                      const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && p.type === 'prevention');
                       const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
                       const issueCount = issues.filter(i => 
                         (i.machine_id === machine.id) ||
                         (i.control_point_id && machinePoints.some(p => p.id === i.control_point_id))
                       ).length;
+                      
+                      const statusColor = overdueCount > 0 ? "border-l-red-500" : "border-l-green-500";
 
                       return (
                         <div
                           key={machine.id}
-                          className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
+                          className={`flex items-center justify-between p-3 rounded-lg border border-l-4 hover:bg-slate-50 cursor-pointer transition-colors ${statusColor}`}
                           onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
                         >
                           <div className="flex items-center gap-3">
