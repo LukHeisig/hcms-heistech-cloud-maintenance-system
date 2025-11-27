@@ -78,8 +78,6 @@ export default function MachineSelection({
         ) : (
           filteredMachines.map((machine) => {
             const machinePoints = demipControlPoints.filter(p => p.machine_id === machine.id);
-            const machineOverdue = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
-
             const machineOverdue = machinePoints.filter(p => {
               const s = getPointStatus(p);
               return s === "overdue" || s === "critical";
