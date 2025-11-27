@@ -696,11 +696,11 @@ export default function LineDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {machines.filter(m => m.maintenance_category === "prevention").length === 0 ? (
+                {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).length === 0 ? (
                   <p className="text-center text-slate-500 py-8">Žádné stroje v kategorii prevence</p>
                 ) : (
                   <div className="space-y-2">
-                    {machines.filter(m => m.maintenance_category === "prevention").map((machine) => {
+                    {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
                       const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
                       const issueCount = issues.filter(i => 
