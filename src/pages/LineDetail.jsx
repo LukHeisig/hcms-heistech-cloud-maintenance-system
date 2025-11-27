@@ -659,11 +659,16 @@ export default function LineDetail() {
                       
                       const statusColor = overdueCount > 0 ? "border-l-red-500" : "border-l-green-500";
 
+                      let targetSubtab = "lubrication";
+                      if (machinePoints.some(p => p.type === "lubrication")) targetSubtab = "lubrication";
+                      else if (machinePoints.some(p => p.type === "inspection")) targetSubtab = "inspection";
+                      else if (machinePoints.some(p => p.type === "auto_lubricator")) targetSubtab = "lubricators";
+
                       return (
                         <div
                           key={machine.id}
                           className={`flex items-center justify-between p-3 rounded-lg border border-l-4 hover:bg-slate-50 cursor-pointer transition-colors ${statusColor}`}
-                          onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
+                          onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}&tab=control-points&subtab=${targetSubtab}`))}
                         >
                           <div className="flex items-center gap-3">
                             <Droplet className="w-5 h-5 text-blue-600" />
