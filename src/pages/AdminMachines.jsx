@@ -257,7 +257,10 @@ export default function AdminMachines() {
         vibration_standard_id: machine.vibration_standard_id || null,
         vibration_schema_id: machine.vibration_schema_id || null,
         photo_url: machine.photo_url || "",
-        parent_id: machine.parent_id || null
+        parent_id: machine.parent_id || null,
+        monitor_vibration: machine.monitor_vibration || false,
+        monitor_thermo: machine.monitor_thermo || false,
+        monitor_tribo: machine.monitor_tribo || false
       });
     } else {
       setEditingMachine(null);
@@ -270,7 +273,10 @@ export default function AdminMachines() {
         vibration_standard_id: null,
         vibration_schema_id: null,
         photo_url: "",
-        parent_id: null
+        parent_id: null,
+        monitor_vibration: false,
+        monitor_thermo: false,
+        monitor_tribo: false
       });
     }
     setShowMachineDialog(true);

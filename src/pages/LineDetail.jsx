@@ -203,6 +203,10 @@ export default function LineDetail() {
     return allResponsibilities.filter(r => machineIds.includes(r.machine_id));
   }, [allResponsibilities, machineIds]);
 
+  const hasDiagnostics = useMemo(() => {
+    return machines.some(m => m.monitor_vibration || m.monitor_thermo || m.monitor_tribo);
+  }, [machines]);
+
   const getMachineStatusStyles = (machineId) => {
     const activeIssues = issues.filter(i => i.machine_id === machineId || 
         (i.control_point_id && controlPoints.find(cp => cp.id === i.control_point_id && cp.machine_id === machineId)));
@@ -425,7 +429,7 @@ export default function LineDetail() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white shadow-sm flex flex-wrap gap-1 p-2">
             <TabsTrigger value="overview">Přehled</TabsTrigger>
-            <TabsTrigger value="diagnostics">Technická diagnostika</TabsTrigger>
+            {hasDiagnostics && <TabsTrigger value="diagnostics">Technická diagnostika</TabsTrigger>}
             <TabsTrigger value="lubrication">Mazání</TabsTrigger>
             <TabsTrigger value="prevention">Preventivní údržba</TabsTrigger>
             <TabsTrigger value="maintenance">Plán údržby</TabsTrigger>
@@ -488,6 +492,7 @@ export default function LineDetail() {
           </TabsContent>
 
           {/* Technická diagnostika */}
+          {hasDiagnostics && (
           <TabsContent value="diagnostics" className="space-y-6">
             <Card>
               <CardHeader>
@@ -628,6 +633,7 @@ export default function LineDetail() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* Mazání */}
           <TabsContent value="lubrication" className="space-y-6">
