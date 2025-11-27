@@ -186,6 +186,23 @@ export default function LineDetail() {
     return allControlPoints.filter(cp => machineIds.includes(cp.machine_id));
   }, [allControlPoints, machineIds]);
 
+  const lubricationMachines = useMemo(() => {
+    return machines.filter(m => {
+      const isLubricationCategory = (m.maintenance_category || "lubrication") === "lubrication";
+      const hasLubricationPoints = controlPoints.some(cp => 
+        cp.machine_id === m.id && 
+        ['lubrication', 'inspection', 'auto_lubricator'].includes(cp.type)
+      );
+      return isLubricationCategory && hasLubricationPoints;
+    });
+  }, [machines, controlPoints]);
+
+  const preventionMachines = useMemo(() => {
+    return machines.filter(m => 
+      controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")
+    );
+  }, [machines, controlPoints]);
+
   const records = useMemo(() => {
     const pointIds = controlPoints.map(cp => cp.id);
     return allRecords.filter(r => pointIds.includes(r.control_point_id));
@@ -674,9 +691,9 @@ export default function LineDetail() {
                   <Droplet className="w-5 h-5" />
                   Stroje - Mazání
                   <span className="ml-2 text-sm font-normal text-slate-500">
-                    ({machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication" && controlPoints.some(cp => cp.machine_id === m.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(cp.type))).length} strojů • {
+                    ({lubricationMachines.length} strojů • {
                       controlPoints.filter(p => 
-                        machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").some(m => m.id === p.machine_id) && 
+                        lubricationMachines.some(m => m.id === p.machine_id) && 
                         ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type)
                       ).length
                     } bodů)
@@ -684,11 +701,11 @@ export default function LineDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication" && controlPoints.some(cp => cp.machine_id === m.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(cp.type))).length === 0 ? (
+                {lubricationMachines.length === 0 ? (
                   <p className="text-center text-slate-500 py-8">Žádné stroje v kategorii mazání</p>
                 ) : (
                   <div className="space-y-2">
-                    {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication" && controlPoints.some(cp => cp.machine_id === m.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(cp.type))).map((machine) => {
+                    {lubricationMachines.map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type));
                       const warningPoints = machinePoints.filter(p => getPointStatus(p) === "warning").length;
                       const criticalPoints = machinePoints.filter(p => getPointStatus(p) === "critical").length;
@@ -754,9 +771,9 @@ export default function LineDetail() {
                   <ClipboardCheck className="w-5 h-5" />
                   Stroje - Preventivní údržba
                   <span className="ml-2 text-sm font-normal text-slate-500">
-                    ({machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).length} strojů • {
+                    ({preventionMachines.length} strojů • {
                       controlPoints.filter(p => 
-                        machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).some(m => m.id === p.machine_id) && 
+                        preventionMachines.some(m => m.id === p.machine_id) && 
                         p.type === 'prevention'
                       ).length
                     } bodů)
@@ -764,11 +781,11 @@ export default function LineDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).length === 0 ? (
+                {preventionMachines.length === 0 ? (
                   <p className="text-center text-slate-500 py-8">Žádné stroje s kontrolním bodem prevence</p>
                 ) : (
                   <div className="space-y-2">
-                    {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).map((machine) => {
+                    {preventionMachines.map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && p.type === 'prevention');
                       const warningPoints = machinePoints.filter(p => getPointStatus(p) === "warning").length;
                       const criticalPoints = machinePoints.filter(p => getPointStatus(p) === "critical").length;
