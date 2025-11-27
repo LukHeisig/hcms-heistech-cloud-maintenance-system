@@ -47,7 +47,7 @@ export default function PointsList({
       <Button
         variant="ghost"
         onClick={() => {
-          const category = currentMachine?.maintenance_category || 'lubrication';
+          const category = categoryParam;
           const url = selectedCompany
             ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&category=${category}`
             : `Dashboard?line=${selectedLine}&category=${category}`;
@@ -146,8 +146,8 @@ export default function PointsList({
                     className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${bgClass}`}
                     onClick={() => {
                       const url = selectedCompany
-                        ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&point=${point.id}`
-                        : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&point=${point.id}`;
+                        ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&point=${point.id}&category=${categoryParam}`
+                        : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&point=${point.id}&category=${categoryParam}`;
                       navigate(createPageUrl(url));
                     }}
                   >

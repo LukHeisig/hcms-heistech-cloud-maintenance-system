@@ -808,9 +808,10 @@ export default function Dashboard() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  const category = urlParams.get('category') || activeTab;
                   const url = selectedCompany
-                    ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}`
-                    : `Dashboard?line=${selectedLine}&machine=${selectedMachine}`;
+                    ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&category=${category}`
+                    : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&category=${category}`;
                   navigate(createPageUrl(url));
                 }}
                 className="text-white hover:bg-white/20 mb-3"
