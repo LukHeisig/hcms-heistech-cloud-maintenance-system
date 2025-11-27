@@ -112,17 +112,38 @@ export default function PointsList({
               {displayPoints.map((point) => {
                 const status = getPointStatus(point);
                 const nextDate = getNextControlDate(point);
-                const isOverdue = status === "overdue";
+                const isOverdue = status === "overdue" || status === "warning" || status === "critical"; // Legacy support
+                const isWarning = status === "warning";
+                const isCritical = status === "critical" || status === "overdue"; // overdue mapped to critical in traffic light usually
+                
                 const pointRecords = records.filter(r => r.control_point_id === point.id);
                 const lastRecord = pointRecords[0];
                 const pointIssues = demipIssues.filter(i => i.control_point_id === point.id);
 
+                let bgClass = "";
+                if (isCritical) bgClass = "bg-red-50/50";
+                else if (isWarning) bgClass = "bg-yellow-50/50";
+
+                let iconBgClass = "bg-green-100";
+                if (isCritical) iconBgClass = "bg-red-100";
+                else if (isWarning) iconBgClass = "bg-yellow-100";
+
+                let iconColorClass = "text-green-700";
+                if (isCritical) iconColorClass = "text-red-700";
+                else if (isWarning) iconColorClass = "text-yellow-700";
+
+                let dotClass = "bg-green-500";
+                if (isCritical) dotClass = "bg-red-500";
+                else if (isWarning) dotClass = "bg-yellow-500";
+
+                let textClass = "text-green-700";
+                if (isCritical) textClass = "text-red-700";
+                else if (isWarning) textClass = "text-yellow-700";
+
                 return (
                   <div
                     key={point.id}
-                    className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
-                      isOverdue ? "bg-yellow-50/50" : ""
-                    }`}
+                    className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${bgClass}`}
                     onClick={() => {
                       const url = selectedCompany
                         ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&point=${point.id}`
@@ -132,13 +153,11 @@ export default function PointsList({
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          isOverdue ? "bg-yellow-100" : "bg-green-100"
-                        }`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBgClass}`}>
                           {point.type === "inspection" || point.type === "prevention" ? (
-                            <ClipboardCheck className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                            <ClipboardCheck className={`w-4 h-4 ${iconColorClass}`} />
                           ) : (
-                            <Droplet className={`w-4 h-4 ${isOverdue ? "text-yellow-700" : "text-green-700"}`} />
+                            <Droplet className={`w-4 h-4 ${iconColorClass}`} />
                           )}
                         </div>
 
@@ -173,15 +192,13 @@ export default function PointsList({
                         {nextDate && (
                           <div className="text-right">
                             <p className="text-xs text-slate-500 mb-1">Následující kontrola</p>
-                            <p className={`text-sm font-bold ${isOverdue ? "text-yellow-700" : "text-green-700"}`}>
+                            <p className={`text-sm font-bold ${textClass}`}>
                               {format(nextDate, "d.M. yyyy", { locale: cs })}
                             </p>
                           </div>
                         )}
 
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                          isOverdue ? "bg-yellow-500" : "bg-green-500"
-                        }`} />
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${dotClass}`} />
                       </div>
                     </div>
                   </div>

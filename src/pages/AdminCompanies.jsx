@@ -127,6 +127,8 @@ export default function AdminCompanies() {
       enable_vibration: true,
       enable_thermo: true,
       enable_tribo: true,
+      overdue_visualization_type: "two_colors",
+      overdue_tolerance_percent: 4,
     });
   };
 
@@ -145,6 +147,8 @@ export default function AdminCompanies() {
         enable_vibration: company.enable_vibration !== false,
         enable_thermo: company.enable_thermo !== false,
         enable_tribo: company.enable_tribo !== false,
+        overdue_visualization_type: company.overdue_visualization_type || "two_colors",
+        overdue_tolerance_percent: company.overdue_tolerance_percent || 4,
       });
     } else {
       setEditingCompany(null);

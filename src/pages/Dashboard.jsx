@@ -268,15 +268,41 @@ export default function Dashboard() {
 
   const getPointStatus = useCallback((point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
-    if (pointRecords.length === 0) return "overdue";
+    
+    // Check company settings
+    const machine = allMachines.find(m => m.id === point.machine_id);
+    const line = allLines.find(l => l.id === machine?.line_id);
+    const company = allCompanies.find(c => c.id === line?.company_id);
+    
+    const vizType = company?.overdue_visualization_type || "two_colors";
+    const tolerance = company?.overdue_tolerance_percent || 4;
+
+    const interval = point.interval_hours || 0;
+
+    if (pointRecords.length === 0) {
+        // Never performed
+        return vizType === "traffic_light" ? "critical" : "warning"; 
+    }
 
     const latestRecord = pointRecords[0];
     const lastPerformed = new Date(latestRecord.performed_at);
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
-    return hoursSince > point.interval_hours ? "overdue" : "ok";
-  }, [records]);
+    if (hoursSince <= interval) return "ok";
+    
+    if (vizType === "two_colors") {
+        return "warning"; // Yellow for overdue
+    } else {
+        // traffic_light
+        const overduePercent = ((hoursSince - interval) / interval) * 100;
+        if (overduePercent <= tolerance) {
+            return "warning"; // Yellow
+        } else {
+            return "critical"; // Red
+        }
+    }
+  }, [records, allMachines, allLines, allCompanies]);
 
   const getNextControlDate = useCallback((point) => {
     const pointRecords = records.filter(r => r.control_point_id === point.id);
@@ -322,7 +348,10 @@ export default function Dashboard() {
 
   const overduePointsCount = React.useMemo(() => {
     return activeControlPoints.filter(
-      (point) => getPointStatus(point) === "overdue"
+      (point) => {
+          const status = getPointStatus(point);
+          return status === "overdue" || status === "warning" || status === "critical";
+      }
     ).length;
   }, [activeControlPoints, getPointStatus]);
 
