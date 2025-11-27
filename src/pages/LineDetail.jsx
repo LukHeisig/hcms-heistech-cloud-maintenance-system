@@ -674,7 +674,7 @@ export default function LineDetail() {
                   <Droplet className="w-5 h-5" />
                   Stroje - Mazání
                   <span className="ml-2 text-sm font-normal text-slate-500">
-                    ({machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").length} strojů • {
+                    ({machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication" && controlPoints.some(cp => cp.machine_id === m.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(cp.type))).length} strojů • {
                       controlPoints.filter(p => 
                         machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").some(m => m.id === p.machine_id) && 
                         ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type)
@@ -684,11 +684,11 @@ export default function LineDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").length === 0 ? (
+                {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication" && controlPoints.some(cp => cp.machine_id === m.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(cp.type))).length === 0 ? (
                   <p className="text-center text-slate-500 py-8">Žádné stroje v kategorii mazání</p>
                 ) : (
                   <div className="space-y-2">
-                    {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").map((machine) => {
+                    {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication" && controlPoints.some(cp => cp.machine_id === m.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(cp.type))).map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type));
                       const warningPoints = machinePoints.filter(p => getPointStatus(p) === "warning").length;
                       const criticalPoints = machinePoints.filter(p => getPointStatus(p) === "critical").length;
