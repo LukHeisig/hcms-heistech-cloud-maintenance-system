@@ -221,12 +221,15 @@ export default function ControlPoint() {
     const tolerance = company?.overdue_tolerance_percent || 4;
     const interval = point?.interval_hours || 0;
 
-    if (records.length === 0) {
+    let lastPerformed;
+    if (records.length > 0) {
+        lastPerformed = new Date(records[0].performed_at);
+    } else if (point?.first_confirmation_date) {
+        lastPerformed = new Date(point.first_confirmation_date);
+    } else {
          return vizType === "traffic_light" ? "critical" : "warning";
     }
 
-    const latestRecord = records[0];
-    const lastPerformed = new Date(latestRecord.performed_at);
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
@@ -245,10 +248,17 @@ export default function ControlPoint() {
   };
 
   const getNextControlDate = () => {
-    if (records.length === 0 || !point?.interval_hours) return null;
+    if (!point?.interval_hours) return null;
     
-    const latestRecord = records[0];
-    const lastPerformed = new Date(latestRecord.performed_at);
+    let lastPerformed;
+    if (records.length > 0) {
+        lastPerformed = new Date(records[0].performed_at);
+    } else if (point?.first_confirmation_date) {
+        lastPerformed = new Date(point.first_confirmation_date);
+    } else {
+        return null;
+    }
+
     const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
     return nextDate;
   };

@@ -279,13 +279,16 @@ export default function Dashboard() {
 
     const interval = point.interval_hours || 0;
 
-    if (pointRecords.length === 0) {
-        // Never performed
+    let lastPerformed;
+    if (pointRecords.length > 0) {
+        lastPerformed = new Date(pointRecords[0].performed_at);
+    } else if (point.first_confirmation_date) {
+        lastPerformed = new Date(point.first_confirmation_date);
+    } else {
+        // Never performed and no start date
         return vizType === "traffic_light" ? "critical" : "warning"; 
     }
 
-    const latestRecord = pointRecords[0];
-    const lastPerformed = new Date(latestRecord.performed_at);
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
@@ -306,10 +309,17 @@ export default function Dashboard() {
 
   const getNextControlDate = useCallback((point) => {
     const pointRecords = records.filter(r => r.control_point_id === point.id);
-    if (pointRecords.length === 0 || !point.interval_hours) return null;
+    if (!point.interval_hours) return null;
 
-    const latestRecord = pointRecords[0];
-    const lastPerformed = new Date(latestRecord.performed_at);
+    let lastPerformed;
+    if (pointRecords.length > 0) {
+        lastPerformed = new Date(pointRecords[0].performed_at);
+    } else if (point.first_confirmation_date) {
+        lastPerformed = new Date(point.first_confirmation_date);
+    } else {
+        return null;
+    }
+
     const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
     return nextDate;
   }, [records]);
