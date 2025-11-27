@@ -159,20 +159,22 @@ export default function Machine() {
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
     queryFn: async () => {
-      const machines = await base44.entities.Machine.list();
-      return machines.find(m => m.id === machineId);
+      const machines = await base44.entities.Machine.filter({ id: machineId });
+      return machines[0];
     },
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: line } = useQuery({
     queryKey: ["line", machine?.line_id],
     queryFn: async () => {
       if (!machine?.line_id) return null;
-      const lines = await base44.entities.Line.list();
-      return lines.find(l => l.id === machine.line_id);
+      const lines = await base44.entities.Line.filter({ id: machine.line_id });
+      return lines[0];
     },
     enabled: !!machine?.line_id,
+    staleTime: 60000,
   });
 
   const { data: company } = useQuery({

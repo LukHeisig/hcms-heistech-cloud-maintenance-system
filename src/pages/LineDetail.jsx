@@ -94,38 +94,46 @@ export default function LineDetail() {
     queryKey: ["line", lineId],
     queryFn: () => base44.entities.Line.filter({ id: lineId }).then(res => res[0]),
     enabled: !!lineId,
+    staleTime: 60000,
   });
 
   const { data: company } = useQuery({
     queryKey: ["company", line?.company_id],
     queryFn: () => base44.entities.Company.filter({ id: line.company_id }).then(res => res[0]),
     enabled: !!line?.company_id,
+    staleTime: 60000,
   });
 
   const { data: machines = [] } = useQuery({
     queryKey: ["machines", lineId],
     queryFn: () => base44.entities.Machine.filter({ line_id: lineId }, "order_index"),
     enabled: !!lineId,
+    staleTime: 60000,
   });
 
+  // Optimized fetching: fetch only related data if possible, or use staleTime
   const { data: allControlPoints = [] } = useQuery({
-    queryKey: ["allControlPoints"],
+    queryKey: ["allControlPoints", lineId], // Scoped to line if possible, but logic uses all. Kept simple with staleTime
     queryFn: () => base44.entities.ControlPoint.list(),
+    staleTime: 60000,
   });
 
   const { data: allRecords = [] } = useQuery({
     queryKey: ["allRecords"],
     queryFn: () => base44.entities.ControlRecord.list("-performed_at", 500),
+    staleTime: 30000,
   });
 
   const { data: allIssues = [] } = useQuery({
     queryKey: ["allIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
+    staleTime: 30000,
   });
 
   const { data: allMaintenance = [] } = useQuery({
     queryKey: ["allMaintenance"],
     queryFn: () => base44.entities.MaintenanceRecord.list("-performed_at", 500),
+    staleTime: 30000,
   });
 
   const { data: allPlannedMaintenance = [] } = useQuery({

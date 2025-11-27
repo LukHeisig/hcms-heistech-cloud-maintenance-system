@@ -73,30 +73,33 @@ export default function ControlPoint() {
   const { data: point } = useQuery({
     queryKey: ["controlPoint", pointId],
     queryFn: async () => {
-      const points = await base44.entities.ControlPoint.list();
-      return points.find((p) => p.id === pointId);
+      const points = await base44.entities.ControlPoint.filter({ id: pointId });
+      return points[0];
     },
     enabled: !!pointId,
+    staleTime: 60000,
   });
 
   const { data: machine } = useQuery({
     queryKey: ["machine", point?.machine_id],
     queryFn: async () => {
       if (!point?.machine_id) return null;
-      const machines = await base44.entities.Machine.list();
-      return machines.find((m) => m.id === point.machine_id);
+      const machines = await base44.entities.Machine.filter({ id: point.machine_id });
+      return machines[0];
     },
     enabled: !!point?.machine_id,
+    staleTime: 60000,
   });
 
   const { data: line } = useQuery({
     queryKey: ["line", machine?.line_id],
     queryFn: async () => {
       if (!machine?.line_id) return null;
-      const lines = await base44.entities.Line.list();
-      return lines.find((l) => l.id === machine.line_id);
+      const lines = await base44.entities.Line.filter({ id: machine.line_id });
+      return lines[0];
     },
     enabled: !!machine?.line_id,
+    staleTime: 60000,
   });
 
   const { data: company } = useQuery({
