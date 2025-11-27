@@ -430,6 +430,7 @@ export default function Machine() {
   const lubricationPoints = controlPoints.filter(p => p.type === "lubrication");
   const inspectionPoints = controlPoints.filter(p => p.type === "inspection");
   const lubricatorPoints = controlPoints.filter(p => p.type === "auto_lubricator");
+  const preventionPoints = controlPoints.filter(p => p.type === "prevention");
 
   const overduePoints = controlPoints.filter(p => getPointStatus(p) === "overdue");
   const okPoints = controlPoints.filter(p => getPointStatus(p) === "ok");
@@ -443,6 +444,7 @@ export default function Machine() {
   const lubricationStatus = getGroupStatus(lubricationPoints);
   const inspectionStatus = getGroupStatus(inspectionPoints);
   const lubricatorsStatus = getGroupStatus(lubricatorPoints);
+  const preventionStatus = getGroupStatus(preventionPoints);
 
   const lowStockParts = spareParts.filter(p => p.quantity_in_stock <= (p.minimum_stock || 0));
 
@@ -698,6 +700,7 @@ export default function Machine() {
             <p className="text-slate-500">
               {type === "lubrication" ? "Nejsou definovány žádné mazací body" :
                type === "inspection" ? "Nejsou definovány žádné inspekční body" :
+               type === "prevention" ? "Nejsou definovány žádné preventivní body" :
                "Nejsou definovány žádné automatické maznice"}
             </p>
           </CardContent>
@@ -735,7 +738,7 @@ export default function Machine() {
                     }`}>
                       {type === "lubrication" ? (
                         <Droplet className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
-                      ) : type === "inspection" ? (
+                      ) : type === "inspection" || type === "prevention" ? (
                         <ClipboardCheck className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
                       ) : (
                         <Droplet className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
@@ -1038,6 +1041,7 @@ export default function Machine() {
                                     {point.type === "lubrication" 
                                       ? `Mazání: ${point.lubricant_type || "neuvedeno"}`
                                       : point.type === "auto_lubricator" ? "Automatická maznice"
+                                      : point.type === "prevention" ? "Prevence"
                                       : "Inspekce"
                                     }
                                   </p>
@@ -1233,7 +1237,7 @@ export default function Machine() {
           {/* DEMIP - Kontrolní body */}
           <TabsContent value="control-points">
             <Tabs defaultValue="lubrication" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm">
+              <TabsList className={`grid w-full ${preventionPoints.length > 0 ? "grid-cols-4" : "grid-cols-3"} bg-white shadow-sm`}>
                 <TabsTrigger value="lubrication" className="gap-2">
                   <Droplet className="w-4 h-4" />
                   Mazání ({lubricationPoints.length})
@@ -1261,6 +1265,17 @@ export default function Machine() {
                     }`} />
                   )}
                 </TabsTrigger>
+                {preventionPoints.length > 0 && (
+                  <TabsTrigger value="prevention" className="gap-2">
+                    <ClipboardCheck className="w-4 h-4" />
+                    Prevence ({preventionPoints.length})
+                    {preventionStatus && (
+                      <div className={`w-2 h-2 rounded-full ml-1 ${
+                        preventionStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                      }`} />
+                    )}
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="lubrication">
@@ -1273,6 +1288,10 @@ export default function Machine() {
 
               <TabsContent value="lubricators">
                 {renderPointsList(lubricatorPoints, "lubricator")}
+              </TabsContent>
+
+              <TabsContent value="prevention">
+                {renderPointsList(preventionPoints, "prevention")}
               </TabsContent>
             </Tabs>
           </TabsContent>
