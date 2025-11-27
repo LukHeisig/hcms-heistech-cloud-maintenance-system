@@ -665,13 +665,16 @@ export default function LineDetail() {
                   <div className="space-y-2">
                     {machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type));
-                      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+                      const warningPoints = machinePoints.filter(p => getPointStatus(p) === "warning").length;
+                      const criticalPoints = machinePoints.filter(p => getPointStatus(p) === "critical").length;
+                      const overdueCount = warningPoints + criticalPoints;
+
                       const issueCount = issues.filter(i => 
                         (i.machine_id === machine.id) ||
                         (i.control_point_id && machinePoints.some(p => p.id === i.control_point_id))
                       ).length;
                       
-                      const statusColor = overdueCount > 0 ? "border-l-red-500" : "border-l-green-500";
+                      const statusColor = criticalPoints > 0 ? "border-l-red-500" : warningPoints > 0 ? "border-l-yellow-500" : "border-l-green-500";
 
                       let targetSubtab = "lubrication";
                       if (machinePoints.some(p => p.type === "lubrication")) targetSubtab = "lubrication";
@@ -729,13 +732,16 @@ export default function LineDetail() {
                   <div className="space-y-2">
                     {machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && p.type === 'prevention');
-                      const overdueCount = machinePoints.filter(p => getPointStatus(p) === "overdue").length;
+                      const warningPoints = machinePoints.filter(p => getPointStatus(p) === "warning").length;
+                      const criticalPoints = machinePoints.filter(p => getPointStatus(p) === "critical").length;
+                      const overdueCount = warningPoints + criticalPoints;
+
                       const issueCount = issues.filter(i => 
                         (i.machine_id === machine.id) ||
                         (i.control_point_id && machinePoints.some(p => p.id === i.control_point_id))
                       ).length;
                       
-                      const statusColor = overdueCount > 0 ? "border-l-red-500" : "border-l-green-500";
+                      const statusColor = criticalPoints > 0 ? "border-l-red-500" : warningPoints > 0 ? "border-l-yellow-500" : "border-l-green-500";
 
                       return (
                         <div
