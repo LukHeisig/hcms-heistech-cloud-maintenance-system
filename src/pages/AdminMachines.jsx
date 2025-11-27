@@ -215,22 +215,34 @@ export default function AdminMachines() {
 
   const handleMoveUp = async (index, filteredMachines) => {
     if (index === 0) return;
-    const machine1 = filteredMachines[index];
-    const machine2 = filteredMachines[index - 1];
-    await Promise.all([
-      moveMachineMutation.mutateAsync({ id: machine1.id, newIndex: machine2.order_index }),
-      moveMachineMutation.mutateAsync({ id: machine2.id, newIndex: machine1.order_index }),
-    ]);
+    
+    const newMachines = [...filteredMachines];
+    [newMachines[index - 1], newMachines[index]] = [newMachines[index], newMachines[index - 1]];
+    
+    const updates = [];
+    newMachines.forEach((machine, idx) => {
+        if (machine.order_index !== idx) {
+            updates.push(moveMachineMutation.mutateAsync({ id: machine.id, newIndex: idx }));
+        }
+    });
+    
+    await Promise.all(updates);
   };
 
   const handleMoveDown = async (index, filteredMachines) => {
     if (index === filteredMachines.length - 1) return;
-    const machine1 = filteredMachines[index];
-    const machine2 = filteredMachines[index + 1];
-    await Promise.all([
-      moveMachineMutation.mutateAsync({ id: machine1.id, newIndex: machine2.order_index }),
-      moveMachineMutation.mutateAsync({ id: machine2.id, newIndex: machine1.order_index }),
-    ]);
+
+    const newMachines = [...filteredMachines];
+    [newMachines[index], newMachines[index + 1]] = [newMachines[index + 1], newMachines[index]];
+
+    const updates = [];
+    newMachines.forEach((machine, idx) => {
+        if (machine.order_index !== idx) {
+            updates.push(moveMachineMutation.mutateAsync({ id: machine.id, newIndex: idx }));
+        }
+    });
+
+    await Promise.all(updates);
   };
 
   const handleOpenDialog = (machine = null) => {
@@ -595,7 +607,7 @@ export default function AdminMachines() {
                   : "Vytvořte nový stroj"}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto px-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Název stroje *</Label>
