@@ -664,9 +664,17 @@ export default function Dashboard() {
     if (!point) return;
     setIsConfirmingControl(true);
 
+    const recordType = point.type === "auto_lubricator" 
+      ? "lubricator_change" 
+      : point.type === "inspection" 
+      ? "inspection" 
+      : point.type === "prevention" 
+      ? "prevention" 
+      : "lubrication";
+
     await createControlRecordMutation.mutateAsync({
       control_point_id: point.id,
-      record_type: point.type === "inspection" ? "inspection" : "lubrication",
+      record_type: recordType,
       performed_at: new Date().toISOString(),
     });
   };
@@ -789,7 +797,7 @@ export default function Dashboard() {
       // Pro prevention s ručním potvrzením - zobrazit vždy
       // Pro prevention s NFC nebo jiné typy bodů - zobrazit pouze po NFC skenu
       const shouldShowConfirmButton = 
-        (currentPoint.type === "prevention" && currentMachineForPoint?.prevention_confirmation_method === "manual") || 
+        (currentPoint.type === "prevention" && currentPoint.prevention_confirmation_method === "manual") || 
         nfcScanned;
 
       return (
