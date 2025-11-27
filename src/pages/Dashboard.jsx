@@ -783,6 +783,7 @@ export default function Dashboard() {
       }
 
       const currentMachineForPoint = demipMachines.find(m => m.id === currentPoint.machine_id);
+      const currentLineForPoint = demipAllLines.find(l => l.id === currentMachineForPoint?.line_id);
       
       const pointRecords = records.filter(r => r.control_point_id === selectedPoint);
       const pointIssues = demipIssues.filter(i => i.control_point_id === selectedPoint);
@@ -825,6 +826,11 @@ export default function Dashboard() {
                     {currentPoint.number && `${currentPoint.number} - `}
                     {currentPoint.name}
                   </h1>
+                  <div className="flex items-center gap-2 text-xs text-blue-100 mt-1 mb-2 opacity-90">
+                    <span>{currentLineForPoint?.name || "Neznámá linka"}</span>
+                    <ChevronRight className="w-3 h-3" />
+                    <span>{currentMachineForPoint?.name || "Neznámý stroj"}</span>
+                  </div>
                   {currentPoint.description && (
                     <p className="text-sm text-blue-100 opacity-90">
                       {currentPoint.description}
