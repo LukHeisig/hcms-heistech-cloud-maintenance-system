@@ -922,7 +922,7 @@ export default function Machine() {
         </div>
 
         {/* Záložky */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs defaultValue={urlParams.get("tab") || "overview"} className="space-y-6">
           <TabsList className="flex flex-wrap w-full bg-white shadow-md p-2 h-auto gap-2">
             <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <LayoutDashboard className="w-4 h-4" />
@@ -1236,7 +1236,7 @@ export default function Machine() {
 
           {/* DEMIP - Kontrolní body */}
           <TabsContent value="control-points">
-            <Tabs defaultValue="lubrication" className="space-y-6">
+            <Tabs defaultValue={urlParams.get("subtab") || "lubrication"} className="space-y-6">
               <TabsList className={`grid w-full ${preventionPoints.length > 0 ? "grid-cols-4" : "grid-cols-3"} bg-white shadow-sm`}>
                 <TabsTrigger value="lubrication" className="gap-2">
                   <Droplet className="w-4 h-4" />
