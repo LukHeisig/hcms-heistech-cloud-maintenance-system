@@ -695,9 +695,14 @@ export default function LineDetail() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {overdueCount > 0 && (
+                            {criticalPoints > 0 && (
                               <Badge variant="destructive" className="text-xs">
-                                {overdueCount}
+                                {criticalPoints}
+                              </Badge>
+                            )}
+                            {warningPoints > 0 && (
+                              <Badge className="bg-yellow-500 text-white text-xs hover:bg-yellow-600">
+                                {warningPoints}
                               </Badge>
                             )}
                             {issueCount > 0 && (
@@ -757,9 +762,14 @@ export default function LineDetail() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {overdueCount > 0 && (
+                            {criticalPoints > 0 && (
                               <Badge variant="destructive" className="text-xs">
-                                {overdueCount}
+                                {criticalPoints}
+                              </Badge>
+                            )}
+                            {warningPoints > 0 && (
+                              <Badge className="bg-yellow-500 text-white text-xs hover:bg-yellow-600">
+                                {warningPoints}
                               </Badge>
                             )}
                             {issueCount > 0 && (
