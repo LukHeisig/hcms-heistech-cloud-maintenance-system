@@ -439,8 +439,11 @@ export default function Machine() {
 
   const getGroupStatus = (points) => {
     if (points.length === 0) return null;
-    const hasOverdue = points.some(p => getPointStatus(p) === "overdue");
-    return hasOverdue ? "overdue" : "ok";
+    const hasCritical = points.some(p => getPointStatus(p) === "critical");
+    if (hasCritical) return "critical";
+    const hasWarning = points.some(p => getPointStatus(p) === "warning");
+    if (hasWarning) return "warning";
+    return "ok";
   };
 
   const lubricationStatus = getGroupStatus(lubricationPoints);
@@ -1245,7 +1248,7 @@ export default function Machine() {
                   Mazání ({lubricationPoints.length})
                   {lubricationStatus && (
                     <div className={`w-2 h-2 rounded-full ml-1 ${
-                      lubricationStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                      lubricationStatus === "critical" ? "bg-red-500" : lubricationStatus === "warning" ? "bg-yellow-500" : "bg-green-500"
                     }`} />
                   )}
                 </TabsTrigger>
@@ -1254,7 +1257,7 @@ export default function Machine() {
                   Inspekce ({inspectionPoints.length})
                   {inspectionStatus && (
                     <div className={`w-2 h-2 rounded-full ml-1 ${
-                      inspectionStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                      inspectionStatus === "critical" ? "bg-red-500" : inspectionStatus === "warning" ? "bg-yellow-500" : "bg-green-500"
                     }`} />
                   )}
                 </TabsTrigger>
@@ -1263,7 +1266,7 @@ export default function Machine() {
                   Maznice ({lubricatorPoints.length})
                   {lubricatorsStatus && (
                     <div className={`w-2 h-2 rounded-full ml-1 ${
-                      lubricatorsStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                      lubricatorsStatus === "critical" ? "bg-red-500" : lubricatorsStatus === "warning" ? "bg-yellow-500" : "bg-green-500"
                     }`} />
                   )}
                 </TabsTrigger>
@@ -1273,7 +1276,7 @@ export default function Machine() {
                     Prevence ({preventionPoints.length})
                     {preventionStatus && (
                       <div className={`w-2 h-2 rounded-full ml-1 ${
-                        preventionStatus === "overdue" ? "bg-yellow-500" : "bg-green-500"
+                        preventionStatus === "critical" ? "bg-red-500" : preventionStatus === "warning" ? "bg-yellow-500" : "bg-green-500"
                       }`} />
                     )}
                   </TabsTrigger>
