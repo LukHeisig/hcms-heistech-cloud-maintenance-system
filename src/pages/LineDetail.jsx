@@ -673,6 +673,14 @@ export default function LineDetail() {
                 <CardTitle className="flex items-center gap-2">
                   <Droplet className="w-5 h-5" />
                   Stroje - Mazání
+                  <span className="ml-2 text-sm font-normal text-slate-500">
+                    ({machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").length} strojů • {
+                      controlPoints.filter(p => 
+                        machines.filter(m => (m.maintenance_category || "lubrication") === "lubrication").some(m => m.id === p.machine_id) && 
+                        ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type)
+                      ).length
+                    } bodů)
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -745,6 +753,14 @@ export default function LineDetail() {
                 <CardTitle className="flex items-center gap-2">
                   <ClipboardCheck className="w-5 h-5" />
                   Stroje - Preventivní údržba
+                  <span className="ml-2 text-sm font-normal text-slate-500">
+                    ({machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).length} strojů • {
+                      controlPoints.filter(p => 
+                        machines.filter(m => controlPoints.some(cp => cp.machine_id === m.id && cp.type === "prevention")).some(m => m.id === p.machine_id) && 
+                        p.type === 'prevention'
+                      ).length
+                    } bodů)
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
