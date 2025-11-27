@@ -231,10 +231,16 @@ export default function LineDetail() {
 
   const getPointStatus = (point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
-    if (pointRecords.length === 0) return "overdue";
+    
+    let lastPerformed;
+    if (pointRecords.length > 0) {
+      lastPerformed = new Date(pointRecords[0].performed_at);
+    } else if (point.first_confirmation_date) {
+      lastPerformed = new Date(point.first_confirmation_date);
+    } else {
+      return "overdue";
+    }
 
-    const latestRecord = pointRecords[0];
-    const lastPerformed = new Date(latestRecord.performed_at);
     const now = new Date();
     const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
 
