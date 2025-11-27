@@ -21,8 +21,19 @@ export default function MachineSelection({
   const [maintenanceFilter, setMaintenanceFilter] = useState(categoryParam);
 
   const filteredMachines = useMemo(() => {
-    return lineMachines.filter(m => (m.maintenance_category || "lubrication") === maintenanceFilter);
-  }, [lineMachines, maintenanceFilter]);
+    if (maintenanceFilter === "lubrication") {
+      return lineMachines.filter(m => {
+        const machinePoints = demipControlPoints.filter(p => p.machine_id === m.id);
+        return machinePoints.some(p => ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type));
+      });
+    } else if (maintenanceFilter === "prevention") {
+      return lineMachines.filter(m => {
+        const machinePoints = demipControlPoints.filter(p => p.machine_id === m.id);
+        return machinePoints.some(p => p.type === 'prevention');
+      });
+    }
+    return [];
+  }, [lineMachines, demipControlPoints, maintenanceFilter]);
 
   return (
     <div className="max-w-4xl mx-auto">

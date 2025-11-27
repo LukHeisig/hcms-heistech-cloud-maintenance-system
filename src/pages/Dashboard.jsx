@@ -254,8 +254,14 @@ export default function Dashboard() {
     }
   }, [user, lines, navigate]);
 
-  // Automaticky nastavit activeTab podle maintenance_category stroje
+  // Automaticky nastavit activeTab podle parametru v URL nebo maintenance_category stroje
   useEffect(() => {
+    const categoryParam = urlParams.get('category');
+    if (categoryParam) {
+      setActiveTab(categoryParam);
+      return;
+    }
+
     if (selectedMachine && allMachines.length > 0) {
       const machine = allMachines.find(m => m.id === selectedMachine);
       if (machine?.maintenance_category === "prevention") {
@@ -264,7 +270,7 @@ export default function Dashboard() {
         setActiveTab("lubrication");
       }
     }
-  }, [selectedMachine, allMachines]);
+  }, [selectedMachine, allMachines, urlParams]);
 
   const getPointStatus = useCallback((point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
