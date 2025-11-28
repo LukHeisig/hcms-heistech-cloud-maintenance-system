@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Factory, FileText, Users, Wrench, Building2, Settings, Activity } from "lucide-react";
+import { Factory, FileText, Users, Wrench, Building2, Settings, Activity, Database } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -22,6 +22,22 @@ export default function Admin() {
               <CardContent>
                 <p className="text-sm text-slate-600">
                   Nástroj pro odstranění osiřelých záznamů (Admin only)
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to={createPageUrl("AdminExport")}>
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-blue-200 bg-blue-50/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-blue-700">
+                  <Database className="w-5 h-5" />
+                  Export Dat
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600">
+                  Kompletní záloha databáze do CSV
                 </p>
               </CardContent>
             </Card>
