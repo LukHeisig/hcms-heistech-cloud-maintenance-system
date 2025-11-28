@@ -903,7 +903,11 @@ export default function LineDetail() {
                                   const point = controlPoints.find(p => p.id === issue.control_point_id);
                                   const machine = machines.find(m => m.id === point?.machine_id);
                                   return (
-                                    <div key={issue.id} className="flex items-center gap-4 p-2 hover:bg-slate-50 rounded-md border border-transparent hover:border-slate-100 transition-colors">
+                                    <div 
+                                      key={issue.id} 
+                                      className="flex items-center gap-4 p-2 hover:bg-slate-50 rounded-md border border-transparent hover:border-slate-100 transition-colors cursor-pointer"
+                                      onClick={() => navigate(createPageUrl(`IssueApproval?issue=${issue.id}`))}
+                                    >
                                         <div className="flex-shrink-0 w-24 text-xs text-slate-400">
                                            {format(new Date(issue.created_date), "HH:mm", { locale: cs })}
                                         </div>
@@ -913,9 +917,9 @@ export default function LineDetail() {
                                             </Badge>
                                         </div>
                                         <div className="flex-1 min-w-0 flex items-center gap-4">
-                                            <div className="flex-shrink-0 w-40">
-                                                <p className="text-sm font-medium text-slate-900 truncate" title={point?.name}>{point?.name || "Neznámý bod"}</p>
-                                                <p className="text-xs text-slate-500 truncate" title={machine?.name}>{machine?.name}</p>
+                                            <div className="flex-shrink-0 w-48">
+                                                <p className="text-sm font-bold text-slate-900" title={machine?.name}>{machine?.name || "Neznámý stroj"}</p>
+                                                <p className="text-xs text-slate-500 truncate" title={point?.name}>{point?.name || "Neznámý bod"}</p>
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-sm text-slate-700 truncate" title={issue.description}>{issue.description}</p>
@@ -930,8 +934,11 @@ export default function LineDetail() {
                                                 <img 
                                                   src={issue.photo_url} 
                                                   alt="Foto" 
-                                                  className="w-8 h-8 object-cover rounded border border-slate-200 cursor-pointer"
-                                                  onClick={() => window.open(issue.photo_url, '_blank')}
+                                                  className="w-8 h-8 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(issue.photo_url, '_blank');
+                                                  }}
                                                 />
                                             ) : <div className="w-8 h-8" />}
                                         </div>
