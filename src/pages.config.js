@@ -21,6 +21,7 @@ import Settings from './pages/Settings';
 import AdminThermo from './pages/AdminThermo';
 import IssueDetail from './pages/IssueDetail';
 import WorkOrders from './pages/WorkOrders';
+import AdminCleanup from './pages/AdminCleanup';
 import __Layout from './Layout.jsx';
 
 
@@ -48,6 +49,7 @@ export const PAGES = {
     "AdminThermo": AdminThermo,
     "IssueDetail": IssueDetail,
     "WorkOrders": WorkOrders,
+    "AdminCleanup": AdminCleanup,
 }
 
 export const pagesConfig = {
