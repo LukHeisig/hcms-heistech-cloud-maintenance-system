@@ -216,6 +216,30 @@ export default function LineDetail() {
     );
   }, [allIssues, controlPoints, machineIds]);
 
+  const preventionIssuesGrouped = useMemo(() => {
+    const filtered = issues.filter(issue => {
+      if (!issue.control_point_id) return false;
+      const cp = controlPoints.find(p => p.id === issue.control_point_id);
+      return cp && cp.type === 'prevention';
+    });
+    
+    // Sort by created_by (email) then date
+    filtered.sort((a, b) => {
+       if (a.created_by < b.created_by) return -1;
+       if (a.created_by > b.created_by) return 1;
+       return new Date(b.created_date) - new Date(a.created_date);
+    });
+
+    // Group
+    const grouped = {};
+    filtered.forEach(issue => {
+        if (!grouped[issue.created_by]) grouped[issue.created_by] = [];
+        grouped[issue.created_by].push(issue);
+    });
+    
+    return grouped;
+  }, [issues, controlPoints]);
+
   const maintenanceRecords = useMemo(() => {
     return allMaintenance.filter(m => machineIds.includes(m.machine_id));
   }, [allMaintenance, machineIds]);
@@ -850,9 +874,75 @@ export default function LineDetail() {
 
           <TabsContent value="checklist" className="space-y-6">
             <Card>
-              <CardContent className="p-12 text-center">
-                <CheckSquare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Checklisty budou implementovány</p>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckSquare className="w-5 h-5" />
+                  Checklist závad z prevencí
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(preventionIssuesGrouped).length === 0 ? (
+                  <div className="text-center py-12">
+                     <CheckSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                     <p className="text-slate-500">Zatím žádné závady z preventivních kontrol</p>
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {Object.entries(preventionIssuesGrouped).map(([userEmail, userIssues]) => (
+                      <div key={userEmail} className="border rounded-lg p-4 bg-slate-50">
+                        <div className="flex items-center gap-3 mb-4 border-b pb-2 border-slate-200">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                            {getUserDisplayName(userEmail).charAt(0)}
+                          </div>
+                          <h3 className="font-bold text-lg text-slate-900">{getUserDisplayName(userEmail)}</h3>
+                          <span className="text-sm text-slate-500 ml-auto">{userIssues.length} závad</span>
+                        </div>
+                        <div className="space-y-3">
+                          {userIssues.map(issue => {
+                            const point = controlPoints.find(p => p.id === issue.control_point_id);
+                            const machine = machines.find(m => m.id === point?.machine_id);
+                            return (
+                              <div key={issue.id} className="bg-white border rounded-md p-3 shadow-sm">
+                                <div className="flex justify-between items-start gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                        {format(new Date(issue.created_date), "d. M. yyyy", { locale: cs })}
+                                      </Badge>
+                                      <h4 className="font-semibold text-slate-800">
+                                        {point?.name || "Neznámý bod"}
+                                      </h4>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mb-2">
+                                      {machine?.name || "Neznámý stroj"}
+                                    </p>
+                                    <p className="text-sm text-slate-700">{issue.description}</p>
+                                  </div>
+                                  {issue.photo_url && (
+                                    <img 
+                                      src={issue.photo_url} 
+                                      alt="Závada" 
+                                      className="w-16 h-16 object-cover rounded-md border border-slate-200"
+                                      onClick={() => window.open(issue.photo_url, '_blank')}
+                                    />
+                                  )}
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
+                                    <Badge className={issue.status === 'resolved' ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}>
+                                      {issue.status === 'resolved' ? 'Vyřešeno' : 'Nahlášeno'}
+                                    </Badge>
+                                    <span className="text-xs text-slate-400">
+                                      {format(new Date(issue.created_date), "HH:mm", { locale: cs })}
+                                    </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
