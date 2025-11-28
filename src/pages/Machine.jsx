@@ -545,6 +545,26 @@ export default function Machine() {
         maintenance_record_id: maintenanceRecord.id,
       });
 
+      // Auto-resolve linked issue if exists
+      if (task.issue_id) {
+        await base44.entities.Issue.update(task.issue_id, {
+          status: "resolved",
+          resolved_at: new Date().toISOString(),
+          resolved_by: currentUser?.email,
+          resolution_note: completionData.notes ? `Vyřešeno v rámci PP: ${task.title}. Poznámka: ${completionData.notes}` : `Vyřešeno v rámci PP: ${task.title}`,
+        });
+        
+        // Log audit for auto-resolution
+        await base44.entities.AuditLog.create({
+          entity_type: "Issue",
+          entity_id: task.issue_id,
+          changed_by: currentUser?.email || "system",
+          change_description: `Automaticky vyřešeno dokončením pracovního příkazu "${task.title}"`,
+          user_type: currentUser?.user_type,
+          company_id: currentUser?.company_id || null,
+        });
+      }
+
       return maintenanceRecord;
     },
     onSuccess: () => {
