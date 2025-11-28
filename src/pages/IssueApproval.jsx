@@ -502,8 +502,70 @@ export default function IssueApproval() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4">
-                {reportedIssues.map((issue) => renderIssueCard(issue, false))}
+              <div className="space-y-4">
+                {user?.user_type !== 'manager' ? (
+                   <Accordion type="multiple" className="space-y-4">
+                     {Object.entries(groupedReportedIssues).map(([companyId, data]) => (
+                       <AccordionItem key={companyId} value={companyId} className="bg-white border rounded-lg px-4">
+                         <AccordionTrigger className="hover:no-underline py-4">
+                           <div className="flex items-center gap-3 w-full">
+                             <div className="flex items-center gap-2">
+                                <Building2 className="w-5 h-5 text-blue-600" />
+                                <span className="font-bold text-lg">{data.companyName}</span>
+                             </div>
+                             <Badge variant="secondary" className="ml-auto mr-4 bg-orange-100 text-orange-700">
+                                {data.count} závad
+                             </Badge>
+                           </div>
+                         </AccordionTrigger>
+                         <AccordionContent className="pt-2 pb-6">
+                           <div className="space-y-8">
+                              {Object.entries(data.categories).map(([category, issues]) => {
+                                 if (issues.length === 0) return null;
+                                 return (
+                                   <div key={category} className="space-y-3">
+                                      <h4 className="font-semibold text-slate-700 border-b pb-2 flex items-center gap-2">
+                                         {category === "Prevence" ? <Factory className="w-4 h-4 text-purple-600" /> :
+                                          category === "Mazání" ? <Factory className="w-4 h-4 text-blue-600" /> :
+                                          <Activity className="w-4 h-4 text-green-600" />}
+                                         {category} ({issues.length})
+                                      </h4>
+                                      <div className="grid gap-4">
+                                         {issues.map(issue => renderIssueCard(issue, false))}
+                                      </div>
+                                   </div>
+                                 );
+                              })}
+                           </div>
+                         </AccordionContent>
+                       </AccordionItem>
+                     ))}
+                   </Accordion>
+                ) : (
+                   <div className="space-y-8">
+                     {Object.values(groupedReportedIssues).map((data) => (
+                        <div key={data.companyName} className="space-y-8">
+                             {Object.entries(data.categories).map(([category, issues]) => {
+                                   if (issues.length === 0) return null;
+                                   return (
+                                     <div key={category} className="space-y-3">
+                                        <h4 className="font-bold text-lg text-slate-800 border-b pb-2 flex items-center gap-2">
+                                           {category === "Prevence" ? <Factory className="w-5 h-5 text-purple-600" /> :
+                                            category === "Mazání" ? <Factory className="w-5 h-5 text-blue-600" /> :
+                                            <Activity className="w-5 h-5 text-green-600" />}
+                                           {category}
+                                           <Badge variant="secondary" className="ml-2">{issues.length}</Badge>
+                                        </h4>
+                                        <div className="grid gap-4">
+                                           {issues.map(issue => renderIssueCard(issue, false))}
+                                        </div>
+                                     </div>
+                                   );
+                                })}
+                        </div>
+                     ))}
+                   </div>
+                )}
               </div>
             )}
           </TabsContent>
