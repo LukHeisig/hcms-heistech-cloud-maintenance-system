@@ -1180,7 +1180,7 @@ export default function Machine() {
                         return (
                           <div
                             key={issue.id}
-                            onClick={() => navigate(createPageUrl(`IssueApproval?issue=${issue.id}`))}
+                            onClick={() => navigate(createPageUrl(`IssueDetail?id=${issue.id}`))}
                             className="p-4 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 transition-all cursor-pointer"
                           >
                             <div className="flex items-start justify-between mb-2">

@@ -83,9 +83,11 @@ export default function IssueApproval() {
     // Zkontrolovat, zda je v URL parametr issue
     const urlParams = new URLSearchParams(window.location.search);
     const issueId = urlParams.get("issue");
+    const action = urlParams.get("action");
+
     if (issueId) {
       setHighlightedIssueId(issueId);
-      // Scrollnout k závadě po načtení
+      // Scrollnout k závadě po načtení a provést akci
       setTimeout(() => {
         const element = document.getElementById(`issue-${issueId}`);
         if (element) {
@@ -94,6 +96,24 @@ export default function IssueApproval() {
       }, 500);
     }
   }, []);
+
+  // Effect pro automatické otevření dialogu po načtení dat
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const issueId = urlParams.get("issue");
+    const action = urlParams.get("action");
+
+    if (issueId && action && allVisibleIssues.length > 0) {
+       const issue = allVisibleIssues.find(i => i.id === issueId);
+       if (issue) {
+          if (action === 'create_wo' && !showCreateWorkOrderDialog && !selectedIssue) {
+             handleOpenCreateWorkOrder(issue);
+          } else if (action === 'resolve' && !showResolveDialog && !selectedIssue) {
+             handleOpenResolveDialog(issue);
+          }
+       }
+    }
+  }, [allVisibleIssues]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
