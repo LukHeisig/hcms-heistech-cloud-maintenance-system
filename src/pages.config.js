@@ -20,6 +20,7 @@ import AdminVibrations from './pages/AdminVibrations';
 import Settings from './pages/Settings';
 import AdminThermo from './pages/AdminThermo';
 import IssueDetail from './pages/IssueDetail';
+import WorkOrders from './pages/WorkOrders';
 import __Layout from './Layout.jsx';
 
 
@@ -46,6 +47,7 @@ export const PAGES = {
     "Settings": Settings,
     "AdminThermo": AdminThermo,
     "IssueDetail": IssueDetail,
+    "WorkOrders": WorkOrders,
 }
 
 export const pagesConfig = {

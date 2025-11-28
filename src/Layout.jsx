@@ -22,6 +22,7 @@ import {
   Droplet,
   Activity,
   Building2,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
@@ -188,6 +189,12 @@ function LayoutContent({ children }) {
       title: "Dashboard",
       url: createPageUrl("Dashboard"),
       icon: LayoutDashboard,
+    },
+    {
+      title: "Pracovní příkazy",
+      url: createPageUrl("WorkOrders"),
+      icon: ClipboardList,
+      badge: myWorkOrders.length > 0 && user?.user_type === "technician" ? myWorkOrders.length : 0,
     },
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [
