@@ -200,13 +200,23 @@ export default function IssueApproval() {
 
   // Získat informace o bodě nebo stroji pro zobrazení
   const getIssueInfo = (issue) => {
+    let category = "Ostatní";
+
     if (issue.control_point_id) {
       const point = controlPoints.find((p) => p.id === issue.control_point_id);
-      if (!point) return { name: "Neznámý bod", machineName: "", lineName: "", companyName: "", type: "control_point" };
+      if (!point) return { name: "Neznámý bod", machineName: "", lineName: "", companyName: "", type: "control_point", category };
 
       const machine = machines.find((m) => m.id === point.machine_id);
       const line = lines.find((l) => l.id === machine?.line_id);
       const company = companies.find((c) => c.id === line?.company_id);
+
+      // Determine category based on CP type
+      if (point.type === 'prevention') {
+        category = "Prevence";
+      } else {
+        // lubrication, inspection, auto_lubricator
+        category = "Mazání";
+      }
 
       return {
         name: point.name,
@@ -214,26 +224,70 @@ export default function IssueApproval() {
         machineName: machine?.name || "",
         lineName: line?.name || "",
         companyName: company?.name || "",
+        companyId: company?.id,
         type: "control_point",
+        category
       };
     } else if (issue.machine_id) {
       const machine = machines.find((m) => m.id === issue.machine_id);
-      if (!machine) return { name: "Neznámý stroj", machineName: "", lineName: "", companyName: "", type: "machine" };
+      if (!machine) return { name: "Neznámý stroj", machineName: "", lineName: "", companyName: "", type: "machine", category };
 
       const line = lines.find((l) => l.id === machine.line_id);
       const company = companies.find((c) => c.id === line?.company_id);
+
+      category = "Technická diagnostika";
 
       return {
         name: machine.name,
         machineName: machine.name,
         lineName: line?.name || "",
         companyName: company?.name || "",
+        companyId: company?.id,
         type: "machine",
+        category
       };
     }
 
-    return { name: "Neznámá lokace", machineName: "", lineName: "", companyName: "", type: "unknown" };
+    return { name: "Neznámá lokace", machineName: "", lineName: "", companyName: "", type: "unknown", category };
   };
+
+  const groupedReportedIssues = React.useMemo(() => {
+    const grouped = {};
+
+    reportedIssues.forEach(issue => {
+      const details = getIssueInfo(issue);
+      if (!details.companyId) return;
+
+      if (!grouped[details.companyId]) {
+        grouped[details.companyId] = {
+          companyName: details.companyName,
+          count: 0,
+          categories: {
+            "Mazání": [],
+            "Prevence": [],
+            "Technická diagnostika": []
+          }
+        };
+      }
+
+      const company = companies.find(c => c.id === details.companyId);
+      const diagEnabled = company && (company.enable_vibration || company.enable_thermo || company.enable_tribo);
+
+      let targetCategory = details.category;
+      if (targetCategory === "Technická diagnostika" && !diagEnabled) {
+         // Optional: handle diagnostics disabled
+      }
+
+      if (!grouped[details.companyId].categories[targetCategory]) {
+        grouped[details.companyId].categories[targetCategory] = [];
+      }
+
+      grouped[details.companyId].categories[targetCategory].push({ ...issue, ...details });
+      grouped[details.companyId].count++;
+    });
+
+    return grouped;
+  }, [reportedIssues, controlPoints, machines, lines, companies]);
 
   const resolveIssueMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Issue.update(id, data),
