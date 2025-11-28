@@ -102,7 +102,7 @@ export default function IssueApproval() {
 
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "reported" }, "-created_date"),
+    queryFn: () => base44.entities.Issue.filter({ status: ["reported", "work_order_created"] }, "-created_date"),
   });
 
   const { data: allResolvedIssues = [] } = useQuery({
@@ -454,7 +454,7 @@ export default function IssueApproval() {
       <Card
         key={issue.id}
         id={`issue-${issue.id}`}
-        className={`border-l-4 transition-all ${
+        className={`border-l-4 transition-all cursor-pointer hover:shadow-md ${
           isResolved 
             ? "border-l-green-500 bg-green-50/30" 
             : hasWorkOrder 
@@ -463,6 +463,11 @@ export default function IssueApproval() {
         } ${
           isHighlighted ? "ring-4 ring-blue-400 ring-opacity-50 shadow-xl" : ""
         }`}
+        onClick={(e) => {
+           // Prevent navigation if clicking buttons
+           if (e.target.closest('button') || e.target.closest('.prevent-nav')) return;
+           navigate(createPageUrl(`IssueDetail?id=${issue.id}`));
+        }}
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-4">
@@ -662,8 +667,8 @@ export default function IssueApproval() {
         <Tabs defaultValue="reported" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm">
             <TabsTrigger value="reported" className="gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              Nahlášené ({reportedIssues.length})
+              <Activity className="w-4 h-4" />
+              Aktivní ({reportedIssues.length})
             </TabsTrigger>
             <TabsTrigger value="resolved" className="gap-2">
               <CheckCircle className="w-4 h-4" />

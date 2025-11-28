@@ -906,7 +906,7 @@ export default function LineDetail() {
                                     <div 
                                       key={issue.id} 
                                       className="flex items-center gap-4 p-2 hover:bg-slate-50 rounded-md border border-transparent hover:border-slate-100 transition-colors cursor-pointer"
-                                      onClick={() => navigate(createPageUrl(`IssueApproval?issue=${issue.id}`))}
+                                      onClick={() => navigate(createPageUrl(`IssueDetail?id=${issue.id}`))}
                                     >
                                         <div className="flex-shrink-0 w-24 text-xs text-slate-400">
                                            {format(new Date(issue.created_date), "HH:mm", { locale: cs })}
