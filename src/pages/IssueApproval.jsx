@@ -430,69 +430,122 @@ export default function IssueApproval() {
   const canResolveIssues = user?.user_type === "admin" || user?.user_type === "manager" || user?.user_type === "superAdmin";
   const canDeleteIssues = user?.user_type === "admin" || user?.user_type === "manager" || user?.user_type === "superAdmin";
 
+  const handleOpenCreateWorkOrder = (issue) => {
+    const issueInfo = getIssueInfo(issue);
+    setSelectedIssue(issue);
+    setWorkOrderForm({
+      title: `Oprava: ${issueInfo.name}`,
+      description: `Na základě nahlášené závady:\n${issue.description}`,
+      maintenance_type: "corrective",
+      planned_date: format(new Date(), "yyyy-MM-dd"),
+      priority: "medium",
+      assigned_to: "",
+      estimated_duration_hours: "1",
+    });
+    setShowCreateWorkOrderDialog(true);
+  };
+
   const renderIssueCard = (issue, isResolved = false) => {
     const issueInfo = getIssueInfo(issue);
     const isHighlighted = issue.id === highlightedIssueId;
+    const hasWorkOrder = issue.status === 'work_order_created' || issue.planned_maintenance_id;
 
     return (
       <Card
         key={issue.id}
         id={`issue-${issue.id}`}
         className={`border-l-4 transition-all ${
-          isResolved ? "border-l-green-500 bg-green-50/30" : "border-l-orange-500 bg-orange-50/30"
+          isResolved 
+            ? "border-l-green-500 bg-green-50/30" 
+            : hasWorkOrder 
+              ? "border-l-blue-500 bg-blue-50/30" 
+              : "border-l-orange-500 bg-orange-50/30"
         } ${
           isHighlighted ? "ring-4 ring-blue-400 ring-opacity-50 shadow-xl" : ""
         }`}
       >
         <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 {isResolved ? (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                ) : hasWorkOrder ? (
+                  <Clock className="w-5 h-5 text-blue-600 flex-shrink-0" />
                 ) : (
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0" />
                 )}
-                <CardTitle className="text-lg">
+                
+                <CardTitle className="text-lg truncate">
                   {issueInfo.type === "control_point" && issueInfo.number && `${issueInfo.number} - `}
                   {issueInfo.name}
                 </CardTitle>
+                
                 {issueInfo.type === "machine" && (
                   <Badge className="bg-blue-100 text-blue-700">Celý stroj</Badge>
                 )}
-                {isHighlighted && (
-                  <Badge className="bg-blue-600 text-white">
-                    Vybraná závada
-                  </Badge>
+                
+                {isResolved ? (
+                  <Badge className="bg-green-100 text-green-700">Vyřešeno</Badge>
+                ) : hasWorkOrder ? (
+                  <Badge className="bg-blue-100 text-blue-700">PP Vytvořen</Badge>
+                ) : (
+                  <Badge className="bg-orange-100 text-orange-700">Nahlášeno</Badge>
                 )}
               </div>
+              
               <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
                 {issueInfo.companyName && (
                   <>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                       {issueInfo.companyName}
                     </Badge>
-                    <span>•</span>
+                    <span className="hidden sm:inline">•</span>
                   </>
                 )}
                 {issueInfo.lineName && (
                   <>
                     <span>{issueInfo.lineName}</span>
-                    <span>•</span>
+                    <span className="hidden sm:inline">•</span>
                   </>
                 )}
                 <span>{issueInfo.machineName}</span>
               </div>
             </div>
-            <div className="flex gap-2">
-              {!isResolved && canResolveIssues && (
-                <Button
-                  onClick={() => handleOpenResolveDialog(issue)}
-                  className="bg-gradient-to-r from-green-600 to-green-700"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Vyřešit
-                </Button>
+
+            {/* Actions */}
+            <div className="flex gap-2 flex-shrink-0 flex-col sm:flex-row">
+              {!isResolved && !hasWorkOrder && canResolveIssues && (
+                <>
+                  <Button
+                    onClick={() => handleOpenCreateWorkOrder(issue)}
+                    variant="outline"
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                    size="sm"
+                  >
+                    <Factory className="w-4 h-4 mr-2" />
+                    Vytvořit PP
+                  </Button>
+                  <Button
+                    onClick={() => handleOpenResolveDialog(issue)}
+                    className="bg-gradient-to-r from-green-600 to-green-700"
+                    size="sm"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Vyřešit
+                  </Button>
+                </>
+              )}
+              {!isResolved && hasWorkOrder && canResolveIssues && (
+                 <Button
+                    onClick={() => handleOpenResolveDialog(issue)}
+                    variant="outline"
+                    className="border-green-200 text-green-700 hover:bg-green-50"
+                    size="sm"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Vyřešit ručně
+                  </Button>
               )}
               {isResolved && canDeleteIssues && (
                 <Button
@@ -508,39 +561,53 @@ export default function IssueApproval() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm font-medium text-slate-700 mb-1">Popis závady:</p>
-              <p className="text-sm text-slate-900 bg-white p-3 rounded-lg border border-slate-200">
-                {issue.description}
-              </p>
-            </div>
-
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Left side - Photo */}
             {issue.photo_url && (
-              <div className="mt-2">
-                <p className="text-xs font-medium text-slate-500 mb-1">Fotografie:</p>
+              <div className="flex-shrink-0">
                 <img
                   src={issue.photo_url}
                   alt="Fotografie závady"
-                  className="w-24 h-24 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                  className="w-24 h-24 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
                   onClick={() => window.open(issue.photo_url, "_blank")}
                 />
               </div>
             )}
 
-            <div className="flex items-center gap-4 text-xs text-slate-500">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>
-                  Nahlášeno: {format(new Date(issue.created_date), "d. M. yyyy HH:mm", { locale: cs })}
-                </span>
+            {/* Right side - Details */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <p className="text-sm text-slate-900 bg-white p-3 rounded-lg border border-slate-200 whitespace-pre-wrap">
+                  {issue.description}
+                </p>
               </div>
-              <span>•</span>
-              <span>{getUserDisplayName(issue.created_by)}</span>
-            </div>
 
-            {isResolved && (
-              <>
+              <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>
+                    {format(new Date(issue.created_date), "d. M. yyyy HH:mm", { locale: cs })}
+                  </span>
+                </div>
+                <span>•</span>
+                <div className="flex items-center gap-1">
+                  <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                    {getUserDisplayName(issue.created_by).charAt(0)}
+                  </span>
+                  <span>{getUserDisplayName(issue.created_by)}</span>
+                </div>
+              </div>
+
+              {hasWorkOrder && !isResolved && (
+                <div className="mt-2 bg-blue-50 p-2 rounded-md border border-blue-100 flex items-center gap-2 text-sm text-blue-800">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    Pracovní příkaz byl vytvořen. Závada bude automaticky uzavřena po jeho dokončení.
+                  </span>
+                </div>
+              )}
+
+              {isResolved && (
                 <div className="border-t border-slate-200 pt-3 mt-3">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
@@ -559,8 +626,8 @@ export default function IssueApproval() {
                     <span>{getUserDisplayName(issue.resolved_by)}</span>
                   </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
