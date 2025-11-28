@@ -446,23 +446,14 @@ export default function IssueApproval() {
             </div>
 
             {issue.photo_url && (
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2">Fotografie:</p>
-                <div 
-                  className="relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 cursor-pointer hover:border-orange-400 transition-all"
+              <div className="mt-2">
+                <p className="text-xs font-medium text-slate-500 mb-1">Fotografie:</p>
+                <img
+                  src={issue.photo_url}
+                  alt="Fotografie závady"
+                  className="w-24 h-24 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => window.open(issue.photo_url, "_blank")}
-                >
-                  <img
-                    src={issue.photo_url}
-                    alt="Fotografie závady"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-all flex items-center justify-center">
-                    <span className="text-white font-medium opacity-0 hover:opacity-100 transition-opacity">
-                      Kliknout pro zvětšení
-                    </span>
-                  </div>
-                </div>
+                />
               </div>
             )}
 
