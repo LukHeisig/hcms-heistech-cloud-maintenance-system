@@ -97,23 +97,7 @@ export default function IssueApproval() {
     }
   }, []);
 
-  // Effect pro automatické otevření dialogu po načtení dat
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const issueId = urlParams.get("issue");
-    const action = urlParams.get("action");
 
-    if (issueId && action && allVisibleIssues.length > 0) {
-       const issue = allVisibleIssues.find(i => i.id === issueId);
-       if (issue) {
-          if (action === 'create_wo' && !showCreateWorkOrderDialog && !selectedIssue) {
-             handleOpenCreateWorkOrder(issue);
-          } else if (action === 'resolve' && !showResolveDialog && !selectedIssue) {
-             handleOpenResolveDialog(issue);
-          }
-       }
-    }
-  }, [allVisibleIssues]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
@@ -237,6 +221,24 @@ export default function IssueApproval() {
   }, [allResolvedIssues, user, lines, machines, controlPoints]);
 
   const allVisibleIssues = React.useMemo(() => [...reportedIssues, ...resolvedIssues], [reportedIssues, resolvedIssues]);
+
+  // Effect pro automatické otevření dialogu po načtení dat
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const issueId = urlParams.get("issue");
+    const action = urlParams.get("action");
+
+    if (issueId && action && allVisibleIssues.length > 0) {
+       const issue = allVisibleIssues.find(i => i.id === issueId);
+       if (issue) {
+          if (action === 'create_wo' && !showCreateWorkOrderDialog && !selectedIssue) {
+             handleOpenCreateWorkOrder(issue);
+          } else if (action === 'resolve' && !showResolveDialog && !selectedIssue) {
+             handleOpenResolveDialog(issue);
+          }
+       }
+    }
+  }, [allVisibleIssues]);
 
   // Získat informace o bodě nebo stroji pro zobrazení
   const getIssueInfo = (issue) => {
