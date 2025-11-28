@@ -5,7 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +64,18 @@ export default function IssueApproval() {
   const [isResolving, setIsResolving] = useState(false);
   const [deleteIssueId, setDeleteIssueId] = useState(null);
   const [highlightedIssueId, setHighlightedIssueId] = useState(null);
+  
+  // Work Order State
+  const [showCreateWorkOrderDialog, setShowCreateWorkOrderDialog] = useState(false);
+  const [workOrderForm, setWorkOrderForm] = useState({
+    title: "",
+    description: "",
+    maintenance_type: "corrective",
+    planned_date: "",
+    priority: "medium",
+    assigned_to: "",
+    estimated_duration_hours: "",
+  });
 
   useEffect(() => {
     loadUser();
@@ -333,6 +353,57 @@ export default function IssueApproval() {
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setDeleteIssueId(null);
     },
+  });
+
+  const createWorkOrderMutation = useMutation({
+    mutationFn: async (data) => {
+      // 1. Create PlannedMaintenance
+      const plannedMaintenance = await base44.entities.PlannedMaintenance.create({
+        ...data,
+        status: data.assigned_to ? "assigned" : "planned",
+        work_order_created_at: new Date().toISOString(),
+      });
+
+      // 2. Update Issue
+      await base44.entities.Issue.update(selectedIssue.id, {
+        status: "work_order_created",
+        planned_maintenance_id: plannedMaintenance.id,
+      });
+
+      // 3. Send Email if assigned
+      if (data.assigned_to) {
+        const assignedUserName = getUserDisplayName(data.assigned_to);
+        try {
+          await base44.integrations.Core.SendEmail({
+            to: data.assigned_to,
+            subject: `[HCMS] Přiřazen pracovní příkaz: ${data.title}`,
+            body: `Dobrý den ${assignedUserName},\n\nByl vám přiřazen nový pracovní příkaz na základě nahlášené závady.\n\nNázev: ${data.title}\nPopis: ${data.description}\nTermín: ${format(new Date(data.planned_date), "d. M. yyyy", { locale: cs })}\n\nProsím zkontrolujte aplikaci pro více detailů.\n\nS pozdravem,\nHCMS`,
+          });
+        } catch (e) {
+          console.error("Failed to send email", e);
+        }
+      }
+
+      return plannedMaintenance;
+    },
+    onSuccess: async (pm) => {
+      await base44.entities.AuditLog.create({
+        entity_type: "Issue",
+        entity_id: selectedIssue.id,
+        changed_by: user?.email || "",
+        change_description: `Vytvořil pracovní příkaz "${pm.title}" pro závadu`,
+        user_type: user?.user_type,
+        company_id: user?.company_id || null,
+      });
+      queryClient.invalidateQueries({ queryKey: ["reportedIssues"] });
+      queryClient.invalidateQueries({ queryKey: ["resolvedIssues"] });
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      setShowCreateWorkOrderDialog(false);
+      setSelectedIssue(null);
+    },
+    onError: (error) => {
+      alert("Chyba při vytváření pracovního příkazu: " + error.message);
+    }
   });
 
   const handleOpenResolveDialog = (issue) => {
