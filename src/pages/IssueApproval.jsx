@@ -846,6 +846,137 @@ export default function IssueApproval() {
           </DialogContent>
         </Dialog>
 
+        {/* Dialog pro vytvoření pracovního příkazu */}
+        <Dialog open={showCreateWorkOrderDialog} onOpenChange={setShowCreateWorkOrderDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Vytvořit pracovní příkaz (PP)</DialogTitle>
+              <DialogDescription>
+                Vytvoří nový plánovaný úkol údržby na základě této závady.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div>
+                <Label htmlFor="wo_title">Název úkolu</Label>
+                <Input
+                  id="wo_title"
+                  value={workOrderForm.title}
+                  onChange={(e) => setWorkOrderForm({ ...workOrderForm, title: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="wo_desc">Popis práce</Label>
+                <Textarea
+                  id="wo_desc"
+                  value={workOrderForm.description}
+                  onChange={(e) => setWorkOrderForm({ ...workOrderForm, description: e.target.value })}
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="wo_date">Plánované datum</Label>
+                  <Input
+                    type="date"
+                    id="wo_date"
+                    value={workOrderForm.planned_date}
+                    onChange={(e) => setWorkOrderForm({ ...workOrderForm, planned_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="wo_priority">Priorita</Label>
+                  <Select
+                    value={workOrderForm.priority}
+                    onValueChange={(value) => setWorkOrderForm({ ...workOrderForm, priority: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Nízká</SelectItem>
+                      <SelectItem value="medium">Střední</SelectItem>
+                      <SelectItem value="high">Vysoká</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="wo_assigned">Přiřadit technikovi</Label>
+                  <Select
+                    value={workOrderForm.assigned_to}
+                    onValueChange={(value) => setWorkOrderForm({ ...workOrderForm, assigned_to: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte technika" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allUsers
+                        .filter(u => u.user_type === "technician" || u.user_type === "manager")
+                        .map(u => (
+                          <SelectItem key={u.id} value={u.email}>
+                            {getUserDisplayName(u.email)}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="wo_duration">Odhad času (hodiny)</Label>
+                  <Input
+                    type="number"
+                    id="wo_duration"
+                    value={workOrderForm.estimated_duration_hours}
+                    onChange={(e) => setWorkOrderForm({ ...workOrderForm, estimated_duration_hours: e.target.value })}
+                    step="0.5"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateWorkOrderDialog(false)}>
+                Zrušit
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Get machine ID from selected Issue
+                  let machineId = selectedIssue.machine_id;
+                  if (!machineId && selectedIssue.control_point_id) {
+                    const point = controlPoints.find(p => p.id === selectedIssue.control_point_id);
+                    machineId = point?.machine_id;
+                  }
+
+                  if (!machineId) {
+                    alert("Nelze určit stroj pro tento úkol.");
+                    return;
+                  }
+
+                  createWorkOrderMutation.mutate({
+                    ...workOrderForm,
+                    machine_id: machineId,
+                    issue_id: selectedIssue.id,
+                    estimated_duration_hours: workOrderForm.estimated_duration_hours ? parseFloat(workOrderForm.estimated_duration_hours) : null
+                  });
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={createWorkOrderMutation.isLoading}
+              >
+                {createWorkOrderMutation.isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Vytvářím...
+                  </>
+                ) : (
+                  "Vytvořit pracovní příkaz"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Alert dialog pro smazání vyřešené závady */}
         <AlertDialog
           open={!!deleteIssueId}
