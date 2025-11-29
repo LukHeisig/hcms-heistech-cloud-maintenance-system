@@ -5,6 +5,7 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from '@tanstack/react-query';
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeContext";
+import { OfflineProvider } from "@/components/OfflineProvider";
 import {
   LayoutDashboard,
   Factory,
@@ -567,7 +568,9 @@ function LayoutContent({ children }) {
 export default function Layout({ children }) {
   return (
     <ViewModeProvider>
-      <LayoutContent>{children}</LayoutContent>
+      <OfflineProvider>
+        <LayoutContent>{children}</LayoutContent>
+      </OfflineProvider>
     </ViewModeProvider>
   );
 }

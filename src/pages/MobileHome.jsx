@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useOffline } from "@/components/OfflineProvider";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import {
@@ -47,6 +48,7 @@ export default function MobileHome() {
   };
 
   const [activeTab, setActiveTab] = useState("orders");
+  const { getCachedData, setCachedData, isOnline } = useOffline();
 
   // Fetch assignments
   const { data: myWorkOrders = [] } = useQuery({
@@ -58,26 +60,36 @@ export default function MobileHome() {
         status: "assigned"
       }, "planned_date");
     },
-    enabled: !!user?.email,
+    enabled: !!user?.email && isOnline,
+    initialData: () => getCachedData(`myWorkOrdersMobile_${user?.email}`) || [],
+    onSuccess: (data) => setCachedData(`myWorkOrdersMobile_${user?.email}`, data),
   });
 
   // Fetch machines for search and checklist
   const { data: machines = [] } = useQuery({
     queryKey: ["machinesMobile"],
     queryFn: () => base44.entities.Machine.list(),
+    enabled: isOnline,
+    initialData: () => getCachedData("machinesMobile") || [],
+    onSuccess: (data) => setCachedData("machinesMobile", data),
   });
 
   // Fetch lines responsible by user
   const { data: myLines = [] } = useQuery({
     queryKey: ["myLinesMobile", user?.email],
     queryFn: () => base44.entities.Line.filter({ responsible_person_email: user?.email }),
-    enabled: !!user?.email
+    enabled: !!user?.email && isOnline,
+    initialData: () => getCachedData(`myLinesMobile_${user?.email}`) || [],
+    onSuccess: (data) => setCachedData(`myLinesMobile_${user?.email}`, data),
   });
 
   // Fetch prevention points
   const { data: preventionPoints = [] } = useQuery({
     queryKey: ["preventionPointsMobile"],
     queryFn: () => base44.entities.ControlPoint.filter({ type: "prevention" }),
+    enabled: isOnline,
+    initialData: () => getCachedData("preventionPointsMobile") || [],
+    onSuccess: (data) => setCachedData("preventionPointsMobile", data),
   });
 
   const myPreventionMachines = React.useMemo(() => {
