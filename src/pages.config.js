@@ -23,6 +23,7 @@ import IssueDetail from './pages/IssueDetail';
 import WorkOrders from './pages/WorkOrders';
 import AdminCleanup from './pages/AdminCleanup';
 import AdminExport from './pages/AdminExport';
+import MobileHome from './pages/MobileHome';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "WorkOrders": WorkOrders,
     "AdminCleanup": AdminCleanup,
     "AdminExport": AdminExport,
+    "MobileHome": MobileHome,
 }
 
 export const pagesConfig = {

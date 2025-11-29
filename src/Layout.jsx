@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Rocket,
+  Smartphone,
   Bell,
   Info,
   Code,
@@ -185,6 +186,12 @@ function LayoutContent({ children }) {
   };
 
   const navigationItems = [
+    {
+      title: "Mobilní aplikace",
+      url: createPageUrl("MobileHome"),
+      icon: Smartphone,
+      highlight: false,
+    },
     {
       title: "Dashboard",
       url: createPageUrl("Dashboard"),
