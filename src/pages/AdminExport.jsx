@@ -15,8 +15,20 @@ export default function AdminExport() {
         try {
             const response = await base44.functions.invoke('exportDatabase');
             
-            // Create blob from response data
-            const blob = new Blob([response.data], { type: 'application/zip' });
+            if (!response.data || !response.data.base64) {
+                throw new Error("Invalid response from server");
+            }
+
+            // Convert Base64 to Blob
+            const byteCharacters = atob(response.data.base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/zip' });
+
+            // Download
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -26,7 +38,8 @@ export default function AdminExport() {
             window.URL.revokeObjectURL(url);
             a.remove();
         } catch (err) {
-            alert("Export failed: " + err.message);
+            console.error("Export error:", err);
+            alert("Export failed: " + (err.message || "Unknown error"));
         } finally {
             setLoading(false);
         }

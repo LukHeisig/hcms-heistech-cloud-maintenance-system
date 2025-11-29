@@ -74,14 +74,11 @@ Deno.serve(async (req) => {
             }
         }
 
-        const content = await zip.generateAsync({ type: "uint8array" });
+        const content = await zip.generateAsync({ type: "base64" });
 
-        return new Response(content, {
-            status: 200,
-            headers: {
-                "Content-Type": "application/zip",
-                "Content-Disposition": 'attachment; filename="database_export.zip"'
-            }
+        return Response.json({ 
+            success: true,
+            base64: content
         });
 
     } catch (error) {
