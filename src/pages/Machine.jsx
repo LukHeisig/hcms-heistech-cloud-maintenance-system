@@ -301,6 +301,18 @@ export default function Machine() {
     }
   });
 
+  const deletePredictionMutation = useMutation({
+    mutationFn: (id) => base44.entities.PredictiveAnalysis.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["predictiveAnalysis"] });
+    },
+    onError: (error) => {
+      alert("Chyba při mazání predikce: " + error.message);
+    }
+  });
+
+  const canDeletePredictions = currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'superAdmin');
+
   const { data: responsibilities = [] } = useQuery({
     queryKey: ["responsibilities", machineId],
     queryFn: () => base44.entities.MachineResponsibility.filter({ machine_id: machineId }),
@@ -2383,6 +2395,21 @@ export default function Machine() {
                                             Stabilní stav
                                         </Badge>
                                     )}
+                                    {canDeletePredictions && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 -mr-2"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if(confirm("Opravdu smazat tuto predikci?")) {
+                                                    deletePredictionMutation.mutate(predictiveAnalysis[0].id);
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </Button>
+                                    )}
                                 </div>
                             </CardHeader>
                             <CardContent className="p-6 pt-0">
@@ -2477,7 +2504,7 @@ export default function Machine() {
                                                 analysis.health_score > 50 ? 'bg-yellow-500' : 'bg-red-500'
                                             }`}></div>
                                             
-                                            <div className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
+                                            <div className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer group relative">
                                                 <div className="flex justify-between items-start mb-1">
                                                     <span className="text-xs font-bold text-slate-500">
                                                         {format(new Date(analysis.analysis_date), "d.M.yyyy", { locale: cs })}
@@ -2495,6 +2522,23 @@ export default function Machine() {
                                                 <div className="text-xs text-slate-400">
                                                     Riziko: {analysis.failure_probability}%
                                                 </div>
+                                                {canDeletePredictions && (
+                                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if(confirm("Opravdu smazat tuto predikci?")) {
+                                                                    deletePredictionMutation.mutate(analysis.id);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
