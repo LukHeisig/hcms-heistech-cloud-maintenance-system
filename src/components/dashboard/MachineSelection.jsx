@@ -84,27 +84,29 @@ export default function MachineSelection({
             }).length;
             const machineWarning = machinePoints.filter(p => getPointStatus(p) === "warning").length;
 
-            let statusColor = "border-l-green-500";
-            let bgClass = "bg-white";
-            let iconBg = "bg-green-100";
-            let iconColor = "text-green-700";
+            let iconBg = "from-green-500 to-green-600";
+            let statusBadge = null;
 
             if (machineOverdue > 0) {
-              statusColor = "border-l-red-500";
-              bgClass = "bg-red-50/30";
-              iconBg = "bg-red-100";
-              iconColor = "text-red-700";
+              iconBg = "from-red-500 to-red-600";
+              statusBadge = (
+                <div className="flex items-center justify-center px-2 py-1 bg-red-100 rounded-full">
+                  <span className="text-xs font-bold text-red-600">{machineOverdue} !</span>
+                </div>
+              );
             } else if (machineWarning > 0) {
-              statusColor = "border-l-yellow-500";
-              bgClass = "bg-yellow-50/30";
-              iconBg = "bg-yellow-100";
-              iconColor = "text-yellow-700";
+              iconBg = "from-yellow-500 to-yellow-600";
+              statusBadge = (
+                <div className="flex items-center justify-center px-2 py-1 bg-yellow-100 rounded-full">
+                  <span className="text-xs font-bold text-yellow-700">{machineWarning}</span>
+                </div>
+              );
             }
 
             return (
-              <Card
+              <div
                 key={machine.id}
-                className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${statusColor} ${bgClass}`}
+                className="group relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all cursor-pointer"
                 onClick={() => {
                   const url = selectedCompany
                     ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${machine.id}&category=${maintenanceFilter}`
@@ -112,40 +114,25 @@ export default function MachineSelection({
                   navigate(createPageUrl(url));
                 }}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
-                        {maintenanceFilter === "lubrication" ? (
-                          <Droplet className={`w-5 h-5 ${iconColor}`} />
-                        ) : (
-                          <ClipboardCheck className={`w-5 h-5 ${iconColor}`} />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-bold text-slate-900 text-base">{machine.name}</h3>
-                          {machineOverdue > 0 && (
-                            <Badge variant="destructive" className="gap-1">
-                              <Clock className="w-3 h-3" />
-                              {machineOverdue}
-                            </Badge>
-                          )}
-                          {machineWarning > 0 && machineOverdue === 0 && (
-                            <Badge className="gap-1 bg-yellow-500 hover:bg-yellow-600 text-white">
-                              <Clock className="w-3 h-3" />
-                              {machineWarning}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-600">{currentLine?.name || "Linka"}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${iconBg} flex items-center justify-center shadow-lg text-white`}>
+                    {maintenanceFilter === "lubrication" ? (
+                      <Droplet className="w-6 h-6" />
+                    ) : (
+                      <ClipboardCheck className="w-6 h-6" />
+                    )}
                   </div>
-              </CardContent>
-            </Card>
-          );
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-1">
+                      <h3 className="font-bold text-slate-900 text-lg">{machine.name}</h3>
+                      {statusBadge}
+                    </div>
+                    <p className="text-sm text-slate-500 font-medium">{currentLine?.name || "Linka"}</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                </div>
+              </div>
+            );
         })
         )}
       </div>

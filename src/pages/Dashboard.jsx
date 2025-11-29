@@ -1413,38 +1413,31 @@ export default function Dashboard() {
                   const companyOverdue = companyPoints.filter(p => getPointStatus(p) === "overdue").length;
 
                   return (
-                    <Card
+                    <div
                       key={company.id}
-                      className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
+                      className="group relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all cursor-pointer"
                       onClick={() => navigate(createPageUrl(`Dashboard?company=${company.id}`))}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-100">
-                              <Building2 className="w-5 h-5 text-blue-700" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-bold text-slate-900 text-base">{company.name}</h3>
-                                {companyOverdue > 0 && (
-                                  <Badge variant="destructive" className="gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {companyOverdue}
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-4 text-sm text-slate-600">
-                                <span>{companyLines.length} linek</span>
-                                <span>·</span>
-                                <span>{companyPoints.length} bodů</span>
-                              </div>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-slate-400" />
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-blue-200 shadow-lg text-white">
+                          <Building2 className="w-6 h-6" />
                         </div>
-                      </CardContent>
-                    </Card>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center mb-1">
+                            <h3 className="font-bold text-slate-900 text-lg">{company.name}</h3>
+                            {companyOverdue > 0 && (
+                              <div className="flex items-center justify-center px-2 py-1 bg-red-100 rounded-full">
+                                <span className="text-xs font-bold text-red-600">{companyOverdue} !</span>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-500 font-medium">
+                            {companyLines.length} linek • {companyPoints.length} bodů
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
