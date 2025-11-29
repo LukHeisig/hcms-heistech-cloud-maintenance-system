@@ -776,6 +776,14 @@ export default function Dashboard() {
     );
   }
 
+  if (false && viewMode === 'demip') {
+    return (
+      <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl">
+        <MobileAppInterface user={user} isStandalone={false} />
+      </div>
+    );
+  }
+
       if (viewMode === 'maintenance') {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
       return (
