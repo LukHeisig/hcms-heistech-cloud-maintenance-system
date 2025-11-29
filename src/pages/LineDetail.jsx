@@ -503,13 +503,8 @@ export default function LineDetail() {
             <TabsTrigger value="overview">Přehled</TabsTrigger>
             {hasDiagnostics && <TabsTrigger value="diagnostics">Technická diagnostika</TabsTrigger>}
             <TabsTrigger value="lubrication">Mazání</TabsTrigger>
-            <TabsTrigger value="prevention">Preventivní údržba</TabsTrigger>
-            <TabsTrigger value="maintenance">Plán údržby</TabsTrigger>
-            <TabsTrigger value="checklist">Checklisty</TabsTrigger>
-            <TabsTrigger value="interventions">Zásahy</TabsTrigger>
-            <TabsTrigger value="verification">Ověření / Test</TabsTrigger>
-            <TabsTrigger value="audit">Evidence</TabsTrigger>
-            <TabsTrigger value="analytics">Analytika</TabsTrigger>
+            <TabsTrigger value="prevention">Plán preventivní údržby</TabsTrigger>
+            <TabsTrigger value="checklist">Seznam závad</TabsTrigger>
           </TabsList>
 
           {/* Přehled */}
@@ -787,13 +782,13 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Preventivní údržba */}
+          {/* Plán preventivní údržby */}
           <TabsContent value="prevention" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ClipboardCheck className="w-5 h-5" />
-                  Stroje - Preventivní údržba
+                  Stroje - Plán preventivní údržby
                   <span className="ml-2 text-sm font-normal text-slate-500">
                     ({preventionMachines.length} strojů • {
                       controlPoints.filter(p => 
@@ -862,22 +857,14 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          {/* Plán údržby */}
-          <TabsContent value="maintenance" className="space-y-6">
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Plán údržby bude implementován</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
 
           <TabsContent value="checklist" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CheckSquare className="w-5 h-5" />
-                  Checklist závad z prevencí
+                  Seznam závad
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -957,138 +944,7 @@ export default function LineDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="interventions" className="space-y-6">
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Zásahy budou implementovány</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="verification" className="space-y-6">
-            <Card>
-              <CardContent className="p-12 text-center">
-                <ShieldCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Ověření a testy budou implementovány</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Evidence */}
-          <TabsContent value="audit" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Záznamy z kontrol
-                  </CardTitle>
-                  <Button
-                    onClick={() => setShowCheckRecordDialog(true)}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Přidat zápis
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {checkRecords.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 mb-2">Zatím nejsou žádné záznamy z kontrol</p>
-                    <p className="text-xs text-slate-400">Klikněte na "Přidat zápis" pro vytvoření prvního záznamu</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {checkRecords.map((record) => {
-                      const section = checkSections.find(s => s.id === record.section_id);
-                      const checkPoint = allCheckPoints.find(p => p.id === record.check_point_id);
-                      
-                      return (
-                        <div key={record.id} className="border border-slate-200 rounded-lg p-4 bg-white">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-semibold text-slate-900">{section?.name}</h4>
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
-                                <span className="text-slate-700">{checkPoint?.name}</span>
-                              </div>
-                              <p className="text-xs text-slate-500">
-                                {format(new Date(record.created_date), "d. M. yyyy HH:mm", { locale: cs })} • {getUserDisplayName(record.created_by)}
-                              </p>
-                            </div>
-                            <Badge 
-                              className={
-                                record.device_status === "Opraveno" 
-                                  ? "bg-green-100 text-green-700"
-                                  : record.device_status === "Stojí"
-                                  ? "bg-red-100 text-red-700"
-                                  : record.device_status === "Čeká na opravu"
-                                  ? "bg-orange-100 text-orange-700"
-                                  : "bg-blue-100 text-blue-700"
-                              }
-                            >
-                              {record.device_status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div>
-                              <p className="text-sm font-medium text-slate-700">Popis závady:</p>
-                              <p className="text-sm text-slate-900">{record.defect_description}</p>
-                            </div>
-                            
-                            {record.note && (
-                              <div>
-                                <p className="text-sm font-medium text-slate-700">Poznámka:</p>
-                                <p className="text-sm text-slate-600">{record.note}</p>
-                              </div>
-                            )}
-                            
-                            {record.spare_part_used && (
-                              <div>
-                                <p className="text-sm font-medium text-slate-700">Spotřebovaný díl:</p>
-                                <p className="text-sm text-slate-600">{record.spare_part_used}</p>
-                              </div>
-                            )}
-                            
-                            <div className="flex items-center gap-4 text-sm">
-                              <div>
-                                <span className="text-slate-700 font-medium">Odhad odstávky: </span>
-                                <span className="text-slate-600">
-                                  {record.downtime_estimate}
-                                  {record.downtime_estimate === "Vlastní čas" && record.downtime_hours && ` (${record.downtime_hours}h)`}
-                                </span>
-                              </div>
-                              {record.planned_downtime_date && (
-                                <div>
-                                  <span className="text-slate-700 font-medium">Plánováno: </span>
-                                  <span className="text-slate-600">
-                                    {format(new Date(record.planned_downtime_date), "d. M. yyyy", { locale: cs })}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <Card>
-              <CardContent className="p-12 text-center">
-                <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Analytika bude implementována</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
             <Card>
