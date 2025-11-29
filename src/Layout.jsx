@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-// Layout component wraps all pages and provides global context and navigation
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -25,20 +24,8 @@ import {
   Activity,
   Building2,
   ClipboardList,
+  ChevronRight
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,7 +51,6 @@ function LayoutContent({ children }) {
     checkData();
   }, []);
 
-  // Automatická aktualizace last_active_at při načtení stránky nebo změně URL
   useEffect(() => {
     const updateUserActivity = async () => {
       if (!user) return;
@@ -72,7 +58,6 @@ function LayoutContent({ children }) {
       const now = Date.now();
       const lastUpdate = lastActivityUpdateRef.current;
       
-      // Throttling - aktualizovat maximálně jednou za 30 sekund
       if (lastUpdate && (now - lastUpdate) < 30000) {
         return;
       }
@@ -104,16 +89,6 @@ function LayoutContent({ children }) {
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
     enabled: !!user,
   });
-
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(),
-  });
-
-  const getUserDisplayName = (userObj) => {
-    if (!userObj) return "Neznámý";
-    return userObj.custom_display_name || userObj.full_name || userObj.email;
-  };
 
   const { data: lines = [] } = useQuery({
     queryKey: ["lines", user?.company_id],
@@ -184,6 +159,11 @@ function LayoutContent({ children }) {
 
   const handleNotificationClick = (workOrder) => {
     navigate(createPageUrl(`Machine?id=${workOrder.machine_id}#maintenance`));
+  };
+
+  const getUserDisplayName = (userObj) => {
+    if (!userObj) return "Neznámý";
+    return userObj.custom_display_name || userObj.full_name || userObj.email;
   };
 
   const navigationItems = [
@@ -267,7 +247,7 @@ function LayoutContent({ children }) {
       }}
       variant="outline"
       size="sm"
-      className="gap-2 border-2"
+      className="gap-2 border-2 w-full justify-start"
       style={{
         borderColor: viewMode === 'demip' ? '#2150D8' : '#64748b',
         backgroundColor: viewMode === 'demip' ? '#eff6ff' : 'white',
@@ -276,12 +256,12 @@ function LayoutContent({ children }) {
       {viewMode === 'demip' ? (
         <>
           <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
-          <span className="hidden sm:inline font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
+          <span className="font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
         </>
       ) : (
         <>
           <Wrench className="w-4 h-4 text-slate-600" />
-          <span className="hidden sm:inline font-semibold text-slate-700">Režim Údržba</span>
+          <span className="font-semibold text-slate-700">Režim Údržba</span>
         </>
       )}
     </Button>
@@ -299,6 +279,7 @@ function LayoutContent({ children }) {
         }
       `}</style>
 
+      {/* Mobile Header */}
       <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -311,7 +292,6 @@ function LayoutContent({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <ViewModeToggle />
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -371,9 +351,13 @@ function LayoutContent({ children }) {
         </div>
       </header>
 
+      {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-white">
-          <div className="p-6 space-y-4 pt-20">
+        <div className="lg:hidden fixed inset-0 z-40 bg-white overflow-auto">
+          <div className="p-6 space-y-4 pt-24">
+            <div className="mb-6">
+               <ViewModeToggle />
+            </div>
             {navigationItems.map((item) => (
               <Link
                 key={item.title}
@@ -403,7 +387,7 @@ function LayoutContent({ children }) {
             ))}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 text-red-600"
+              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 text-red-600 mt-6"
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">Odhlásit se</span>
@@ -412,155 +396,145 @@ function LayoutContent({ children }) {
         </div>
       )}
 
-      <div className="hidden lg:flex">
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <Sidebar className="border-r border-slate-200 bg-white">
-              <SidebarHeader className="border-b border-slate-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-xl" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
-                      <span className="text-white font-bold text-2xl">H</span>
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-900">HCMS</h2>
-                      <p className="text-sm text-slate-500">Heistech Cloud Maintenance System</p>
-                    </div>
-                  </div>
-                  
-                  {myWorkOrders.length > 0 && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                          <Bell className="w-5 h-5 text-slate-600" />
-                          <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--heistech-orange)' }}>
-                            {myWorkOrders.length}
-                          </span>
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-80">
-                        <div className="p-3 border-b border-slate-200">
-                          <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
-                          <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
-                        </div>
-                        <div className="max-h-96 overflow-y-auto">
-                          {myWorkOrders.map((order) => {
-                            const machine = allMachines.find(m => m.id === order.machine_id);
-                            const isOverdue = new Date(order.planned_date) < new Date();
-                            
-                            return (
-                              <DropdownMenuItem
-                                key={order.id}
-                                className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
-                                onClick={() => handleNotificationClick(order)}
-                              >
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <p className="font-semibold text-sm text-slate-900">{order.title}</p>
-                                    {isOverdue && (
-                                      <Badge variant="destructive" className="text-xs">Po termínu</Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
-                                  <p className="text-xs text-slate-500">
-                                    Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
-                                  </p>
-                                </div>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </div>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-                
-                <div className="mt-4">
-                  <ViewModeToggle />
-                </div>
-              </SidebarHeader>
-
-              <SidebarContent className="p-4">
-                <SidebarGroup>
-                  <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2">
-                    Menu
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {navigationItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className={`hover:bg-slate-100 rounded-xl mb-1 transition-all ${
-                              item.highlight || location.pathname === item.url
-                                ? "text-white hover:opacity-90"
-                                : ""
-                            }`}
-                            style={item.highlight || location.pathname === item.url ? {
-                              background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)'
-                            } : {}}
-                          >
-                            <Link to={item.url} className="flex items-center justify-between px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <item.icon className="w-5 h-5" />
-                                <span className="font-medium">{item.title}</span>
-                              </div>
-                              {item.badge > 0 && (
-                                <span className="px-2 py-1 text-xs font-bold bg-orange-600 text-white rounded-full">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </SidebarContent>
-
-              <SidebarFooter className="border-t border-slate-200 p-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 mb-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
-                    <span className="text-white font-semibold">
-                      {getUserDisplayName(user)?.[0] || "U"}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 truncate">
-                      {getUserDisplayName(user)}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      {user?.user_type === "superAdmin"
-                        ? "Super Administrátor"
-                        : user?.user_type === "admin"
-                        ? "Administrátor"
-                        : user?.user_type === "manager"
-                        ? "Vedoucí"
-                        : "Technik"}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 transition-colors font-medium"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Odhlásit se
-                </button>
-              </SidebarFooter>
-            </Sidebar>
-
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex fixed inset-y-0 left-0 z-30 w-72 flex-col bg-white border-r border-slate-200">
+        {/* Sidebar Header */}
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-xl flex-shrink-0" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
+              <span className="text-white font-bold text-xl">H</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">HCMS</h2>
+              <p className="text-xs text-slate-500 leading-tight">Heistech Cloud Maintenance System</p>
+            </div>
           </div>
-        </SidebarProvider>
+          
+          <ViewModeToggle />
+        </div>
+
+        {/* Sidebar Navigation */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-1">
+           <p className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+             Menu
+           </p>
+           {navigationItems.map((item) => (
+             <Link
+               key={item.title}
+               to={item.url}
+               className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${
+                 item.highlight
+                   ? "text-white shadow-md mb-2"
+                   : location.pathname === item.url
+                   ? "text-white shadow-md"
+                   : "text-slate-600 hover:bg-slate-50"
+               }`}
+               style={item.highlight || location.pathname === item.url ? {
+                 background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)'
+               } : {}}
+             >
+               <div className="flex items-center gap-3">
+                 <item.icon className={`w-5 h-5 ${(!item.highlight && location.pathname !== item.url) ? "text-slate-400 group-hover:text-slate-600" : ""}`} />
+                 <span className="font-medium">{item.title}</span>
+               </div>
+               {item.badge > 0 && (
+                 <span className="px-2 py-0.5 text-xs font-bold bg-orange-600 text-white rounded-full">
+                   {item.badge}
+                 </span>
+               )}
+             </Link>
+           ))}
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 shadow-sm mb-3">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
+              <span className="text-white font-semibold text-sm">
+                {getUserDisplayName(user)?.[0]?.toUpperCase() || "U"}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm text-slate-900 truncate">
+                {getUserDisplayName(user)}
+              </p>
+              <p className="text-xs text-slate-500 truncate">
+                {user?.user_type === "superAdmin"
+                  ? "Super Administrátor"
+                  : user?.user_type === "admin"
+                  ? "Administrátor"
+                  : user?.user_type === "manager"
+                  ? "Vedoucí"
+                  : "Technik"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Odhlásit se
+          </button>
+        </div>
       </div>
 
-      <main className="lg:hidden">
-        {children}
-      </main>
+      {/* Main Content Wrapper */}
+      <div className="lg:pl-72">
+        {/* Desktop Header (optional, for notifications etc) */}
+        <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
+           {myWorkOrders.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <Bell className="w-5 h-5 text-slate-600" />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm" style={{ backgroundColor: 'var(--heistech-orange)' }}>
+                      {myWorkOrders.length}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <div className="p-3 border-b border-slate-200">
+                    <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
+                    <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {myWorkOrders.map((order) => {
+                      const machine = allMachines.find(m => m.id === order.machine_id);
+                      const isOverdue = new Date(order.planned_date) < new Date();
+                      
+                      return (
+                        <DropdownMenuItem
+                          key={order.id}
+                          className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                          onClick={() => handleNotificationClick(order)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                              {isOverdue && (
+                                <Badge variant="destructive" className="text-xs">Po termínu</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
+                            <p className="text-xs text-slate-500">
+                              Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+        </div>
+
+        {/* Page Content */}
+        <main className="p-0">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
