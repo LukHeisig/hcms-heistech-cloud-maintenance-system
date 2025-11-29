@@ -64,8 +64,11 @@ import {
   Pie,
   Cell,
   BarChart,
-  Bar
+  Bar,
+  RadialBarChart,
+  RadialBar
 } from "recharts";
+import { Brain, Sparkles, Cpu } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -277,6 +280,25 @@ export default function Machine() {
     queryKey: ["thermoJobs", machineId],
     queryFn: () => base44.entities.ThermoJob.filter({ machine_id: machineId }, "-measurement_date"),
     enabled: !!machineId
+  });
+
+  const { data: predictiveAnalysis = [] } = useQuery({
+    queryKey: ["predictiveAnalysis", machineId],
+    queryFn: () => base44.entities.PredictiveAnalysis.filter({ machine_id: machineId }, "-analysis_date"),
+    enabled: !!machineId
+  });
+
+  const runPredictionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await base44.functions.invoke('predictMachineHealth', { machine_id: machineId });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["predictiveAnalysis"] });
+    },
+    onError: (error) => {
+        alert("Chyba při predikci: " + error.message);
+    }
   });
 
   const { data: responsibilities = [] } = useQuery({
@@ -1009,6 +1031,10 @@ export default function Machine() {
             <TabsTrigger value="statistics" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-pink-700 data-[state=active]:text-white">
               <BarChart2 className="w-4 h-4" />
               <span className="hidden md:inline">Statistiky</span>
+            </TabsTrigger>
+            <TabsTrigger value="predictive" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-cyan-700 data-[state=active]:text-white">
+              <Brain className="w-4 h-4" />
+              <span className="hidden md:inline">AI Predikce</span>
             </TabsTrigger>
           </TabsList>
 
@@ -2291,6 +2317,215 @@ export default function Machine() {
                     <p className="text-slate-500">Modul Tribodiagnostika je aktivní, ale zatím nejsou data.</p>
                 </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* AI Prediktivní údržba */}
+          <TabsContent value="predictive" className="space-y-6">
+            <Card className="border-none shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-32 bg-cyan-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                <div className="absolute bottom-0 left-0 p-32 bg-purple-500/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
+                
+                <CardContent className="p-8 relative z-10">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                        <div>
+                            <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
+                                <Sparkles className="w-8 h-8 text-cyan-400" />
+                                AI Prediktivní Analýza
+                            </h2>
+                            <p className="text-slate-300 max-w-xl">
+                                Využijte umělou inteligenci k analýze historických dat, identifikaci vzorců a předpovědi potenciálních poruch.
+                            </p>
+                        </div>
+                        <Button 
+                            size="lg" 
+                            onClick={() => runPredictionMutation.mutate()} 
+                            disabled={runPredictionMutation.isLoading}
+                            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 border-0"
+                        >
+                            {runPredictionMutation.isLoading ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                    Analyzuji data...
+                                </>
+                            ) : (
+                                <>
+                                    <Cpu className="w-5 h-5 mr-2" />
+                                    Spustit novou analýzu
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {predictiveAnalysis.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Latest Analysis - Main Card */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card className="border-t-4 border-t-cyan-500 shadow-lg">
+                            <CardHeader>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2 text-xl">
+                                            <Activity className="w-6 h-6 text-cyan-600" />
+                                            Výsledek poslední analýzy
+                                        </CardTitle>
+                                        <p className="text-sm text-slate-500 mt-1">
+                                            {format(new Date(predictiveAnalysis[0].analysis_date), "d. MMMM yyyy HH:mm", { locale: cs })}
+                                        </p>
+                                    </div>
+                                    {predictiveAnalysis[0].failure_probability > 50 ? (
+                                        <Badge variant="destructive" className="text-sm py-1 px-3">
+                                            Vysoké riziko
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 text-sm py-1 px-3">
+                                            Stabilní stav
+                                        </Badge>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-6 pt-0">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                        <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Zdraví stroje</h4>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-5xl font-bold text-slate-900">{predictiveAnalysis[0].health_score}</span>
+                                            <span className="text-xl text-slate-400 mb-1">/ 100</span>
+                                        </div>
+                                        <div className="w-full bg-slate-200 rounded-full h-2 mt-3">
+                                            <div 
+                                                className={`h-2 rounded-full transition-all duration-1000 ${
+                                                    predictiveAnalysis[0].health_score > 80 ? 'bg-green-500' : 
+                                                    predictiveAnalysis[0].health_score > 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                                }`}
+                                                style={{ width: `${predictiveAnalysis[0].health_score}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                        <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Pravděpodobnost selhání (30 dní)</h4>
+                                        <div className="flex items-end gap-2">
+                                            <span className={`text-5xl font-bold ${
+                                                predictiveAnalysis[0].failure_probability > 50 ? 'text-red-600' : 
+                                                predictiveAnalysis[0].failure_probability > 20 ? 'text-orange-500' : 'text-green-600'
+                                            }`}>{predictiveAnalysis[0].failure_probability}%</span>
+                                        </div>
+                                        <div className="w-full bg-slate-200 rounded-full h-2 mt-3">
+                                            <div 
+                                                className={`h-2 rounded-full transition-all duration-1000 ${
+                                                    predictiveAnalysis[0].failure_probability > 50 ? 'bg-red-500' : 
+                                                    predictiveAnalysis[0].failure_probability > 20 ? 'bg-orange-500' : 'bg-green-500'
+                                                }`}
+                                                style={{ width: `${predictiveAnalysis[0].failure_probability}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                                            <AlertTriangle className="w-5 h-5 text-orange-500" />
+                                            Identifikované problémy
+                                        </h3>
+                                        <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 text-slate-800">
+                                            {predictiveAnalysis[0].predicted_issues}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                                            <CheckCircle className="w-5 h-5 text-green-600" />
+                                            Doporučená opatření
+                                        </h3>
+                                        <div className="bg-green-50 border border-green-100 rounded-lg p-4 text-slate-800 whitespace-pre-line">
+                                            {predictiveAnalysis[0].recommendations}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                                            <Brain className="w-5 h-5 text-purple-600" />
+                                            AI Reasoning
+                                        </h3>
+                                        <p className="text-slate-600 text-sm italic bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                            "{predictiveAnalysis[0].reasoning}"
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* History Sidebar */}
+                    <div>
+                        <Card className="h-full shadow-lg">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Clock className="w-5 h-5 text-slate-500" />
+                                    Historie predikcí
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+                                    {predictiveAnalysis.slice(1).map((analysis) => (
+                                        <div key={analysis.id} className="relative pl-10">
+                                            <div className={`absolute left-[13px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                                                analysis.health_score > 80 ? 'bg-green-500' : 
+                                                analysis.health_score > 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}></div>
+                                            
+                                            <div className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="text-xs font-bold text-slate-500">
+                                                        {format(new Date(analysis.analysis_date), "d.M.yyyy", { locale: cs })}
+                                                    </span>
+                                                    <Badge variant="outline" className={
+                                                        analysis.health_score > 80 ? "text-green-600 border-green-200 bg-green-50" : 
+                                                        analysis.health_score > 50 ? "text-yellow-600 border-yellow-200 bg-yellow-50" : "text-red-600 border-red-200 bg-red-50"
+                                                    }>
+                                                        {analysis.health_score}%
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-600 line-clamp-2 mb-2">
+                                                    {analysis.predicted_issues}
+                                                </p>
+                                                <div className="text-xs text-slate-400">
+                                                    Riziko: {analysis.failure_probability}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {predictiveAnalysis.length <= 1 && (
+                                        <p className="text-center text-slate-400 text-sm py-4 pl-4">
+                                            Zatím žádná historie
+                                        </p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            ) : (
+                <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50">
+                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                        <Brain className="w-16 h-16 text-slate-300 mb-4" />
+                        <h3 className="text-xl font-bold text-slate-700 mb-2">Zatím nebyla provedena žádná analýza</h3>
+                        <p className="text-slate-500 max-w-md mb-6">
+                            Klikněte na tlačítko "Spustit novou analýzu" pro vygenerování první AI predikce stavu tohoto stroje.
+                        </p>
+                        <Button 
+                            onClick={() => runPredictionMutation.mutate()} 
+                            disabled={runPredictionMutation.isLoading}
+                            variant="outline"
+                        >
+                            {runPredictionMutation.isLoading ? "Pracuji..." : "Spustit analýzu nyní"}
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
           </TabsContent>
 
           {/* Statistiky */}
