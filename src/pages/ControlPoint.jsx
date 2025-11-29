@@ -50,6 +50,7 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useOffline } from "@/components/OfflineProvider";
 
 export default function ControlPoint() {
   const navigate = useNavigate();
@@ -70,13 +71,19 @@ export default function ControlPoint() {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
+  const { isOnline, saveAction, getCachedData, setCachedData } = useOffline();
+
   const { data: point } = useQuery({
     queryKey: ["controlPoint", pointId],
     queryFn: async () => {
       const points = await base44.entities.ControlPoint.filter({ id: pointId });
       return points[0];
     },
-    enabled: !!pointId,
+    enabled: !!pointId && isOnline,
+    initialData: () => {
+      const allPoints = getCachedData("allControlPoints") || [];
+      return allPoints.find(p => p.id === pointId);
+    },
     staleTime: 60000,
   });
 
@@ -137,14 +144,22 @@ export default function ControlPoint() {
         { control_point_id: pointId },
         "-performed_at"
       ),
-    enabled: !!pointId,
+    enabled: !!pointId && isOnline,
+    initialData: () => {
+      const allRecords = getCachedData("allRecords") || [];
+      return allRecords.filter(r => r.control_point_id === pointId);
+    },
   });
 
   const { data: issues = [] } = useQuery({
     queryKey: ["issues", pointId],
     queryFn: () =>
       base44.entities.Issue.filter({ control_point_id: pointId }),
-    enabled: !!pointId,
+    enabled: !!pointId && isOnline,
+    initialData: () => {
+      const allIssues = getCachedData("allIssues") || [];
+      return allIssues.filter(i => i.control_point_id === pointId);
+    },
   });
 
   const { data: documentation = [] } = useQuery({
@@ -154,7 +169,17 @@ export default function ControlPoint() {
   });
 
   const recordMutation = useMutation({
-    mutationFn: (data) => base44.entities.ControlRecord.create(data),
+    mutationFn: async (data) => {
+      if (!isOnline) {
+        saveAction({
+          type: "create_control_record",
+          payload: data
+        });
+        // Simulate success for offline
+        return { id: "temp_" + Date.now(), ...data };
+      }
+      return base44.entities.ControlRecord.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["records"] });
       setIsProcessing(false);
@@ -165,7 +190,16 @@ export default function ControlPoint() {
   });
 
   const issueMutation = useMutation({
-    mutationFn: (data) => base44.entities.Issue.create(data),
+    mutationFn: async (data) => {
+      if (!isOnline) {
+        saveAction({
+          type: "create_issue",
+          payload: data
+        });
+        return { id: "temp_" + Date.now(), ...data };
+      }
+      return base44.entities.Issue.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       setShowIssueDialog(false);
