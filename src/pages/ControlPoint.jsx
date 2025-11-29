@@ -192,13 +192,32 @@ export default function ControlPoint() {
   const issueMutation = useMutation({
     mutationFn: async (data) => {
       if (!isOnline) {
-        saveAction({
+        // Pass the whole data object including 'photo' (File) to saveAction
+        // OfflineProvider will handle serialization of the File object
+        await saveAction({
           type: "create_issue",
-          payload: data
+          payload: {
+            ...data,
+            photo: data.photo // Ensure photo file is passed
+          }
         });
         return { id: "temp_" + Date.now(), ...data };
       }
-      return base44.entities.Issue.create(data);
+
+      // Online flow
+      let photoUrl = null;
+      if (data.photo) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: data.photo });
+        photoUrl = file_url;
+      }
+      
+      return base44.entities.Issue.create({
+        control_point_id: data.control_point_id || null,
+        machine_id: data.machine_id || null,
+        description: data.description,
+        photo_url: photoUrl,
+        status: "reported",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });

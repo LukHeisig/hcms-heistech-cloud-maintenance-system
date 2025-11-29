@@ -47,8 +47,16 @@ export default function MobileHome() {
     setUser(currentUser);
   };
 
-  const [activeTab, setActiveTab] = useState("orders");
   const { getCachedData, setCachedData, isOnline } = useOffline();
+  
+  // Persist active tab
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("mobile_active_tab") || "orders";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("mobile_active_tab", activeTab);
+  }, [activeTab]);
 
   // Fetch assignments
   const { data: myWorkOrders = [] } = useQuery({

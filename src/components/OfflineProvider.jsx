@@ -40,13 +40,51 @@ export function OfflineProvider({ children }) {
     }
   }, [isOnline, pendingActions]);
 
-  const saveAction = (action) => {
-    const newQueue = [...pendingActions, { ...action, id: Date.now(), timestamp: new Date().toISOString() }];
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const base64ToFile = async (base64String, fileName) => {
+    const res = await fetch(base64String);
+    const blob = await res.blob();
+    return new File([blob], fileName, { type: blob.type });
+  };
+
+  const saveAction = async (action) => {
+    const processedPayload = { ...action.payload };
+    
+    // Handle file serialization (for photos)
+    if (processedPayload.photo instanceof File) {
+      try {
+        processedPayload.photo = {
+          _isOfflineFile: true,
+          name: processedPayload.photo.name,
+          content: await fileToBase64(processedPayload.photo)
+        };
+      } catch (e) {
+        console.error("Failed to serialize offline file", e);
+        processedPayload.photo = null;
+      }
+    }
+
+    const newQueue = [...pendingActions, { ...action, payload: processedPayload, id: Date.now(), timestamp: new Date().toISOString() }];
     setPendingActions(newQueue);
-    localStorage.setItem("offline_action_queue", JSON.stringify(newQueue));
+    try {
+      localStorage.setItem("offline_action_queue", JSON.stringify(newQueue));
+    } catch (e) {
+      console.error("LocalStorage quota exceeded", e);
+      toast({ title: "Chyba ukládání", description: "Nedostatek místa pro offline data.", variant: "destructive" });
+      return;
+    }
+
     toast({
       title: "Uloženo offline",
-      description: "Data budou synchronizována po obnovení připojení.",
+      description: "Data a fotografie budou nahrány po obnovení připojení.",
       variant: "default",
     });
   };
@@ -65,8 +103,22 @@ export function OfflineProvider({ children }) {
             await base44.entities.ControlRecord.create(action.payload);
             break;
           case "create_issue":
-            // Note: Uploading photos offline is complex, sending null for photo if offline
-            await base44.entities.Issue.create(action.payload);
+            let issuePayload = { ...action.payload };
+            
+            // Handle offline photo upload if present
+            if (issuePayload.photo && issuePayload.photo._isOfflineFile) {
+              try {
+                const file = await base64ToFile(issuePayload.photo.content, issuePayload.photo.name);
+                const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                issuePayload.photo_url = file_url;
+              } catch (uploadError) {
+                console.error("Failed to upload offline photo:", uploadError);
+                // Continue creating issue but without photo if upload fails
+              }
+              delete issuePayload.photo; // Remove the temporary file object
+            }
+
+            await base44.entities.Issue.create(issuePayload);
             break;
           case "update_control_point":
             await base44.entities.ControlPoint.update(action.payload.id, action.payload.data);
@@ -119,23 +171,36 @@ export function OfflineProvider({ children }) {
     <OfflineContext.Provider value={{ isOnline, saveAction, getCachedData, setCachedData, pendingActions }}>
       {children}
       {!isOnline && (
-        <div className="fixed bottom-16 left-4 right-4 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <WifiOff className="w-4 h-4" />
-            <span>Offline režim</span>
+        <div className="fixed bottom-20 left-4 right-4 z-50 bg-slate-900/95 backdrop-blur text-white px-4 py-3 rounded-xl shadow-2xl flex items-center justify-between border border-slate-700 animate-in slide-in-from-bottom-10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
+              <WifiOff className="w-4 h-4 text-slate-300" />
+            </div>
+            <div>
+              <p className="text-sm font-bold">Jste offline</p>
+              <p className="text-xs text-slate-400">Změny se uloží lokálně</p>
+            </div>
           </div>
           {pendingActions.length > 0 && (
-            <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
+            <div className="bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs font-bold border border-orange-500/30">
               {pendingActions.length} k odeslání
-            </span>
+            </div>
           )}
         </div>
       )}
       {isOnline && pendingActions.length > 0 && (
-        <div className="fixed bottom-16 left-4 right-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-            <span>{isSyncing ? "Synchronizuji data..." : "Čeká na synchronizaci"}</span>
+        <div className="fixed bottom-20 left-4 right-4 z-50 bg-blue-600/95 backdrop-blur text-white px-4 py-3 rounded-xl shadow-2xl flex items-center justify-between border border-blue-500 animate-in slide-in-from-bottom-10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+            </div>
+            <div>
+              <p className="text-sm font-bold">{isSyncing ? "Synchronizuji..." : "Připojeno"}</p>
+              <p className="text-xs text-blue-100">{isSyncing ? "Nahrávám uložená data" : "Čeká na synchronizaci"}</p>
+            </div>
+          </div>
+          <div className="bg-blue-500/30 text-white px-3 py-1 rounded-full text-xs font-bold border border-blue-400/30">
+            {pendingActions.length} zbývá
           </div>
         </div>
       )}
