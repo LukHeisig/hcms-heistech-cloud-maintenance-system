@@ -46,6 +46,8 @@ export default function MobileHome() {
     setUser(currentUser);
   };
 
+  const [activeTab, setActiveTab] = useState("orders");
+
   // Fetch assignments
   const { data: myWorkOrders = [] } = useQuery({
     queryKey: ["myWorkOrdersMobile", user?.email],
@@ -59,11 +61,35 @@ export default function MobileHome() {
     enabled: !!user?.email,
   });
 
-  // Fetch machines for search
+  // Fetch machines for search and checklist
   const { data: machines = [] } = useQuery({
     queryKey: ["machinesMobile"],
     queryFn: () => base44.entities.Machine.list(),
   });
+
+  // Fetch lines responsible by user
+  const { data: myLines = [] } = useQuery({
+    queryKey: ["myLinesMobile", user?.email],
+    queryFn: () => base44.entities.Line.filter({ responsible_person_email: user?.email }),
+    enabled: !!user?.email
+  });
+
+  // Fetch prevention points
+  const { data: preventionPoints = [] } = useQuery({
+    queryKey: ["preventionPointsMobile"],
+    queryFn: () => base44.entities.ControlPoint.filter({ type: "prevention" }),
+  });
+
+  const myPreventionMachines = React.useMemo(() => {
+    if (myLines.length === 0) return [];
+    const myLineIds = myLines.map(l => l.id);
+    const machinesInMyLines = machines.filter(m => myLineIds.includes(m.line_id));
+    
+    // Filter machines that have prevention points
+    return machinesInMyLines.filter(m => 
+      preventionPoints.some(cp => cp.machine_id === m.id)
+    );
+  }, [myLines, machines, preventionPoints]);
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
@@ -159,70 +185,141 @@ export default function MobileHome() {
           </div>
         </section>
 
-        {/* My Tasks */}
+        {/* Tabs: Orders vs Checklist */}
         <section>
-          <div className="flex justify-between items-center mb-3 px-1">
-            <h2 className="text-slate-500 text-sm font-bold uppercase tracking-wider">Moje úkoly</h2>
-            <Badge className="bg-blue-600">{myWorkOrders.length}</Badge>
+          <div className="flex bg-slate-200 p-1 rounded-xl mb-4">
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "orders" 
+                  ? "bg-white text-blue-600 shadow-sm" 
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Moje pracovní příkazy
+              {myWorkOrders.length > 0 && (
+                <span className="ml-2 bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded-full">
+                  {myWorkOrders.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("checklist")}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "checklist" 
+                  ? "bg-white text-purple-600 shadow-sm" 
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Můj check list
+              {myPreventionMachines.length > 0 && (
+                <span className="ml-2 bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded-full">
+                  {myPreventionMachines.length}
+                </span>
+              )}
+            </button>
           </div>
-          
-          <div className="space-y-3">
-            {myWorkOrders.length === 0 ? (
-              <Card className="bg-white border-dashed border-2 border-slate-200 shadow-none">
-                <CardContent className="p-6 text-center">
-                  <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
-                  <p className="text-slate-600 font-medium">Vše hotovo!</p>
-                  <p className="text-xs text-slate-400">Nemáte žádné přiřazené úkoly.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              myWorkOrders.map(order => {
-                const isOverdue = new Date(order.planned_date) < new Date();
-                return (
-                  <Card 
-                    key={order.id} 
-                    className="bg-white border-none shadow-sm active:bg-slate-50 transition-colors cursor-pointer"
-                    onClick={() => navigate(createPageUrl(`Machine?id=${order.machine_id}#maintenance`))}
-                  >
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className={`w-2 h-12 rounded-full flex-shrink-0 ${isOverdue ? 'bg-red-500' : 'bg-blue-500'}`} />
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-bold text-slate-800 truncate pr-2">{order.title}</h3>
-                          {isOverdue && <Badge variant="destructive" className="text-[10px] px-1 h-5">Po termínu</Badge>}
+
+          {activeTab === "orders" && (
+            <div className="space-y-3">
+              {myWorkOrders.length === 0 ? (
+                <Card className="bg-white border-dashed border-2 border-slate-200 shadow-none">
+                  <CardContent className="p-6 text-center">
+                    <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                    <p className="text-slate-600 font-medium">Vše hotovo!</p>
+                    <p className="text-xs text-slate-400">Nemáte žádné přiřazené pracovní příkazy.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                myWorkOrders.map(order => {
+                  const isOverdue = new Date(order.planned_date) < new Date();
+                  const machine = machines.find(m => m.id === order.machine_id);
+                  return (
+                    <Card 
+                      key={order.id} 
+                      className="bg-white border-none shadow-sm active:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => navigate(createPageUrl(`Machine?id=${order.machine_id}#maintenance`))}
+                    >
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className={`w-2 h-12 rounded-full flex-shrink-0 ${isOverdue ? 'bg-red-500' : 'bg-blue-500'}`} />
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-1">
+                            <h3 className="font-bold text-slate-800 truncate pr-2">{order.title}</h3>
+                            {isOverdue && <Badge variant="destructive" className="text-[10px] px-1 h-5">Po termínu</Badge>}
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{format(new Date(order.planned_date), "d.M.", { locale: cs })}</span>
+                            </div>
+                            <div className="flex items-center gap-1 truncate">
+                              <MapPin className="w-3 h-3" />
+                              <span className="truncate">{machine?.name || "Stroj..."}</span> 
+                            </div>
+                          </div>
                         </div>
                         
-                        <div className="flex items-center gap-3 text-xs text-slate-500">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            <span>{format(new Date(order.planned_date), "d.M.", { locale: cs })}</span>
-                          </div>
-                          <div className="flex items-center gap-1 truncate">
-                            <MapPin className="w-3 h-3" />
-                            <span className="truncate">Stroj...</span> 
-                          </div>
+                        <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <ChevronRight className="w-5 h-5 text-slate-400" />
                         </div>
-                      </div>
-                      
-                      <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <ChevronRight className="w-5 h-5 text-slate-400" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-          
-          {myWorkOrders.length > 0 && (
-            <Button 
-              variant="ghost" 
-              className="w-full mt-2 text-blue-600"
-              onClick={() => navigate(createPageUrl("WorkOrders"))}
-            >
-              Zobrazit všechny úkoly
-            </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+              
+              {myWorkOrders.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  className="w-full mt-2 text-blue-600"
+                  onClick={() => navigate(createPageUrl("WorkOrders"))}
+                >
+                  Zobrazit všechny příkazy
+                </Button>
+              )}
+            </div>
+          )}
+
+          {activeTab === "checklist" && (
+            <div className="space-y-3">
+              {myPreventionMachines.length === 0 ? (
+                <Card className="bg-white border-dashed border-2 border-slate-200 shadow-none">
+                  <CardContent className="p-6 text-center">
+                    <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-slate-600 font-medium">Žádné stroje k prevenci</p>
+                    <p className="text-xs text-slate-400">Nejste zodpovědný za žádnou linku nebo stroje nemají nastavenou prevenci.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                myPreventionMachines.map(machine => {
+                  const pointsCount = preventionPoints.filter(p => p.machine_id === machine.id).length;
+                  return (
+                    <Card 
+                      key={machine.id} 
+                      className="bg-white border-none shadow-sm active:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}&tab=control-points&subtab=prevention`))}
+                    >
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <ClipboardList className="w-5 h-5 text-purple-600" />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-slate-800 truncate">{machine.name}</h3>
+                          <p className="text-xs text-slate-500">{pointsCount} bodů prevence</p>
+                        </div>
+                        
+                        <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <ChevronRight className="w-5 h-5 text-slate-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
           )}
         </section>
 
