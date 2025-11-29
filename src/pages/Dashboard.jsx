@@ -53,7 +53,6 @@ import { cs } from "date-fns/locale";
 import LineSelection from "../components/dashboard/LineSelection";
 import MachineSelection from "../components/dashboard/MachineSelection";
 import PointsList from "../components/dashboard/PointsList";
-import MobileAppInterface from "../components/dashboard/MobileAppInterface";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -769,20 +768,787 @@ export default function Dashboard() {
     : issues; // Use the useMemo 'issues' which is already filtered correctly by role.
 
   if (viewMode === 'demip') {
-    return (
-      <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl">
-        <MobileAppInterface user={user} isStandalone={false} />
-      </div>
-    );
-  }
+    if (selectedPoint) {
+      const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
+      
+      if (!currentPoint) {
+        return (
+          <div className="p-8">
+            <div className="bg-red-100 border-2 border-red-600 rounded-lg p-4 mb-4">
+              <h3 className="text-red-900 font-bold text-lg mb-2">❌ KONTROLNÍ BOD NENALEZEN</h3>
+              <p className="text-slate-600">Kontrolní bod s tímto ID nebyl nalezen.</p>
+            </div>
+          </div>
+        );
+      }
 
-  if (false && viewMode === 'demip') {
+      const currentMachineForPoint = demipMachines.find(m => m.id === currentPoint.machine_id);
+      const currentLineForPoint = demipAllLines.find(l => l.id === currentMachineForPoint?.line_id);
+      
+      const pointRecords = records.filter(r => r.control_point_id === selectedPoint);
+      const pointIssues = demipIssues.filter(i => i.control_point_id === selectedPoint);
+      const status = getPointStatus(currentPoint);
+      const nextDate = getNextControlDate(currentPoint);
+      const lastRecord = pointRecords[0];
+      const isOverdue = status === "overdue";
+
+      const canEdit = user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin";
+      
+      // Určit, zda zobrazit tlačítko potvrzení
+      // Pro prevention s ručním potvrzením - zobrazit vždy
+      // Pro prevention s NFC nebo jiné typy bodů - zobrazit pouze po NFC skenu
+      const shouldShowConfirmButton = 
+        (currentPoint.type === "prevention" && currentPoint.prevention_confirmation_method === "manual") || 
+        nfcScanned;
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
+            <div className="max-w-5xl mx-auto p-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const category = urlParams.get('category') || activeTab;
+                  const url = selectedCompany
+                    ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&category=${category}`
+                    : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&category=${category}`;
+                  navigate(createPageUrl(url));
+                }}
+                className="text-white hover:bg-white/20 mb-3"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Zpět na kontrolní body
+              </Button>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h1 className="text-xl font-bold leading-tight mb-1">
+                    {currentPoint.number && `${currentPoint.number} - `}
+                    {currentPoint.name}
+                  </h1>
+                  <div className="flex items-center gap-2 text-xs text-blue-100 mt-1 mb-2 opacity-90">
+                    <span>{currentLineForPoint?.name || "Neznámá linka"}</span>
+                    <ChevronRight className="w-3 h-3" />
+                    <span>{currentMachineForPoint?.name || "Neznámý stroj"}</span>
+                  </div>
+                  {currentPoint.description && (
+                    <p className="text-sm text-blue-100 opacity-90">
+                      {currentPoint.description}
+                    </p>
+                  )}
+                </div>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditPoint(currentPoint)}
+                    className="text-white hover:bg-white/20 flex-shrink-0"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto p-3 md:p-6 space-y-3 md:space-y-4">
+            <Card className="shadow-lg">
+              <CardContent className="p-3 md:p-6 space-y-2">
+                {currentPoint.type === "lubrication" && (
+                  <>
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Typ maziva:</span>
+                      <span className="font-semibold text-slate-900">{currentPoint.lubricant_type || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Množství pro doplnění:</span>
+                      <span className="font-semibold text-slate-900">
+                        {currentPoint.lubricant_amount ? `${currentPoint.lubricant_amount} g` : "-"}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {currentPoint.type === "inspection" && currentPoint.inspection_tasks && (
+                  <div className="py-2 border-b border-slate-200">
+                    <p className="text-sm text-slate-600 mb-1">Inspekční úkoly:</p>
+                    <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
+                  </div>
+                )}
+                {currentPoint.type === "prevention" && (
+                  <>
+                    {currentPoint.inspection_tasks && (
+                      <div className="py-2 border-b border-slate-200">
+                        <p className="text-sm text-slate-600 mb-1">Preventivní úkoly:</p>
+                        <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Časový interval:</span>
+                      <span className="font-semibold text-slate-900">
+                        {formatInterval(currentPoint.interval_hours)}
+                      </span>
+                    </div>
+                  </>
+                )}
+                <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                  <span className="text-sm text-slate-600">
+                    Naposledy {currentPoint.type === "lubrication" ? "mazáno" : "kontrolováno"}:
+                  </span>
+                  <span className="font-semibold text-slate-900 text-right">
+                    {lastRecord
+                      ? format(new Date(lastRecord.performed_at), "d.M.yyyy HH:mm", { locale: cs })
+                      : "Dosud neprovedeno"
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                  <span className="text-sm text-slate-600">Interval:</span>
+                  <span className="font-semibold text-slate-900">
+                    {formatInterval(currentPoint.interval_hours)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm text-slate-600">Datum další kontroly:</span>
+                  <div className="text-right">
+                    <span className={`font-bold text-lg ${isOverdue ? "text-red-600" : "text-green-600"}`}>
+                      {nextDate ? format(nextDate, "d.M.yyyy", { locale: cs }) : "-"}
+                    </span>
+                    {isOverdue && (
+                      <Badge className="ml-2 bg-red-600 text-white text-xs">Po termínu</Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {shouldShowConfirmButton && (
+              <Button
+                onClick={() => handleConfirmControl(currentPoint)}
+                disabled={isConfirmingControl}
+                className="w-full h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-xl text-lg font-semibold"
+              >
+                {isConfirmingControl ? (
+                  <>
+                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                    Potvrzování...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="w-6 h-6 mr-2" />
+                    Potvrdit kontrolu
+                  </>
+                )}
+              </Button>
+            )}
+
+            <Card className="shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base md:text-lg">
+                  Historie {currentPoint.type === "lubrication" ? "mazání" : "kontrol"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3">
+                {pointRecords.length === 0 ? (
+                  <p className="text-center text-slate-500 py-6 text-sm">Zatím nejsou žádné záznamy</p>
+                ) : (
+                  <div className="space-y-2">
+                    {pointRecords.map((record) => (
+                      <div key={record.id} className="bg-slate-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-slate-900 text-sm">
+                            {format(new Date(record.performed_at), "d.M.yyyy HH:mm", { locale: cs })}
+                          </span>
+                          <span className="text-xs text-slate-600">
+                            {getUserDisplayName(record.created_by)}
+                          </span>
+                        </div>
+                        {record.note && (
+                          <p className="text-sm text-slate-600">{record.note}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {pointIssues.length > 0 && (
+              <Card className="shadow-lg border-2 border-orange-300 bg-orange-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base md:text-lg text-orange-900 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 md:w-5 md:h-5" />
+                    Aktivní závady ({pointIssues.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 space-y-2">
+                  {pointIssues.map((issue) => (
+                    <div key={issue.id} className="bg-white p-3 rounded-lg border border-orange-200">
+                      <p className="text-sm text-slate-900 mb-1">{issue.description}</p>
+                      {issue.photo_url && (
+                        <div className="mt-2">
+                          <img src={issue.photo_url} alt="Závada" className="max-h-24 object-contain rounded-md" />
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500 mt-2">
+                        {format(new Date(issue.created_date), "d.M.yyyy HH:mm", { locale: cs })} • {getUserDisplayName(issue.created_by)}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="shadow-lg">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                    Fotodokumentace
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => handleCameraCapture(e, selectedPoint)}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="h-8 px-2 md:px-3"
+                    >
+                      <Camera className="w-4 h-4 md:mr-1" />
+                      <span className="hidden md:inline">Vyfotit</span>
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, selectedPoint)}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="h-8 px-2 md:px-3"
+                    >
+                      <Upload className="w-4 h-4 md:mr-1" />
+                      <span className="hidden md:inline">Nahrát</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                {isUploading && (
+                  <div className="flex items-center justify-center py-6 bg-slate-50 rounded-lg mb-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-400 mr-2" />
+                    <span className="text-sm text-slate-600">Nahrávání...</span>
+                  </div>
+                )}
+                {documentation.length === 0 && !isUploading ? (
+                  <div className="text-center py-8 bg-slate-50 rounded-lg">
+                    <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm text-slate-500">Zatím není žádná dokumentace</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+                    {documentation.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-400 transition-all cursor-pointer"
+                        onClick={() => {
+                          setSelectedDocPreview(doc);
+                          setShowDocPreviewDialog(true);
+                        }}
+                      >
+                        {doc.file_type === "photo" && !imageErrors[doc.id] ? (
+                          <img
+                            src={doc.file_url}
+                            alt={doc.file_name || "Dokumentace"}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={() => handleImageError(doc.id)}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full bg-slate-100">
+                            <FileText className="w-8 h-8 text-slate-400" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteDocId(doc.id);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Button
+              onClick={() => setShowIssueDialog(true)}
+              className="w-full h-12 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-lg"
+            >
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Nahlásit závadu
+            </Button>
+          </div>
+
+          <Dialog open={showDocPreviewDialog} onOpenChange={setShowDocPreviewDialog}>
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+              <DialogHeader className="p-4 border-b">
+                <DialogTitle>{selectedDocPreview?.file_name}</DialogTitle>
+                <DialogDescription>
+                  {selectedDocPreview && format(new Date(selectedDocPreview.created_date), "d.M.yyyy HH:mm", { locale: cs })}
+                  {selectedDocPreview?.created_by && ` • ${getUserDisplayName(selectedDocPreview.created_by)}`}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50">
+                {selectedDocPreview?.file_type === "photo" ? (
+                  <img
+                    src={selectedDocPreview.file_url}
+                    alt={selectedDocPreview.file_name}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling.style.display = 'block';
+                    }}
+                  />
+                ) : null}
+                <div style={{ display: selectedDocPreview?.file_type !== "photo" ? 'block' : 'none' }} className="text-center">
+                  <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-600">Náhled není dostupný</p>
+                </div>
+              </div>
+              <DialogFooter className="p-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => selectedDocPreview?.file_url && window.open(selectedDocPreview.file_url, "_blank")}
+                >
+                  Otevřít v nové záložce
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setShowDocPreviewDialog(false);
+                    setDeleteDocId(selectedDocPreview?.id);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Smazat
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog open={!!deleteDocId} onOpenChange={() => setDeleteDocId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Opravdu smazat fotografii?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tato akce je nevratná. Fotografie bude trvale odstraněna.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteDocumentMutation.mutate(deleteDocId)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Smazat
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Dialog open={showEditPointDialog} onOpenChange={setShowEditPointDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Pencil className="w-5 h-5 text-blue-600" />
+                  Upravit kontrolní bod
+                </DialogTitle>
+                <DialogDescription>
+                  {editingPoint?.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="nfc_chip_id">NFC čip ID</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      id="nfc_chip_id"
+                      value={nfcChipId}
+                      onChange={(e) => setNfcChipId(e.target.value)}
+                      placeholder="Zadejte nebo naskenujte ID čipu"
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleNfcScan}
+                      disabled={isScanning || !nfcSupported}
+                      variant="outline"
+                      className="flex-shrink-0"
+                    >
+                      {isScanning ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Skenování...
+                        </>
+                      ) : (
+                        <>
+                          <Activity className="w-4 h-4 mr-2" />
+                          Skenovat
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {!nfcSupported && (
+                    <p className="text-xs text-orange-600 mt-2">
+                      NFC není podporováno v tomto prohlížeči. Použijte Chrome na Androidu.
+                    </p>
+                  )}
+                  {isScanning && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      Přiložte NFC čip k zařízení...
+                    </p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditPointDialog(false);
+                    setEditingPoint(null);
+                    setNfcChipId("");
+                  }}
+                  disabled={updateControlPointMutation.isLoading}
+                >
+                  Zrušit
+                </Button>
+                <Button
+                  onClick={handleSavePoint}
+                  disabled={updateControlPointMutation.isLoading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700"
+                >
+                  {updateControlPointMutation.isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Ukládání...
+                    </>
+                  ) : (
+                    "Uložit"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showIssueDialog} onOpenChange={(isOpen) => {
+            setShowIssueDialog(isOpen);
+            if (!isOpen) { // Clear on close
+              setIssueDescription("");
+              setIssuePhoto(null);
+            }
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-orange-700">
+                  <AlertTriangle className="w-5 h-5" />
+                  Nahlásit závadu
+                </DialogTitle>
+                <DialogDescription>
+                  Popište zjištěnou závadu{selectedPoint ? " na kontrolním bodě" : ""}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="description">Popis závady *</Label>
+                  <Textarea
+                    id="description"
+                    value={issueDescription}
+                    onChange={(e) => setIssueDescription(e.target.value)}
+                    placeholder="Popište podrobně zjištěnou závadu..."
+                    rows={5}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="issue_photo">Fotografie závady (volitelné)</Label>
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      ref={issuePhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setIssuePhoto(file);
+                      }}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => issuePhotoInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {issuePhoto ? issuePhoto.name : "Nahrát fotku"}
+                    </Button>
+                    <input
+                      ref={issueCameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setIssuePhoto(file);
+                      }}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => issueCameraInputRef.current?.click()}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </Button>
+                    {issuePhoto && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIssuePhoto(null)}
+                      >
+                        <X className="w-4 h-4 text-red-600" />
+                      </Button>
+                    )}
+                  </div>
+                  {issuePhoto && (
+                    <div className="mt-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                      <p className="text-xs text-slate-600">Vybraná fotka: {issuePhoto.name}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowIssueDialog(false);
+                    setIssueDescription("");
+                    setIssuePhoto(null);
+                  }}
+                  disabled={isReportingIssue}
+                >
+                  Zrušit
+                </Button>
+                <Button
+                  onClick={() => handleReportIssue(selectedPoint, null)}
+                  disabled={!issueDescription.trim() || isReportingIssue}
+                  className="bg-gradient-to-r from-orange-600 to-orange-700"
+                >
+                  {isReportingIssue ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Ukládání...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Nahlásit závadu
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+        );
+        }
+        }
+
+        if (viewMode === 'demip') {
+        const showFloatingNfcButton = !selectedPoint;
+
+    const companyId = selectedCompany || user?.company_id;
+    const currentCompany = allCompanies.find(c => c.id === companyId);
+    const companyLines = demipAllLines.filter(l => l.company_id === companyId);
+
+    const currentLine = demipAllLines.find(l => l.id === selectedLine);
+    const lineMachines = demipMachines.filter(m => m.line_id === selectedLine);
+
+    const currentMachine = demipMachines.find(m => m.id === selectedMachine);
+    const machinePoints = demipControlPoints.filter(p => p.machine_id === selectedMachine);
+
     return (
-      <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl">
-        <MobileAppInterface user={user} isStandalone={false} />
+      <div className="relative">
+        <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+          {((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) && (
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku - DEMIP</h1>
+              <div className="space-y-2">
+                {demipCompanies.map((company) => {
+                  const companyLines = demipAllLines.filter(l => l.company_id === company.id);
+                  const companyLineIds = companyLines.map(l => l.id);
+                  const companyMachines = demipMachines.filter(m => companyLineIds.includes(m.line_id));
+                  const companyMachineIds = companyMachines.map(m => m.id);
+                  const companyPoints = demipControlPoints.filter(p => companyMachineIds.includes(p.machine_id));
+                  const companyOverdue = companyPoints.filter(p => getPointStatus(p) === "overdue").length;
+
+                  return (
+                    <Card
+                      key={company.id}
+                      className="cursor-pointer transition-all hover:shadow-md border-l-4 border-l-blue-500"
+                      onClick={() => navigate(createPageUrl(`Dashboard?company=${company.id}`))}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-100">
+                              <Building2 className="w-5 h-5 text-blue-700" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-bold text-slate-900 text-base">{company.name}</h3>
+                                {companyOverdue > 0 && (
+                                  <Badge variant="destructive" className="gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {companyOverdue}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-slate-600">
+                                <span>{companyLines.length} linek</span>
+                                <span>·</span>
+                                <span>{companyPoints.length} bodů</span>
+                              </div>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-slate-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(!selectedLine && !(user?.user_type === "admin" || user?.user_type === "superAdmin")) && (
+            <LineSelection
+              user={user}
+              selectedCompany={selectedCompany}
+              currentCompany={currentCompany}
+              companyLines={companyLines}
+              demipMachines={demipMachines}
+              demipControlPoints={demipControlPoints}
+              getPointStatus={getPointStatus}
+            />
+          )}
+
+          {((user?.user_type === "admin" || user?.user_type === "superAdmin") && selectedCompany && !selectedLine) && (
+            <LineSelection
+              user={user}
+              selectedCompany={selectedCompany}
+              currentCompany={currentCompany}
+              companyLines={companyLines}
+              demipMachines={demipMachines}
+              demipControlPoints={demipControlPoints}
+              getPointStatus={getPointStatus}
+            />
+          )}
+
+          {(selectedLine && !selectedMachine) && (
+            <MachineSelection
+              selectedCompany={selectedCompany}
+              selectedLine={selectedLine}
+              currentLine={currentLine}
+              lineMachines={lineMachines}
+              demipControlPoints={demipControlPoints}
+              getPointStatus={getPointStatus}
+            />
+          )}
+
+          {(selectedMachine && !selectedPoint) && (
+            <PointsList
+              selectedCompany={selectedCompany}
+              selectedLine={selectedLine}
+              selectedMachine={selectedMachine}
+              currentLine={currentLine}
+              currentMachine={currentMachine}
+              machinePoints={machinePoints}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              records={records}
+              demipIssues={demipIssues}
+              getPointStatus={getPointStatus}
+              getNextControlDate={getNextControlDate}
+            />
+          )}
+        </div>
+
+        {showFloatingNfcButton && nfcSupported && (
+          <button
+            onClick={handleNfcQuickScan}
+            className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center hover:shadow-3xl transition-all hover:scale-110 z-50"
+            aria-label="Skenovat NFC"
+          >
+            <Activity className="w-8 h-8" />
+          </button>
+        )}
+
+        <Dialog open={showNfcScanDialog} onOpenChange={setShowNfcScanDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-blue-700">
+                <Activity className="w-6 h-6" />
+                Skenování NFC čipu
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-8 text-center">
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Activity className="w-10 h-10 text-blue-600 animate-pulse" />
+              </div>
+              <p className="text-lg font-semibold text-slate-900 mb-2">
+                Přiložte NFC čip k zařízení
+              </p>
+              <p className="text-sm text-slate-600">
+                Skenování bude trvat maximálně 10 sekund
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowNfcScanDialog(false);
+                  setIsNfcScanning(false);
+                }}
+              >
+                Zrušit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-    );
-  }
+      );
+      }
 
       if (viewMode === 'maintenance') {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
