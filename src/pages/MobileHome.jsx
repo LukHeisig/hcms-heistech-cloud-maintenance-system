@@ -49,10 +49,21 @@ export default function MobileHome() {
 
   const { getCachedData, setCachedData, isOnline } = useOffline();
   
-  // Persist active tab
+  const location = useLocation();
+  
+  // Persist active tab with URL support
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem("mobile_active_tab") || "orders";
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get("tab") || localStorage.getItem("mobile_active_tab") || "checklist";
   });
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get("tab");
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     localStorage.setItem("mobile_active_tab", activeTab);

@@ -537,13 +537,21 @@ function LayoutContent({ children }) {
 
         {/* Mobile Bottom Bar - DEMIP Mode Only */}
         {viewMode === 'demip' && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 grid grid-cols-4 gap-1 items-center z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <button 
-              className={`flex flex-col items-center gap-1 ${location.pathname.includes('MobileHome') ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
-              onClick={() => navigate(createPageUrl("MobileHome"))}
+              className={`flex flex-col items-center gap-1 ${location.pathname.includes('MobileHome') && (!location.search.includes('tab=orders')) ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
+              onClick={() => navigate(createPageUrl("MobileHome?tab=checklist"))}
             >
               <div className="w-6 h-6"><ClipboardList className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium">Přehled</span>
+              <span className="text-[10px] font-medium truncate w-full text-center">Přehled</span>
+            </button>
+
+            <button 
+              className={`flex flex-col items-center gap-1 ${location.pathname.includes('MobileHome') && location.search.includes('tab=orders') ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
+              onClick={() => navigate(createPageUrl("MobileHome?tab=orders"))}
+            >
+              <div className="w-6 h-6"><Wrench className="w-6 h-6" /></div>
+              <span className="text-[10px] font-medium truncate w-full text-center">Příkazy</span>
             </button>
             
             <button 
@@ -551,7 +559,7 @@ function LayoutContent({ children }) {
               onClick={() => setMobileOpen(true)}
             >
               <div className="w-6 h-6"><Menu className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium">Menu</span>
+              <span className="text-[10px] font-medium truncate w-full text-center">Menu</span>
             </button>
 
             <button 
@@ -559,7 +567,7 @@ function LayoutContent({ children }) {
               onClick={handleLogout}
             >
               <div className="w-6 h-6"><LogOut className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium">Odhlásit</span>
+              <span className="text-[10px] font-medium truncate w-full text-center">Odhlásit</span>
             </button>
           </div>
         )}
