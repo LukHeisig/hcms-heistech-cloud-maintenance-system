@@ -130,7 +130,7 @@ export default function MobileHome() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-20">
+    <div className="min-h-screen bg-slate-100">
       {/* Mobile Header */}
       <div className="bg-blue-600 text-white p-6 rounded-b-3xl shadow-lg sticky top-0 z-10">
         <div className="flex justify-between items-start mb-4">
@@ -343,32 +343,6 @@ export default function MobileHome() {
           )}
         </section>
 
-        {/* Bottom Navigation Spacer */}
-        <div className="h-16"></div>
-      </div>
-
-      {/* Bottom Sticky Nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 pb-safe">
-        <button className="flex flex-col items-center gap-1 text-blue-600">
-          <div className="w-6 h-6"><ClipboardList /></div>
-          <span className="text-[10px] font-medium">Přehled</span>
-        </button>
-        
-        <button 
-          className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600"
-          onClick={() => navigate(createPageUrl("Dashboard"))}
-        >
-          <div className="w-6 h-6"><Menu /></div>
-          <span className="text-[10px] font-medium">Menu</span>
-        </button>
-
-        <button 
-          className="flex flex-col items-center gap-1 text-slate-400 hover:text-red-600"
-          onClick={handleLogout}
-        >
-          <div className="w-6 h-6"><LogOut /></div>
-          <span className="text-[10px] font-medium">Odhlásit</span>
-        </button>
       </div>
     </div>
   );
