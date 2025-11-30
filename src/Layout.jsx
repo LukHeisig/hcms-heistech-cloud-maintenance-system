@@ -227,8 +227,13 @@ function LayoutContent({ children }) {
       title: "API Dokumentace",
       url: createPageUrl("ApiDocumentation"),
       icon: Code,
-    },
-  ];
+      },
+      {
+      title: "Vibro Test",
+      url: createPageUrl("VibroTest"),
+      icon: Activity,
+      },
+      ];
 
   if (!hasData) {
     navigationItems.unshift({

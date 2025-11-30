@@ -24,6 +24,7 @@ import WorkOrders from './pages/WorkOrders';
 import AdminCleanup from './pages/AdminCleanup';
 import AdminExport from './pages/AdminExport';
 import MobileHome from './pages/MobileHome';
+import VibroTest from './pages/VibroTest';
 import __Layout from './Layout.jsx';
 
 
@@ -54,6 +55,7 @@ export const PAGES = {
     "AdminCleanup": AdminCleanup,
     "AdminExport": AdminExport,
     "MobileHome": MobileHome,
+    "VibroTest": VibroTest,
 }
 
 export const pagesConfig = {
