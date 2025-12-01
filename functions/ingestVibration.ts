@@ -7,17 +7,35 @@ Deno.serve(async (req) => {
             return Response.json({ error: "Method not allowed" }, { status: 405 });
         }
 
-        // 2. Ověření API klíče (Bearer token)
-        const authHeader = req.headers.get("Authorization");
-        const expectedToken = Deno.env.get("VIBRATION_API_TOKEN");
+        // 4. Inicializace Base44 klienta (přesunuto nahoru pro ověření session)
+        const base44 = createClientFromRequest(req);
         
-        // Pokud není nastavený secret na serveru, logujeme warning, ale odmítneme
-        if (!expectedToken) {
-            console.error("Missing VIBRATION_API_TOKEN env var");
-            return Response.json({ error: "Server configuration error" }, { status: 500 });
+        let isAuthenticated = false;
+
+        // A. Zkusíme ověřit uživatele (pro testování z dashboardu)
+        try {
+            const user = await base44.auth.me();
+            if (user) isAuthenticated = true;
+        } catch (e) {
+            // Uživatel není přihlášen, pokračujeme kontrolou tokenu
         }
 
-        if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
+        // B. Pokud není uživatel, ověříme API klíč (pro externí zařízení)
+        if (!isAuthenticated) {
+            const authHeader = req.headers.get("Authorization");
+            const expectedToken = Deno.env.get("VIBRATION_API_TOKEN");
+
+            if (!expectedToken) {
+                console.error("Missing VIBRATION_API_TOKEN env var");
+                return Response.json({ error: "Server configuration error" }, { status: 500 });
+            }
+
+            if (authHeader && authHeader === `Bearer ${expectedToken}`) {
+                isAuthenticated = true;
+            }
+        }
+
+        if (!isAuthenticated) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -28,9 +46,6 @@ Deno.serve(async (req) => {
         if (!device_id || !values) {
             return Response.json({ error: "Invalid payload" }, { status: 400 });
         }
-
-        // 4. Inicializace Base44 klienta
-        const base44 = createClientFromRequest(req);
 
         // 5. Najít stroj podle sensor_id (používáme service role, protože webhook nemá uživatelskou session)
         const machines = await base44.asServiceRole.entities.Machine.filter({ sensor_id: device_id });

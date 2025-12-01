@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
-import { Activity, RefreshCw, ArrowUpRight, Search } from "lucide-react";
+import { Activity, RefreshCw, ArrowUpRight, Search, PlayCircle, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Table,
   TableBody,
@@ -19,16 +21,61 @@ import {
 
 export default function VibroTest() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTestMachine, setSelectedTestMachine] = useState("");
+  const { toast } = useToast();
 
   const { data: measurements = [], isLoading, refetch } = useQuery({
     queryKey: ["vibrationMeasurementsTest"],
     queryFn: () => base44.entities.VibrationMeasurement.list("-measurement_date", 50),
-    refetchInterval: 10000, // Auto refresh every 10s to see incoming API data
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
     queryFn: () => base44.entities.Machine.list(),
+  });
+
+  // Filtrovat stroje, které mají nastavené sensor_id
+  const machinesWithSensors = machines.filter(m => m.sensor_id);
+
+  const testConnectionMutation = useMutation({
+    mutationFn: async (machineId) => {
+      const machine = machines.find(m => m.id === machineId);
+      if (!machine || !machine.sensor_id) throw new Error("Stroj nemá Sensor ID");
+
+      // Simulace dat
+      const payload = {
+        device_id: machine.sensor_id,
+        timestamp: new Date().toISOString(),
+        values: {
+          vel_rms_x: Math.random() * 5,
+          vel_rms_y: Math.random() * 5,
+          vel_rms_z: Math.random() * 5,
+          acc_rms_x: Math.random() * 2,
+          acc_rms_y: Math.random() * 2,
+          acc_rms_z: Math.random() * 2,
+          temp: 40 + Math.random() * 20
+        }
+      };
+
+      return base44.functions.invoke("ingestVibration", payload);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Test odeslán",
+        description: "Simulovaná data byla úspěšně odeslána na endpoint.",
+        variant: "success",
+      });
+      setTimeout(() => refetch(), 1000); // Přenačíst data chvíli po odeslání
+    },
+    onError: (error) => {
+      console.error("Chyba testu:", error);
+      toast({
+        title: "Chyba testu",
+        description: `Nepodařilo se odeslat data: ${error.response?.data?.error || error.message}`,
+        variant: "destructive",
+      });
+    }
   });
 
   const getMachineName = (id) => {
@@ -82,6 +129,61 @@ export default function VibroTest() {
              </Button>
           </div>
         </div>
+
+        {/* Testovací sekce */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+              <PlayCircle className="w-5 h-5" />
+              Test spojení a simulace dat
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 w-full">
+                <label className="text-sm font-medium text-blue-900 mb-1 block">
+                  Vyberte stroj pro simulaci (musí mít Sensor ID)
+                </label>
+                <Select value={selectedTestMachine} onValueChange={setSelectedTestMachine}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Vyberte stroj..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {machinesWithSensors.length === 0 ? (
+                      <SelectItem value="none" disabled>Žádné stroje se Sensor ID</SelectItem>
+                    ) : (
+                      machinesWithSensors.map(m => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.name} (Sensor: {m.sensor_id})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={() => testConnectionMutation.mutate(selectedTestMachine)}
+                disabled={!selectedTestMachine || testConnectionMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]"
+              >
+                {testConnectionMutation.isPending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Odesílám...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Simulovat data
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              Tímto tlačítkem odešlete testovací data na endpoint <code>ingestVibration</code>. Pokud se data objeví v tabulce níže, endpoint a databáze fungují správně a problém je pravděpodobně v konfiguraci odesílací aplikace (URL nebo token).
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="pb-3">
