@@ -101,8 +101,6 @@ export default function Dashboard() {
   const [isScanning, setIsScanning] = useState(false);
   const [nfcSupported, setNfcSupported] = useState(false);
 
-  const [showNfcScanDialog, setShowNfcScanDialog] = useState(false);
-  const [isNfcScanning, setIsNfcScanning] = useState(false);
   const [isConfirmingControl, setIsConfirmingControl] = useState(false);
 
   const selectedPoint = urlParams.get('point');
@@ -679,71 +677,7 @@ export default function Dashboard() {
     });
   };
 
-  const handleNfcQuickScan = async () => {
-    if (!nfcSupported) {
-      alert("NFC není podporováno v tomto prohlížeči. Použijte prosím Chrome na Androidu.");
-      return;
-    }
 
-    setShowNfcScanDialog(true);
-    setIsNfcScanning(true);
-
-    try {
-      const ndef = new NDEFReader();
-      const abortController = new AbortController();
-      
-      await ndef.scan({ signal: abortController.signal });
-
-      const timeoutId = setTimeout(() => {
-        abortController.abort();
-        alert("Časový limit čtení NFC vypršel (10s).");
-        setIsNfcScanning(false);
-        setShowNfcScanDialog(false);
-      }, 10000);
-
-      ndef.addEventListener("reading", ({ serialNumber }) => {
-        clearTimeout(timeoutId);
-        setIsNfcScanning(false);
-        setShowNfcScanDialog(false);
-        abortController.abort();
-
-        const targetControlPoints = controlPoints;
-        const point = targetControlPoints.find(p => p.nfc_chip_id === serialNumber);
-
-        if (point) {
-          const machine = allMachines.find(m => m.id === point.machine_id); // Use allMachines for general lookup
-          const line = allLines.find(l => l.id === machine?.line_id); // Use allLines for general lookup
-
-          let url;
-          if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
-            const company = allCompanies.find(c => c.id === line?.company_id);
-            url = `Dashboard?company=${company?.id}&line=${line?.id}&machine=${machine?.id}&point=${point.id}&nfc_scanned=true`;
-          } else {
-            url = `Dashboard?line=${line?.id}&machine=${machine?.id}&point=${point.id}&nfc_scanned=true`;
-          }
-          
-          navigate(createPageUrl(url));
-        } else {
-          alert("Kontrolní bod s tímto NFC čipem nebyl nalezen");
-        }
-      }, { signal: abortController.signal });
-
-      ndef.addEventListener("readingerror", (event) => {
-        clearTimeout(timeoutId);
-        console.error("NFC reading error:", event);
-        alert("Chyba při čtení NFC čipu.");
-        setIsNfcScanning(false);
-        setShowNfcScanDialog(false);
-        abortController.abort();
-      }, { signal: abortController.signal });
-
-    } catch (error) {
-      console.error("NFC scan initiation error:", error);
-      alert("Chyba při spuštění skenování NFC: " + (error.message || "Neznámá chyba"));
-      setIsNfcScanning(false);
-      setShowNfcScanDialog(false);
-    }
-  };
 
   const handleImageError = (docId) => {
     setImageErrors(prev => ({ ...prev, [docId]: true }));
@@ -1385,7 +1319,6 @@ export default function Dashboard() {
         }
 
         if (viewMode === 'demip') {
-        const showFloatingNfcButton = !selectedPoint;
 
     const companyId = selectedCompany || user?.company_id;
     const currentCompany = allCompanies.find(c => c.id === companyId);
@@ -1497,48 +1430,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {showFloatingNfcButton && nfcSupported && (
-          <button
-            onClick={handleNfcQuickScan}
-            className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center hover:shadow-3xl transition-all hover:scale-110 z-50"
-            aria-label="Skenovat NFC"
-          >
-            <Activity className="w-8 h-8" />
-          </button>
-        )}
 
-        <Dialog open={showNfcScanDialog} onOpenChange={setShowNfcScanDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-blue-700">
-                <Activity className="w-6 h-6" />
-                Skenování NFC čipu
-              </DialogTitle>
-            </DialogHeader>
-            <div className="py-8 text-center">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Activity className="w-10 h-10 text-blue-600 animate-pulse" />
-              </div>
-              <p className="text-lg font-semibold text-slate-900 mb-2">
-                Přiložte NFC čip k zařízení
-              </p>
-              <p className="text-sm text-slate-600">
-                Skenování bude trvat maximálně 10 sekund
-              </p>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowNfcScanDialog(false);
-                  setIsNfcScanning(false);
-                }}
-              >
-                Zrušit
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
       );
       }
