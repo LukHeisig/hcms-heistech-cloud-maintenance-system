@@ -262,12 +262,6 @@ function LayoutContent({ children }) {
 
   const navigationItems = [
     {
-      title: "Mobilní aplikace",
-      url: createPageUrl("MobileHome"),
-      icon: Smartphone,
-      highlight: false,
-    },
-    {
       title: "Dashboard",
       url: createPageUrl("Dashboard"),
       icon: LayoutDashboard,
@@ -652,8 +646,8 @@ function LayoutContent({ children }) {
             )}
 
             <button 
-              className={`flex flex-col items-center gap-1 ${location.pathname.includes('MobileHome') && (!location.search.includes('tab=orders')) ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
-              onClick={() => navigate(createPageUrl("MobileHome?tab=checklist"))}
+              className={`flex flex-col items-center gap-1 ${location.pathname.includes('Dashboard') ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
+              onClick={() => navigate(createPageUrl("Dashboard"))}
             >
               <div className="w-6 h-6"><ClipboardList className="w-6 h-6" /></div>
               <span className="text-[10px] font-medium truncate w-full text-center">Přehled</span>
