@@ -71,7 +71,7 @@ function LayoutContent({ children }) {
 
   const handleNfcQuickScan = async () => {
     if (!nfcSupported) {
-      alert("NFC není podporováno v tomto prohlížeči. Použijte prosím Chrome na Androidu.");
+      alert(t("nfc.notSupported"));
       return;
     }
 
@@ -86,7 +86,7 @@ function LayoutContent({ children }) {
 
       const timeoutId = setTimeout(() => {
         abortController.abort();
-        alert("Časový limit čtení NFC vypršel (10s).");
+        alert(t("nfc.timeout"));
         setIsNfcScanning(false);
         setShowNfcScanDialog(false);
       }, 10000);
@@ -120,21 +120,21 @@ function LayoutContent({ children }) {
                 }
                 navigate(createPageUrl(url));
             } else {
-                 alert("Chyba: Stroj nenalezen.");
+                 alert(t("nfc.error.machineNotFound"));
             }
           } else {
-            alert("Kontrolní bod s tímto NFC čipem nebyl nalezen");
+            alert(t("nfc.error.pointNotFound"));
           }
         } catch (err) {
           console.error("Error processing NFC tag:", err);
-          alert("Chyba při zpracování NFC štítku.");
+          alert(t("nfc.error.processing"));
         }
       }, { signal: abortController.signal });
 
       ndef.addEventListener("readingerror", (event) => {
         clearTimeout(timeoutId);
         console.error("NFC reading error:", event);
-        alert("Chyba při čtení NFC čipu.");
+        alert(t("nfc.error.reading"));
         setIsNfcScanning(false);
         setShowNfcScanDialog(false);
         abortController.abort();
@@ -142,7 +142,7 @@ function LayoutContent({ children }) {
 
     } catch (error) {
       console.error("NFC scan initiation error:", error);
-      alert("Chyba při spuštění skenování NFC: " + (error.message || "Neznámá chyba"));
+      alert(t("nfc.error.start") + ": " + (error.message || "Neznámá chyba"));
       setIsNfcScanning(false);
       setShowNfcScanDialog(false);
     }
