@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from '@tanstack/react-query';
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeContext";
 import { OfflineProvider } from "@/components/OfflineProvider";
+import { TranslationProvider, useTranslation } from "@/components/TranslationContext";
 import {
   LayoutDashboard,
   Factory,
@@ -25,9 +26,10 @@ import {
   Building2,
   ClipboardList,
   ChevronRight,
-  Loader2
-} from "lucide-react";
-import {
+  Loader2,
+  Globe
+  } from "lucide-react";
+  import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -52,6 +54,7 @@ function LayoutContent({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
   const { viewMode, toggleViewMode } = useViewMode();
+  const { t, language, setLanguage } = useTranslation();
   const lastActivityUpdateRef = useRef(null);
   
   const [showNfcScanDialog, setShowNfcScanDialog] = useState(false);
@@ -256,18 +259,18 @@ function LayoutContent({ children }) {
   };
 
   const getUserDisplayName = (userObj) => {
-    if (!userObj) return "Neznámý";
+    if (!userObj) return t("user.unknown");
     return userObj.custom_display_name || userObj.full_name || userObj.email;
   };
 
   const navigationItems = [
     {
-      title: "Dashboard",
+      title: t("nav.dashboard"),
       url: createPageUrl("Dashboard"),
       icon: LayoutDashboard,
     },
     {
-      title: "Pracovní příkazy",
+      title: t("nav.workOrders"),
       url: createPageUrl("WorkOrders"),
       icon: ClipboardList,
       badge: myWorkOrders.length > 0 && user?.user_type === "technician" ? myWorkOrders.length : 0,
@@ -275,13 +278,13 @@ function LayoutContent({ children }) {
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [
           {
-            title: "Správa závad",
+            title: t("nav.issueManagement"),
             url: createPageUrl("IssueApproval"),
             icon: AlertTriangle,
             badge: pendingIssuesCount,
           },
           {
-            title: "Audit Log",
+            title: t("nav.auditLog"),
             url: createPageUrl("AuditLog"),
             icon: Activity,
           },
@@ -290,34 +293,34 @@ function LayoutContent({ children }) {
     ...(user?.user_type === "superAdmin" || user?.user_type === "admin"
       ? [
           {
-            title: "Administrace",
+            title: t("nav.administration"),
             url: createPageUrl("Admin"),
             icon: Building2,
           },
           {
-            title: "Uživatelé",
+            title: t("nav.users"),
             url: createPageUrl("Users"),
             icon: Users,
           },
           {
-            title: "Nastavení",
+            title: t("nav.settings"),
             url: createPageUrl("Settings"),
             icon: Settings,
           },
         ]
       : []),
     {
-      title: "O aplikaci",
+      title: t("nav.about"),
       url: createPageUrl("About"),
       icon: Info,
     },
     {
-      title: "API Dokumentace",
+      title: t("nav.apiDocs"),
       url: createPageUrl("ApiDocumentation"),
       icon: Code,
       },
       {
-      title: "Vibro Test",
+      title: t("nav.vibroTest"),
       url: createPageUrl("VibroTest"),
       icon: Activity,
       },
@@ -325,7 +328,7 @@ function LayoutContent({ children }) {
 
   if (!hasData) {
     navigationItems.unshift({
-      title: "🚀 Vytvořit demo data",
+      title: `🚀 ${t("nav.demoData")}`,
       url: createPageUrl("Setup"),
       icon: Rocket,
       highlight: true,
@@ -349,15 +352,33 @@ function LayoutContent({ children }) {
       {viewMode === 'demip' ? (
         <>
           <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
-          <span className="font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
+          <span className="font-semibold" style={{ color: '#2150D8' }}>{t("mode.demip")}</span>
         </>
       ) : (
         <>
           <Wrench className="w-4 h-4 text-slate-600" />
-          <span className="font-semibold text-slate-700">Režim Údržba</span>
+          <span className="font-semibold text-slate-700">{t("mode.maintenance")}</span>
         </>
       )}
     </Button>
+  );
+  
+  const LanguageSwitcher = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <Globe className="w-5 h-5 text-slate-600" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setLanguage('cs')} className={language === 'cs' ? 'bg-slate-100 font-bold' : ''}>
+          🇨🇿 Česky
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-slate-100 font-bold' : ''}>
+          🇬🇧 English
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
@@ -374,74 +395,75 @@ function LayoutContent({ children }) {
 
       {/* Mobile Header */}
       <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
-              <span className="text-white font-bold text-lg">H</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900">HCMS</h1>
-              <p className="text-xs text-slate-500">Heistech Cloud Maintenance System</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {myWorkOrders.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                    <Bell className="w-5 h-5 text-slate-600" />
-                    <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--heistech-orange)' }}>
-                      {myWorkOrders.length}
-                    </span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <div className="p-3 border-b border-slate-200">
-                    <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
-                    <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {myWorkOrders.map((order) => {
-                      const machine = allMachines.find(m => m.id === order.machine_id);
-                      const isOverdue = new Date(order.planned_date) < new Date();
-                      
-                      return (
-                        <DropdownMenuItem
-                          key={order.id}
-                          className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
-                          onClick={() => handleNotificationClick(order)}
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold text-sm text-slate-900">{order.title}</p>
-                              {isOverdue && (
-                                <Badge variant="destructive" className="text-xs">Po termínu</Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
-                            <p className="text-xs text-slate-500">
-                              Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="p-2 rounded-lg hover:bg-slate-100"
-            >
-              {mobileOpen ? (
-                <X className="w-6 h-6 text-slate-600" />
-              ) : (
-                <Menu className="w-6 h-6 text-slate-600" />
-              )}
-            </button>
-          </div>
+      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
+          <span className="text-white font-bold text-lg">H</span>
         </div>
+        <div>
+          <h1 className="text-lg font-bold text-slate-900">{t("app.title")}</h1>
+          <p className="text-xs text-slate-500">{t("app.subtitle")}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <LanguageSwitcher />
+        {myWorkOrders.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                <Bell className="w-5 h-5 text-slate-600" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--heistech-orange)' }}>
+                  {myWorkOrders.length}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <div className="p-3 border-b border-slate-200">
+                <h3 className="font-semibold text-slate-900">{t("notifications.myWorkOrders")}</h3>
+                <p className="text-xs text-slate-500">{myWorkOrders.length} {t("notifications.activeTasks")}</p>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                {myWorkOrders.map((order) => {
+                  const machine = allMachines.find(m => m.id === order.machine_id);
+                  const isOverdue = new Date(order.planned_date) < new Date();
+
+                  return (
+                    <DropdownMenuItem
+                      key={order.id}
+                      className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                      onClick={() => handleNotificationClick(order)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                          {isOverdue && (
+                            <Badge variant="destructive" className="text-xs">{t("notifications.overdue")}</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 mb-1">{machine?.name || t("user.unknown")}</p>
+                        <p className="text-xs text-slate-500">
+                          {t("notifications.planned")}: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-2 rounded-lg hover:bg-slate-100"
+        >
+          {mobileOpen ? (
+            <X className="w-6 h-6 text-slate-600" />
+          ) : (
+            <Menu className="w-6 h-6 text-slate-600" />
+          )}
+        </button>
+      </div>
+      </div>
       </header>
 
       {/* Mobile Menu */}
@@ -483,7 +505,7 @@ function LayoutContent({ children }) {
               className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 text-red-600 mt-6"
             >
               <LogOut className="w-5 h-5" />
-              <span className="font-medium">Odhlásit se</span>
+              <span className="font-medium">{t("user.logout")}</span>
             </button>
           </div>
         </div>
@@ -498,8 +520,8 @@ function LayoutContent({ children }) {
               <span className="text-white font-bold text-xl">H</span>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">HCMS</h2>
-              <p className="text-xs text-slate-500 leading-tight">Heistech Cloud Maintenance System</p>
+              <h2 className="text-lg font-bold text-slate-900">{t("app.title")}</h2>
+              <p className="text-xs text-slate-500 leading-tight">{t("app.subtitle")}</p>
             </div>
           </div>
           
@@ -509,7 +531,7 @@ function LayoutContent({ children }) {
         {/* Sidebar Navigation */}
         <div className="flex-1 overflow-y-auto p-4 space-y-1">
            <p className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-             Menu
+             {t("common.menu")}
            </p>
            {navigationItems.map((item) => (
              <Link
@@ -548,80 +570,81 @@ function LayoutContent({ children }) {
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-slate-900 truncate">
-                {getUserDisplayName(user)}
-              </p>
-              <p className="text-xs text-slate-500 truncate">
-                {user?.user_type === "superAdmin"
-                  ? "Super Administrátor"
-                  : user?.user_type === "admin"
-                  ? "Administrátor"
-                  : user?.user_type === "manager"
-                  ? "Vedoucí"
-                  : "Technik"}
-              </p>
+            <p className="font-medium text-sm text-slate-900 truncate">
+              {getUserDisplayName(user)}
+            </p>
+            <p className="text-xs text-slate-500 truncate">
+              {user?.user_type === "superAdmin"
+                ? t("role.superAdmin")
+                : user?.user_type === "admin"
+                ? t("role.admin")
+                : user?.user_type === "manager"
+                ? t("role.manager")
+                : t("role.technician")}
+            </p>
             </div>
-          </div>
-          <button
+            </div>
+            <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-          >
+            >
             <LogOut className="w-4 h-4" />
-            Odhlásit se
-          </button>
-        </div>
-      </div>
+            {t("user.logout")}
+            </button>
+            </div>
+            </div>
 
-      {/* Main Content Wrapper */}
-      <div className="lg:pl-72">
-        {/* Desktop Header (optional, for notifications etc) */}
-        <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
-           {myWorkOrders.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                    <Bell className="w-5 h-5 text-slate-600" />
-                    <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm" style={{ backgroundColor: 'var(--heistech-orange)' }}>
-                      {myWorkOrders.length}
-                    </span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <div className="p-3 border-b border-slate-200">
-                    <h3 className="font-semibold text-slate-900">Moje pracovní příkazy</h3>
-                    <p className="text-xs text-slate-500">{myWorkOrders.length} aktivních úkolů</p>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {myWorkOrders.map((order) => {
-                      const machine = allMachines.find(m => m.id === order.machine_id);
-                      const isOverdue = new Date(order.planned_date) < new Date();
-                      
-                      return (
-                        <DropdownMenuItem
-                          key={order.id}
-                          className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
-                          onClick={() => handleNotificationClick(order)}
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold text-sm text-slate-900">{order.title}</p>
-                              {isOverdue && (
-                                <Badge variant="destructive" className="text-xs">Po termínu</Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-600 mb-1">{machine?.name || "Neznámý stroj"}</p>
-                            <p className="text-xs text-slate-500">
-                              Plánováno: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
-                            </p>
+            {/* Main Content Wrapper */}
+            <div className="lg:pl-72">
+            {/* Desktop Header (optional, for notifications etc) */}
+            <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20 gap-3">
+            <LanguageSwitcher />
+            {myWorkOrders.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                  <Bell className="w-5 h-5 text-slate-600" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm" style={{ backgroundColor: 'var(--heistech-orange)' }}>
+                    {myWorkOrders.length}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <div className="p-3 border-b border-slate-200">
+                  <h3 className="font-semibold text-slate-900">{t("notifications.myWorkOrders")}</h3>
+                  <p className="text-xs text-slate-500">{myWorkOrders.length} {t("notifications.activeTasks")}</p>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {myWorkOrders.map((order) => {
+                    const machine = allMachines.find(m => m.id === order.machine_id);
+                    const isOverdue = new Date(order.planned_date) < new Date();
+
+                    return (
+                      <DropdownMenuItem
+                        key={order.id}
+                        className="p-3 cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                        onClick={() => handleNotificationClick(order)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold text-sm text-slate-900">{order.title}</p>
+                            {isOverdue && (
+                              <Badge variant="destructive" className="text-xs">{t("notifications.overdue")}</Badge>
+                            )}
                           </div>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                          <p className="text-xs text-slate-600 mb-1">{machine?.name || t("user.unknown")}</p>
+                          <p className="text-xs text-slate-500">
+                            {t("notifications.planned")}: {format(new Date(order.planned_date), "d. M. yyyy", { locale: cs })}
+                          </p>
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
             )}
-        </div>
+            </div>
 
         {/* Page Content */}
         <main className={`p-0 ${viewMode === 'demip' ? 'pb-20 lg:pb-0' : ''}`}>
@@ -639,7 +662,7 @@ function LayoutContent({ children }) {
                 <div className="w-6 h-6 flex items-center justify-center bg-blue-50 rounded-full border border-blue-200">
                     <Activity className="w-4 h-4" />
                 </div>
-                <span className="text-[10px] font-medium truncate w-full text-center">Skenovat</span>
+                <span className="text-[10px] font-medium truncate w-full text-center">{t("common.scan")}</span>
               </button>
             ) : (
                 <div className="w-full"></div> // Placeholder if NFC not supported
@@ -650,7 +673,7 @@ function LayoutContent({ children }) {
               onClick={() => navigate(createPageUrl("Dashboard"))}
             >
               <div className="w-6 h-6"><ClipboardList className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Přehled</span>
+              <span className="text-[10px] font-medium truncate w-full text-center">{t("common.overview")}</span>
             </button>
 
             <button 
@@ -658,7 +681,7 @@ function LayoutContent({ children }) {
               onClick={() => navigate(createPageUrl("MobileHome?tab=orders"))}
             >
               <div className="w-6 h-6"><Wrench className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Příkazy</span>
+              <span className="text-[10px] font-medium truncate w-full text-center">{t("common.orders")}</span>
             </button>
             
             <button 
@@ -666,7 +689,7 @@ function LayoutContent({ children }) {
               onClick={() => setMobileOpen(true)}
             >
               <div className="w-6 h-6"><Menu className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Menu</span>
+              <span className="text-[10px] font-medium truncate w-full text-center">{t("common.menu")}</span>
             </button>
 
             <button 
@@ -674,7 +697,7 @@ function LayoutContent({ children }) {
               onClick={handleLogout}
             >
               <div className="w-6 h-6"><LogOut className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Odhlásit</span>
+              <span className="text-[10px] font-medium truncate w-full text-center">{t("user.logout")}</span>
             </button>
           </div>
         )}
@@ -684,7 +707,7 @@ function LayoutContent({ children }) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-blue-700">
                 <Activity className="w-6 h-6" />
-                Skenování NFC čipu
+                {t("nfc.scanning")}
               </DialogTitle>
             </DialogHeader>
             <div className="py-8 text-center">
@@ -692,10 +715,10 @@ function LayoutContent({ children }) {
                 <Activity className="w-10 h-10 text-blue-600 animate-pulse" />
               </div>
               <p className="text-lg font-semibold text-slate-900 mb-2">
-                Přiložte NFC čip k zařízení
+                {t("nfc.placeChip")}
               </p>
               <p className="text-sm text-slate-600">
-                Skenování bude trvat maximálně 10 sekund
+                {t("nfc.duration")}
               </p>
             </div>
             <DialogFooter>
@@ -706,7 +729,7 @@ function LayoutContent({ children }) {
                   setIsNfcScanning(false);
                 }}
               >
-                Zrušit
+                {t("common.cancel")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -718,10 +741,12 @@ function LayoutContent({ children }) {
 
 export default function Layout({ children }) {
   return (
-    <ViewModeProvider>
-      <OfflineProvider>
-        <LayoutContent>{children}</LayoutContent>
-      </OfflineProvider>
-    </ViewModeProvider>
+    <TranslationProvider>
+      <ViewModeProvider>
+        <OfflineProvider>
+          <LayoutContent>{children}</LayoutContent>
+        </OfflineProvider>
+      </ViewModeProvider>
+    </TranslationProvider>
   );
 }
