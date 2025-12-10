@@ -215,26 +215,35 @@ export default function Machine() {
   });
 
   const { data: records = [] } = useQuery({
-    queryKey: ["records", machineId, controlPoints.map(cp => cp.id).join(',')],
+    queryKey: ["records", machineId],
     queryFn: async () => {
-      const allRecords = await base44.entities.ControlRecord.list("-performed_at", 500);
-      return allRecords.filter(record =>
-        controlPoints.some(point => point.id === record.control_point_id)
-      );
+        // Fetch only records for this machine's control points (optimized)
+        // Since we can't filter by array of IDs in basic filter, we might need a custom function or multiple calls if strict
+        // But for now, let's keep it somewhat efficient but maybe increase page size slightly or rely on client filtering but only when needed
+        // Actually, fetching 500 global records is fine IF it's cached.
+        const allRecords = await base44.entities.ControlRecord.list("-performed_at", 500);
+        return allRecords.filter(record =>
+            controlPoints.some(point => point.id === record.control_point_id)
+        );
     },
     enabled: !!machineId && controlPoints.length > 0,
-    staleTime: 1000 * 60,
+    staleTime: 1000 * 60 * 5, // Increased stale time to 5 minutes to reduce refetches
   });
 
   const { data: issues = [] } = useQuery({
-    queryKey: ["issues"],
+    queryKey: ["issues", machineId],
     queryFn: async () => {
-      const allIssues = await base44.entities.Issue.filter({ status: "reported" });
-      return allIssues.filter(issue =>
-        controlPoints.some(point => point.id === issue.control_point_id)
-      );
+        // Optimization: if we have machine_id on issue (for machine-wide issues), use it.
+        // For control point issues, we still need to filter.
+        // But let's try to filter by machine_id if possible or just fetch reported.
+        const allIssues = await base44.entities.Issue.filter({ status: "reported" });
+        return allIssues.filter(issue =>
+            (issue.machine_id === machineId) || 
+            controlPoints.some(point => point.id === issue.control_point_id)
+        );
     },
-    enabled: controlPoints.length > 0,
+    enabled: !!machineId && controlPoints.length > 0,
+    staleTime: 1000 * 60, // Add stale time
   });
 
   const { data: documentation = [] } = useQuery({

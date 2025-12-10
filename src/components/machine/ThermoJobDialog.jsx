@@ -37,7 +37,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
         const lines = await base44.entities.Line.filter({ id: machine.line_id });
         return lines[0] || null;
     },
-    enabled: !!machine?.line_id
+    enabled: !!machine?.line_id && open
   });
 
   const { data: settings } = useQuery({
@@ -47,7 +47,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
         const s = await base44.entities.ThermoSettings.filter({ company_id: line.company_id });
         return s[0] || null;
     },
-    enabled: !!line?.company_id && !job
+    enabled: !!line?.company_id && !job && open
   });
 
   // Load existing images if editing
@@ -55,7 +55,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
   const { data: existingImages = EMPTY_ARRAY } = useQuery({
     queryKey: ["thermoImages", job?.id],
     queryFn: () => job ? base44.entities.ThermoImage.filter({ job_id: job.id }, "order_index") : [],
-    enabled: !!job
+    enabled: !!job && open
   });
 
   const settingsAppliedRef = useRef(false);

@@ -63,27 +63,27 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
     queryKey: ["vibrationStandard", machine?.vibration_standard_id],
     queryFn: async () => {
         if (!machine?.vibration_standard_id) return null;
-        const list = await base44.entities.VibrationStandard.list();
-        return list.find(s => s.id === machine.vibration_standard_id);
+        const list = await base44.entities.VibrationStandard.filter({ id: machine.vibration_standard_id });
+        return list[0];
     },
-    enabled: !!machine?.vibration_standard_id
+    enabled: !!machine?.vibration_standard_id && open
   });
 
   const { data: schema } = useQuery({
     queryKey: ["vibrationSchema", machine?.vibration_schema_id],
     queryFn: async () => {
         if (!machine?.vibration_schema_id) return null;
-        const list = await base44.entities.VibrationSchema.list();
-        return list.find(s => s.id === machine.vibration_schema_id);
+        const list = await base44.entities.VibrationSchema.filter({ id: machine.vibration_schema_id });
+        return list[0];
     },
-    enabled: !!machine?.vibration_schema_id
+    enabled: !!machine?.vibration_schema_id && open
   });
 
   // If editing, fetch readings
   const { data: existingReadings = [] } = useQuery({
     queryKey: ["vibrationReadings", job?.id],
     queryFn: () => job ? base44.entities.VibrationReading.filter({ job_id: job.id }) : [],
-    enabled: !!job
+    enabled: !!job && open
   });
 
   // If creating new, fetch last job and its readings to pre-fill
@@ -100,7 +100,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
   const { data: lastReadings = [] } = useQuery({
     queryKey: ["lastVibrationReadings", lastJob?.id],
     queryFn: () => lastJob ? base44.entities.VibrationReading.filter({ job_id: lastJob.id }) : [],
-    enabled: !!lastJob
+    enabled: !!lastJob && open
   });
 
   const [formData, setFormData] = useState({

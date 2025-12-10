@@ -316,8 +316,8 @@ export default function VibrationCard({ machine, jobs = [] }) {
         queryKey: ["vibrationStandard", machine?.vibration_standard_id],
         queryFn: async () => {
             if (!machine?.vibration_standard_id) return null;
-            const list = await base44.entities.VibrationStandard.list();
-            return list.find(s => s.id === machine.vibration_standard_id);
+            const list = await base44.entities.VibrationStandard.filter({ id: machine.vibration_standard_id });
+            return list[0];
         },
         enabled: !!machine?.vibration_standard_id
     });
