@@ -243,7 +243,7 @@ function LayoutContent({ children }) {
       setHasData(linesData.length > 0);
     } catch (err) {
       console.error("Error checking data:", err);
-      setHasData(false);
+      setHasData(true); // Don't show Setup link on error
     }
   };
 
@@ -315,22 +315,13 @@ function LayoutContent({ children }) {
       title: "API Dokumentace",
       url: createPageUrl("ApiDocumentation"),
       icon: Code,
-      },
-      {
+    },
+    {
       title: "Vibro Test",
       url: createPageUrl("VibroTest"),
       icon: Activity,
-      },
-      ];
-
-  if (!hasData) {
-    navigationItems.unshift({
-      title: "🚀 Vytvořit demo data",
-      url: createPageUrl("Setup"),
-      icon: Rocket,
-      highlight: true,
-    });
-  }
+    },
+  ];
 
   const ViewModeToggle = () => (
     <Button

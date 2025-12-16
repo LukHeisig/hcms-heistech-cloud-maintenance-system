@@ -25,6 +25,7 @@ import AdminCleanup from './pages/AdminCleanup';
 import AdminExport from './pages/AdminExport';
 import MobileHome from './pages/MobileHome';
 import VibroTest from './pages/VibroTest';
+import PendingApproval from './pages/PendingApproval';
 import __Layout from './Layout.jsx';
 
 
@@ -56,6 +57,7 @@ export const PAGES = {
     "AdminExport": AdminExport,
     "MobileHome": MobileHome,
     "VibroTest": VibroTest,
+    "PendingApproval": PendingApproval,
 }
 
 export const pagesConfig = {

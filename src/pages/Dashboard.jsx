@@ -246,11 +246,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user && !user.company_id && user.user_type !== "admin" && user.user_type !== "superAdmin") {
-      navigate(createPageUrl("Setup"));
-    } else if (user && user.user_type !== "admin" && user.user_type !== "superAdmin" && lines.length === 0 && !user.company_id) {
-      navigate(createPageUrl("Setup"));
+      navigate(createPageUrl("PendingApproval"));
     }
-  }, [user, lines, navigate]);
+  }, [user, navigate]);
 
   // Automaticky nastavit activeTab podle parametru v URL nebo maintenance_category stroje
   useEffect(() => {
