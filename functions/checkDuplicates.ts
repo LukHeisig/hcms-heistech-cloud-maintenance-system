@@ -10,7 +10,8 @@ Deno.serve(async (req) => {
         }
 
         // 1. Check for duplicate Machines
-        const machines = await base44.entities.Machine.list({ limit: 10000 }); // Increase limit
+        // Use service role to see all data
+        const machines = await base44.asServiceRole.entities.Machine.list(null, 1000); 
         const machineMap = {};
         const duplicateMachines = [];
 
@@ -29,7 +30,7 @@ Deno.serve(async (req) => {
         }
 
         // 2. Check for duplicate Control Points
-        const controlPoints = await base44.entities.ControlPoint.list({ limit: 10000 }); // Increase limit
+        const controlPoints = await base44.asServiceRole.entities.ControlPoint.list(null, 5000); 
         const pointMap = {};
         const duplicatePoints = [];
 
