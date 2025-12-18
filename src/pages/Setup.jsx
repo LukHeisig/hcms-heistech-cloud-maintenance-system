@@ -11,6 +11,14 @@ export default function Setup() {
   const [done, setDone] = useState(false);
   const navigate = useNavigate();
 
+  const getOrCreate = async (entityName, filter, data) => {
+    const existing = await base44.entities[entityName].filter(filter);
+    if (existing.length > 0) {
+      return existing[0];
+    }
+    return base44.entities[entityName].create(data);
+  };
+
   const createDemoData = async () => {
     setLoading(true);
     try {
@@ -36,121 +44,162 @@ export default function Setup() {
         user_type: "admin",
       });
 
-      const line1 = await base44.entities.Line.create({
-        company_id: company.id,
-        name: "Linka 1 - Lisovna",
-        description: "Hlavní výrobní linka pro lisování",
-        order_index: 1,
-      });
+      const line1 = await getOrCreate("Line", 
+        { company_id: company.id, name: "Linka 1 - Lisovna" },
+        {
+          company_id: company.id,
+          name: "Linka 1 - Lisovna",
+          description: "Hlavní výrobní linka pro lisování",
+          order_index: 1,
+        }
+      );
 
-      const line2 = await base44.entities.Line.create({
-        company_id: company.id,
-        name: "Linka 2 - Montáž",
-        description: "Montážní linka",
-        order_index: 2,
-      });
+      const line2 = await getOrCreate("Line",
+        { company_id: company.id, name: "Linka 2 - Montáž" },
+        {
+          company_id: company.id,
+          name: "Linka 2 - Montáž",
+          description: "Montážní linka",
+          order_index: 2,
+        }
+      );
 
-      const machine1 = await base44.entities.Machine.create({
-        line_id: line1.id,
-        name: "Lis LH-500",
-        description: "Hydraulický lis 500t",
-        order_index: 1,
-      });
+      const machine1 = await getOrCreate("Machine",
+        { line_id: line1.id, name: "Lis LH-500" },
+        {
+          line_id: line1.id,
+          name: "Lis LH-500",
+          description: "Hydraulický lis 500t",
+          order_index: 1,
+        }
+      );
 
-      const machine2 = await base44.entities.Machine.create({
-        line_id: line1.id,
-        name: "Dopravník D1",
-        description: "Pásový dopravník",
-        order_index: 2,
-      });
+      const machine2 = await getOrCreate("Machine",
+        { line_id: line1.id, name: "Dopravník D1" },
+        {
+          line_id: line1.id,
+          name: "Dopravník D1",
+          description: "Pásový dopravník",
+          order_index: 2,
+        }
+      );
 
-      const machine3 = await base44.entities.Machine.create({
-        line_id: line2.id,
-        name: "Montážní stůl M1",
-        description: "Automatizovaný montážní stůl",
-        order_index: 1,
-      });
+      const machine3 = await getOrCreate("Machine",
+        { line_id: line2.id, name: "Montážní stůl M1" },
+        {
+          line_id: line2.id,
+          name: "Montážní stůl M1",
+          description: "Automatizovaný montážní stůl",
+          order_index: 1,
+        }
+      );
 
-      const point1 = await base44.entities.ControlPoint.create({
-        machine_id: machine1.id,
-        name: "Hlavní ložisko",
-        type: "lubrication",
-        description: "Mazání hlavního ložiska lisu",
-        lubricant_type: "SKF LGWA 2",
-        lubricant_amount: 12,
-        interval_hours: 168,
-      });
+      const point1 = await getOrCreate("ControlPoint",
+        { machine_id: machine1.id, name: "Hlavní ložisko" },
+        {
+          machine_id: machine1.id,
+          name: "Hlavní ložisko",
+          type: "lubrication",
+          description: "Mazání hlavního ložiska lisu",
+          lubricant_type: "SKF LGWA 2",
+          lubricant_amount: 12,
+          interval_hours: 168,
+        }
+      );
 
-      const point2 = await base44.entities.ControlPoint.create({
-        machine_id: machine1.id,
-        name: "Vedení válce",
-        type: "lubrication",
-        description: "Mazání vedení hydraulického válce",
-        lubricant_type: "SKF LGWA 2",
-        lubricant_amount: 8,
-        interval_hours: 336,
-      });
+      const point2 = await getOrCreate("ControlPoint",
+        { machine_id: machine1.id, name: "Vedení válce" },
+        {
+          machine_id: machine1.id,
+          name: "Vedení válce",
+          type: "lubrication",
+          description: "Mazání vedení hydraulického válce",
+          lubricant_type: "SKF LGWA 2",
+          lubricant_amount: 8,
+          interval_hours: 336,
+        }
+      );
 
-      const point3 = await base44.entities.ControlPoint.create({
-        machine_id: machine1.id,
-        name: "Kontrola úniku oleje",
-        type: "inspection",
-        description: "Vizuální kontrola těsnosti hydraulického systému",
-        inspection_tasks: "Zkontrolovat těsnost, úniky, stav hadic",
-        interval_hours: 168,
-      });
+      const point3 = await getOrCreate("ControlPoint",
+        { machine_id: machine1.id, name: "Kontrola úniku oleje" },
+        {
+          machine_id: machine1.id,
+          name: "Kontrola úniku oleje",
+          type: "inspection",
+          description: "Vizuální kontrola těsnosti hydraulického systému",
+          inspection_tasks: "Zkontrolovat těsnost, úniky, stav hadic",
+          interval_hours: 168,
+        }
+      );
 
-      await base44.entities.ControlPoint.create({
-        machine_id: machine2.id,
-        name: "Ložisko motoru",
-        type: "lubrication",
-        lubricant_type: "Shell Gadus S2",
-        lubricant_amount: 6,
-        interval_hours: 720,
-      });
+      await getOrCreate("ControlPoint",
+        { machine_id: machine2.id, name: "Ložisko motoru" },
+        {
+          machine_id: machine2.id,
+          name: "Ložisko motoru",
+          type: "lubrication",
+          lubricant_type: "Shell Gadus S2",
+          lubricant_amount: 6,
+          interval_hours: 720,
+        }
+      );
 
-      await base44.entities.ControlPoint.create({
-        machine_id: machine3.id,
-        name: "Vedení rotační osy",
-        type: "lubrication",
-        lubricant_type: "SKF LGWA 2",
-        lubricant_amount: 5,
-        interval_hours: 336,
-      });
+      await getOrCreate("ControlPoint",
+        { machine_id: machine3.id, name: "Vedení rotační osy" },
+        {
+          machine_id: machine3.id,
+          name: "Vedení rotační osy",
+          type: "lubrication",
+          lubricant_type: "SKF LGWA 2",
+          lubricant_amount: 5,
+          interval_hours: 336,
+        }
+      );
 
-      await base44.entities.ControlPoint.create({
-        machine_id: machine3.id,
-        name: "Kontrola pneumatiky",
-        type: "inspection",
-        inspection_tasks: "Zkontrolovat tlak vzduchu, těsnost spojů",
-        interval_hours: 336,
-      });
+      await getOrCreate("ControlPoint",
+        { machine_id: machine3.id, name: "Kontrola pneumatiky" },
+        {
+          machine_id: machine3.id,
+          name: "Kontrola pneumatiky",
+          type: "inspection",
+          inspection_tasks: "Zkontrolovat tlak vzduchu, těsnost spojů",
+          interval_hours: 336,
+        }
+      );
 
-      await base44.entities.ControlRecord.create({
-        control_point_id: point1.id,
-        record_type: "lubrication",
-        performed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        note: "Mazání provedeno dle plánu",
-      });
+      // Records and Issues are less critical to check for duplicates, but we can do it if needed.
+      // For demo purposes, we can skip creating them if points already exist to avoid clutter,
+      // or just check if a record exists for that point.
+      // For now, I'll wrap them in a check so we don't spam records on re-run.
+      
+      const existingRecords = await base44.entities.ControlRecord.filter({ control_point_id: point1.id });
+      if (existingRecords.length === 0) {
+        await base44.entities.ControlRecord.create({
+          control_point_id: point1.id,
+          record_type: "lubrication",
+          performed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Mazání provedeno dle plánu",
+        });
 
-      await base44.entities.ControlRecord.create({
-        control_point_id: point2.id,
-        record_type: "lubrication",
-        performed_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      });
+        await base44.entities.ControlRecord.create({
+          control_point_id: point2.id,
+          record_type: "lubrication",
+          performed_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        });
 
-      await base44.entities.ControlRecord.create({
-        control_point_id: point3.id,
-        record_type: "inspection",
-        performed_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        note: "Vše v pořádku, žádné úniky",
-      });
+        await base44.entities.ControlRecord.create({
+          control_point_id: point3.id,
+          record_type: "inspection",
+          performed_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Vše v pořádku, žádné úniky",
+        });
 
-      await base44.entities.Issue.create({
-        control_point_id: point1.id,
-        description: "Zjištěn mírný únik maziva z těsnění",
-        status: "reported",
-      });
+        await base44.entities.Issue.create({
+          control_point_id: point1.id,
+          description: "Zjištěn mírný únik maziva z těsnění",
+          status: "reported",
+        });
+      }
 
       setDone(true);
     } catch (error) {
