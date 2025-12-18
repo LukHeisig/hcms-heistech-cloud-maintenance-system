@@ -345,6 +345,13 @@ export default function AdminMachines() {
   const handleCopyMachine = async () => {
     if (!copyName.trim() || !copyingMachine) return;
 
+    // Check for existing machine with same name on this line
+    const existingMachine = machines.find(m => m.name.toLowerCase() === copyName.trim().toLowerCase());
+    if (existingMachine) {
+        alert("Stroj s tímto názvem na této lince již existuje.");
+        return;
+    }
+
     try {
       // 1. Vytvořit nový stroj
       const newMachine = await base44.entities.Machine.create({

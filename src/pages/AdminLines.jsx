@@ -230,6 +230,13 @@ export default function AdminLines() {
   const handleCopyLine = async () => {
     if (!copyName.trim() || !copyingLine) return;
 
+    // Check for existing line with same name
+    const existingLine = lines.find(l => l.name.toLowerCase() === copyName.trim().toLowerCase());
+    if (existingLine) {
+        alert("Linka s tímto názvem již existuje.");
+        return;
+    }
+
     try {
       // 1. Vytvořit novou linku
       const newLine = await base44.entities.Line.create({
