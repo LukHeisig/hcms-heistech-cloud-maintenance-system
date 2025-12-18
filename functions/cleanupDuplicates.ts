@@ -9,46 +9,17 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const duplicateIds = [
-            '691dceb8fd5dc2a90880c7ff',
-            '691dce1a43551b1e8b9d979b',
-            '691da05e8c8fc69efe99cdc8',
-            '691d86d0b7399937c4d0c00c',
-            '691d8469e878570e7c3913fa',
-            '691d7e1773c9504db73d61f4'
-        ];
-
         const results = {
             deletedMachines: [],
             deletedControlPoints: [],
-            errors: [],
-            otherPotentialDuplicates: []
+            errors: []
         };
 
-        // 1. Delete specific duplicates
-        for (const machineId of duplicateIds) {
-            try {
-                // Find and delete associated ControlPoints first
-                const points = await base44.asServiceRole.entities.ControlPoint.filter({ machine_id: machineId });
-                for (const point of points) {
-                    await base44.asServiceRole.entities.ControlPoint.delete(point.id);
-                    results.deletedControlPoints.push(point.id);
-                }
-
-                // Delete the Machine
-                await base44.asServiceRole.entities.Machine.delete(machineId);
-                results.deletedMachines.push(machineId);
-            } catch (err) {
-                results.errors.push(`Failed to delete machine ${machineId}: ${err.message}`);
-            }
-        }
-
-        // 2. Auto-cleanup remaining duplicates
         // Fetch necessary data
         const [allMachines, allLines, allControlPoints] = await Promise.all([
             base44.asServiceRole.entities.Machine.list(),
             base44.asServiceRole.entities.Line.list(),
-            base44.asServiceRole.entities.ControlPoint.list() // Used for scoring
+            base44.asServiceRole.entities.ControlPoint.list()
         ]);
 
         // Map Line ID -> Line Name
@@ -66,11 +37,10 @@ Deno.serve(async (req) => {
         const groups = new Map();
         
         for (const m of allMachines) {
-            // Skip already deleted specific IDs
-            if (duplicateIds.includes(m.id)) continue;
-
             const lineName = lineMap.get(m.line_id) || "UnknownLine";
-            const key = `${m.name}:::${lineName}`;
+            // Normalizing names slightly (trim) just in case
+            const normalizedName = m.name ? m.name.trim() : "Unnamed";
+            const key = `${normalizedName}:::${lineName}`;
             
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key).push(m);
@@ -98,8 +68,6 @@ Deno.serve(async (req) => {
                 for (const loser of losers) {
                     try {
                         // Delete related ControlPoints
-                        // We can filter from allControlPoints in memory to save API calls for list, 
-                        // but we need to delete them one by one or by filter query
                         const loserPoints = allControlPoints.filter(cp => cp.machine_id === loser.id);
                         for (const cp of loserPoints) {
                             await base44.asServiceRole.entities.ControlPoint.delete(cp.id);
