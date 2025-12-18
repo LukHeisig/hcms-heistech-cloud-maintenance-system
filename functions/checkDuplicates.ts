@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
         }
 
         // 1. Check for duplicate Machines
-        const machines = await base44.entities.Machine.list();
+        const machines = await base44.entities.Machine.list({ limit: 10000 }); // Increase limit
         const machineMap = {};
         const duplicateMachines = [];
 
@@ -29,10 +29,7 @@ Deno.serve(async (req) => {
         }
 
         // 2. Check for duplicate Control Points
-        // We can't fetch ALL control points if there are too many, but let's try assuming < 10k
-        // If it fails, we might need to paginate or filter. 
-        // For now, let's try listing all.
-        const controlPoints = await base44.entities.ControlPoint.list();
+        const controlPoints = await base44.entities.ControlPoint.list({ limit: 10000 }); // Increase limit
         const pointMap = {};
         const duplicatePoints = [];
 
@@ -51,6 +48,8 @@ Deno.serve(async (req) => {
         }
 
         return Response.json({
+            checkedMachines: machines.length,
+            checkedPoints: controlPoints.length,
             duplicateMachinesCount: duplicateMachines.length,
             duplicatePointsCount: duplicatePoints.length,
             duplicateMachines,
