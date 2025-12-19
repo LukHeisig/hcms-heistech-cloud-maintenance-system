@@ -410,6 +410,11 @@ export default function ControlPoint() {
   const activeIssues = issues.filter((i) => i.status === "reported");
   const nextDate = getNextControlDate();
 
+  const nfcScanned = urlParams.get("nfc_scanned") === "true";
+  const manualConfirmationAllowed = company?.allow_manual_confirmation !== false;
+  // Pokud není povoleno manuální potvrzení (globálně nebo pro tento typ bodu) a nebylo naskenováno NFC -> vyžadovat NFC
+  const isNfcRequired = (!manualConfirmationAllowed || (point.type === "prevention" && point.prevention_confirmation_method === "nfc")) && !nfcScanned;
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -669,7 +674,7 @@ export default function ControlPoint() {
 
             {/* Tlačítka pro akce */}
             <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {point.type === "prevention" && point.prevention_confirmation_method === "nfc" ? (
+              {isNfcRequired ? (
                 <div className="h-14 flex items-center justify-center bg-slate-100 border-2 border-slate-200 rounded-lg text-slate-500 font-medium">
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
