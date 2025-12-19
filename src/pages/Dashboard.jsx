@@ -124,6 +124,12 @@ export default function Dashboard() {
     enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
   });
 
+  const { data: userCompany } = useQuery({
+    queryKey: ["userCompany", user?.company_id],
+    queryFn: () => base44.entities.Company.filter({ id: user.company_id }).then(res => res[0]),
+    enabled: !!user?.company_id && user?.user_type !== "admin" && user?.user_type !== "superAdmin",
+  });
+
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
     queryFn: () => base44.entities.User.list(),
@@ -726,11 +732,17 @@ export default function Dashboard() {
 
       const canEdit = user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin";
       
+      const activeCompanySettings = user?.user_type === "admin" || user?.user_type === "superAdmin"
+        ? allCompanies.find(c => c.id === currentLineForPoint?.company_id)
+        : userCompany;
+
+      const manualConfirmationAllowed = activeCompanySettings?.allow_manual_confirmation !== false;
+
       // Určit, zda zobrazit tlačítko potvrzení
-      // Pro prevention s ručním potvrzením - zobrazit vždy
+      // Pro prevention s ručním potvrzením - zobrazit vždy (pokud je povoleno globálně)
       // Pro prevention s NFC nebo jiné typy bodů - zobrazit pouze po NFC skenu
       const shouldShowConfirmButton = 
-        (currentPoint.type === "prevention" && currentPoint.prevention_confirmation_method === "manual") || 
+        (currentPoint.type === "prevention" && currentPoint.prevention_confirmation_method === "manual" && manualConfirmationAllowed) || 
         nfcScanned;
 
       return (

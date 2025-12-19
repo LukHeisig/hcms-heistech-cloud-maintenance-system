@@ -56,6 +56,7 @@ export default function AdminCompanies() {
     enable_vibration: true,
     enable_thermo: true,
     enable_tribo: true,
+    allow_manual_confirmation: true,
     overdue_visualization_type: "two_colors",
     overdue_tolerance_percent: 4,
   });
@@ -127,6 +128,7 @@ export default function AdminCompanies() {
       enable_vibration: true,
       enable_thermo: true,
       enable_tribo: true,
+      allow_manual_confirmation: true,
       overdue_visualization_type: "two_colors",
       overdue_tolerance_percent: 4,
     });
@@ -147,6 +149,7 @@ export default function AdminCompanies() {
         enable_vibration: company.enable_vibration !== false,
         enable_thermo: company.enable_thermo !== false,
         enable_tribo: company.enable_tribo !== false,
+        allow_manual_confirmation: company.allow_manual_confirmation !== false,
         overdue_visualization_type: company.overdue_visualization_type || "two_colors",
         overdue_tolerance_percent: company.overdue_tolerance_percent || 4,
       });
@@ -422,6 +425,28 @@ export default function AdminCompanies() {
                             onCheckedChange={(checked) => setFormData({...formData, enable_tribo: checked})}
                         />
                         <Label htmlFor="enable_tribo" className="cursor-pointer">Tribodiagnostika</Label>
+                    </div>
+                </div>
+              </div>
+
+              <div className="border p-4 rounded-lg bg-slate-50 space-y-4">
+                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4" />
+                    Nastavení potvrzování
+                </h3>
+                <div className="flex items-center space-x-2">
+                    <Checkbox 
+                        id="allow_manual_confirmation" 
+                        checked={formData.allow_manual_confirmation}
+                        onCheckedChange={(checked) => setFormData({...formData, allow_manual_confirmation: checked})}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="allow_manual_confirmation" className="cursor-pointer">
+                            Povolit manuální potvrzení kontroly
+                        </Label>
+                        <p className="text-sm text-slate-500">
+                            Pokud je vypnuto, kontrolu lze potvrdit pouze naskenováním NFC štítku.
+                        </p>
                     </div>
                 </div>
               </div>
