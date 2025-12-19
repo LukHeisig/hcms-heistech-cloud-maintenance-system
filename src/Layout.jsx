@@ -316,11 +316,7 @@ function LayoutContent({ children }) {
       url: createPageUrl("ApiDocumentation"),
       icon: Code,
     },
-    {
-      title: "Vibro Test",
-      url: createPageUrl("VibroTest"),
-      icon: Activity,
-    },
+
   ];
 
   const ViewModeToggle = () => (
