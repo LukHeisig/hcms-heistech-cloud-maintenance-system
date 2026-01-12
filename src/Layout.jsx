@@ -187,14 +187,14 @@ function LayoutContent({ children }) {
   const { data: lines = [] } = useQuery({
     queryKey: ["lines", user?.company_id],
     queryFn: () => user?.company_id 
-      ? base44.entities.Line.filter({ company_id: user.company_id })
-      : [],
+            ? base44.entities.Line.filter({ company_id: user.company_id }, null, 1000)
+            : [],
     enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
-    queryFn: () => base44.entities.Machine.list(),
+    queryFn: () => base44.entities.Machine.list(null, 1000),
     enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
@@ -220,7 +220,7 @@ function LayoutContent({ children }) {
 
   const { data: allMachines = [] } = useQuery({
     queryKey: ["allMachinesForNotifications"],
-    queryFn: () => base44.entities.Machine.list(),
+    queryFn: () => base44.entities.Machine.list(null, 1000),
     enabled: myWorkOrders.length > 0,
   });
 
