@@ -95,36 +95,48 @@ function LayoutContent({ children }) {
         abortController.abort();
 
         try {
-          // Najít kontrolní bod podle NFC ID
+          console.log("Scanned NFC:", serialNumber);
+          // Najít všechny kontrolní body s tímto NFC ID
           const points = await base44.entities.ControlPoint.filter({ nfc_chip_id: serialNumber }, null, 1000);
-          const point = points[0];
+          console.log("Found points:", points);
 
-          if (point) {
-            // Najít související entity pro sestavení URL
-            const machines = await base44.entities.Machine.filter({ id: point.machine_id }, null, 1000);
-            const machine = machines[0];
-            
-            let url;
-            if (machine) {
-                const lines = await base44.entities.Line.filter({ id: machine.line_id }, null, 1000);
-                const line = lines[0];
-                
-                if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
-                  const companyId = line?.company_id;
-                  url = `Dashboard?company=${companyId}&line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
-                } else {
-                  url = `Dashboard?line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
-                }
-                navigate(createPageUrl(url));
-            } else {
-                 alert("Chyba: Stroj nenalezen.");
-            }
-          } else {
-            alert("Kontrolní bod s tímto NFC čipem nebyl nalezen");
+          let validPointFound = false;
+
+          // Projít všechny nalezené body a najít ten, který má platnou vazbu na stroj a linku
+          for (const point of points) {
+              const machines = await base44.entities.Machine.filter({ id: point.machine_id }, null, 1000);
+              const machine = machines[0];
+
+              if (machine) {
+                  const lines = await base44.entities.Line.filter({ id: machine.line_id }, null, 1000);
+                  const line = lines[0];
+
+                  if (line) {
+                      // Našli jsme platný bod s existujícím strojem a linkou
+                      let url;
+                      if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+                          const companyId = line?.company_id;
+                          url = `Dashboard?company=${companyId}&line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
+                      } else {
+                          url = `Dashboard?line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
+                      }
+                      navigate(createPageUrl(url));
+                      validPointFound = true;
+                      break; // Ukončit hledání po prvním platném nálezu
+                  }
+              }
+          }
+
+          if (!validPointFound) {
+              if (points.length > 0) {
+                  alert("Chyba: Kontrolní bod nalezen, ale je přiřazen k smazanému stroji nebo lince (sirotek). Prosím přemapujte čip na existující bod.");
+              } else {
+                  alert(`Kontrolní bod s tímto NFC čipem (${serialNumber}) nebyl nalezen.`);
+              }
           }
         } catch (err) {
           console.error("Error processing NFC tag:", err);
-          alert("Chyba při zpracování NFC štítku.");
+          alert("Chyba při zpracování NFC štítku: " + err.message);
         }
       }, { signal: abortController.signal });
 
