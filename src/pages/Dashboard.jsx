@@ -120,7 +120,7 @@ export default function Dashboard() {
 
   const { data: allCompanies = [] } = useQuery({
     queryKey: ["companies"],
-    queryFn: () => base44.entities.Company.list("name"),
+    queryFn: () => base44.entities.Company.list("name", 1000),
     enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
   });
 
@@ -132,7 +132,7 @@ export default function Dashboard() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list(null, 1000),
   });
 
   const userMap = React.useMemo(() => {
@@ -169,12 +169,12 @@ export default function Dashboard() {
 
   const { data: allLines = [], isLoading: isLoadingAllLines } = useQuery({
     queryKey: ["allLines"],
-    queryFn: () => base44.entities.Line.list(),
+    queryFn: () => base44.entities.Line.list(null, 1000),
   });
 
   const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
     queryKey: ["allMachines"],
-    queryFn: () => base44.entities.Machine.list("order_index"),
+    queryFn: () => base44.entities.Machine.list("order_index", 1000),
     enabled: !!user,
   });
 
@@ -191,7 +191,7 @@ export default function Dashboard() {
 
   const { data: allControlPoints = [], isLoading: isLoadingControlPoints } = useQuery({
     queryKey: ["allControlPoints"],
-    queryFn: () => base44.entities.ControlPoint.list(),
+    queryFn: () => base44.entities.ControlPoint.list(null, 1000),
     enabled: !!user,
   });
 

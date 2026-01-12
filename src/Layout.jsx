@@ -200,7 +200,7 @@ function LayoutContent({ children }) {
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints"],
-    queryFn: () => base44.entities.ControlPoint.list(),
+    queryFn: () => base44.entities.ControlPoint.list(null, 1000),
     enabled: !!user && user.user_type !== "admin" && user.user_type !== "superAdmin",
   });
 
