@@ -96,17 +96,17 @@ function LayoutContent({ children }) {
 
         try {
           // Najít kontrolní bod podle NFC ID
-          const points = await base44.entities.ControlPoint.filter({ nfc_chip_id: serialNumber });
+          const points = await base44.entities.ControlPoint.filter({ nfc_chip_id: serialNumber }, null, 1000);
           const point = points[0];
 
           if (point) {
             // Najít související entity pro sestavení URL
-            const machines = await base44.entities.Machine.filter({ id: point.machine_id });
+            const machines = await base44.entities.Machine.filter({ id: point.machine_id }, null, 1000);
             const machine = machines[0];
             
             let url;
             if (machine) {
-                const lines = await base44.entities.Line.filter({ id: machine.line_id });
+                const lines = await base44.entities.Line.filter({ id: machine.line_id }, null, 1000);
                 const line = lines[0];
                 
                 if (user?.user_type === "admin" || user?.user_type === "superAdmin") {

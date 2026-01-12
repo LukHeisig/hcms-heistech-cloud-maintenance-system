@@ -225,7 +225,7 @@ export default function Dashboard() {
 
   const { data: allIssues = [] } = useQuery({
     queryKey: ["allIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
+    queryFn: () => base44.entities.Issue.filter({ status: "reported" }, null, 1000),
     enabled: !!user,
   });
 
