@@ -87,7 +87,7 @@ export default function AdminLines() {
     queryKey: ["lines", companyId],
     queryFn: () =>
       companyId
-        ? base44.entities.Line.filter({ company_id: companyId }, "order_index")
+        ? base44.entities.Line.filter({ company_id: companyId }, "order_index", 1000)
         : [],
     enabled: !!companyId,
   });

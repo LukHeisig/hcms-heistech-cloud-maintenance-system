@@ -133,13 +133,13 @@ export default function AdminMachines() {
   const { data: machines = [], isLoading } = useQuery({
     queryKey: ["machines", lineId],
     queryFn: () =>
-      base44.entities.Machine.filter({ line_id: lineId }, "order_index"),
+      base44.entities.Machine.filter({ line_id: lineId }, "order_index", 1000),
     enabled: !!lineId,
   });
 
   const { data: controlPoints = [] } = useQuery({
   queryKey: ["controlPoints"],
-  queryFn: () => base44.entities.ControlPoint.list(),
+  queryFn: () => base44.entities.ControlPoint.list(null, 1000),
   });
 
   const { data: vibrationStandards = [] } = useQuery({
