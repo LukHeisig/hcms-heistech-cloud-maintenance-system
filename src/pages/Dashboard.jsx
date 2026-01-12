@@ -158,7 +158,7 @@ export default function Dashboard() {
     return [];
   }, [allCompanies, user]);
 
-  const { data: lines = [] } = useQuery({
+  const { data: lines = [], isLoading: isLoadingLines } = useQuery({
     queryKey: ["lines", user?.company_id],
     queryFn: () =>
       user?.company_id
@@ -167,12 +167,12 @@ export default function Dashboard() {
     enabled: !!user?.company_id && user?.user_type !== "admin" && user?.user_type !== "superAdmin",
   });
 
-  const { data: allLines = [] } = useQuery({
+  const { data: allLines = [], isLoading: isLoadingAllLines } = useQuery({
     queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list(),
   });
 
-  const { data: allMachines = [] } = useQuery({
+  const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
     queryKey: ["allMachines"],
     queryFn: () => base44.entities.Machine.list("order_index"),
     enabled: !!user,
@@ -189,7 +189,7 @@ export default function Dashboard() {
     return allMachines.filter(m => userLineIds.includes(m.line_id));
   }, [user, allMachines, lines]);
 
-  const { data: allControlPoints = [] } = useQuery({
+  const { data: allControlPoints = [], isLoading: isLoadingControlPoints } = useQuery({
     queryKey: ["allControlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(),
     enabled: !!user,
@@ -710,6 +710,16 @@ export default function Dashboard() {
       const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
       
       if (!currentPoint) {
+        const isDataLoading = isLoadingAllLines || isLoadingMachines || isLoadingControlPoints || (user?.user_type !== "admin" && user?.user_type !== "superAdmin" && isLoadingLines);
+        
+        if (isDataLoading) {
+          return (
+            <div className="flex items-center justify-center min-h-screen">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+          );
+        }
+
         return (
           <div className="p-8">
             <div className="bg-red-100 border-2 border-red-600 rounded-lg p-4 mb-4">

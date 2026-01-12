@@ -1,61 +1,63 @@
-import Dashboard from './pages/Dashboard';
-import Lines from './pages/Lines';
-import Machine from './pages/Machine';
-import Admin from './pages/Admin';
-import AdminLines from './pages/AdminLines';
-import Users from './pages/Users';
-import IssueApproval from './pages/IssueApproval';
-import Setup from './pages/Setup';
-import AdminMachines from './pages/AdminMachines';
-import AdminControlPoints from './pages/AdminControlPoints';
-import AdminCompanies from './pages/AdminCompanies';
-import ControlPoint from './pages/ControlPoint';
 import About from './pages/About';
+import Admin from './pages/Admin';
+import AdminCleanup from './pages/AdminCleanup';
+import AdminCompanies from './pages/AdminCompanies';
+import AdminControlPoints from './pages/AdminControlPoints';
+import AdminExport from './pages/AdminExport';
+import AdminLineChecks from './pages/AdminLineChecks';
+import AdminLines from './pages/AdminLines';
+import AdminMachines from './pages/AdminMachines';
+import AdminThermo from './pages/AdminThermo';
+import AdminVibrations from './pages/AdminVibrations';
 import ApiDocumentation from './pages/ApiDocumentation';
 import AuditLog from './pages/AuditLog';
-import UserMonitoring from './pages/UserMonitoring';
-import LineDetail from './pages/LineDetail';
-import AdminLineChecks from './pages/AdminLineChecks';
-import AdminVibrations from './pages/AdminVibrations';
-import Settings from './pages/Settings';
-import AdminThermo from './pages/AdminThermo';
+import ControlPoint from './pages/ControlPoint';
+import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
+import IssueApproval from './pages/IssueApproval';
 import IssueDetail from './pages/IssueDetail';
-import WorkOrders from './pages/WorkOrders';
-import AdminCleanup from './pages/AdminCleanup';
-import AdminExport from './pages/AdminExport';
+import LineDetail from './pages/LineDetail';
+import Lines from './pages/Lines';
+import Machine from './pages/Machine';
 import MobileHome from './pages/MobileHome';
 import PendingApproval from './pages/PendingApproval';
+import Settings from './pages/Settings';
+import Setup from './pages/Setup';
+import UserMonitoring from './pages/UserMonitoring';
+import Users from './pages/Users';
+import WorkOrders from './pages/WorkOrders';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Dashboard": Dashboard,
-    "Lines": Lines,
-    "Machine": Machine,
-    "Admin": Admin,
-    "AdminLines": AdminLines,
-    "Users": Users,
-    "IssueApproval": IssueApproval,
-    "Setup": Setup,
-    "AdminMachines": AdminMachines,
-    "AdminControlPoints": AdminControlPoints,
-    "AdminCompanies": AdminCompanies,
-    "ControlPoint": ControlPoint,
     "About": About,
+    "Admin": Admin,
+    "AdminCleanup": AdminCleanup,
+    "AdminCompanies": AdminCompanies,
+    "AdminControlPoints": AdminControlPoints,
+    "AdminExport": AdminExport,
+    "AdminLineChecks": AdminLineChecks,
+    "AdminLines": AdminLines,
+    "AdminMachines": AdminMachines,
+    "AdminThermo": AdminThermo,
+    "AdminVibrations": AdminVibrations,
     "ApiDocumentation": ApiDocumentation,
     "AuditLog": AuditLog,
-    "UserMonitoring": UserMonitoring,
-    "LineDetail": LineDetail,
-    "AdminLineChecks": AdminLineChecks,
-    "AdminVibrations": AdminVibrations,
-    "Settings": Settings,
-    "AdminThermo": AdminThermo,
+    "ControlPoint": ControlPoint,
+    "Dashboard": Dashboard,
+    "Home": Home,
+    "IssueApproval": IssueApproval,
     "IssueDetail": IssueDetail,
-    "WorkOrders": WorkOrders,
-    "AdminCleanup": AdminCleanup,
-    "AdminExport": AdminExport,
+    "LineDetail": LineDetail,
+    "Lines": Lines,
+    "Machine": Machine,
     "MobileHome": MobileHome,
     "PendingApproval": PendingApproval,
+    "Settings": Settings,
+    "Setup": Setup,
+    "UserMonitoring": UserMonitoring,
+    "Users": Users,
+    "WorkOrders": WorkOrders,
 }
 
 export const pagesConfig = {
