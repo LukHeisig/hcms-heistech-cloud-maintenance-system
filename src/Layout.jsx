@@ -185,14 +185,6 @@ function LayoutContent({ children }) {
   // Auto-logout logic
   useEffect(() => {
     if (!user?.auto_logout_enabled || !user?.auto_logout_minutes) {
-      if (idleTimerRef.current) {
-        clearTimeout(idleTimerRef.current);
-        window.removeEventListener('mousemove', resetIdleTimer);
-        window.removeEventListener('keydown', resetIdleTimer);
-        window.removeEventListener('click', resetIdleTimer);
-        window.removeEventListener('scroll', resetIdleTimer);
-        window.removeEventListener('touchstart', resetIdleTimer);
-      }
       return;
     }
 
