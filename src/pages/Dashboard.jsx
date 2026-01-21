@@ -265,7 +265,7 @@ export default function Dashboard() {
       const counts = {
         lubrication: machinePoints.filter(p => p.type === 'lubrication').length,
         inspection: machinePoints.filter(p => p.type === 'inspection').length,
-        auto_lubricator: machinePoints.filter(p => p.type === 'auto_lubricator').length,
+        lubricator: machinePoints.filter(p => p.type === 'auto_lubricator').length,
         prevention: machinePoints.filter(p => p.type === 'prevention').length
       };
 
