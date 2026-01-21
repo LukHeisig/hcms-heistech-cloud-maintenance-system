@@ -258,12 +258,6 @@ export default function Dashboard() {
 
   // Automaticky nastavit activeTab podle parametru v URL nebo maintenance_category stroje
   useEffect(() => {
-    const categoryParam = urlParams.get('category');
-    if (categoryParam) {
-      setActiveTab(categoryParam);
-      return;
-    }
-
     if (selectedMachine && allMachines.length > 0) {
       // Filtrovat body pro vybraný stroj
       const machinePoints = controlPoints.filter(p => p.machine_id === selectedMachine);
@@ -275,24 +269,31 @@ export default function Dashboard() {
         prevention: machinePoints.filter(p => p.type === 'prevention').length
       };
 
-      // 1. Priorita: Mazání, pokud existuje
-      if (counts.lubrication > 0) {
-        setActiveTab("lubrication");
+      const categoryParam = urlParams.get('category');
+      
+      // 1. Pokud je v URL kategorie a má data, použít ji
+      if (categoryParam && counts[categoryParam] > 0) {
+        setActiveTab(categoryParam);
+        return;
+      }
+
+      // 2. Pokud URL kategorie nemá data (nebo není v URL), najít kategorii s nejvíce body
+      const maxCategory = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+      
+      if (counts[maxCategory] > 0) {
+         setActiveTab(maxCategory);
       } else {
-        // 2. Najít kategorii s nejvíce body
-        const maxCategory = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
-        
-        if (counts[maxCategory] > 0) {
-           setActiveTab(maxCategory);
-        } else {
-           // 3. Fallback pokud nejsou žádné body
-           const machine = allMachines.find(m => m.id === selectedMachine);
-           if (machine?.maintenance_category === "prevention") {
-             setActiveTab("prevention");
-           } else {
-             setActiveTab("lubrication");
-           }
-        }
+         // 3. Fallback pokud nejsou žádné body
+         if (categoryParam) {
+            setActiveTab(categoryParam);
+         } else {
+            const machine = allMachines.find(m => m.id === selectedMachine);
+            if (machine?.maintenance_category === "prevention") {
+               setActiveTab("prevention");
+            } else {
+               setActiveTab("lubrication");
+            }
+         }
       }
     }
   }, [selectedMachine, allMachines, urlParams, controlPoints]);
