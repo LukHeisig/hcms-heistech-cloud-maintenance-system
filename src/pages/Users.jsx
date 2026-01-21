@@ -29,7 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users as UsersIcon, Pencil, Loader2, Shield, User, Crown, Filter, Building2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Users as UsersIcon, Pencil, Loader2, Shield, User, Crown, Filter, Building2, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -47,6 +48,8 @@ export default function Users() {
     phone: "",
     company_id: null,
     custom_display_name: "",
+    auto_logout_enabled: false,
+    auto_logout_minutes: 30,
   });
 
   useEffect(() => {
@@ -114,6 +117,8 @@ export default function Users() {
       company_id: user.company_id || null,
       assigned_company_ids: user.assigned_company_ids || [],
       custom_display_name: user.custom_display_name || user.full_name || "",
+      auto_logout_enabled: user.auto_logout_enabled || false,
+      auto_logout_minutes: user.auto_logout_minutes || 30,
     });
     setShowEditDialog(true);
   };
@@ -618,6 +623,45 @@ export default function Users() {
                   placeholder="+420 123 456 789"
                 />
               </div>
+
+              {currentUser?.user_type === "superAdmin" && (
+                <div className="space-y-4 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Automatické odhlášení</Label>
+                      <p className="text-sm text-slate-500">
+                        Odhlásit uživatele při nečinnosti
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.auto_logout_enabled}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, auto_logout_enabled: checked })
+                      }
+                    />
+                  </div>
+
+                  {formData.auto_logout_enabled && (
+                    <div>
+                      <Label htmlFor="auto_logout_minutes">Minuty do odhlášení</Label>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Clock className="w-4 h-4 text-slate-500" />
+                        <Input
+                          id="auto_logout_minutes"
+                          type="number"
+                          min="1"
+                          value={formData.auto_logout_minutes}
+                          onChange={(e) =>
+                            setFormData({ ...formData, auto_logout_minutes: parseInt(e.target.value) || 1 })
+                          }
+                          className="w-24"
+                        />
+                        <span className="text-sm text-slate-500">minut</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">

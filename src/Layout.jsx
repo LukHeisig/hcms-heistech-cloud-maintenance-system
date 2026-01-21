@@ -53,6 +53,7 @@ function LayoutContent({ children }) {
   const [hasData, setHasData] = useState(true);
   const { viewMode, toggleViewMode } = useViewMode();
   const lastActivityUpdateRef = useRef(null);
+  const idleTimerRef = useRef(null);
   
   const [showNfcScanDialog, setShowNfcScanDialog] = useState(false);
   const [isNfcScanning, setIsNfcScanning] = useState(false);
@@ -180,6 +181,51 @@ function LayoutContent({ children }) {
     
     updateUserActivity();
   }, [user, location.pathname]);
+
+  // Auto-logout logic
+  useEffect(() => {
+    if (!user?.auto_logout_enabled || !user?.auto_logout_minutes) {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        window.removeEventListener('mousemove', resetIdleTimer);
+        window.removeEventListener('keydown', resetIdleTimer);
+        window.removeEventListener('click', resetIdleTimer);
+        window.removeEventListener('scroll', resetIdleTimer);
+        window.removeEventListener('touchstart', resetIdleTimer);
+      }
+      return;
+    }
+
+    const logoutTime = user.auto_logout_minutes * 60 * 1000;
+
+    const logoutUser = () => {
+      base44.auth.logout();
+    };
+
+    const resetIdleTimer = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(logoutUser, logoutTime);
+    };
+
+    // Initial timer
+    resetIdleTimer();
+
+    // Listeners for activity
+    window.addEventListener('mousemove', resetIdleTimer);
+    window.addEventListener('keydown', resetIdleTimer);
+    window.addEventListener('click', resetIdleTimer);
+    window.addEventListener('scroll', resetIdleTimer);
+    window.addEventListener('touchstart', resetIdleTimer);
+
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      window.removeEventListener('mousemove', resetIdleTimer);
+      window.removeEventListener('keydown', resetIdleTimer);
+      window.removeEventListener('click', resetIdleTimer);
+      window.removeEventListener('scroll', resetIdleTimer);
+      window.removeEventListener('touchstart', resetIdleTimer);
+    };
+  }, [user]);
 
   const loadUser = async () => {
     try {
