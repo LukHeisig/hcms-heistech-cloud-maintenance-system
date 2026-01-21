@@ -265,14 +265,37 @@ export default function Dashboard() {
     }
 
     if (selectedMachine && allMachines.length > 0) {
-      const machine = allMachines.find(m => m.id === selectedMachine);
-      if (machine?.maintenance_category === "prevention") {
-        setActiveTab("prevention");
-      } else {
+      // Filtrovat body pro vybraný stroj
+      const machinePoints = controlPoints.filter(p => p.machine_id === selectedMachine);
+      
+      const counts = {
+        lubrication: machinePoints.filter(p => p.type === 'lubrication').length,
+        inspection: machinePoints.filter(p => p.type === 'inspection').length,
+        auto_lubricator: machinePoints.filter(p => p.type === 'auto_lubricator').length,
+        prevention: machinePoints.filter(p => p.type === 'prevention').length
+      };
+
+      // 1. Priorita: Mazání, pokud existuje
+      if (counts.lubrication > 0) {
         setActiveTab("lubrication");
+      } else {
+        // 2. Najít kategorii s nejvíce body
+        const maxCategory = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+        
+        if (counts[maxCategory] > 0) {
+           setActiveTab(maxCategory);
+        } else {
+           // 3. Fallback pokud nejsou žádné body
+           const machine = allMachines.find(m => m.id === selectedMachine);
+           if (machine?.maintenance_category === "prevention") {
+             setActiveTab("prevention");
+           } else {
+             setActiveTab("lubrication");
+           }
+        }
       }
     }
-  }, [selectedMachine, allMachines, urlParams]);
+  }, [selectedMachine, allMachines, urlParams, controlPoints]);
 
   const getPointStatus = useCallback((point) => {
     const pointRecords = records.filter((r) => r.control_point_id === point.id);
