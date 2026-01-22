@@ -395,6 +395,7 @@ export default function Users() {
                     <TableHead>Jméno</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Auto-logout</TableHead>
                     <TableHead>Podnik</TableHead>
                     <TableHead>Telefon</TableHead>
                     <TableHead>Registrace</TableHead>
@@ -417,6 +418,16 @@ export default function Users() {
                         </TableCell>
                         <TableCell className="text-slate-600">{user.email}</TableCell>
                         <TableCell>{getUserTypeBadge(user.user_type)}</TableCell>
+                        <TableCell>
+                          {user.auto_logout_enabled ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1 font-normal">
+                              <Clock className="w-3 h-3" />
+                              {user.auto_logout_minutes} min
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-400 text-xs pl-2">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-slate-600">
                           {user.user_type === "superAdmin"
                             ? <span className="text-slate-400 italic">Všechny podniky</span>
