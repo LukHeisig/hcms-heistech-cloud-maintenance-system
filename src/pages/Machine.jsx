@@ -662,6 +662,14 @@ export default function Machine() {
     return types[type] || type;
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedUploadFile(file);
+      setUploadFileName(file.name);
+    }
+  };
+
   const getFileIcon = (fileType) => {
     switch (fileType) {
       case "photo":
@@ -2710,6 +2718,102 @@ export default function Machine() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Dialog pro nahrání dokumentace */}
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nahrát dokumentaci</DialogTitle>
+              <DialogDescription>
+                Nahrajte novou dokumentaci ke stroji {machine.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="category">Kategorie *</Label>
+                <Select
+                  value={uploadingCategory}
+                  onValueChange={setUploadingCategory}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="drawing">Výkresová dokumentace</SelectItem>
+                    <SelectItem value="operational">Provozní dokumentace</SelectItem>
+                    <SelectItem value="other">Ostatní</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="file">Soubor *</Label>
+                <div className="flex gap-2 mt-1.5">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {selectedUploadFile ? "Změnit soubor" : "Vybrat soubor"}
+                  </Button>
+                </div>
+                {selectedUploadFile && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Vybráno: {selectedUploadFile.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="filename">Název souboru *</Label>
+                <Input
+                  id="filename"
+                  value={uploadFileName}
+                  onChange={(e) => setUploadFileName(e.target.value)}
+                  placeholder="Zadejte název souboru"
+                  className="mt-1.5"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowUploadDialog(false);
+                  setSelectedUploadFile(null);
+                  setUploadFileName("");
+                }}
+              >
+                Zrušit
+              </Button>
+              <Button
+                onClick={handleFileUpload}
+                disabled={!selectedUploadFile || !uploadFileName || isUploading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Nahrávám...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Nahrát
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Dialog pro přidání plánované údržby */}
         <Dialog open={showAddPlannedMaintenanceDialog} onOpenChange={setShowAddPlannedMaintenanceDialog}>
