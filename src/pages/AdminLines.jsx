@@ -108,20 +108,21 @@ export default function AdminLines() {
   });
 
   const companyUsers = React.useMemo(() => {
-    if (!allUsers || !companyId) return [];
+    if (!user || !companyId) return [];
     
-    return allUsers.filter(u => {
-      // 1. Uživatelé přímo přiřazení k podniku (Technici, Vedoucí)
-      if (u.company_id === companyId) return true;
-      
-      // 2. Administrátoři, kteří mají tento podnik přiřazený
-      if ((u.user_type === 'admin' || u.user_type === 'superAdmin') && Array.isArray(u.assigned_company_ids)) {
-        return u.assigned_company_ids.includes(companyId);
-      }
-      
-      return false;
-    });
-  }, [allUsers, companyId]);
+    if (user.user_type === "superAdmin") {
+      return allUsers.filter(u => u.company_id === companyId);
+    }
+    
+    if (user.user_type === "admin") {
+      return allUsers.filter(u => 
+        u.company_id === companyId && 
+        (u.user_type === "manager" || u.user_type === "technician")
+      );
+    }
+    
+    return allUsers.filter(u => u.company_id === companyId);
+  }, [allUsers, companyId, user]);
 
   const getUserDisplayName = (email) => {
     const u = allUsers.find(usr => usr.email === email);
