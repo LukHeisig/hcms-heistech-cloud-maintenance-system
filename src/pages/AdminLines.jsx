@@ -110,18 +110,11 @@ export default function AdminLines() {
   const companyUsers = React.useMemo(() => {
     if (!user || !companyId) return [];
     
-    if (user.user_type === "superAdmin") {
-      return allUsers.filter(u => u.company_id === companyId);
-    }
-    
-    if (user.user_type === "admin") {
-      return allUsers.filter(u => 
-        u.company_id === companyId && 
-        (u.user_type === "manager" || u.user_type === "technician")
-      );
-    }
-    
-    return allUsers.filter(u => u.company_id === companyId);
+    // Zobrazit všechny uživatele, kteří patří k podniku nebo k němu mají přístup (assigned_company_ids)
+    return allUsers.filter(u => 
+      u.company_id === companyId || 
+      (Array.isArray(u.assigned_company_ids) && u.assigned_company_ids.includes(companyId))
+    );
   }, [allUsers, companyId, user]);
 
   const getUserDisplayName = (email) => {

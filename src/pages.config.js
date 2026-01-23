@@ -5,7 +5,6 @@ import AdminCompanies from './pages/AdminCompanies';
 import AdminControlPoints from './pages/AdminControlPoints';
 import AdminExport from './pages/AdminExport';
 import AdminLineChecks from './pages/AdminLineChecks';
-import AdminLines from './pages/AdminLines';
 import AdminMachines from './pages/AdminMachines';
 import AdminThermo from './pages/AdminThermo';
 import AdminVibrations from './pages/AdminVibrations';
@@ -26,6 +25,7 @@ import Setup from './pages/Setup';
 import UserMonitoring from './pages/UserMonitoring';
 import Users from './pages/Users';
 import WorkOrders from './pages/WorkOrders';
+import AdminLines from './pages/AdminLines';
 import __Layout from './Layout.jsx';
 
 
@@ -37,7 +37,6 @@ export const PAGES = {
     "AdminControlPoints": AdminControlPoints,
     "AdminExport": AdminExport,
     "AdminLineChecks": AdminLineChecks,
-    "AdminLines": AdminLines,
     "AdminMachines": AdminMachines,
     "AdminThermo": AdminThermo,
     "AdminVibrations": AdminVibrations,
@@ -58,6 +57,7 @@ export const PAGES = {
     "UserMonitoring": UserMonitoring,
     "Users": Users,
     "WorkOrders": WorkOrders,
+    "AdminLines": AdminLines,
 }
 
 export const pagesConfig = {
