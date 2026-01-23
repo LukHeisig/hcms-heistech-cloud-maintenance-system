@@ -2925,7 +2925,19 @@ export default function Machine() {
                     </SelectTrigger>
                     <SelectContent>
                       {allUsers
-                        .filter(u => u.user_type === "technician" || u.user_type === "manager")
+                        .filter(u => {
+                          const targetCompanyId = line?.company_id;
+                          if (!targetCompanyId) return true;
+
+                          // Check if user belongs to or is assigned to the company
+                          const isAssigned = u.company_id === targetCompanyId || 
+                                           (Array.isArray(u.assigned_company_ids) && u.assigned_company_ids.includes(targetCompanyId));
+                          
+                          // Check role
+                          const hasRole = u.user_type === "technician" || u.user_type === "manager" || (u.user_type === "admin" && isAssigned);
+
+                          return isAssigned && hasRole;
+                        })
                         .map((user) => (
                           <SelectItem key={user.id} value={user.email}>
                             {getUserDisplayName(user.email)}

@@ -946,7 +946,21 @@ export default function IssueApproval() {
                     </SelectTrigger>
                     <SelectContent>
                       {allUsers
-                        .filter(u => u.user_type === "technician" || u.user_type === "manager")
+                        .filter(u => {
+                          const issueInfo = selectedIssue ? getIssueInfo(selectedIssue) : null;
+                          const targetCompanyId = issueInfo?.companyId;
+                          
+                          if (!targetCompanyId) return true; // Fallback if no company context
+
+                          // Check if user belongs to or is assigned to the company
+                          const isAssigned = u.company_id === targetCompanyId || 
+                                           (Array.isArray(u.assigned_company_ids) && u.assigned_company_ids.includes(targetCompanyId));
+                          
+                          // Check role (allow admin if assigned)
+                          const hasRole = u.user_type === "technician" || u.user_type === "manager" || (u.user_type === "admin" && isAssigned);
+
+                          return isAssigned && hasRole;
+                        })
                         .map(u => (
                           <SelectItem key={u.id} value={u.email}>
                             {getUserDisplayName(u.email)}
