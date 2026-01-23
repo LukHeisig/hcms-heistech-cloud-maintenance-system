@@ -95,9 +95,12 @@ export default function Users() {
   const filteredUsers = React.useMemo(() => {
     if (selectedCompanyFilter === "all") return users;
     if (selectedCompanyFilter === "no_company") {
-      return users.filter(u => !u.company_id);
+      return users.filter(u => !u.company_id && (!u.assigned_company_ids || u.assigned_company_ids.length === 0));
     }
-    return users.filter(u => u.company_id === selectedCompanyFilter);
+    return users.filter(u => 
+      u.company_id === selectedCompanyFilter || 
+      (Array.isArray(u.assigned_company_ids) && u.assigned_company_ids.includes(selectedCompanyFilter))
+    );
   }, [users, selectedCompanyFilter]);
 
   const updateUserMutation = useMutation({
