@@ -93,14 +93,24 @@ export default function Users() {
 
   // Filtrovat uživatele podle vybraného podniku
   const filteredUsers = React.useMemo(() => {
+    // console.log("Filtering users. Filter:", selectedCompanyFilter);
     if (selectedCompanyFilter === "all") return users;
     if (selectedCompanyFilter === "no_company") {
       return users.filter(u => !u.company_id && (!u.assigned_company_ids || u.assigned_company_ids.length === 0));
     }
-    return users.filter(u => 
-      u.company_id === selectedCompanyFilter || 
-      (Array.isArray(u.assigned_company_ids) && u.assigned_company_ids.includes(selectedCompanyFilter))
-    );
+    return users.filter(u => {
+      // Direct assignment
+      if (u.company_id === selectedCompanyFilter) return true;
+      
+      // Admin assigned companies
+      const assigned = u.assigned_company_ids;
+      if (Array.isArray(assigned)) {
+        // Use loose comparison to handle potential string/number mismatches
+        return assigned.some(id => String(id) === String(selectedCompanyFilter));
+      }
+      
+      return false;
+    });
   }, [users, selectedCompanyFilter]);
 
   const updateUserMutation = useMutation({
@@ -435,7 +445,13 @@ export default function Users() {
                           {user.user_type === "superAdmin"
                             ? <span className="text-slate-400 italic">Všechny podniky</span>
                             : user.user_type === "admin"
-                            ? <span className="text-slate-400 italic">Přiřazené podniky</span>
+                            ? (
+                                <span className="text-xs" title={user.assigned_company_ids?.map(id => getCompanyName(id)).join(", ")}>
+                                  {user.assigned_company_ids?.length > 0 
+                                    ? `${user.assigned_company_ids.length} podniků: ` + user.assigned_company_ids.map(id => getCompanyName(id)).slice(0, 2).join(", ") + (user.assigned_company_ids.length > 2 ? "..." : "")
+                                    : <span className="text-slate-400 italic">Žádné podniky</span>}
+                                </span>
+                              )
                             : getCompanyName(user.company_id)
                           }
                         </TableCell>
