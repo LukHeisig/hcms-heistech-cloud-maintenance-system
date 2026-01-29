@@ -63,7 +63,10 @@ export default function Users() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users"],
-    queryFn: () => base44.entities.User.list("-created_date"),
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getUsers");
+      return response.data;
+    },
   });
 
   // Customer entity removed as it is not used/defined
