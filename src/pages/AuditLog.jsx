@@ -276,7 +276,7 @@ export default function AuditLog() {
     ? new Date(Math.min(...allLogs.map(log => new Date(log.created_date))))
     : null;
 
-  const canAccessMonitoring = user && (user.user_type === "admin" || user.user_type === "superAdmin");
+  const canAccessMonitoring = user && (user.user_type === "admin" || user.user_type === "superAdmin" || user.user_type === "manager");
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">

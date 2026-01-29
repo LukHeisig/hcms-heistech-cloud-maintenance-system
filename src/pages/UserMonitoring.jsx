@@ -79,6 +79,13 @@ export default function UserMonitoring() {
       );
     }
 
+    if (currentUser.user_type === "manager") {
+      return allUsers.filter(u => 
+        u.id === currentUser.id ||
+        (u.company_id === currentUser.company_id && u.user_type === "technician")
+      );
+    }
+
     return [];
   }, [currentUser, allUsers]);
 
@@ -248,7 +255,7 @@ export default function UserMonitoring() {
     );
   };
 
-  if (!currentUser || (currentUser.user_type !== "admin" && currentUser.user_type !== "superAdmin")) {
+  if (!currentUser || (currentUser.user_type !== "admin" && currentUser.user_type !== "superAdmin" && currentUser.user_type !== "manager")) {
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-7xl mx-auto">
