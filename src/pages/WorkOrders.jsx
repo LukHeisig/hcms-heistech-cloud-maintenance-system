@@ -67,7 +67,10 @@ export default function WorkOrders() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      const { data } = await base44.functions.invoke("getUsers");
+      return data;
+    },
   });
 
   // Helper to get display name
