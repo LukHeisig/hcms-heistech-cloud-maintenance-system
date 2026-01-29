@@ -173,12 +173,14 @@ export default function Dashboard() {
   const { data: allLines = [], isLoading: isLoadingAllLines } = useQuery({
     queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list("order_index", 1000),
+    staleTime: 300000,
   });
 
   const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
     queryKey: ["allMachines"],
     queryFn: () => base44.entities.Machine.list("order_index", 1000),
     enabled: !!user,
+    staleTime: 300000,
   });
 
   // Filtrovat stroje podle company_id pro non-admin uživatele
@@ -196,6 +198,7 @@ export default function Dashboard() {
     queryKey: ["allControlPoints"],
     queryFn: () => base44.entities.ControlPoint.list("order_index", 1000),
     enabled: !!user,
+    staleTime: 300000,
   });
 
   // Filtrovat kontrolní body podle company_id pro non-admin uživatele
@@ -213,6 +216,7 @@ export default function Dashboard() {
     queryKey: ["allRecords"],
     queryFn: () => base44.entities.ControlRecord.list("-performed_at", 100),
     enabled: !!user,
+    staleTime: 300000,
   });
 
   // Filtrovat záznamy podle company_id pro non-admin uživatele
@@ -230,6 +234,7 @@ export default function Dashboard() {
     queryKey: ["allIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }, null, 1000),
     enabled: !!user,
+    staleTime: 300000,
   });
 
   // Filtrovat závady podle company_id pro non-admin uživatele

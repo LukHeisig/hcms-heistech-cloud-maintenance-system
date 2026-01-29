@@ -113,37 +113,39 @@ export default function LineDetail() {
 
   // Optimized fetching: fetch only related data if possible, or use staleTime
   const { data: allControlPoints = [] } = useQuery({
-    queryKey: ["allControlPoints", lineId], // Scoped to line if possible, but logic uses all. Kept simple with staleTime
+    queryKey: ["allControlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(),
-    staleTime: 60000,
+    staleTime: 300000,
   });
 
   const { data: allRecords = [] } = useQuery({
     queryKey: ["allRecords"],
     queryFn: () => base44.entities.ControlRecord.list("-performed_at", 500),
-    staleTime: 30000,
+    staleTime: 300000,
   });
 
   const { data: allIssues = [] } = useQuery({
     queryKey: ["allIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
-    staleTime: 30000,
+    staleTime: 300000,
   });
 
   const { data: allMaintenance = [] } = useQuery({
     queryKey: ["allMaintenance"],
     queryFn: () => base44.entities.MaintenanceRecord.list("-performed_at", 500),
-    staleTime: 30000,
+    staleTime: 300000,
   });
 
   const { data: allPlannedMaintenance = [] } = useQuery({
     queryKey: ["allPlannedMaintenance"],
     queryFn: () => base44.entities.PlannedMaintenance.list(),
+    staleTime: 300000,
   });
 
   const { data: allResponsibilities = [] } = useQuery({
     queryKey: ["allResponsibilities"],
     queryFn: () => base44.entities.MachineResponsibility.list(),
+    staleTime: 300000,
   });
 
   const { data: allUsers = [] } = useQuery({
@@ -152,6 +154,7 @@ export default function LineDetail() {
       const { data } = await base44.functions.invoke("getUsers");
       return data;
     },
+    staleTime: 300000,
   });
 
   const { data: checkSections = [] } = useQuery({
@@ -163,6 +166,7 @@ export default function LineDetail() {
   const { data: allCheckPoints = [] } = useQuery({
     queryKey: ["lineCheckPoints"],
     queryFn: () => base44.entities.LineCheckPoint.list("order_index"),
+    staleTime: 300000,
   });
 
   const { data: checkRecords = [] } = useQuery({
