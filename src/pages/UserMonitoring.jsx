@@ -49,7 +49,10 @@ export default function UserMonitoring() {
 
   const { data: allUsers = [], isLoading, refetch } = useQuery({
     queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list("-last_active_at"),
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getUsers");
+      return response.data;
+    },
     refetchInterval: 30000, // Auto refresh každých 30 sekund
   });
 

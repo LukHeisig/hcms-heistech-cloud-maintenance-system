@@ -202,7 +202,7 @@ export default function Users() {
 
   const getCompanyName = (companyId) => {
     if (!companyId) return "Není přiřazen";
-    const company = companies.find((c) => c.id === companyId);
+    const company = allCompanies.find((c) => c.id === companyId);
     return company ? company.name : "Neznámý podnik";
   };
 
@@ -493,7 +493,7 @@ export default function Users() {
                             size="sm"
                             onClick={() => handleOpenEdit(user)}
                             disabled={
-                              currentUser?.id === user.id || 
+                              currentUser?.id !== user.id && 
                               (currentUser?.user_type !== 'superAdmin' && (roleLevels[user.user_type] || 0) >= (roleLevels[currentUser?.user_type] || 0))
                             }
                           >
