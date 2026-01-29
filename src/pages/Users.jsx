@@ -552,6 +552,7 @@ export default function Users() {
                 </p>
               </div>
 
+              {currentUser?.user_type === "superAdmin" || (currentUser?.user_type === "admin" && editingUser?.id !== currentUser?.id) ? (
               <div>
                 <Label htmlFor="user_type">Role v systému *</Label>
                 <Select
@@ -593,6 +594,7 @@ export default function Users() {
                   </SelectContent>
                 </Select>
               </div>
+              ) : null}
 
               {formData.user_type === "admin" && currentUser?.user_type === "superAdmin" && (
                 <div>
@@ -629,7 +631,7 @@ export default function Users() {
                 </div>
               )}
 
-              {(formData.user_type === "technician" || formData.user_type === "manager") && currentUser?.user_type === "superAdmin" && (
+              {(formData.user_type === "technician" || formData.user_type === "manager") && (currentUser?.user_type === "superAdmin" || (currentUser?.user_type === "admin" && editingUser?.id !== currentUser?.id)) && (
                 <div>
                   <Label htmlFor="company_id">Podnik *</Label>
                   <Select
@@ -667,7 +669,7 @@ export default function Users() {
                 />
               </div>
 
-              {currentUser?.user_type === "superAdmin" && (
+              {(currentUser?.user_type === "superAdmin" || editingUser?.id === currentUser?.id) && (
                 <div className="space-y-4 pt-2 border-t border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -706,6 +708,7 @@ export default function Users() {
                 </div>
               )}
 
+              {currentUser?.user_type === "superAdmin" || (currentUser?.user_type === "admin" && editingUser?.id !== currentUser?.id) ? (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
                   <strong>Poznámka:</strong> {
@@ -717,6 +720,7 @@ export default function Users() {
                   }
                 </p>
               </div>
+              ) : null}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowEditDialog(false)}>
