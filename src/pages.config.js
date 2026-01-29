@@ -60,6 +60,7 @@ import AdminThermo from './pages/AdminThermo';
 import AdminVibrations from './pages/AdminVibrations';
 import ApiDocumentation from './pages/ApiDocumentation';
 import AuditLog from './pages/AuditLog';
+import Changelog from './pages/Changelog';
 import ControlPoint from './pages/ControlPoint';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
@@ -75,7 +76,6 @@ import Setup from './pages/Setup';
 import UserMonitoring from './pages/UserMonitoring';
 import Users from './pages/Users';
 import WorkOrders from './pages/WorkOrders';
-import Changelog from './pages/Changelog';
 import __Layout from './Layout.jsx';
 
 
@@ -93,6 +93,7 @@ export const PAGES = {
     "AdminVibrations": AdminVibrations,
     "ApiDocumentation": ApiDocumentation,
     "AuditLog": AuditLog,
+    "Changelog": Changelog,
     "ControlPoint": ControlPoint,
     "Dashboard": Dashboard,
     "Home": Home,
@@ -108,7 +109,6 @@ export const PAGES = {
     "UserMonitoring": UserMonitoring,
     "Users": Users,
     "WorkOrders": WorkOrders,
-    "Changelog": Changelog,
 }
 
 export const pagesConfig = {
