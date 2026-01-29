@@ -236,22 +236,26 @@ function LayoutContent({ children }) {
   });
 
   // Fetch minimal data needed for notifications/badges
+  // Use same keys as Dashboard to share cache and avoid 429s
   const { data: lines = [] } = useQuery({
-    queryKey: ["lines"],
+    queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list(null, 1000),
     enabled: !!user,
+    staleTime: 300000, // 5 minutes
   });
 
   const { data: machines = [] } = useQuery({
-    queryKey: ["machines"],
+    queryKey: ["allMachines"],
     queryFn: () => base44.entities.Machine.list(null, 1000),
     enabled: !!user,
+    staleTime: 300000, // 5 minutes
   });
 
   const { data: controlPoints = [] } = useQuery({
-    queryKey: ["controlPoints"],
+    queryKey: ["allControlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(null, 1000),
     enabled: !!user,
+    staleTime: 300000, // 5 minutes
   });
 
   const { data: myWorkOrders = [] } = useQuery({
