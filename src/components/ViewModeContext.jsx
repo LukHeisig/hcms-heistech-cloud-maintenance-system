@@ -12,12 +12,21 @@ export const useViewMode = () => {
 
 export const ViewModeProvider = ({ children }) => {
   const [viewMode, setViewMode] = useState(() => {
-    const saved = localStorage.getItem('hcms_view_mode');
-    return saved || 'maintenance';
+    if (typeof window === 'undefined') return 'maintenance';
+    try {
+      const saved = localStorage.getItem('hcms_view_mode');
+      return saved || 'maintenance';
+    } catch {
+      return 'maintenance';
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('hcms_view_mode', viewMode);
+    try {
+      localStorage.setItem('hcms_view_mode', viewMode);
+    } catch (e) {
+      console.warn('Failed to save view mode', e);
+    }
   }, [viewMode]);
 
   const toggleViewMode = () => {
