@@ -1662,6 +1662,11 @@ export default function Dashboard() {
                                     linePoints.some((point) => point.id === issue.control_point_id)
                                   ).length;
 
+                                  // Determine dot color based on point status
+                                  const hasCritical = linePoints.some(p => getPointStatus(p) === "critical");
+                                  const hasWarning = linePoints.some(p => getPointStatus(p) === "warning");
+                                  const dotColor = hasCritical ? "bg-red-500" : hasWarning ? "bg-yellow-500" : "bg-green-500";
+
                                   return (
                                     <div
                                       key={line.id}
@@ -1672,9 +1677,7 @@ export default function Dashboard() {
                                         <CardContent className="p-4">
                                           <div className="flex items-start justify-between">
                                             <div className="flex items-center gap-3 flex-1">
-                                              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <Factory className="w-4 h-4 text-slate-600" />
-                                              </div>
+                                              <div className={`w-3 h-3 rounded-full ${dotColor} flex-shrink-0`}></div>
                                               <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
                                                   <h4 className="font-semibold text-slate-900 text-sm">{line.name}</h4>
@@ -1908,6 +1911,11 @@ export default function Dashboard() {
                         linePoints.some((point) => point.id === issue.control_point_id)
                       ).length;
 
+                      // Determine dot color based on point status
+                      const hasCritical = linePoints.some(p => getPointStatus(p) === "critical");
+                      const hasWarning = linePoints.some(p => getPointStatus(p) === "warning");
+                      const dotColor = hasCritical ? "bg-red-500" : hasWarning ? "bg-yellow-500" : "bg-green-500";
+
                       return (
                         <div
                           key={line.id}
@@ -1945,11 +1953,7 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0">
-                                  {lineOverdue > 0 ? (
-                                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                                  ) : (
-                                    <div className="w-3 h-3 rounded-full bg-green-500" />
-                                  )}
+                                  <div className={`w-3 h-3 rounded-full ${dotColor}`} />
                                 </div>
                               </div>
                             </CardContent>
