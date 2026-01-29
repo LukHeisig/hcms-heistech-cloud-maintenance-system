@@ -140,7 +140,10 @@ export default function IssueApproval() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(null, 1000),
+    queryFn: async () => {
+      const { data } = await base44.functions.invoke("getUsers");
+      return data;
+    },
   });
 
   const userMap = React.useMemo(() => {
