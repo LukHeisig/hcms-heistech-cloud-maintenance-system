@@ -338,7 +338,7 @@ function LayoutContent({ children }) {
           },
         ]
       : []),
-    ...(user?.user_type === "superAdmin" || user?.user_type === "admin"
+    ...(user?.user_type === "superAdmin" || user?.user_type === "admin" || user?.user_type === "manager"
       ? [
           {
             title: "Administrace",

@@ -80,6 +80,9 @@ export default function AdminCompanies() {
         currentUser.assigned_company_ids?.includes(c.id)
       );
     }
+    if (currentUser.user_type === "manager") {
+      return allCompanies.filter(c => c.id === currentUser.company_id);
+    }
     return [];
   }, [allCompanies, currentUser]);
 
@@ -273,7 +276,7 @@ export default function AdminCompanies() {
                           Linky
                           <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
-                        {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin") && (
+                        {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin" || currentUser?.user_type === "manager") && (
                           <>
                             <Button
                               variant="ghost"
@@ -282,13 +285,15 @@ export default function AdminCompanies() {
                             >
                               <Pencil className="w-4 h-4 text-slate-600" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteId(company.id)}
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </Button>
+                            {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin") && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteId(company.id)}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            )}
                           </>
                         )}
                       </div>
