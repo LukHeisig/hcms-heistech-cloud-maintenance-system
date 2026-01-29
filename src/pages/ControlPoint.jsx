@@ -840,7 +840,8 @@ export default function ControlPoint() {
                         </Button>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                        <p className="text-xs text-white/70 text-right">
+                        <p className="text-xs text-white truncate">{doc.file_name}</p>
+                        <p className="text-xs text-white/70">
                           {format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}
                         </p>
                       </div>
