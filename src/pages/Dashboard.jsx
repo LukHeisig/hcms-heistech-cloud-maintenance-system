@@ -536,6 +536,12 @@ export default function Dashboard() {
       let detectedFileType = "other_file";
       if (file.type.startsWith("image/")) {
         detectedFileType = "photo";
+      } else if (file.type === "application/pdf") {
+        detectedFileType = "document";
+      } else if (file.name.toLowerCase().endsWith(".dwg") || file.name.toLowerCase().endsWith(".dxf")) {
+          detectedFileType = "schema";
+      } else if (file.type.includes("word") || file.type.includes("excel")) {
+          detectedFileType = "document";
       }
 
       return base44.entities.Documentation.create({
@@ -980,8 +986,8 @@ export default function Dashboard() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base md:text-lg flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                    Fotodokumentace
+                    <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                    Dokumentace
                   </CardTitle>
                   <div className="flex gap-2">
                     <input
@@ -1005,7 +1011,7 @@ export default function Dashboard() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf"
                       onChange={(e) => handleFileSelect(e, selectedPoint)}
                       className="hidden"
                     />
@@ -1054,8 +1060,11 @@ export default function Dashboard() {
                             onError={() => handleImageError(doc.id)}
                           />
                         ) : (
-                          <div className="flex items-center justify-center h-full bg-slate-100">
-                            <FileText className="w-8 h-8 text-slate-400" />
+                          <div className="flex flex-col items-center justify-center h-full bg-slate-100 p-2">
+                            <FileText className="w-8 h-8 text-slate-400 mb-1" />
+                            <span className="text-[10px] text-slate-600 text-center truncate w-full px-1">
+                              {doc.file_name}
+                            </span>
                           </div>
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
