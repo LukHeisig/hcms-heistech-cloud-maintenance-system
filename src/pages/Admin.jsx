@@ -33,7 +33,7 @@ export default function Admin() {
 
   if (!user) return null;
 
-  const isManager = user.user_type === "manager";
+  const isAdmin = user.user_type === "admin" || user.user_type === "superAdmin";
 
   return (
     <div className="p-4 md:p-8">
@@ -41,7 +41,7 @@ export default function Admin() {
         <h1 className="text-3xl font-bold text-slate-900 mb-8">Administrace</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {!isManager && (
+          {isAdmin && (
             <>
               <Link to={createPageUrl("AdminCleanup")}>
             <Card className="hover:shadow-lg transition-all cursor-pointer border-red-200 bg-red-50/30">
@@ -92,7 +92,7 @@ export default function Admin() {
             </Card>
           </Link>
 
-          {!isManager && (
+          {isAdmin && (
             <>
               <Link to={createPageUrl("Users")}>
                 <Card className="hover:shadow-lg transition-all cursor-pointer">

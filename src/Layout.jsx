@@ -369,6 +369,10 @@ function LayoutContent({ children }) {
             url: createPageUrl("Admin"),
             icon: Building2,
           },
+        ]
+      : []),
+    ...(user?.user_type === "superAdmin" || user?.user_type === "admin"
+      ? [
           {
             title: "Uživatelé",
             url: createPageUrl("Users"),
