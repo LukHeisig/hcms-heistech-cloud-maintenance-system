@@ -10,9 +10,10 @@ export function useOffline() {
 }
 
 export function OfflineProvider({ children }) {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingActions, setPendingActions] = useState(() => {
+    if (typeof window === 'undefined' || !window.localStorage) return [];
     try {
       return JSON.parse(localStorage.getItem("offline_action_queue") || "[]");
     } catch {
