@@ -42,7 +42,8 @@ export default function Admin() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {!isManager && (
-            <Link to={createPageUrl("AdminCleanup")}>
+            <>
+              <Link to={createPageUrl("AdminCleanup")}>
             <Card className="hover:shadow-lg transition-all cursor-pointer border-red-200 bg-red-50/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-red-700">
@@ -58,21 +59,22 @@ export default function Admin() {
             </Card>
           </Link>
 
-          <Link to={createPageUrl("AdminExport")}>
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-blue-200 bg-blue-50/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-700">
-                  <Database className="w-5 h-5" />
-                  Export Dat
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600">
-                  Kompletní záloha databáze do CSV
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
+              <Link to={createPageUrl("AdminExport")}>
+                <Card className="hover:shadow-lg transition-all cursor-pointer border-blue-200 bg-blue-50/30">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <Database className="w-5 h-5" />
+                      Export Dat
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-slate-600">
+                      Kompletní záloha databáze do CSV
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            </>
           )}
           <Link to={createPageUrl("AdminCompanies")}>
             <Card className="hover:shadow-lg transition-all cursor-pointer">
