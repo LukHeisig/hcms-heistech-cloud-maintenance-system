@@ -104,7 +104,10 @@ export default function AdminLines() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      const { data } = await base44.functions.invoke("getUsers");
+      return data;
+    },
   });
 
   const companyUsers = React.useMemo(() => {
