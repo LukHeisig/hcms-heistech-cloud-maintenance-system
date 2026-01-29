@@ -318,6 +318,7 @@ export default function AdminLines() {
           <Button
             variant="ghost"
             onClick={() => navigate(createPageUrl("AdminCompanies"))}
+            className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Zpět na podniky
