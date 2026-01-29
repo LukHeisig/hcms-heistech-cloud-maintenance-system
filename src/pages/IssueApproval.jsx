@@ -155,56 +155,6 @@ export default function IssueApproval() {
     return u ? (u.custom_display_name || u.full_name || u.email) : email;
   };
 
-  // Filtrování závad podle podniku uživatele
-  const reportedIssues = React.useMemo(() => {
-    if (!user) return [];
-    // Filter logic unified for all roles to ensure consistency
-    return allReportedIssues.filter(issue => {
-      const details = getIssueInfo(issue);
-      if (!details.companyId) return false; // Hide orphans
-
-      if (user.user_type === "superAdmin") return true;
-      if (user.user_type === "admin") {
-        return user.assigned_company_ids?.includes(details.companyId);
-      }
-      return user.company_id === details.companyId;
-    });
-  }, [allReportedIssues, user, lines, machines, controlPoints]);
-
-  const resolvedIssues = React.useMemo(() => {
-    if (!user) return [];
-    return allResolvedIssues.filter(issue => {
-      const details = getIssueInfo(issue);
-      if (!details.companyId) return false;
-
-      if (user.user_type === "superAdmin") return true;
-      if (user.user_type === "admin") {
-        return user.assigned_company_ids?.includes(details.companyId);
-      }
-      return user.company_id === details.companyId;
-    });
-  }, [allResolvedIssues, user, lines, machines, controlPoints]);
-
-  const allVisibleIssues = React.useMemo(() => [...reportedIssues, ...resolvedIssues], [reportedIssues, resolvedIssues]);
-
-  // Effect pro automatické otevření dialogu po načtení dat
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const issueId = urlParams.get("issue");
-    const action = urlParams.get("action");
-
-    if (issueId && action && allVisibleIssues.length > 0) {
-       const issue = allVisibleIssues.find(i => i.id === issueId);
-       if (issue) {
-          if (action === 'create_wo' && !showCreateWorkOrderDialog && !selectedIssue) {
-             handleOpenCreateWorkOrder(issue);
-          } else if (action === 'resolve' && !showResolveDialog && !selectedIssue) {
-             handleOpenResolveDialog(issue);
-          }
-       }
-    }
-  }, [allVisibleIssues]);
-
   // Získat informace o bodě nebo stroji pro zobrazení
   const getIssueInfo = (issue) => {
     let category = "Ostatní";
@@ -257,6 +207,56 @@ export default function IssueApproval() {
 
     return { name: "Neznámá lokace", machineName: "", lineName: "", companyName: "", type: "unknown", category };
   };
+
+  // Filtrování závad podle podniku uživatele
+  const reportedIssues = React.useMemo(() => {
+    if (!user) return [];
+    // Filter logic unified for all roles to ensure consistency
+    return allReportedIssues.filter(issue => {
+      const details = getIssueInfo(issue);
+      if (!details.companyId) return false; // Hide orphans
+
+      if (user.user_type === "superAdmin") return true;
+      if (user.user_type === "admin") {
+        return user.assigned_company_ids?.includes(details.companyId);
+      }
+      return user.company_id === details.companyId;
+    });
+  }, [allReportedIssues, user, lines, machines, controlPoints]);
+
+  const resolvedIssues = React.useMemo(() => {
+    if (!user) return [];
+    return allResolvedIssues.filter(issue => {
+      const details = getIssueInfo(issue);
+      if (!details.companyId) return false;
+
+      if (user.user_type === "superAdmin") return true;
+      if (user.user_type === "admin") {
+        return user.assigned_company_ids?.includes(details.companyId);
+      }
+      return user.company_id === details.companyId;
+    });
+  }, [allResolvedIssues, user, lines, machines, controlPoints]);
+
+  const allVisibleIssues = React.useMemo(() => [...reportedIssues, ...resolvedIssues], [reportedIssues, resolvedIssues]);
+
+  // Effect pro automatické otevření dialogu po načtení dat
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const issueId = urlParams.get("issue");
+    const action = urlParams.get("action");
+
+    if (issueId && action && allVisibleIssues.length > 0) {
+       const issue = allVisibleIssues.find(i => i.id === issueId);
+       if (issue) {
+          if (action === 'create_wo' && !showCreateWorkOrderDialog && !selectedIssue) {
+             handleOpenCreateWorkOrder(issue);
+          } else if (action === 'resolve' && !showResolveDialog && !selectedIssue) {
+             handleOpenResolveDialog(issue);
+          }
+       }
+    }
+  }, [allVisibleIssues]);
 
   const groupedReportedIssues = React.useMemo(() => {
     const grouped = {};
