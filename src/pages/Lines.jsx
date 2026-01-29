@@ -78,7 +78,7 @@ export default function Lines() {
   // Načíst VŠECHNY linky pro admina (pro statistiky)
   const { data: allLines = [] } = useQuery({
     queryKey: ["allLines"],
-    queryFn: () => base44.entities.Line.list(),
+    queryFn: () => base44.entities.Line.list("order_index", 1000),
     enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
   });
 

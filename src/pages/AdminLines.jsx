@@ -94,7 +94,7 @@ export default function AdminLines() {
 
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
-    queryFn: () => base44.entities.Machine.list(null, 1000),
+    queryFn: () => base44.entities.Machine.list("order_index", 1000),
   });
 
   const { data: controlPoints = [] } = useQuery({

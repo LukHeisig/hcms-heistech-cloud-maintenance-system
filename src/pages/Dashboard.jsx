@@ -169,7 +169,7 @@ export default function Dashboard() {
 
   const { data: allLines = [], isLoading: isLoadingAllLines } = useQuery({
     queryKey: ["allLines"],
-    queryFn: () => base44.entities.Line.list(null, 1000),
+    queryFn: () => base44.entities.Line.list("order_index", 1000),
   });
 
   const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
