@@ -104,27 +104,68 @@ export default function LineDetail() {
     staleTime: 60000,
   });
 
-  // Fetch aggregated data
-  const { data: lineDetails, isLoading: isLoadingDetails } = useQuery({
-    queryKey: ["lineDetails", lineId],
-    queryFn: async () => {
-      const { data } = await base44.functions.invoke("getLineDetails", { lineId });
-      return data;
-    },
+  const { data: machines = [] } = useQuery({
+    queryKey: ["machines", lineId],
+    queryFn: () => base44.entities.Machine.filter({ line_id: lineId }, "order_index"),
     enabled: !!lineId,
-    staleTime: 60000,
+    staleTime: 300000, // 5 minutes
   });
 
-  const machines = lineDetails?.machines || [];
-  const allControlPoints = lineDetails?.controlPoints || [];
-  const allRecords = lineDetails?.records || [];
-  const allIssues = lineDetails?.issues || [];
-  const allMaintenance = lineDetails?.maintenanceRecords || [];
-  const allPlannedMaintenance = lineDetails?.plannedMaintenance || [];
-  const allResponsibilities = lineDetails?.responsibilities || [];
-  const checkSections = lineDetails?.checkSections || [];
-  const allCheckPoints = lineDetails?.checkPoints || [];
-  const checkRecords = lineDetails?.checkRecords || [];
+  const { data: allControlPoints = [] } = useQuery({
+    queryKey: ["allControlPoints"],
+    queryFn: () => base44.entities.ControlPoint.list(null, 2000),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: allRecords = [] } = useQuery({
+    queryKey: ["allRecords"],
+    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 1000),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: allIssues = [] } = useQuery({
+    queryKey: ["allIssues"],
+    queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: allMaintenance = [] } = useQuery({
+    queryKey: ["allMaintenance"],
+    queryFn: () => base44.entities.MaintenanceRecord.list("-performed_at", 500),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: allPlannedMaintenance = [] } = useQuery({
+    queryKey: ["allPlannedMaintenance"],
+    queryFn: () => base44.entities.PlannedMaintenance.list(),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: allResponsibilities = [] } = useQuery({
+    queryKey: ["allResponsibilities"],
+    queryFn: () => base44.entities.MachineResponsibility.list(),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: checkSections = [] } = useQuery({
+    queryKey: ["checkSections", lineId],
+    queryFn: () => base44.entities.LineCheckSection.filter({ line_id: lineId }, "order_index"),
+    enabled: !!lineId,
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: allCheckPoints = [] } = useQuery({
+    queryKey: ["lineCheckPoints"],
+    queryFn: () => base44.entities.LineCheckPoint.list("order_index"),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const { data: checkRecords = [] } = useQuery({
+    queryKey: ["lineCheckRecords", lineId],
+    queryFn: () => base44.entities.LineCheckRecord.filter({ line_id: lineId }, "-created_date"),
+    enabled: !!lineId,
+    staleTime: 300000, // 5 minutes
+  });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
