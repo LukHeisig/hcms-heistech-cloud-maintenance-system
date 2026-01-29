@@ -276,7 +276,6 @@ function LayoutContent({ children }) {
 
   const pendingIssuesCount = useMemo(() => {
     if (!user) return 0;
-    if (user.user_type === "superAdmin") return allReportedIssues.length;
 
     // Filter issues based on visibility
     const visibleIssues = allReportedIssues.filter(issue => {
@@ -300,6 +299,8 @@ function LayoutContent({ children }) {
       }
 
       if (!companyId) return false; // Orphan issue or unknown location
+
+      if (user.user_type === "superAdmin") return true;
 
       if (user.user_type === "admin") {
         return user.assigned_company_ids?.includes(companyId);
