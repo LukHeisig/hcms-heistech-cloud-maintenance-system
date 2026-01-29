@@ -206,6 +206,13 @@ export default function Users() {
     return company ? company.name : "Neznámý podnik";
   };
 
+  const roleLevels = {
+    superAdmin: 4,
+    admin: 3,
+    manager: 2,
+    technician: 1
+  };
+
   // Získat poslední aktivitu pro každého uživatele
   const getUserLastActivity = (userEmail) => {
     const userLogs = auditLogs.filter(log => log.changed_by === userEmail);
@@ -485,7 +492,10 @@ export default function Users() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenEdit(user)}
-                            disabled={currentUser?.id === user.id}
+                            disabled={
+                              currentUser?.id === user.id || 
+                              (currentUser?.user_type !== 'superAdmin' && (roleLevels[user.user_type] || 0) >= (roleLevels[currentUser?.user_type] || 0))
+                            }
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>

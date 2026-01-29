@@ -46,6 +46,22 @@ Deno.serve(async (req) => {
             visibleUsers = [user];
         }
 
+        // Filter out users with higher role level than current user (except for superAdmin)
+        if (user.user_type !== 'superAdmin') {
+            const roleLevels = {
+                superAdmin: 4,
+                admin: 3,
+                manager: 2,
+                technician: 1
+            };
+            const currentUserLevel = roleLevels[user.user_type] || 0;
+            
+            visibleUsers = visibleUsers.filter(u => {
+                const uLevel = roleLevels[u.user_type] || 0;
+                return uLevel <= currentUserLevel;
+            });
+        }
+
         return Response.json(visibleUsers);
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
