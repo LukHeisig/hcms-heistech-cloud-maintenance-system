@@ -110,7 +110,7 @@ export default function IssueApproval() {
 
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: ["reported", "work_order_created"] }, "-created_date"),
+    queryFn: () => base44.entities.Issue.filter({ status: "reported" }, "-created_date"),
   });
 
   const { data: allResolvedIssues = [] } = useQuery({
@@ -158,70 +158,31 @@ export default function IssueApproval() {
   // Filtrování závad podle podniku uživatele
   const reportedIssues = React.useMemo(() => {
     if (!user) return [];
-    if (user.user_type === "superAdmin") return allReportedIssues;
-    
-    if (user.user_type === "admin") {
-      // Admin vidí pouze závady z přiřazených podniků
-      const assignedCompanyIds = user.assigned_company_ids || [];
-      const companyLines = lines.filter(l => assignedCompanyIds.includes(l.company_id));
-      const companyLineIds = companyLines.map(l => l.id);
-      const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
-      const companyMachineIds = companyMachines.map(m => m.id);
-      const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
-      const companyControlPointIds = companyControlPoints.map(cp => cp.id);
-      
-      return allReportedIssues.filter(issue => 
-        (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
-        (issue.machine_id && companyMachineIds.includes(issue.machine_id))
-      );
-    }
+    // Filter logic unified for all roles to ensure consistency
+    return allReportedIssues.filter(issue => {
+      const details = getIssueInfo(issue);
+      if (!details.companyId) return false; // Hide orphans
 
-    // Pro non-admin: filtrovat podle company_id
-    const companyLines = lines.filter(l => l.company_id === user.company_id);
-    const companyLineIds = companyLines.map(l => l.id);
-    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
-    const companyMachineIds = companyMachines.map(m => m.id);
-    const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
-    const companyControlPointIds = companyControlPoints.map(cp => cp.id);
-
-    return allReportedIssues.filter(issue => 
-      (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
-      (issue.machine_id && companyMachineIds.includes(issue.machine_id))
-    );
+      if (user.user_type === "superAdmin") return true;
+      if (user.user_type === "admin") {
+        return user.assigned_company_ids?.includes(details.companyId);
+      }
+      return user.company_id === details.companyId;
+    });
   }, [allReportedIssues, user, lines, machines, controlPoints]);
 
   const resolvedIssues = React.useMemo(() => {
     if (!user) return [];
-    if (user.user_type === "superAdmin") return allResolvedIssues;
-    
-    if (user.user_type === "admin") {
-      // Admin vidí pouze závady z přiřazených podniků
-      const assignedCompanyIds = user.assigned_company_ids || [];
-      const companyLines = lines.filter(l => assignedCompanyIds.includes(l.company_id));
-      const companyLineIds = companyLines.map(l => l.id);
-      const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
-      const companyMachineIds = companyMachines.map(m => m.id);
-      const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
-      const companyControlPointIds = companyControlPoints.map(cp => cp.id);
-      
-      return allResolvedIssues.filter(issue => 
-        (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
-        (issue.machine_id && companyMachineIds.includes(issue.machine_id))
-      );
-    }
+    return allResolvedIssues.filter(issue => {
+      const details = getIssueInfo(issue);
+      if (!details.companyId) return false;
 
-    // Pro non-admin: filtrovat podle company_id
-    const companyLines = lines.filter(l => l.company_id === user.company_id);
-    const companyLineIds = companyLines.map(l => l.id);
-    const companyMachines = machines.filter(m => companyLineIds.includes(m.line_id));
-    const companyMachineIds = companyMachines.map(m => m.id);
-    const companyControlPoints = controlPoints.filter(cp => companyMachineIds.includes(cp.machine_id));
-    const companyControlPointIds = companyControlPoints.map(cp => cp.id);
-
-    return allResolvedIssues.filter(issue => 
-      (issue.control_point_id && companyControlPointIds.includes(issue.control_point_id)) ||
-      (issue.machine_id && companyMachineIds.includes(issue.machine_id))
-    );
+      if (user.user_type === "superAdmin") return true;
+      if (user.user_type === "admin") {
+        return user.assigned_company_ids?.includes(details.companyId);
+      }
+      return user.company_id === details.companyId;
+    });
   }, [allResolvedIssues, user, lines, machines, controlPoints]);
 
   const allVisibleIssues = React.useMemo(() => [...reportedIssues, ...resolvedIssues], [reportedIssues, resolvedIssues]);
