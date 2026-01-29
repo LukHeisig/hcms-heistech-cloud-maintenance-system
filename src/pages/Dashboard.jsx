@@ -191,7 +191,7 @@ export default function Dashboard() {
 
   const { data: allControlPoints = [], isLoading: isLoadingControlPoints } = useQuery({
     queryKey: ["allControlPoints"],
-    queryFn: () => base44.entities.ControlPoint.list(null, 1000),
+    queryFn: () => base44.entities.ControlPoint.list("order_index", 1000),
     enabled: !!user,
   });
 

@@ -121,15 +121,17 @@ export default function AdminControlPoints() {
 
   const { data: controlPoints = [], isLoading } = useQuery({
     queryKey: ["controlPoints", machineId],
-    queryFn: () => base44.entities.ControlPoint.filter({ machine_id: machineId }),
+    queryFn: () => base44.entities.ControlPoint.filter({ machine_id: machineId }, "order_index"),
     enabled: !!machineId,
   });
 
   // Seřadit kontrolní body podle order_index, pokud existuje, jinak podle created_date
   const sortedControlPoints = React.useMemo(() => {
     return [...controlPoints].sort((a, b) => {
-      if (a.order_index !== undefined && b.order_index !== undefined) {
-        return a.order_index - b.order_index;
+      const orderA = a.order_index ?? 0;
+      const orderB = b.order_index ?? 0;
+      if (orderA !== orderB) {
+        return orderA - orderB;
       }
       return new Date(a.created_date) - new Date(b.created_date);
     });
