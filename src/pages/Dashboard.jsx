@@ -1663,8 +1663,14 @@ export default function Dashboard() {
                                   ).length;
 
                                   // Determine dot color based on point status
-                                  const hasCritical = linePoints.some(p => getPointStatus(p) === "critical");
-                                  const hasWarning = linePoints.some(p => getPointStatus(p) === "warning");
+                                  const hasCritical = linePoints.some(p => {
+                                    const status = getPointStatus(p);
+                                    return status === "critical" || status === "overdue";
+                                  });
+                                  const hasWarning = linePoints.some(p => {
+                                    const status = getPointStatus(p);
+                                    return status === "warning";
+                                  });
                                   const dotColor = hasCritical ? "bg-red-500" : hasWarning ? "bg-yellow-500" : "bg-green-500";
 
                                   return (
@@ -1912,8 +1918,14 @@ export default function Dashboard() {
                       ).length;
 
                       // Determine dot color based on point status
-                      const hasCritical = linePoints.some(p => getPointStatus(p) === "critical");
-                      const hasWarning = linePoints.some(p => getPointStatus(p) === "warning");
+                      const hasCritical = linePoints.some(p => {
+                        const status = getPointStatus(p);
+                        return status === "critical" || status === "overdue";
+                      });
+                      const hasWarning = linePoints.some(p => {
+                        const status = getPointStatus(p);
+                        return status === "warning";
+                      });
                       const dotColor = hasCritical ? "bg-red-500" : hasWarning ? "bg-yellow-500" : "bg-green-500";
 
                       return (
