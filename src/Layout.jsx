@@ -391,12 +391,15 @@ function LayoutContent({ children }) {
       url: createPageUrl("About"),
       icon: Info,
     },
-    {
-      title: "API Dokumentace",
-      url: createPageUrl("ApiDocumentation"),
-      icon: Code,
-    },
-
+    ...(user?.user_type === "superAdmin"
+      ? [
+          {
+            title: "API Dokumentace",
+            url: createPageUrl("ApiDocumentation"),
+            icon: Code,
+          },
+        ]
+      : []),
   ];
 
   const ViewModeToggle = () => (
