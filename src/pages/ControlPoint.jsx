@@ -741,13 +741,13 @@ export default function ControlPoint() {
               </Button>
             </div>
 
-            {/* Fotodokumentace */}
+            {/* Dokumentace */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-slate-600" />
+                  <FileText className="w-5 h-5 text-slate-600" />
                   <h3 className="text-lg font-bold text-slate-900">
-                    Fotodokumentace
+                    Dokumentace
                   </h3>
                 </div>
                 <div className="flex gap-2">
@@ -771,7 +771,7 @@ export default function ControlPoint() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf"
                     multiple
                     onChange={handleFileSelect}
                     className="hidden"
@@ -783,7 +783,7 @@ export default function ControlPoint() {
                     disabled={isUploading}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Nahrát foto
+                    Nahrát
                   </Button>
                 </div>
               </div>
@@ -791,16 +791,16 @@ export default function ControlPoint() {
               {isUploading && (
                 <div className="flex items-center justify-center py-8 bg-slate-50 rounded-lg mb-4">
                   <Loader2 className="w-6 h-6 animate-spin text-slate-400 mr-2" />
-                  <span className="text-slate-600">Nahrávání fotografie...</span>
+                  <span className="text-slate-600">Nahrávání souboru...</span>
                 </div>
               )}
 
               {documentation.length === 0 && !isUploading ? (
                 <div className="text-center py-12 bg-slate-50 rounded-lg">
-                  <ImageIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500 mb-2">Zatím nejsou žádné fotografie</p>
+                  <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 mb-2">Zatím není žádná dokumentace</p>
                   <p className="text-sm text-slate-400">
-                    Použijte tlačítka výše pro přidání dokumentace
+                    Použijte tlačítka výše pro přidání dokumentů nebo fotek
                   </p>
                 </div>
               ) : (
@@ -821,9 +821,9 @@ export default function ControlPoint() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                          <div className="flex flex-col items-center p-4 text-center">
+                          <div className="flex flex-col items-center justify-center h-full bg-slate-100 p-2">
                               {getFileIcon(doc.file_type)}
-                              <p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p>
+                              <p className="text-xs text-slate-600 mt-2 text-center w-full truncate px-1" title={doc.file_name}>{doc.file_name}</p>
                           </div>
                       )}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
@@ -840,8 +840,7 @@ export default function ControlPoint() {
                         </Button>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                        <p className="text-xs text-white truncate">{doc.file_name}</p>
-                        <p className="text-xs text-white/70">
+                        <p className="text-xs text-white/70 text-right">
                           {format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}
                         </p>
                       </div>
