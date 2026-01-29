@@ -16,6 +16,7 @@ import {
   X,
   Rocket,
   Smartphone,
+  Sparkles,
   Bell,
   Info,
   Code,
@@ -356,6 +357,11 @@ function LayoutContent({ children }) {
           },
         ]
       : []),
+    {
+      title: "Novinky",
+      url: createPageUrl("Changelog"),
+      icon: Sparkles,
+    },
     {
       title: "O aplikaci",
       url: createPageUrl("About"),
