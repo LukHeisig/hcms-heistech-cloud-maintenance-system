@@ -110,37 +110,37 @@ export default function IssueApproval() {
 
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "reported" }, "-created_date"),
+    queryFn: () => base44.entities.Issue.filter({ status: "reported" }, "-created_date", 1000),
   });
 
   const { data: allResolvedIssues = [] } = useQuery({
     queryKey: ["resolvedIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "resolved" }, "-resolved_at"),
+    queryFn: () => base44.entities.Issue.filter({ status: "resolved" }, "-resolved_at", 1000),
   });
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints"],
-    queryFn: () => base44.entities.ControlPoint.list(),
+    queryFn: () => base44.entities.ControlPoint.list(null, 1000),
   });
 
   const { data: machines = [] } = useQuery({
     queryKey: ["machines"],
-    queryFn: () => base44.entities.Machine.list(),
+    queryFn: () => base44.entities.Machine.list(null, 1000),
   });
 
   const { data: lines = [] } = useQuery({
     queryKey: ["lines"],
-    queryFn: () => base44.entities.Line.list(),
+    queryFn: () => base44.entities.Line.list(null, 1000),
   });
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies"],
-    queryFn: () => base44.entities.Company.list(),
+    queryFn: () => base44.entities.Company.list(null, 1000),
   });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list(null, 1000),
   });
 
   const userMap = React.useMemo(() => {
