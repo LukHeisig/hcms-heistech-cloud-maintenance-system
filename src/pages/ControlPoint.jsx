@@ -741,8 +741,68 @@ export default function ControlPoint() {
               </Button>
             </div>
 
-            {/* Dokumentace */}
+            {/* Historie záznamů */}
             <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <CalendarIcon className="w-5 h-5 text-slate-600" />
+                <h3 className="text-lg font-bold text-slate-900">
+                  Historie záznamů
+                </h3>
+              </div>
+              {records.length === 0 ? (
+                <div className="text-center py-8 bg-slate-50 rounded-lg">
+                  <p className="text-slate-500">Zatím nejsou žádné záznamy</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {records.map((record) => (
+                    <div
+                      key={record.id}
+                      className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        {record.record_type === "lubrication" ? (
+                          <Droplet className="w-5 h-5 text-blue-600" />
+                        ) : record.record_type === "inspection" ? (
+                          <ClipboardCheck className="w-5 h-5 text-purple-600" />
+                        ) : (
+                          <Droplet className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-slate-900">
+                            {record.record_type === "lubrication"
+                              ? "Mazání provedeno"
+                              : record.record_type === "inspection"
+                              ? "Inspekce provedena"
+                              : "Výměna maznice"}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {format(
+                              new Date(record.performed_at),
+                              "d. M. yyyy HH:mm",
+                              { locale: cs }
+                            )}
+                          </Badge>
+                        </div>
+                        {record.note && (
+                          <p className="text-sm text-slate-600 mb-1">
+                            {record.note}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-500">
+                          {getUserDisplayName(record.created_by)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Dokumentace */}
+            <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-slate-600" />
@@ -843,66 +903,6 @@ export default function ControlPoint() {
                         <p className="text-xs text-white truncate">{doc.file_name}</p>
                         <p className="text-xs text-white/70">
                           {format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Historie záznamů */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <CalendarIcon className="w-5 h-5 text-slate-600" />
-                <h3 className="text-lg font-bold text-slate-900">
-                  Historie záznamů
-                </h3>
-              </div>
-              {records.length === 0 ? (
-                <div className="text-center py-8 bg-slate-50 rounded-lg">
-                  <p className="text-slate-500">Zatím nejsou žádné záznamy</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {records.map((record) => (
-                    <div
-                      key={record.id}
-                      className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex-shrink-0 mt-1">
-                        {record.record_type === "lubrication" ? (
-                          <Droplet className="w-5 h-5 text-blue-600" />
-                        ) : record.record_type === "inspection" ? (
-                          <ClipboardCheck className="w-5 h-5 text-purple-600" />
-                        ) : (
-                          <Droplet className="w-5 h-5 text-green-600" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-slate-900">
-                            {record.record_type === "lubrication"
-                              ? "Mazání provedeno"
-                              : record.record_type === "inspection"
-                              ? "Inspekce provedena"
-                              : "Výměna maznice"}
-                          </p>
-                          <Badge variant="outline" className="text-xs">
-                            {format(
-                              new Date(record.performed_at),
-                              "d. M. yyyy HH:mm",
-                              { locale: cs }
-                            )}
-                          </Badge>
-                        </div>
-                        {record.note && (
-                          <p className="text-sm text-slate-600 mb-1">
-                            {record.note}
-                          </p>
-                        )}
-                        <p className="text-xs text-slate-500">
-                          {getUserDisplayName(record.created_by)}
                         </p>
                       </div>
                     </div>
