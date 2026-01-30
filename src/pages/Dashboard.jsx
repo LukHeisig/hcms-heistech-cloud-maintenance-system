@@ -322,7 +322,12 @@ export default function Dashboard() {
     const interval = point.interval_hours || 0;
 
     let lastPerformed;
-    if (pointRecords.length > 0) {
+    if (pointRecords.length > 0 && point.first_confirmation_date) {
+        // Oba existují - vzít novější
+        const lastRecordDate = new Date(pointRecords[0].performed_at);
+        const firstConfirmDate = new Date(point.first_confirmation_date);
+        lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
+    } else if (pointRecords.length > 0) {
         lastPerformed = new Date(pointRecords[0].performed_at);
     } else if (point.first_confirmation_date) {
         lastPerformed = new Date(point.first_confirmation_date);
