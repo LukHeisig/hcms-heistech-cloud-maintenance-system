@@ -96,7 +96,12 @@ export default function Users() {
 
   // Filtrovat uživatele podle vybraného podniku
   const filteredUsers = React.useMemo(() => {
-    // console.log("Filtering users. Filter:", selectedCompanyFilter);
+    // Manager vidí pouze uživatele ze svého podniku
+    if (currentUser?.user_type === "manager" && currentUser?.company_id) {
+      return users.filter(u => u.company_id === currentUser.company_id);
+    }
+    
+    // Pro adminy a superAdminy - filtr podle výběru
     if (selectedCompanyFilter === "all") return users;
     if (selectedCompanyFilter === "no_company") {
       return users.filter(u => !u.company_id && (!u.assigned_company_ids || u.assigned_company_ids.length === 0));
@@ -114,7 +119,7 @@ export default function Users() {
       
       return false;
     });
-  }, [users, selectedCompanyFilter]);
+  }, [users, selectedCompanyFilter, currentUser]);
 
   const updateUserMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
