@@ -418,7 +418,7 @@ function LayoutContent({ children }) {
     <Button
       onClick={() => {
         toggleViewMode();
-        navigate(createPageUrl("Dashboard"));
+        window.location.href = createPageUrl("Dashboard");
       }}
       variant="outline"
       size="sm"
