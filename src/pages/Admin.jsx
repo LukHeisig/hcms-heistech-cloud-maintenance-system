@@ -34,6 +34,7 @@ export default function Admin() {
   if (!user) return null;
 
   const isAdmin = user.user_type === "admin" || user.user_type === "superAdmin";
+  const isManagerOrAdmin = user.user_type === "manager" || user.user_type === "admin" || user.user_type === "superAdmin";
 
   return (
     <div className="p-4 md:p-8">
@@ -92,24 +93,26 @@ export default function Admin() {
             </Card>
           </Link>
 
+          {isManagerOrAdmin && (
+            <Link to={createPageUrl("Users")}>
+              <Card className="hover:shadow-lg transition-all cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-red-600" />
+                    Uživatelé
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-600">
+                    Správa uživatelských účtů a oprávnění
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+
           {isAdmin && (
             <>
-              <Link to={createPageUrl("Users")}>
-                <Card className="hover:shadow-lg transition-all cursor-pointer">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-red-600" />
-                      Uživatelé
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-600">
-                      Správa uživatelských účtů a oprávnění
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-
               <Link to={createPageUrl("AdminVibrations")}>
                 <Card className="hover:shadow-lg transition-all cursor-pointer">
                   <CardHeader>
