@@ -110,26 +110,6 @@ export default function Admin() {
               </Card>
             </Link>
           )}
-
-          {isAdmin && (
-            <>
-              <Link to={createPageUrl("AdminVibrations")}>
-                <Card className="hover:shadow-lg transition-all cursor-pointer">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-purple-600" />
-                      Vibrodiagnostika
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-600">
-                      Nastavení norem a schémat měření pro vibrační diagnostiku
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            </>
-          )}
         </div>
       </div>
     </div>
