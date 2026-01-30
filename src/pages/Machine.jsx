@@ -475,10 +475,10 @@ export default function Machine() {
     return tasks.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
   }, [controlPoints, plannedMaintenance, records]);
 
-  const lubricationPoints = controlPoints.filter(p => p.type === "lubrication");
-  const inspectionPoints = controlPoints.filter(p => p.type === "inspection");
-  const lubricatorPoints = controlPoints.filter(p => p.type === "auto_lubricator");
-  const preventionPoints = controlPoints.filter(p => p.type === "prevention");
+  const lubricationPoints = controlPoints.filter(p => p.type === "lubrication").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const inspectionPoints = controlPoints.filter(p => p.type === "inspection").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const lubricatorPoints = controlPoints.filter(p => p.type === "auto_lubricator").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const preventionPoints = controlPoints.filter(p => p.type === "prevention").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
   const overduePoints = controlPoints.filter(p => getPointStatus(p) === "overdue");
   const okPoints = controlPoints.filter(p => getPointStatus(p) === "ok");

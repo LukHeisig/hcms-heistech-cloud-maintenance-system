@@ -26,10 +26,10 @@ export default function PointsList({
   const urlParams = new URLSearchParams(window.location.search);
   const categoryParam = urlParams.get('category') || (currentMachine?.maintenance_category || 'lubrication');
 
-  const lubricationPoints = machinePoints.filter(p => p.type === "lubrication");
-  const inspectionPoints = machinePoints.filter(p => p.type === "inspection");
-  const preventionPoints = machinePoints.filter(p => p.type === "prevention");
-  const lubricatorPoints = machinePoints.filter(p => p.type === "auto_lubricator");
+  const lubricationPoints = machinePoints.filter(p => p.type === "lubrication").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const inspectionPoints = machinePoints.filter(p => p.type === "inspection").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const preventionPoints = machinePoints.filter(p => p.type === "prevention").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const lubricatorPoints = machinePoints.filter(p => p.type === "auto_lubricator").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
   const getDisplayPoints = () => {
     switch (activeTab) {
