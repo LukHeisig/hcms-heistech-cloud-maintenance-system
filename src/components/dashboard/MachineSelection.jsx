@@ -21,18 +21,19 @@ export default function MachineSelection({
   const [maintenanceFilter, setMaintenanceFilter] = useState(categoryParam);
 
   const filteredMachines = useMemo(() => {
+    let filtered = [];
     if (maintenanceFilter === "lubrication") {
-      return lineMachines.filter(m => {
+      filtered = lineMachines.filter(m => {
         const machinePoints = demipControlPoints.filter(p => p.machine_id === m.id);
         return machinePoints.some(p => ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type));
       });
     } else if (maintenanceFilter === "prevention") {
-      return lineMachines.filter(m => {
+      filtered = lineMachines.filter(m => {
         const machinePoints = demipControlPoints.filter(p => p.machine_id === m.id);
         return machinePoints.some(p => p.type === 'prevention');
       });
     }
-    return [];
+    return filtered.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   }, [lineMachines, demipControlPoints, maintenanceFilter]);
 
   return (
