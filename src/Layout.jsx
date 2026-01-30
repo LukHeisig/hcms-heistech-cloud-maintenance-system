@@ -375,13 +375,17 @@ function LayoutContent({ children }) {
           },
         ]
       : []),
-    ...(user?.user_type === "superAdmin" || user?.user_type === "admin"
+    ...(user?.user_type === "superAdmin" || user?.user_type === "admin" || user?.user_type === "manager"
       ? [
           {
             title: "Uživatelé",
             url: createPageUrl("Users"),
             icon: Users,
           },
+        ]
+      : []),
+    ...(user?.user_type === "superAdmin" || user?.user_type === "admin"
+      ? [
           {
             title: "Nastavení",
             url: createPageUrl("Settings"),
