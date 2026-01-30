@@ -795,7 +795,9 @@ export default function Machine() {
       <div className="space-y-2">
         {points.map((point) => {
           const status = getPointStatus(point);
-          const pointRecords = records.filter(r => r.control_point_id === point.id);
+          const pointRecords = records
+            .filter(r => r.control_point_id === point.id)
+            .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
           const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
           const nextDate = getNextControlDate(point);
 
