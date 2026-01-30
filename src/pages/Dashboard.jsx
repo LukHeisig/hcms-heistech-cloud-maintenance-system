@@ -1630,7 +1630,9 @@ export default function Dashboard() {
                     ) : (
                       <div className="space-y-6">
                         {activeCompanies.map((company) => {
-                          const companyLines = allLines.filter((l) => l.company_id === company.id);
+                          const companyLines = allLines
+                            .filter((l) => l.company_id === company.id)
+                            .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
                           const companyMachines = allMachines.filter((m) =>
                             companyLines.some((l) => l.id === m.line_id)
                           );
