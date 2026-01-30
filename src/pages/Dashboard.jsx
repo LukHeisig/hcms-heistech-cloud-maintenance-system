@@ -312,7 +312,7 @@ export default function Dashboard() {
     // Check company settings
     const machine = allMachines.find(m => m.id === point.machine_id);
     const line = allLines.find(l => l.id === machine?.line_id);
-    const company = allCompanies.find(c => c.id === line?.company_id);
+    const company = allCompanies.find(c => c.id === line?.company_id) || (line?.company_id === userCompany?.id ? userCompany : null);
     
     const vizType = company?.overdue_visualization_type || "two_colors";
     const tolerance = company?.overdue_tolerance_percent || 4;
@@ -345,7 +345,7 @@ export default function Dashboard() {
             return "critical"; // Red
         }
     }
-  }, [records, allMachines, allLines, allCompanies]);
+  }, [records, allMachines, allLines, allCompanies, userCompany]);
 
   const getNextControlDate = useCallback((point) => {
     const pointRecords = records.filter(r => r.control_point_id === point.id);
