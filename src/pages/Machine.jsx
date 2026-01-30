@@ -390,7 +390,9 @@ export default function Machine() {
   }, [maintenanceRecords]);
 
   const getPointStatus = (point) => {
-    const pointRecords = records.filter((r) => r.control_point_id === point.id);
+    const pointRecords = records
+      .filter((r) => r.control_point_id === point.id)
+      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
     
     const vizType = company?.overdue_visualization_type || "two_colors";
     const tolerance = company?.overdue_tolerance_percent || 4;
@@ -423,7 +425,9 @@ export default function Machine() {
   };
 
   const getNextControlDate = (point) => {
-    const pointRecords = records.filter(r => r.control_point_id === point.id);
+    const pointRecords = records
+      .filter(r => r.control_point_id === point.id)
+      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
     if (!point.interval_hours) return null;
 
     let lastPerformed;

@@ -307,7 +307,9 @@ export default function Dashboard() {
   }, [selectedMachine, allMachines, urlParams, controlPoints]);
 
   const getPointStatus = useCallback((point) => {
-    const pointRecords = records.filter((r) => r.control_point_id === point.id);
+    const pointRecords = records
+      .filter((r) => r.control_point_id === point.id)
+      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
     
     // Check company settings
     const machine = allMachines.find(m => m.id === point.machine_id);
@@ -348,7 +350,9 @@ export default function Dashboard() {
   }, [records, allMachines, allLines, allCompanies, userCompany]);
 
   const getNextControlDate = useCallback((point) => {
-    const pointRecords = records.filter(r => r.control_point_id === point.id);
+    const pointRecords = records
+      .filter(r => r.control_point_id === point.id)
+      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
     if (!point.interval_hours) return null;
 
     let lastPerformed;
