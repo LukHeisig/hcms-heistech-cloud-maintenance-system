@@ -1806,29 +1806,7 @@ export default function Dashboard() {
       );
     }
 
-    if (lines.length === 0 && user?.company_id) {
-      return (
-        <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-          <div className="max-w-3xl mx-auto">
-            <Card className="shadow-xl">
-              <CardContent className="p-12 text-center">
-                <Activity className="w-20 h-20 text-slate-300 mx-auto mb-6" />
-                <h2 className="text-2xl font-bold text-slate-900 mb-4">Začněte s HCMS</h2>
-                <p className="text-slate-600 mb-8">
-                  Zatím nemáte vytvořené žádné linky. Vytvořte demo data nebo začněte s vlastní strukturou.
-                </p>
-                <div className="flex gap-4 justify-center">
-                  <Button onClick={() => navigate(createPageUrl("Setup"))} className="bg-gradient-to-r from-red-600 to-red-700">
-                    <ArrowRight className="w-4 h-4 mr-2" />
-                    Vytvořit demo data
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      );
-    }
+
 
     return (
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
