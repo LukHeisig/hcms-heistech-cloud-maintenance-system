@@ -42,7 +42,7 @@ export default function Admin() {
         <h1 className="text-3xl font-bold text-slate-900 mb-8">Administrace</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {isAdmin && (
+          {user?.user_type === "superAdmin" && (
             <>
               <Link to={createPageUrl("AdminCleanup")}>
             <Card className="hover:shadow-lg transition-all cursor-pointer border-red-200 bg-red-50/30">
@@ -54,7 +54,7 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-slate-600">
-                  Nástroj pro odstranění osiřelých záznamů (Admin only)
+                  Nástroj pro odstranění osiřelých záznamů (SuperAdmin only)
                 </p>
               </CardContent>
             </Card>
