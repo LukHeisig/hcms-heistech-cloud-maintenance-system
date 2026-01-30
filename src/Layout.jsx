@@ -533,7 +533,34 @@ function LayoutContent({ children }) {
         <div className="lg:hidden fixed inset-0 z-40 bg-white overflow-auto">
           <div className="p-6 space-y-4 pt-24">
             <div className="mb-6">
-               <ViewModeToggle />
+               <Button
+                 onClick={() => {
+                   toggleViewMode();
+                   setMobileOpen(false);
+                   setTimeout(() => {
+                     navigate(createPageUrl("Dashboard"), { replace: true });
+                   }, 0);
+                 }}
+                 variant="outline"
+                 size="sm"
+                 className="gap-2 border-2 w-full justify-start"
+                 style={{
+                   borderColor: viewMode === 'demip' ? '#2150D8' : '#64748b',
+                   backgroundColor: viewMode === 'demip' ? '#eff6ff' : 'white',
+                 }}
+               >
+                 {viewMode === 'demip' ? (
+                   <>
+                     <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
+                     <span className="font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
+                   </>
+                 ) : (
+                   <>
+                     <Wrench className="w-4 h-4 text-slate-600" />
+                     <span className="font-semibold text-slate-700">Režim Údržba</span>
+                   </>
+                 )}
+               </Button>
             </div>
             {navigationItems.map((item) => (
               <Link
