@@ -415,7 +415,10 @@ export default function ControlPoint() {
 
   const nfcScanned = urlParams.get("nfc_scanned") === "true";
   const manualConfirmationAllowed = company?.allow_manual_confirmation !== false;
-  // Pokud není povoleno manuální potvrzení (globálně nebo pro tento typ bodu) a nebylo naskenováno NFC -> vyžadovat NFC
+  
+  // Určit, zda je vyžadováno NFC:
+  // 1. Pokud je globálně zakázáno manuální potvrzení -> vyžadovat NFC vždy (kromě případu, kdy už bylo naskenováno)
+  // 2. Pokud je typ prevention a má nastaveno prevention_confirmation_method="nfc" -> vyžadovat NFC
   const isNfcRequired = (!manualConfirmationAllowed || (point.type === "prevention" && point.prevention_confirmation_method === "nfc")) && !nfcScanned;
 
   return (
