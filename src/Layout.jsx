@@ -183,25 +183,7 @@ function LayoutContent({ children }) {
     updateUserActivity();
   }, [user, location.pathname]);
 
-  // Auto-logout logic
-  // Force DEMIP mode for technicians on mobile if configured
-  useEffect(() => {
-    if (user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) {
-      const checkAndForceDemip = () => {
-        const isMobile = window.matchMedia('(max-width: 1024px)').matches;
-        if (isMobile && viewMode !== 'demip') {
-          toggleViewMode();
-          navigate(createPageUrl("Dashboard"), { replace: true });
-        }
-      };
 
-      checkAndForceDemip();
-      
-      const handleResize = () => checkAndForceDemip();
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, [user, userCompany, viewMode, toggleViewMode, navigate]);
 
   // Auto-logout logic
   useEffect(() => {
@@ -307,6 +289,25 @@ function LayoutContent({ children }) {
     },
     enabled: !!user?.company_id,
   });
+
+  // Force DEMIP mode for technicians on mobile if configured
+  useEffect(() => {
+    if (user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) {
+      const checkAndForceDemip = () => {
+        const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+        if (isMobile && viewMode !== 'demip') {
+          toggleViewMode();
+          navigate(createPageUrl("Dashboard"), { replace: true });
+        }
+      };
+
+      checkAndForceDemip();
+      
+      const handleResize = () => checkAndForceDemip();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [user, userCompany, viewMode, toggleViewMode, navigate]);
 
   const pendingIssuesCount = useMemo(() => {
     if (!user) return 0;
