@@ -184,6 +184,26 @@ function LayoutContent({ children }) {
   }, [user, location.pathname]);
 
   // Auto-logout logic
+  // Force DEMIP mode for technicians on mobile if configured
+  useEffect(() => {
+    if (user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) {
+      const checkAndForceDemip = () => {
+        const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+        if (isMobile && viewMode !== 'demip') {
+          toggleViewMode();
+          navigate(createPageUrl("Dashboard"), { replace: true });
+        }
+      };
+
+      checkAndForceDemip();
+      
+      const handleResize = () => checkAndForceDemip();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [user, userCompany, viewMode, toggleViewMode, navigate]);
+
+  // Auto-logout logic
   useEffect(() => {
     if (!user?.auto_logout_enabled || !user?.auto_logout_minutes) {
       return;
@@ -276,6 +296,16 @@ function LayoutContent({ children }) {
     queryKey: ["allMachinesForNotifications"],
     queryFn: () => base44.entities.Machine.list(null, 1000),
     enabled: myWorkOrders.length > 0,
+  });
+
+  const { data: userCompany } = useQuery({
+    queryKey: ["userCompany", user?.company_id],
+    queryFn: async () => {
+      if (!user?.company_id) return null;
+      const companies = await base44.entities.Company.filter({ id: user.company_id });
+      return companies[0];
+    },
+    enabled: !!user?.company_id,
   });
 
   const pendingIssuesCount = useMemo(() => {
@@ -532,6 +562,8 @@ function LayoutContent({ children }) {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-white overflow-auto">
           <div className="p-6 space-y-4 pt-24">
+            {/* Hide Toggle for Technicians if forced DEMIP */}
+            {!(user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) && (
             <div className="mb-6">
                <Button
                  onClick={() => {
@@ -562,6 +594,7 @@ function LayoutContent({ children }) {
                  )}
                </Button>
             </div>
+            )}
             {navigationItems.map((item) => (
               <Link
                 key={item.title}
