@@ -59,7 +59,6 @@ function LayoutContent({ children }) {
   const [showNfcScanDialog, setShowNfcScanDialog] = useState(false);
   const [isNfcScanning, setIsNfcScanning] = useState(false);
   const [nfcSupported, setNfcSupported] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -67,14 +66,6 @@ function LayoutContent({ children }) {
     if ('NDEFReader' in window) {
       setNfcSupported(true);
     }
-    
-    // Detect mobile device
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const handleNfcQuickScan = async () => {
@@ -287,26 +278,6 @@ function LayoutContent({ children }) {
     enabled: myWorkOrders.length > 0,
   });
 
-  // Fetch user's company settings
-  const { data: userCompany } = useQuery({
-    queryKey: ["userCompany", user?.company_id],
-    queryFn: async () => {
-      if (!user?.company_id) return null;
-      const companies = await base44.entities.Company.filter({ id: user.company_id });
-      return companies[0] || null;
-    },
-    enabled: !!user?.company_id,
-  });
-
-  // Force DEMIP mode for technicians on mobile if company setting is enabled
-  useEffect(() => {
-    if (user?.user_type === "technician" && isMobile && userCompany?.technician_mobile_demip_only) {
-      if (viewMode !== 'demip') {
-        toggleViewMode();
-      }
-    }
-  }, [user, isMobile, userCompany, viewMode]);
-
   const pendingIssuesCount = useMemo(() => {
     if (!user) return 0;
 
@@ -443,52 +414,35 @@ function LayoutContent({ children }) {
       : []),
   ];
 
-  const ViewModeToggle = () => {
-    // Hide toggle for technicians on mobile if company setting is enabled
-    const shouldHideToggle = user?.user_type === "technician" && isMobile && userCompany?.technician_mobile_demip_only;
-    
-    if (shouldHideToggle) {
-      return (
-        <div className="p-3 rounded-xl bg-blue-50 border-2 border-blue-200">
-          <div className="flex items-center gap-2">
-            <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
-            <span className="font-semibold text-sm" style={{ color: '#2150D8' }}>Režim DEMIP</span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">Nastaveno administrátorem</p>
-        </div>
-      );
-    }
-    
-    return (
-      <Button
-        onClick={() => {
-          toggleViewMode();
-          setTimeout(() => {
-            navigate(createPageUrl("Dashboard"), { replace: true });
-          }, 0);
-        }}
-        variant="outline"
-        size="sm"
-        className="gap-2 border-2 w-full justify-start"
-        style={{
-          borderColor: viewMode === 'demip' ? '#2150D8' : '#64748b',
-          backgroundColor: viewMode === 'demip' ? '#eff6ff' : 'white',
-        }}
-      >
-        {viewMode === 'demip' ? (
-          <>
-            <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
-            <span className="font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
-          </>
-        ) : (
-          <>
-            <Wrench className="w-4 h-4 text-slate-600" />
-            <span className="font-semibold text-slate-700">Režim Údržba</span>
-          </>
-        )}
-      </Button>
-    );
-  };
+  const ViewModeToggle = () => (
+    <Button
+      onClick={() => {
+        toggleViewMode();
+        setTimeout(() => {
+          navigate(createPageUrl("Dashboard"), { replace: true });
+        }, 0);
+      }}
+      variant="outline"
+      size="sm"
+      className="gap-2 border-2 w-full justify-start"
+      style={{
+        borderColor: viewMode === 'demip' ? '#2150D8' : '#64748b',
+        backgroundColor: viewMode === 'demip' ? '#eff6ff' : 'white',
+      }}
+    >
+      {viewMode === 'demip' ? (
+        <>
+          <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
+          <span className="font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
+        </>
+      ) : (
+        <>
+          <Wrench className="w-4 h-4 text-slate-600" />
+          <span className="font-semibold text-slate-700">Režim Údržba</span>
+        </>
+      )}
+    </Button>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -578,48 +532,36 @@ function LayoutContent({ children }) {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-white overflow-auto">
           <div className="p-6 space-y-4 pt-24">
-            {!(user?.user_type === "technician" && isMobile && userCompany?.technician_mobile_demip_only) && (
-              <div className="mb-6">
-                 <Button
-                   onClick={() => {
-                     toggleViewMode();
-                     setMobileOpen(false);
-                     setTimeout(() => {
-                       navigate(createPageUrl("Dashboard"), { replace: true });
-                     }, 0);
-                   }}
-                   variant="outline"
-                   size="sm"
-                   className="gap-2 border-2 w-full justify-start"
-                   style={{
-                     borderColor: viewMode === 'demip' ? '#2150D8' : '#64748b',
-                     backgroundColor: viewMode === 'demip' ? '#eff6ff' : 'white',
-                   }}
-                 >
-                   {viewMode === 'demip' ? (
-                     <>
-                       <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
-                       <span className="font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
-                     </>
-                   ) : (
-                     <>
-                       <Wrench className="w-4 h-4 text-slate-600" />
-                       <span className="font-semibold text-slate-700">Režim Údržba</span>
-                     </>
-                   )}
-                 </Button>
-              </div>
-            )}
-
-            {user?.user_type === "technician" && isMobile && userCompany?.technician_mobile_demip_only && (
-              <div className="mb-6 p-3 rounded-xl bg-blue-50 border-2 border-blue-200">
-                <div className="flex items-center gap-2">
-                  <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
-                  <span className="font-semibold text-sm" style={{ color: '#2150D8' }}>Režim DEMIP</span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Nastaveno administrátorem</p>
-              </div>
-            )}
+            <div className="mb-6">
+               <Button
+                 onClick={() => {
+                   toggleViewMode();
+                   setMobileOpen(false);
+                   setTimeout(() => {
+                     navigate(createPageUrl("Dashboard"), { replace: true });
+                   }, 0);
+                 }}
+                 variant="outline"
+                 size="sm"
+                 className="gap-2 border-2 w-full justify-start"
+                 style={{
+                   borderColor: viewMode === 'demip' ? '#2150D8' : '#64748b',
+                   backgroundColor: viewMode === 'demip' ? '#eff6ff' : 'white',
+                 }}
+               >
+                 {viewMode === 'demip' ? (
+                   <>
+                     <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
+                     <span className="font-semibold" style={{ color: '#2150D8' }}>Režim DEMIP</span>
+                   </>
+                 ) : (
+                   <>
+                     <Wrench className="w-4 h-4 text-slate-600" />
+                     <span className="font-semibold text-slate-700">Režim Údržba</span>
+                   </>
+                 )}
+               </Button>
+            </div>
             {navigationItems.map((item) => (
               <Link
                 key={item.title}
@@ -671,20 +613,8 @@ function LayoutContent({ children }) {
               <p className="text-xs text-slate-500 leading-tight">Heistech Cloud Maintenance System</p>
             </div>
           </div>
-
-          {!(user?.user_type === "technician" && isMobile && userCompany?.technician_mobile_demip_only) && (
-            <ViewModeToggle />
-          )}
-
-          {user?.user_type === "technician" && isMobile && userCompany?.technician_mobile_demip_only && (
-            <div className="p-3 rounded-xl bg-blue-50 border-2 border-blue-200">
-              <div className="flex items-center gap-2">
-                <Droplet className="w-4 h-4" style={{ color: '#2150D8' }} />
-                <span className="font-semibold text-sm" style={{ color: '#2150D8' }}>Režim DEMIP</span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">Nastaveno administrátorem</p>
-            </div>
-          )}
+          
+          <ViewModeToggle />
         </div>
 
         {/* Sidebar Navigation */}

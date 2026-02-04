@@ -57,7 +57,6 @@ export default function AdminCompanies() {
     enable_thermo: true,
     enable_tribo: true,
     allow_manual_confirmation: true,
-    technician_mobile_demip_only: false,
     overdue_visualization_type: "two_colors",
     overdue_tolerance_percent: 4,
   });
@@ -133,7 +132,6 @@ export default function AdminCompanies() {
       enable_thermo: true,
       enable_tribo: true,
       allow_manual_confirmation: true,
-      technician_mobile_demip_only: false,
       overdue_visualization_type: "two_colors",
       overdue_tolerance_percent: 4,
     });
@@ -155,7 +153,6 @@ export default function AdminCompanies() {
         enable_thermo: company.enable_thermo !== false,
         enable_tribo: company.enable_tribo !== false,
         allow_manual_confirmation: company.allow_manual_confirmation !== false,
-        technician_mobile_demip_only: company.technician_mobile_demip_only || false,
         overdue_visualization_type: company.overdue_visualization_type || "two_colors",
         overdue_tolerance_percent: company.overdue_tolerance_percent || 4,
       });
