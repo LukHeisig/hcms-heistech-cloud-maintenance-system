@@ -416,10 +416,15 @@ export default function ControlPoint() {
   const nfcScanned = urlParams.get("nfc_scanned") === "true";
   const manualConfirmationAllowed = company?.allow_manual_confirmation !== false;
   
-  // Určit, zda je vyžadováno NFC:
-  // 1. Pokud je globálně zakázáno manuální potvrzení -> vyžadovat NFC vždy (kromě případu, kdy už bylo naskenováno)
-  // 2. Pokud je typ prevention a má nastaveno prevention_confirmation_method="nfc" -> vyžadovat NFC
-  const isNfcRequired = (!manualConfirmationAllowed || (point.type === "prevention" && point.prevention_confirmation_method === "nfc")) && !nfcScanned;
+  // Určit, zda zobrazit tlačítko potvrzení:
+  // 1. Pokud je globálně zakázáno manuální potvrzení (allow_manual_confirmation = false) -> vyžadovat NFC pro VŠECHNY typy bodů
+  // 2. Pro typ prevention: pokud má nastaveno prevention_confirmation_method="nfc" -> vyžadovat NFC
+  // 3. Pro typ prevention: pokud má nastaveno prevention_confirmation_method="manual" a je povoleno globálně -> zobrazit tlačítko
+  // 4. Pro ostatní typy (lubrication, inspection, auto_lubricator): pokud je globálně povoleno -> zobrazit tlačítko
+  
+  const shouldShowConfirmButton = manualConfirmationAllowed && 
+    (point.type !== "prevention" || point.prevention_confirmation_method === "manual" || !point.prevention_confirmation_method) || 
+    nfcScanned;
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -680,7 +685,7 @@ export default function ControlPoint() {
 
             {/* Tlačítka pro akce */}
             <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {isNfcRequired ? (
+              {!shouldShowConfirmButton ? (
                 <div className="h-14 flex items-center justify-center bg-slate-100 border-2 border-slate-200 rounded-lg text-slate-500 font-medium">
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
