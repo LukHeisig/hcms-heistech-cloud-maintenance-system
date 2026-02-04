@@ -50,7 +50,6 @@
 import About from './pages/About';
 import Admin from './pages/Admin';
 import AdminCleanup from './pages/AdminCleanup';
-import AdminCompanies from './pages/AdminCompanies';
 import AdminControlPoints from './pages/AdminControlPoints';
 import AdminExport from './pages/AdminExport';
 import AdminLineChecks from './pages/AdminLineChecks';
@@ -76,6 +75,7 @@ import Setup from './pages/Setup';
 import UserMonitoring from './pages/UserMonitoring';
 import Users from './pages/Users';
 import WorkOrders from './pages/WorkOrders';
+import AdminCompanies from './pages/AdminCompanies';
 import __Layout from './Layout.jsx';
 
 
@@ -83,7 +83,6 @@ export const PAGES = {
     "About": About,
     "Admin": Admin,
     "AdminCleanup": AdminCleanup,
-    "AdminCompanies": AdminCompanies,
     "AdminControlPoints": AdminControlPoints,
     "AdminExport": AdminExport,
     "AdminLineChecks": AdminLineChecks,
@@ -109,6 +108,7 @@ export const PAGES = {
     "UserMonitoring": UserMonitoring,
     "Users": Users,
     "WorkOrders": WorkOrders,
+    "AdminCompanies": AdminCompanies,
 }
 
 export const pagesConfig = {

@@ -132,6 +132,7 @@ export default function AdminCompanies() {
       enable_thermo: true,
       enable_tribo: true,
       allow_manual_confirmation: true,
+      force_technician_demip_mobile: false,
       overdue_visualization_type: "two_colors",
       overdue_tolerance_percent: 4,
     });
@@ -153,6 +154,7 @@ export default function AdminCompanies() {
         enable_thermo: company.enable_thermo !== false,
         enable_tribo: company.enable_tribo !== false,
         allow_manual_confirmation: company.allow_manual_confirmation !== false,
+        force_technician_demip_mobile: company.force_technician_demip_mobile === true,
         overdue_visualization_type: company.overdue_visualization_type || "two_colors",
         overdue_tolerance_percent: company.overdue_tolerance_percent || 4,
       });
@@ -451,6 +453,22 @@ export default function AdminCompanies() {
                         </Label>
                         <p className="text-sm text-slate-500">
                             Pokud je vypnuto, kontrolu lze potvrdit pouze naskenováním NFC štítku.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-2 border-t border-slate-200 mt-2">
+                    <Checkbox 
+                        id="force_technician_demip_mobile" 
+                        checked={formData.force_technician_demip_mobile}
+                        onCheckedChange={(checked) => setFormData({...formData, force_technician_demip_mobile: checked})}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="force_technician_demip_mobile" className="cursor-pointer">
+                            Vynutit DEMIP režim pro techniky na mobilu
+                        </Label>
+                        <p className="text-sm text-slate-500">
+                            Technici na mobilních zařízeních uvidí pouze DEMIP a nebudou moci přepnout na Údržbu.
                         </p>
                     </div>
                 </div>
