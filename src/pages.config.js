@@ -76,6 +76,7 @@ import Setup from './pages/Setup';
 import UserMonitoring from './pages/UserMonitoring';
 import Users from './pages/Users';
 import WorkOrders from './pages/WorkOrders';
+import DebugLog from './pages/DebugLog';
 import __Layout from './Layout.jsx';
 
 
@@ -109,6 +110,7 @@ export const PAGES = {
     "UserMonitoring": UserMonitoring,
     "Users": Users,
     "WorkOrders": WorkOrders,
+    "DebugLog": DebugLog,
 }
 
 export const pagesConfig = {

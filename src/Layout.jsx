@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from '@tanstack/react-query';
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeContext";
 import { OfflineProvider } from "@/components/OfflineProvider";
+import { DebugProvider } from "@/components/DebugContext";
 import {
   LayoutDashboard,
   Factory,
@@ -26,7 +27,8 @@ import {
   Building2,
   ClipboardList,
   ChevronRight,
-  Loader2
+  Loader2,
+  Terminal
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -463,6 +465,11 @@ function LayoutContent({ children }) {
             url: createPageUrl("ApiDocumentation"),
             icon: Code,
           },
+          {
+            title: "Log ladění",
+            url: createPageUrl("DebugLog"),
+            icon: Terminal,
+          },
         ]
       : []),
   ];
@@ -897,10 +904,12 @@ function LayoutContent({ children }) {
 
 export default function Layout({ children }) {
   return (
-    <ViewModeProvider>
-      <OfflineProvider>
-        <LayoutContent>{children}</LayoutContent>
-      </OfflineProvider>
-    </ViewModeProvider>
+    <DebugProvider>
+      <ViewModeProvider>
+        <OfflineProvider>
+          <LayoutContent>{children}</LayoutContent>
+        </OfflineProvider>
+      </ViewModeProvider>
+    </DebugProvider>
   );
 }
