@@ -18,7 +18,7 @@ export default function DebugLog() {
   // Fetch System Logs from DB
   const { data: remoteLogs = [], refetch: refetchLogs } = useQuery({
     queryKey: ['systemLogs'],
-    queryFn: () => base44.entities.SystemLog.list({ sort: { timestamp: -1 }, limit: 1000 }),
+    queryFn: () => base44.entities.SystemLog.list('-timestamp', 1000),
     enabled: !!user && user.user_type === "superAdmin",
     refetchInterval: 5000
   });
@@ -49,7 +49,7 @@ export default function DebugLog() {
   const [nfcFilter, setNfcFilter] = useState("");
   const { data: nfcLogs = [] } = useQuery({
     queryKey: ['nfcLogs'],
-    queryFn: () => base44.entities.NfcLog.list({ sort: { scanned_at: -1 }, limit: 2000 }),
+    queryFn: () => base44.entities.NfcLog.list('-scanned_at', 2000),
     enabled: !!user && user.user_type === "superAdmin",
     refetchInterval: 5000
   });

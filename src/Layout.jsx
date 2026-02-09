@@ -338,7 +338,7 @@ function LayoutContent({ children }) {
     queryFn: async () => {
       if (!user?.company_id) return null;
       const companies = await base44.entities.Company.filter({ id: user.company_id });
-      return companies[0];
+      return companies[0] || null;
     },
     enabled: !!user?.company_id,
   });
