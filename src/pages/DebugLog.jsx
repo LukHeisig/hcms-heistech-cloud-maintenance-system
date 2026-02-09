@@ -19,14 +19,6 @@ export default function DebugLog() {
     base44.auth.me().then(setUser);
   }, []);
 
-  if (!user || user.user_type !== "superAdmin") {
-    return (
-      <div className="p-8 text-center text-slate-500">
-        Nemáte oprávnění pro zobrazení této stránky.
-      </div>
-    );
-  }
-
   const filteredLogs = logs.filter(log => {
     const matchesText = log.message.toLowerCase().includes(filter.toLowerCase());
     const matchesType = typeFilter === "all" || log.type === typeFilter;
@@ -45,9 +37,17 @@ export default function DebugLog() {
   const { data: nfcLogs = [] } = useQuery({
     queryKey: ['nfcLogs'],
     queryFn: () => base44.entities.NfcLog.list({ sort: { scanned_at: -1 }, limit: 100 }),
-    enabled: user?.user_type === "superAdmin",
+    enabled: !!user && user.user_type === "superAdmin",
     refetchInterval: 5000
   });
+
+  if (!user || user.user_type !== "superAdmin") {
+    return (
+      <div className="p-8 text-center text-slate-500">
+        Nemáte oprávnění pro zobrazení této stránky.
+      </div>
+    );
+  }
 
   const handleExport = () => {
     const content = logs.map(l => `[${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).join('\n');
