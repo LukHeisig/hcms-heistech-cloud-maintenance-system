@@ -34,11 +34,23 @@ export default function DebugLog() {
     }
   };
 
+  const [nfcFilter, setNfcFilter] = useState("");
   const { data: nfcLogs = [] } = useQuery({
     queryKey: ['nfcLogs'],
-    queryFn: () => base44.entities.NfcLog.list({ sort: { scanned_at: -1 }, limit: 100 }),
+    queryFn: () => base44.entities.NfcLog.list({ sort: { scanned_at: -1 }, limit: 2000 }),
     enabled: !!user && user.user_type === "superAdmin",
     refetchInterval: 5000
+  });
+
+  const filteredNfcLogs = nfcLogs.filter(log => {
+    if (!nfcFilter) return true;
+    const search = nfcFilter.toLowerCase();
+    return (
+      log.chip_id?.toLowerCase().includes(search) ||
+      log.scanned_by?.toLowerCase().includes(search) ||
+      log.log_content?.toLowerCase().includes(search) ||
+      log.result?.toLowerCase().includes(search)
+    );
   });
 
   if (!user || user.user_type !== "superAdmin") {
@@ -146,15 +158,26 @@ export default function DebugLog() {
 
         <TabsContent value="nfc">
           <Card>
-            <CardHeader>
-              <CardTitle>Posledních 100 skenování NFC</CardTitle>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>Historie skenování NFC</CardTitle>
+                <div className="relative w-full md:w-64">
+                  <Filter className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input 
+                    placeholder="Hledat (čip, email, log)..." 
+                    value={nfcFilter}
+                    onChange={(e) => setNfcFilter(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {nfcLogs.length === 0 ? (
+                {filteredNfcLogs.length === 0 ? (
                   <div className="text-center py-10 text-slate-500">Zatím žádné záznamy</div>
                 ) : (
-                  nfcLogs.map(log => (
+                  filteredNfcLogs.map(log => (
                     <div key={log.id} className="border rounded-lg p-4 hover:bg-slate-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>
