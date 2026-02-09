@@ -63,6 +63,7 @@ import AuditLog from './pages/AuditLog';
 import Changelog from './pages/Changelog';
 import ControlPoint from './pages/ControlPoint';
 import Dashboard from './pages/Dashboard';
+import DebugLog from './pages/DebugLog';
 import Home from './pages/Home';
 import IssueApproval from './pages/IssueApproval';
 import IssueDetail from './pages/IssueDetail';
@@ -76,7 +77,6 @@ import Setup from './pages/Setup';
 import UserMonitoring from './pages/UserMonitoring';
 import Users from './pages/Users';
 import WorkOrders from './pages/WorkOrders';
-import DebugLog from './pages/DebugLog';
 import __Layout from './Layout.jsx';
 
 
@@ -97,6 +97,7 @@ export const PAGES = {
     "Changelog": Changelog,
     "ControlPoint": ControlPoint,
     "Dashboard": Dashboard,
+    "DebugLog": DebugLog,
     "Home": Home,
     "IssueApproval": IssueApproval,
     "IssueDetail": IssueDetail,
@@ -110,7 +111,6 @@ export const PAGES = {
     "UserMonitoring": UserMonitoring,
     "Users": Users,
     "WorkOrders": WorkOrders,
-    "DebugLog": DebugLog,
 }
 
 export const pagesConfig = {

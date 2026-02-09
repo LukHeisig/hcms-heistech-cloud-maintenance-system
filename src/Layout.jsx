@@ -152,10 +152,18 @@ function LayoutContent({ children }) {
               const line = lines[0];
 
               if (!line) {
-                  log(`❌ Linka nenalezena (ID: ${machine.line_id})`);
+                  log(`⚠️ Linka nenalezena (ID: ${machine.line_id}) - přeskakuji sirotka`);
                   continue;
               }
-              
+
+              // Check permissions for non-admins
+              if (user?.user_type !== "admin" && user?.user_type !== "superAdmin") {
+                  if (line.company_id !== user.company_id) {
+                      log(`⛔ Nemáte oprávnění k této lince (Jiné ID podniku)`);
+                      continue;
+                  }
+              }
+
               log(`✅ Validní vazba: Stroj ${machine.name}, Linka ${line.name}`);
 
               // Našli jsme platný bod s existujícím strojem a linkou
