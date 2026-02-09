@@ -57,18 +57,24 @@ Deno.serve(async (req) => {
 
         // 3. Delete in batches to avoid rate limits
         let deletedCount = 0;
-        const batchSize = 10;
+        const batchSize = 5;
         
         for (let i = 0; i < idsToDelete.length; i += batchSize) {
             const batch = idsToDelete.slice(i, i + batchSize);
-            await Promise.all(batch.map(item => 
+            const results = await Promise.all(batch.map(item => 
                 base44.asServiceRole.entities.ControlPoint.delete(item.id)
-                    .then(() => log.push(`Deleted point ${item.id}: ${item.reason}`))
-                    .catch(e => log.push(`Failed to delete ${item.id}: ${e.message}`))
+                    .then(() => {
+                        log.push(`Deleted point ${item.id}: ${item.reason}`);
+                        return true;
+                    })
+                    .catch(e => {
+                        log.push(`Failed to delete ${item.id}: ${e.message}`);
+                        return false;
+                    })
             ));
-            deletedCount += batch.length;
-            // Small delay between batches
-            await new Promise(resolve => setTimeout(resolve, 100));
+            deletedCount += results.filter(r => r).length;
+            // Larger delay between batches
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         
         return Response.json({ success: true, deletedCount, log });
