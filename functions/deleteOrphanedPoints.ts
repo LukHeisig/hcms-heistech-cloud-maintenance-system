@@ -5,59 +5,72 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
         
-        // Allow admin/superAdmin or service role
         if (user && user.user_type !== 'admin' && user.user_type !== 'superAdmin') {
              return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const log = [];
-        log.push("Starting orphan cleanup...");
+        log.push("Starting optimized orphan cleanup...");
 
-        // 1. Get all Control Points
+        // 1. Fetch all reference data (Lines and Machines)
+        // Assuming < 5000 for now, should use pagination for larger datasets
+        const lines = await base44.asServiceRole.entities.Line.list(null, 5000);
+        const lineIds = new Set(lines.map(l => l.id));
+        log.push(`Loaded ${lines.length} lines`);
+
+        const machines = await base44.asServiceRole.entities.Machine.list(null, 5000);
+        const machineMap = new Map(machines.map(m => [m.id, m]));
+        log.push(`Loaded ${machines.length} machines`);
+
+        // 2. Fetch Control Points
         const points = await base44.asServiceRole.entities.ControlPoint.list(null, 5000);
         log.push(`Checked ${points.length} control points`);
 
-        let deletedCount = 0;
+        const idsToDelete = [];
 
         for (const point of points) {
-            // Check Machine
+            // Check Machine existence
             if (!point.machine_id) {
-                 log.push(`Point ${point.name} (${point.id}) has no machine_id. Deleting...`);
-                 await base44.asServiceRole.entities.ControlPoint.delete(point.id);
-                 deletedCount++;
+                 idsToDelete.push({ id: point.id, reason: "No machine_id" });
                  continue;
             }
 
-            const machines = await base44.asServiceRole.entities.Machine.filter({ id: point.machine_id });
-            const machine = machines[0];
-
+            const machine = machineMap.get(point.machine_id);
             if (!machine) {
-                log.push(`Point ${point.name} (${point.id}) references missing machine ${point.machine_id}. Deleting...`);
-                await base44.asServiceRole.entities.ControlPoint.delete(point.id);
-                deletedCount++;
+                idsToDelete.push({ id: point.id, reason: `Missing machine ${point.machine_id}` });
                 continue;
             }
 
-            // Check Line
+            // Check Line existence
             if (!machine.line_id) {
-                 log.push(`Machine ${machine.name} (${machine.id}) has no line_id. Deleting point ${point.id}...`);
-                 await base44.asServiceRole.entities.ControlPoint.delete(point.id);
-                 deletedCount++;
+                 idsToDelete.push({ id: point.id, reason: `Machine ${machine.name} has no line_id` });
                  continue;
             }
 
-            const lines = await base44.asServiceRole.entities.Line.filter({ id: machine.line_id });
-            const line = lines[0];
-
-            if (!line) {
-                log.push(`Machine ${machine.name} references missing line ${machine.line_id}. Deleting point ${point.id}...`);
-                await base44.asServiceRole.entities.ControlPoint.delete(point.id);
-                deletedCount++;
+            if (!lineIds.has(machine.line_id)) {
+                idsToDelete.push({ id: point.id, reason: `Machine ${machine.name} references missing line ${machine.line_id}` });
                 continue;
             }
         }
+
+        log.push(`Found ${idsToDelete.length} orphaned points to delete`);
+
+        // 3. Delete in batches to avoid rate limits
+        let deletedCount = 0;
+        const batchSize = 10;
         
-        log.push(`Cleanup completed. Deleted ${deletedCount} orphaned points.`);
+        for (let i = 0; i < idsToDelete.length; i += batchSize) {
+            const batch = idsToDelete.slice(i, i + batchSize);
+            await Promise.all(batch.map(item => 
+                base44.asServiceRole.entities.ControlPoint.delete(item.id)
+                    .then(() => log.push(`Deleted point ${item.id}: ${item.reason}`))
+                    .catch(e => log.push(`Failed to delete ${item.id}: ${e.message}`))
+            ));
+            deletedCount += batch.length;
+            // Small delay between batches
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
         return Response.json({ success: true, deletedCount, log });
     } catch (error) {
         return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
