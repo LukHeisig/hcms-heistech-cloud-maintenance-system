@@ -10,17 +10,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 
 export default function DebugLog() {
-  const { logs, clearLogs } = useDebug();
+  const { clearLogs } = useDebug(); // We don't use local logs anymore for the main view
   const [filter, setFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [user, setUser] = useState(null);
+
+  // Fetch System Logs from DB
+  const { data: remoteLogs = [], refetch: refetchLogs } = useQuery({
+    queryKey: ['systemLogs'],
+    queryFn: () => base44.entities.SystemLog.list({ sort: { timestamp: -1 }, limit: 1000 }),
+    enabled: !!user && user.user_type === "superAdmin",
+    refetchInterval: 5000
+  });
 
   useEffect(() => {
     base44.auth.me().then(setUser);
   }, []);
 
-  const filteredLogs = logs.filter(log => {
-    const matchesText = log.message.toLowerCase().includes(filter.toLowerCase());
+  const filteredLogs = remoteLogs.filter(log => {
+    const search = filter.toLowerCase();
+    const matchesText = 
+      log.message?.toLowerCase().includes(search) ||
+      log.created_by?.toLowerCase().includes(search) ||
+      log.device_info?.toLowerCase().includes(search);
     const matchesType = typeFilter === "all" || log.type === typeFilter;
     return matchesText && matchesType;
   });
@@ -62,7 +74,7 @@ export default function DebugLog() {
   }
 
   const handleExport = () => {
-    const content = logs.map(l => `[${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).join('\n');
+    const content = remoteLogs.map(l => `[${l.timestamp}] [${l.created_by}] [${l.type.toUpperCase()}] ${l.message}`).join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -90,7 +102,7 @@ export default function DebugLog() {
 
       <Tabs defaultValue="console">
         <TabsList>
-          <TabsTrigger value="console">Konzole (Lokální)</TabsTrigger>
+          <TabsTrigger value="console">Centrální Konzole (Všichni)</TabsTrigger>
           <TabsTrigger value="nfc">Historie NFC (Server)</TabsTrigger>
         </TabsList>
 
@@ -112,10 +124,6 @@ export default function DebugLog() {
                     <Download className="w-4 h-4" />
                     Export
                   </Button>
-                  <Button variant="destructive" onClick={clearLogs} className="gap-2">
-                    <Trash2 className="w-4 h-4" />
-                    Vymazat
-                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -128,25 +136,31 @@ export default function DebugLog() {
                 ) : (
                   <div className="space-y-1">
                     {filteredLogs.map((log) => (
-                      <div key={log.id} className="flex gap-2 items-start hover:bg-slate-800/50 p-1 rounded transition-colors">
-                        <span className="text-slate-500 shrink-0 select-none">
-                          {format(new Date(log.timestamp), "HH:mm:ss.SSS")}
-                        </span>
-                        <span className={`uppercase font-bold text-xs w-16 shrink-0 select-none ${
-                          log.type === 'error' ? 'text-red-400' :
-                          log.type === 'warn' ? 'text-orange-400' :
-                          log.type === 'info' ? 'text-blue-400' :
-                          'text-green-400'
-                        }`}>
-                          [{log.type}]
-                        </span>
-                        <span className={`break-all whitespace-pre-wrap ${
-                          log.type === 'error' ? 'text-red-300' :
-                          log.type === 'warn' ? 'text-orange-300' :
-                          'text-slate-300'
-                        }`}>
-                          {log.message}
-                        </span>
+                      <div key={log.id} className="flex flex-col gap-1 border-b border-slate-800 pb-2 mb-2 last:border-0 hover:bg-slate-800/50 p-2 rounded transition-colors">
+                        <div className="flex gap-2 items-center text-xs text-slate-500">
+                           <span>{format(new Date(log.timestamp), "d.M. HH:mm:ss")}</span>
+                           <span className="text-slate-400">|</span>
+                           <span className="text-cyan-400 font-bold">{log.created_by}</span>
+                           <span className="text-slate-400">|</span>
+                           <span className="truncate max-w-[200px]" title={log.device_info}>{log.device_info}</span>
+                        </div>
+                        <div className="flex gap-2 items-start">
+                          <span className={`uppercase font-bold text-xs w-12 shrink-0 select-none pt-0.5 ${
+                            log.type === 'error' ? 'text-red-400' :
+                            log.type === 'warn' ? 'text-orange-400' :
+                            log.type === 'info' ? 'text-blue-400' :
+                            'text-green-400'
+                          }`}>
+                            [{log.type}]
+                          </span>
+                          <span className={`break-all whitespace-pre-wrap ${
+                            log.type === 'error' ? 'text-red-300' :
+                            log.type === 'warn' ? 'text-orange-300' :
+                            'text-slate-300'
+                          }`}>
+                            {log.message}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>

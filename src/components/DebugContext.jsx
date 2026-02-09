@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { base44 } from "@/api/base44Client";
 
 const DebugContext = createContext();
 
@@ -6,6 +7,61 @@ export const useDebug = () => useContext(DebugContext);
 
 export const DebugProvider = ({ children }) => {
   const [logs, setLogs] = useState([]);
+  const logBufferRef = useRef([]);
+  const isFlushingRef = useRef(false);
+
+  // Flush logs to DB every 5 seconds
+  useEffect(() => {
+    const flushLogs = async () => {
+      if (logBufferRef.current.length === 0 || isFlushingRef.current) return;
+      
+      isFlushingRef.current = true;
+      const logsToFlush = [...logBufferRef.current];
+      logBufferRef.current = [];
+
+      try {
+        // Prepare data for bulk create
+        // Limit to 50 logs per batch to avoid payload issues
+        const batch = logsToFlush.slice(0, 50);
+        const remaining = logsToFlush.slice(50);
+        
+        if (remaining.length > 0) {
+          logBufferRef.current = [...remaining, ...logBufferRef.current];
+        }
+
+        if (batch.length > 0) {
+          await base44.entities.SystemLog.bulkCreate(batch.map(log => ({
+            type: log.type,
+            message: log.message,
+            timestamp: log.timestamp,
+            device_info: navigator.userAgent,
+            url: window.location.href
+          })));
+        }
+      } catch (error) {
+        console.error("Failed to flush logs to DB", error);
+        // Put logs back in buffer if failed? 
+        // No, let's discard to prevent infinite loop of error logging -> flush -> error -> flush
+      } finally {
+        isFlushingRef.current = false;
+      }
+    };
+
+    const interval = setInterval(flushLogs, 5000);
+    
+    // Also flush on visibility change (user leaves tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushLogs();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     // Store original console methods
@@ -32,16 +88,24 @@ export const DebugProvider = ({ children }) => {
 
     const addLog = (type, args) => {
       const message = formatLog(args);
+      const timestamp = new Date().toISOString();
+      const logEntry = { 
+        type, 
+        message, 
+        timestamp,
+        id: Date.now() + Math.random()
+      };
+
       setLogs(prev => {
-        // Keep last 1000 logs to prevent memory issues
-        const newLogs = [...prev, { 
-          type, 
-          message, 
-          timestamp: new Date().toISOString(),
-          id: Date.now() + Math.random()
-        }];
+        const newLogs = [...prev, logEntry];
         return newLogs.slice(-1000);
       });
+
+      // Add to buffer for DB upload
+      // Ignore 'SystemLog' writes to prevent infinite loops if we log the logging
+      if (!message.includes('SystemLog')) {
+        logBufferRef.current.push(logEntry);
+      }
     };
 
     // Override console methods
