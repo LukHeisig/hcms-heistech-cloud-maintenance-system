@@ -59,6 +59,7 @@ function LayoutContent({ children }) {
   const [showNfcScanDialog, setShowNfcScanDialog] = useState(false);
   const [isNfcScanning, setIsNfcScanning] = useState(false);
   const [nfcSupported, setNfcSupported] = useState(false);
+  const [nfcLogs, setNfcLogs] = useState([]);
 
   useEffect(() => {
     loadUser();
@@ -76,86 +77,107 @@ function LayoutContent({ children }) {
 
     setShowNfcScanDialog(true);
     setIsNfcScanning(true);
+    setNfcLogs(["Připraveno ke skenování..."]);
 
     try {
       const ndef = new NDEFReader();
       const abortController = new AbortController();
       
       await ndef.scan({ signal: abortController.signal });
+      setNfcLogs(prev => [...prev, "Skenování spuštěno, přiložte čip."]);
 
       const timeoutId = setTimeout(() => {
         abortController.abort();
-        alert("Časový limit čtení NFC vypršel (10s).");
+        setNfcLogs(prev => [...prev, "Časový limit vypršel (10s)."]);
         setIsNfcScanning(false);
-        setShowNfcScanDialog(false);
+        // Nechat dialog otevřený pro zobrazení logů
       }, 10000);
 
       ndef.addEventListener("reading", async ({ serialNumber }) => {
         clearTimeout(timeoutId);
-        setIsNfcScanning(false);
-        setShowNfcScanDialog(false);
+        // setIsNfcScanning(false); // Necháme běžet dokud nedokončíme logiku
         abortController.abort();
+        
+        const timestamp = new Date().toLocaleTimeString();
+        setNfcLogs(prev => [...prev, `[${timestamp}] Čip načten: ${serialNumber}`]);
 
         try {
           console.log("Scanned NFC:", serialNumber);
+          setNfcLogs(prev => [...prev, `Hledám kontrolní body pro ID: ${serialNumber}`]);
+          
           // Najít všechny kontrolní body s tímto NFC ID
           const points = await base44.entities.ControlPoint.filter({ nfc_chip_id: serialNumber }, null, 1000);
           console.log("Found points:", points);
+          setNfcLogs(prev => [...prev, `Nalezeno bodů v DB: ${points.length}`]);
 
           let validPointFound = false;
 
           // Projít všechny nalezené body a najít ten, který má platnou vazbu na stroj a linku
           for (const point of points) {
+              setNfcLogs(prev => [...prev, `Kontrola bodu: ${point.name} (ID: ${point.id})`]);
               const machines = await base44.entities.Machine.filter({ id: point.machine_id }, null, 1000);
               const machine = machines[0];
 
-              if (machine) {
-                  const lines = await base44.entities.Line.filter({ id: machine.line_id }, null, 1000);
-                  const line = lines[0];
-
-                  if (line) {
-                      // Našli jsme platný bod s existujícím strojem a linkou
-                      let url;
-                      if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
-                          const companyId = line?.company_id;
-                          url = `Dashboard?company=${companyId}&line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
-                      } else {
-                          url = `Dashboard?line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
-                      }
-                      navigate(createPageUrl(url));
-                      validPointFound = true;
-                      break; // Ukončit hledání po prvním platném nálezu
-                  }
+              if (!machine) {
+                  setNfcLogs(prev => [...prev, `❌ Stroj nenalezen (ID: ${point.machine_id})`]);
+                  continue;
               }
+
+              const lines = await base44.entities.Line.filter({ id: machine.line_id }, null, 1000);
+              const line = lines[0];
+
+              if (!line) {
+                  setNfcLogs(prev => [...prev, `❌ Linka nenalezena (ID: ${machine.line_id})`]);
+                  continue;
+              }
+              
+              setNfcLogs(prev => [...prev, `✅ Validní vazba: Stroj ${machine.name}, Linka ${line.name}`]);
+
+              // Našli jsme platný bod s existujícím strojem a linkou
+              let url;
+              if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+                  const companyId = line?.company_id;
+                  url = `Dashboard?company=${companyId}&line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
+              } else {
+                  url = `Dashboard?line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
+              }
+              
+              setNfcLogs(prev => [...prev, `Přesměrování...`]);
+              navigate(createPageUrl(url));
+              validPointFound = true;
+              setShowNfcScanDialog(false);
+              break; // Ukončit hledání po prvním platném nálezu
           }
 
           if (!validPointFound) {
+              setIsNfcScanning(false);
               if (points.length > 0) {
-                  alert("Chyba: Kontrolní bod nalezen, ale je přiřazen k smazanému stroji nebo lince (sirotek). Prosím přemapujte čip na existující bod.");
+                  setNfcLogs(prev => [...prev, `❌ Žádný z nalezených bodů nemá platnou vazbu na stroj/linku.`]);
+                  setNfcLogs(prev => [...prev, `Může se jednat o "sirotka" (smazaný stroj/linka).`]);
               } else {
-                  alert(`Kontrolní bod s tímto NFC čipem (${serialNumber}) nebyl nalezen.`);
+                  setNfcLogs(prev => [...prev, `❌ Žádný kontrolní bod s tímto čipem nebyl nalezen.`]);
+                  setNfcLogs(prev => [...prev, `Tip: Zkontrolujte přiřazení čipu v administraci.`]);
               }
           }
         } catch (err) {
           console.error("Error processing NFC tag:", err);
-          alert("Chyba při zpracování NFC štítku: " + err.message);
+          setIsNfcScanning(false);
+          setNfcLogs(prev => [...prev, `Chyba při zpracování: ${err.message}`]);
         }
       }, { signal: abortController.signal });
 
       ndef.addEventListener("readingerror", (event) => {
         clearTimeout(timeoutId);
         console.error("NFC reading error:", event);
-        alert("Chyba při čtení NFC čipu.");
+        setNfcLogs(prev => [...prev, `Chyba čtení NFC (ReadingError)`]);
         setIsNfcScanning(false);
-        setShowNfcScanDialog(false);
         abortController.abort();
       }, { signal: abortController.signal });
 
     } catch (error) {
       console.error("NFC scan initiation error:", error);
-      alert("Chyba při spuštění skenování NFC: " + (error.message || "Neznámá chyba"));
+      setNfcLogs(prev => [...prev, `Chyba inicializace: ${error.message}`]);
       setIsNfcScanning(false);
-      setShowNfcScanDialog(false);
     }
   };
 
@@ -832,16 +854,28 @@ function LayoutContent({ children }) {
                 Skenování NFC čipu
               </DialogTitle>
             </DialogHeader>
-            <div className="py-8 text-center">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Activity className="w-10 h-10 text-blue-600 animate-pulse" />
-              </div>
+            <div className="py-4 text-center">
+              {isNfcScanning && (
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Activity className="w-8 h-8 text-blue-600 animate-pulse" />
+                </div>
+              )}
+              {!isNfcScanning && nfcLogs.length > 0 && (
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-8 h-8 text-slate-500" />
+                </div>
+              )}
+              
               <p className="text-lg font-semibold text-slate-900 mb-2">
-                Přiložte NFC čip k zařízení
+                {isNfcScanning ? "Přiložte NFC čip k zařízení" : "Skenování dokončeno"}
               </p>
-              <p className="text-sm text-slate-600">
-                Skenování bude trvat maximálně 10 sekund
-              </p>
+              
+              <div className="mt-4 bg-slate-900 text-green-400 p-3 rounded-md text-left text-xs font-mono h-48 overflow-y-auto whitespace-pre-wrap">
+                {nfcLogs.map((log, i) => (
+                  <div key={i} className="mb-1 border-b border-slate-800 pb-1 last:border-0">{log}</div>
+                ))}
+                {nfcLogs.length === 0 && <span className="text-slate-500">Čekám na logy...</span>}
+              </div>
             </div>
             <DialogFooter>
               <Button
