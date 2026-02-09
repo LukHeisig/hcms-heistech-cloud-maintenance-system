@@ -145,11 +145,14 @@ export default function AdminLines() {
   });
 
   const deleteLineMutation = useMutation({
-    mutationFn: (id) => base44.entities.Line.delete(id),
+    mutationFn: (id) => base44.functions.invoke("deleteStructure", { type: "line", id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lines"] });
       setDeleteLineId(null);
     },
+    onError: (error) => {
+        alert("Chyba při mazání linky: " + error.message);
+    }
   });
 
   const moveLineMutation = useMutation({

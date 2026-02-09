@@ -192,7 +192,7 @@ export default function AdminMachines() {
   });
 
   const deleteMachineMutation = useMutation({
-    mutationFn: (id) => base44.entities.Machine.delete(id),
+    mutationFn: (id) => base44.functions.invoke("deleteStructure", { type: "machine", id }),
     onSuccess: async (_, deletedId) => {
       const deletedMachine = machines.find(m => m.id === deletedId);
       await createAuditLog(
@@ -204,6 +204,9 @@ export default function AdminMachines() {
       queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setDeleteMachineId(null);
     },
+    onError: (error) => {
+        alert("Chyba při mazání stroje: " + error.message);
+    }
   });
 
   const moveMachineMutation = useMutation({
