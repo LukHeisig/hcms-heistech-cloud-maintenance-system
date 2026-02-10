@@ -29,7 +29,9 @@ import {
   XCircle,
   Wifi,
   WifiOff,
+  BarChart3,
 } from "lucide-react";
+import { UserStatistics } from "@/components/audit/UserStatistics";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 
@@ -311,7 +313,7 @@ export default function AuditLog() {
         </Card>
 
         <Tabs defaultValue="history" className="space-y-6">
-          <TabsList className={`bg-white shadow-sm ${canAccessMonitoring ? 'grid w-full grid-cols-2' : ''}`}>
+          <TabsList className={`bg-white shadow-sm ${canAccessMonitoring ? 'grid w-full grid-cols-3' : ''}`}>
             <TabsTrigger value="history" className="gap-2">
               <Activity className="w-4 h-4" />
               Historie aktivit
@@ -320,6 +322,12 @@ export default function AuditLog() {
               <TabsTrigger value="monitoring" className="gap-2">
                 <Users className="w-4 h-4" />
                 Monitoring uživatelů
+              </TabsTrigger>
+            )}
+            {canAccessMonitoring && (
+              <TabsTrigger value="statistics" className="gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Statistiky uživatelů
               </TabsTrigger>
             )}
           </TabsList>
@@ -798,6 +806,12 @@ export default function AuditLog() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+          )}
+
+          {canAccessMonitoring && (
+            <TabsContent value="statistics">
+                <UserStatistics users={visibleUsers} allLogs={allLogs} />
             </TabsContent>
           )}
         </Tabs>

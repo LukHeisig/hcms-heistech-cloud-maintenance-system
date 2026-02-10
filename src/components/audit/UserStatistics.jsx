@@ -1,0 +1,237 @@
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, BarChart3, Calendar } from "lucide-react";
+import { startOfDay, startOfWeek, startOfMonth, isAfter } from "date-fns";
+
+export function UserStatistics({ users, allLogs }) {
+  const [timeRange, setTimeRange] = useState('month'); // day, week, month
+
+  const { data: controlRecords = [], isLoading: isLoadingRecords } = useQuery({
+    queryKey: ['controlRecordsStats'],
+    queryFn: () => base44.entities.ControlRecord.list('-performed_at', 5000),
+    staleTime: 300000, // 5 minutes
+  });
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    let startDate;
+    
+    switch (timeRange) {
+      case 'day':
+        startDate = startOfDay(now);
+        break;
+      case 'week':
+        startDate = startOfWeek(now, { weekStartsOn: 1 });
+        break;
+      case 'month':
+      default:
+        startDate = startOfMonth(now);
+        break;
+    }
+
+    // Filter logs for logins
+    const relevantLogs = allLogs.filter(log => 
+      log.entity_type === 'Auth' && 
+      new Date(log.created_date) >= startDate
+    );
+
+    // Filter records for confirmations
+    const relevantRecords = controlRecords.filter(record => 
+      new Date(record.performed_at) >= startDate
+    );
+
+    // Group by user
+    const userStats = {};
+
+    // Initialize for all visible users
+    users.forEach(user => {
+      userStats[user.email] = {
+        email: user.email,
+        name: user.custom_display_name || user.full_name || user.email,
+        role: user.user_type,
+        logins: 0,
+        confirmations: 0,
+        total: 0
+      };
+    });
+
+    // Count logins
+    relevantLogs.forEach(log => {
+      if (userStats[log.changed_by]) {
+        userStats[log.changed_by].logins++;
+      }
+    });
+
+    // Count confirmations
+    relevantRecords.forEach(record => {
+      if (userStats[record.created_by]) {
+        userStats[record.created_by].confirmations++;
+      } else if (record.created_by) {
+         // Handle users not in the passed users list (e.g. deleted users)
+         // For now, we ignore them or could add them to stats
+      }
+    });
+
+    // Convert to array and sort
+    return Object.values(userStats)
+      .map(stat => ({
+        ...stat,
+        total: stat.logins + stat.confirmations
+      }))
+      .sort((a, b) => b.confirmations - a.confirmations || b.logins - a.logins);
+
+  }, [users, allLogs, controlRecords, timeRange]);
+
+  const chartData = useMemo(() => {
+    return stats.slice(0, 10); // Top 10 users
+  }, [stats]);
+
+  const getTimeRangeLabel = () => {
+    switch (timeRange) {
+      case 'day': return 'Dnes';
+      case 'week': return 'Tento týden';
+      case 'month': return 'Tento měsíc';
+      default: return '';
+    }
+  };
+
+  const getRoleBadge = (role) => {
+    switch (role) {
+        case 'superAdmin': return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Super Admin</Badge>;
+        case 'admin': return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Admin</Badge>;
+        case 'manager': return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Vedoucí</Badge>;
+        case 'technician': return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Technik</Badge>;
+        default: return <Badge variant="outline">{role}</Badge>;
+    }
+  };
+
+  if (isLoadingRecords) {
+    return (
+        <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Statistiky aktivity ({getTimeRangeLabel()})
+            </CardTitle>
+            
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Vyberte období" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">Dnes</SelectItem>
+                  <SelectItem value="week">Tento týden</SelectItem>
+                  <SelectItem value="month">Tento měsíc</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+           {/* Chart */}
+           <div className="h-[300px] w-full mb-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" tick={{fontSize: 12}} interval={0} angle={-20} textAnchor="end" height={60} />
+                  <YAxis />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                  />
+                  <Legend />
+                  <Bar dataKey="confirmations" name="Potvrzení" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                  <Bar dataKey="logins" name="Přihlášení" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                </BarChart>
+              </ResponsiveContainer>
+           </div>
+
+           {/* Table */}
+           <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Uživatel</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Potvrzení</TableHead>
+                    <TableHead className="text-right">Přihlášení</TableHead>
+                    <TableHead className="text-right">Celkem aktivita</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.map((stat) => (
+                    <TableRow key={stat.email}>
+                      <TableCell className="font-medium">
+                        <div>
+                            <div className="font-semibold text-slate-900">{stat.name}</div>
+                            <div className="text-xs text-slate-500">{stat.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getRoleBadge(stat.role)}</TableCell>
+                      <TableCell className="text-right font-bold text-green-600">{stat.confirmations}</TableCell>
+                      <TableCell className="text-right font-bold text-blue-600">{stat.logins}</TableCell>
+                      <TableCell className="text-right font-bold">{stat.total}</TableCell>
+                    </TableRow>
+                  ))}
+                  {stats.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                            Žádná data pro vybrané období
+                        </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+           </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
