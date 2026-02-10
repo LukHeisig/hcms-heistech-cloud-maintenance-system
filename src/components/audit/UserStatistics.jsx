@@ -74,11 +74,19 @@ export function UserStatistics({ users, allLogs, companies }) {
     const userStats = {};
 
     // Initialize for all visible users
-    users.forEach(user => {
+    users.filter(user => {
+      if (companyFilter === 'all') return true;
+      // Check direct company_id
+      if (user.company_id === companyFilter) return true;
+      // Check assigned companies
+      if (Array.isArray(user.assigned_company_ids) && user.assigned_company_ids.includes(companyFilter)) return true;
+      return false;
+    }).forEach(user => {
       userStats[user.email] = {
         email: user.email,
         name: user.custom_display_name || user.full_name || user.email,
         role: user.user_type,
+        company_id: user.company_id,
         logins: 0,
         confirmations: 0,
         total: 0
