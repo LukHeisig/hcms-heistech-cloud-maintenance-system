@@ -811,7 +811,7 @@ export default function AuditLog() {
 
           {canAccessMonitoring && (
             <TabsContent value="statistics">
-                <UserStatistics users={visibleUsers} allLogs={allLogs} />
+                <UserStatistics users={visibleUsers} allLogs={allLogs} companies={companies} />
             </TabsContent>
           )}
         </Tabs>
