@@ -28,11 +28,13 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BarChart3, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, BarChart3, Calendar, Building2, Download } from "lucide-react";
 import { startOfDay, startOfWeek, startOfMonth, isAfter } from "date-fns";
 
-export function UserStatistics({ users, allLogs }) {
+export function UserStatistics({ users, allLogs, companies }) {
   const [timeRange, setTimeRange] = useState('month'); // day, week, month
+  const [companyFilter, setCompanyFilter] = useState('all');
 
   const { data: controlRecords = [], isLoading: isLoadingRecords } = useQuery({
     queryKey: ['controlRecordsStats'],
@@ -108,7 +110,7 @@ export function UserStatistics({ users, allLogs }) {
       }))
       .sort((a, b) => b.confirmations - a.confirmations || b.logins - a.logins);
 
-  }, [users, allLogs, controlRecords, timeRange]);
+  }, [users, allLogs, controlRecords, timeRange, companyFilter]);
 
   const chartData = useMemo(() => {
     return stats.slice(0, 10); // Top 10 users
@@ -133,6 +135,39 @@ export function UserStatistics({ users, allLogs }) {
     }
   };
 
+  const handleExport = () => {
+    // Add BOM for Excel to recognize UTF-8
+    const BOM = "\uFEFF";
+    
+    const headers = ["Jméno", "Email", "Role", "Firma", "Potvrzení", "Přihlášení", "Celkem aktivita"];
+    const rows = stats.map(user => {
+        const companyName = companies?.find(c => c.id === user.company_id)?.name || "-";
+        // Escape quotes and wrap in quotes for CSV safety
+        const safe = (val) => `"${String(val || "").replace(/"/g, '""')}"`;
+        
+        return [
+            safe(user.name),
+            safe(user.email),
+            safe(user.role),
+            safe(companyName),
+            user.confirmations,
+            user.logins,
+            user.total
+        ].join(",");
+    });
+
+    const csvContent = BOM + [headers.join(","), ...rows].join("\n");
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `statistiky_uzivatelu_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isLoadingRecords) {
     return (
         <div className="flex items-center justify-center py-12">
@@ -151,18 +186,39 @@ export function UserStatistics({ users, allLogs }) {
               Statistiky aktivity ({getTimeRangeLabel()})
             </CardTitle>
             
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-500" />
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Vyberte období" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Dnes</SelectItem>
-                  <SelectItem value="week">Tento týden</SelectItem>
-                  <SelectItem value="month">Tento měsíc</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-slate-500" />
+                <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                    <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filtrovat firmu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="all">Všechny firmy</SelectItem>
+                    {companies?.map(company => (
+                        <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-slate-500" />
+                <Select value={timeRange} onValueChange={setTimeRange}>
+                    <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Vyberte období" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="day">Dnes</SelectItem>
+                    <SelectItem value="week">Tento týden</SelectItem>
+                    <SelectItem value="month">Tento měsíc</SelectItem>
+                    </SelectContent>
+                </Select>
+              </div>
+
+              <Button variant="outline" size="icon" onClick={handleExport} title="Exportovat do Excelu">
+                <Download className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </CardHeader>
