@@ -161,10 +161,10 @@ export function UserStatistics({ users, allLogs, companies }) {
             user.confirmations,
             user.logins,
             user.total
-        ].join(",");
+        ].join(";");
     });
 
-    const csvContent = BOM + [headers.join(","), ...rows].join("\n");
+    const csvContent = BOM + [headers.join(";"), ...rows].join("\n");
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
