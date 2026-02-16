@@ -219,6 +219,12 @@ export default function Dashboard() {
     staleTime: 300000,
   });
 
+  const { data: selectedPointRecords = [] } = useQuery({
+    queryKey: ["pointRecords", selectedPoint],
+    queryFn: () => base44.entities.ControlRecord.filter({ control_point_id: selectedPoint }, "-performed_at", 50),
+    enabled: !!selectedPoint,
+  });
+
   // Filtrovat záznamy podle company_id pro non-admin uživatele
   const records = React.useMemo(() => {
     if (!user) return [];
@@ -785,7 +791,7 @@ export default function Dashboard() {
       const currentMachineForPoint = demipMachines.find(m => m.id === currentPoint.machine_id);
       const currentLineForPoint = demipAllLines.find(l => l.id === currentMachineForPoint?.line_id);
       
-      const pointRecords = records.filter(r => r.control_point_id === selectedPoint);
+      const pointRecords = selectedPointRecords;
       const pointIssues = demipIssues.filter(i => i.control_point_id === selectedPoint);
       const status = getPointStatus(currentPoint);
       const nextDate = getNextControlDate(currentPoint);
@@ -957,7 +963,7 @@ export default function Dashboard() {
                 {pointRecords.length === 0 ? (
                   <p className="text-center text-slate-500 py-6 text-sm">Zatím nejsou žádné záznamy</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {pointRecords.map((record) => (
                       <div key={record.id} className="bg-slate-50 p-3 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
