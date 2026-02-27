@@ -292,6 +292,28 @@ function LayoutContent({ children }) {
     }
   };
 
+  useEffect(() => {
+    const logLogin = async () => {
+      if (user && !sessionStorage.getItem('login_logged')) {
+        try {
+          await base44.entities.AuditLog.create({
+            entity_type: 'Auth',
+            entity_id: user.id,
+            changed_by: user.email,
+            change_description: 'Přihlášení do aplikace',
+            user_type: user.user_type,
+            company_id: user.company_id
+          });
+          sessionStorage.setItem('login_logged', 'true');
+        } catch (error) {
+          console.error("Error logging login:", error);
+        }
+      }
+    };
+    
+    logLogin();
+  }, [user]);
+
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
     queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
@@ -419,6 +441,7 @@ function LayoutContent({ children }) {
   };
 
   const handleLogout = async () => {
+    sessionStorage.removeItem('login_logged');
     await base44.auth.logout();
   };
 
