@@ -227,35 +227,11 @@ function LayoutContent({ children }) {
       const now = Date.now();
       const lastUpdate = lastActivityUpdateRef.current;
       
-      // If we have a local lastUpdate, we know we are in the same session/tab/mount
-      // and we just throttle updates.
       if (lastUpdate && (now - lastUpdate) < 30000) {
         return;
       }
       
       try {
-        // Logic for logging login:
-        // Use user.last_active_at from DB (loaded on mount).
-        // If it's old (> 30 mins) AND this is the first activity in this session (lastActivityUpdateRef is null), log login.
-        
-        const dbLastActive = user.last_active_at ? new Date(user.last_active_at) : new Date(0);
-        const diffMinutes = (new Date() - dbLastActive) / (1000 * 60);
-        
-        if (!lastActivityUpdateRef.current && diffMinutes > 30) {
-             try {
-               await base44.entities.AuditLog.create({
-                  entity_type: 'Auth',
-                  entity_id: user.id,
-                  changed_by: user.email,
-                  change_description: 'Přihlášení do aplikace',
-                  user_type: user.user_type,
-                  company_id: user.company_id
-               });
-             } catch (logError) {
-               console.error("Error creating audit log:", logError);
-             }
-        }
-
         await base44.auth.updateMe({ 
           last_active_at: new Date().toISOString() 
         });
@@ -267,6 +243,36 @@ function LayoutContent({ children }) {
     
     updateUserActivity();
   }, [user, location.pathname]);
+
+  useEffect(() => {
+    const logLogin = async () => {
+      if (!user) return;
+      
+      try {
+        const dbLastActive = user.last_active_at ? new Date(user.last_active_at) : null;
+        const now = new Date();
+        
+        // If last activity is null or older than 30 minutes, log a new login
+        if (!dbLastActive || (now - dbLastActive) > 30 * 60 * 1000) {
+          if (!sessionStorage.getItem('login_logged_' + user.id)) {
+            await base44.entities.AuditLog.create({
+              entity_type: 'Auth',
+              entity_id: user.id,
+              changed_by: user.email,
+              change_description: 'Přihlášení do aplikace',
+              user_type: user.user_type,
+              company_id: user.company_id
+            });
+            sessionStorage.setItem('login_logged_' + user.id, 'true');
+          }
+        }
+      } catch (error) {
+        console.error("Error logging login:", error);
+      }
+    };
+    
+    logLogin();
+  }, [user]);
 
   // Auto-logout logic
   useEffect(() => {
@@ -441,7 +447,9 @@ function LayoutContent({ children }) {
   };
 
   const handleLogout = async () => {
-    sessionStorage.removeItem('login_logged');
+    if (user?.id) {
+      sessionStorage.removeItem('login_logged_' + user.id);
+    }
     await base44.auth.logout();
   };
 
