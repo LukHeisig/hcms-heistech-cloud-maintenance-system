@@ -149,7 +149,7 @@ export function UserStatistics({ users, allLogs, companies }) {
     // Add BOM for Excel to recognize UTF-8
     const BOM = "\uFEFF";
     
-    const headers = ["Jméno", "Email", "Role", "Firma", "Potvrzení", "Přihlášení", "Celkem aktivita"];
+    const headers = ["Jméno", "Email", "Role", "Firma", "Potvrzení", "Aktivita", "Celkem aktivita"];
     const rows = stats.map(user => {
         const companyName = companies?.find(c => c.id === user.company_id)?.name || "-";
         // Escape quotes and wrap in quotes for CSV safety
@@ -254,7 +254,7 @@ export function UserStatistics({ users, allLogs, companies }) {
                   />
                   <Legend />
                   <Bar dataKey="confirmations" name="Potvrzení" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                  <Bar dataKey="logins" name="Přihlášení" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                  <Bar dataKey="logins" name="Aktivita" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
                 </BarChart>
               </ResponsiveContainer>
            </div>
@@ -267,7 +267,7 @@ export function UserStatistics({ users, allLogs, companies }) {
                     <TableHead>Uživatel</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Potvrzení</TableHead>
-                    <TableHead className="text-right">Přihlášení</TableHead>
+                    <TableHead className="text-right">Aktivita</TableHead>
                     <TableHead className="text-right">Celkem aktivita</TableHead>
                   </TableRow>
                 </TableHeader>

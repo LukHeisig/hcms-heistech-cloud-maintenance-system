@@ -259,7 +259,7 @@ function LayoutContent({ children }) {
               entity_type: 'Auth',
               entity_id: user.id,
               changed_by: user.email,
-              change_description: 'Přihlášení do aplikace',
+              change_description: 'Aktivita v aplikaci',
               user_type: user.user_type,
               company_id: user.company_id
             });
