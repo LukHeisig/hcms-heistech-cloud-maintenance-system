@@ -39,7 +39,14 @@ export function UserStatistics({ users, allLogs, companies }) {
   const { data: controlRecords = [], isLoading: isLoadingRecords } = useQuery({
     queryKey: ['controlRecordsStats'],
     queryFn: () => base44.entities.ControlRecord.list('-performed_at', 5000),
-    staleTime: 300000, // 5 minutes
+    staleTime: 300000,
+  });
+
+  // Načíst Auth logy samostatně s vyšším limitem (allLogs je omezeno na 1000 celkem)
+  const { data: authLogs = [], isLoading: isLoadingAuthLogs } = useQuery({
+    queryKey: ['authLogsStats'],
+    queryFn: () => base44.entities.AuditLog.filter({ entity_type: 'Auth' }, '-created_date', 10000),
+    staleTime: 60000,
   });
 
   const stats = useMemo(() => {
