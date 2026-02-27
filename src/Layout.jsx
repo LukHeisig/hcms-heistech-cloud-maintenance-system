@@ -227,11 +227,35 @@ function LayoutContent({ children }) {
       const now = Date.now();
       const lastUpdate = lastActivityUpdateRef.current;
       
+      // If we have a local lastUpdate, we know we are in the same session/tab/mount
+      // and we just throttle updates.
       if (lastUpdate && (now - lastUpdate) < 30000) {
         return;
       }
       
       try {
+        // Logic for logging login:
+        // Use user.last_active_at from DB (loaded on mount).
+        // If it's old (> 30 mins) AND this is the first activity in this session (lastActivityUpdateRef is null), log login.
+        
+        const dbLastActive = user.last_active_at ? new Date(user.last_active_at) : new Date(0);
+        const diffMinutes = (new Date() - dbLastActive) / (1000 * 60);
+        
+        if (!lastActivityUpdateRef.current && diffMinutes > 30) {
+             try {
+               await base44.entities.AuditLog.create({
+                  entity_type: 'Auth',
+                  entity_id: user.id,
+                  changed_by: user.email,
+                  change_description: 'Přihlášení do aplikace',
+                  user_type: user.user_type,
+                  company_id: user.company_id
+               });
+             } catch (logError) {
+               console.error("Error creating audit log:", logError);
+             }
+        }
+
         await base44.auth.updateMe({ 
           last_active_at: new Date().toISOString() 
         });
@@ -243,8 +267,6 @@ function LayoutContent({ children }) {
     
     updateUserActivity();
   }, [user, location.pathname]);
-
-
 
   // Auto-logout logic
   useEffect(() => {
@@ -291,28 +313,6 @@ function LayoutContent({ children }) {
       console.error("Error loading user:", error);
     }
   };
-
-  useEffect(() => {
-    const logLogin = async () => {
-      if (user && !sessionStorage.getItem('login_logged')) {
-        try {
-          await base44.entities.AuditLog.create({
-            entity_type: 'Auth',
-            entity_id: user.id,
-            changed_by: user.email,
-            change_description: 'Přihlášení do aplikace',
-            user_type: user.user_type,
-            company_id: user.company_id
-          });
-          sessionStorage.setItem('login_logged', 'true');
-        } catch (error) {
-          console.error("Error logging login:", error);
-        }
-      }
-    };
-    
-    logLogin();
-  }, [user]);
 
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],

@@ -82,8 +82,9 @@ export function UserStatistics({ users, allLogs, companies }) {
       if (Array.isArray(user.assigned_company_ids) && user.assigned_company_ids.includes(companyFilter)) return true;
       return false;
     }).forEach(user => {
-      userStats[user.email] = {
-        email: user.email,
+      const email = user.email?.toLowerCase();
+      userStats[email] = {
+        email: email,
         name: user.custom_display_name || user.full_name || user.email,
         role: user.user_type,
         company_id: user.company_id,
@@ -95,8 +96,9 @@ export function UserStatistics({ users, allLogs, companies }) {
 
     // Count logins
     relevantLogs.forEach(log => {
-      if (userStats[log.changed_by]) {
-        userStats[log.changed_by].logins++;
+      const email = log.changed_by?.toLowerCase();
+      if (userStats[email]) {
+        userStats[email].logins++;
       }
     });
 
