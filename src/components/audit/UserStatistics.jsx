@@ -124,7 +124,7 @@ export function UserStatistics({ users, allLogs, companies }) {
       }))
       .sort((a, b) => b.confirmations - a.confirmations || b.logins - a.logins);
 
-  }, [users, allLogs, controlRecords, timeRange, companyFilter]);
+  }, [users, authLogs, controlRecords, timeRange, companyFilter]);
 
   const chartData = useMemo(() => {
     return stats.slice(0, 10); // Top 10 users
