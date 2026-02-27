@@ -66,9 +66,8 @@ export function UserStatistics({ users, allLogs, companies }) {
         break;
     }
 
-    // Filter logs for logins
-    const relevantLogs = allLogs.filter(log => 
-      log.entity_type === 'Auth' && 
+    // Use dedicated authLogs (higher limit) filtered by time range
+    const relevantLogs = authLogs.filter(log => 
       new Date(log.created_date) >= startDate
     );
 
