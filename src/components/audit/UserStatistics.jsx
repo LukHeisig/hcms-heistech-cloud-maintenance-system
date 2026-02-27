@@ -108,13 +108,11 @@ export function UserStatistics({ users, allLogs, companies }) {
       }
     });
 
-    // Count confirmations
+    // Count confirmations - match case-insensitively
     relevantRecords.forEach(record => {
-      if (userStats[record.created_by]) {
-        userStats[record.created_by].confirmations++;
-      } else if (record.created_by) {
-         // Handle users not in the passed users list (e.g. deleted users)
-         // For now, we ignore them or could add them to stats
+      const email = record.created_by?.toLowerCase();
+      if (email && userStats[email]) {
+        userStats[email].confirmations++;
       }
     });
 
