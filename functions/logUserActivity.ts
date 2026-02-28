@@ -9,6 +9,23 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Zabránit spamu - kontrola posledního logu
+        const recentLogs = await base44.asServiceRole.entities.AuditLog.filter({
+            entity_type: 'Auth',
+            changed_by: user.email,
+        }, '-created_date', 1);
+        
+        if (recentLogs && recentLogs.length > 0) {
+            const lastLog = recentLogs[0];
+            const lastLogDate = new Date(lastLog.created_date).getTime();
+            const now = new Date().getTime();
+            
+            // Logujeme aktivitu maximálně jednou za 5 minut (300000 ms) pro stejného uživatele
+            if (now - lastLogDate < 300000) {
+                return Response.json({ success: true, skipped: true, reason: 'throttled' });
+            }
+        }
+
         const payload = {
             entity_type: 'Auth',
             entity_id: user.id,
