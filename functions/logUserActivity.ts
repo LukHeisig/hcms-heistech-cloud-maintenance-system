@@ -26,7 +26,18 @@ Deno.serve(async (req) => {
         }
 
         // Use service role to bypass any potential permissions issues
-        await base44.asServiceRole.entities.AuditLog.create(payload);
+        try {
+            await base44.asServiceRole.entities.AuditLog.create(payload);
+        } catch (dbError) {
+            // Log creation failure
+            await base44.asServiceRole.entities.SystemLog.create({
+                type: 'error',
+                message: `[Backend Function logUserActivity] Error creating AuditLog: ${dbError.message}`,
+                timestamp: new Date().toISOString(),
+                user_email: user.email
+            });
+            return Response.json({ error: dbError.message }, { status: 500 });
+        }
 
         return Response.json({ success: true, payload });
     } catch (error) {
