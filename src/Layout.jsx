@@ -248,14 +248,23 @@ function LayoutContent({ children }) {
     const logActivity = async () => {
       if (!user) return;
       try {
-        await base44.entities.AuditLog.create({
+        const payload = {
           entity_type: 'Auth',
           entity_id: user.id,
           changed_by: user.email,
-          change_description: 'Aktivita v aplikaci',
-          user_type: user.user_type,
-          company_id: user.company_id
-        });
+          change_description: 'Aktivita v aplikaci'
+        };
+        
+        const validRoles = ["technician", "manager", "admin", "superAdmin"];
+        if (user.user_type && validRoles.includes(user.user_type)) {
+          payload.user_type = user.user_type;
+        }
+        
+        if (user.company_id) {
+          payload.company_id = user.company_id;
+        }
+        
+        await base44.entities.AuditLog.create(payload);
       } catch (error) {
         console.error("Error logging activity:", error);
       }
