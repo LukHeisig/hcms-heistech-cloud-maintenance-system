@@ -9,6 +9,15 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Aktualizujeme last_active_at uživatele (s administrátorskými právy přes serviceRole)
+        try {
+            await base44.asServiceRole.entities.User.update(user.id, {
+                last_active_at: new Date().toISOString()
+            });
+        } catch (updateErr) {
+            console.error("Failed to update user last_active_at", updateErr);
+        }
+
         // Zabránit spamu - kontrola posledního logu
         const recentLogs = await base44.asServiceRole.entities.AuditLog.filter({
             entity_type: 'Auth',
