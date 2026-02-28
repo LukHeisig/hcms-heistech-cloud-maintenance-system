@@ -248,7 +248,9 @@ function LayoutContent({ children }) {
     const logActivity = async () => {
       if (!user) return;
       try {
+        console.log("Invoking logUserActivity for", user.email, "at path", location.pathname);
         const res = await base44.functions.invoke('logUserActivity', {});
+        console.log("logUserActivity response:", res.data);
         if (res.data && res.data.error) {
            throw new Error(res.data.error);
         }
