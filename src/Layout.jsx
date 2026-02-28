@@ -235,10 +235,6 @@ function LayoutContent({ children }) {
       lastActivityUpdateRef.current = now;
       
       try {
-        await base44.auth.updateMe({ 
-          last_active_at: new Date().toISOString() 
-        });
-        
         const res = await base44.functions.invoke('logUserActivity', {});
         if (res.data && res.data.error) {
            console.error("Backend logUserActivity error:", res.data.error);
