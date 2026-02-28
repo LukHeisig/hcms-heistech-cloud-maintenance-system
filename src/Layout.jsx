@@ -247,10 +247,6 @@ function LayoutContent({ children }) {
   useEffect(() => {
     const logActivity = async () => {
       if (!user) return;
-      
-      // Log once per browser session (tab open / page refresh)
-      if (sessionStorage.getItem('activity_logged')) return;
-      
       try {
         await base44.entities.AuditLog.create({
           entity_type: 'Auth',
@@ -260,7 +256,6 @@ function LayoutContent({ children }) {
           user_type: user.user_type,
           company_id: user.company_id
         });
-        sessionStorage.setItem('activity_logged', '1');
       } catch (error) {
         console.error("Error logging activity:", error);
       }
