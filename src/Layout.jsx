@@ -248,35 +248,9 @@ function LayoutContent({ children }) {
     const logActivity = async () => {
       if (!user) return;
       try {
-        const payload = {
-          entity_type: 'Auth',
-          entity_id: user.id,
-          changed_by: user.email,
-          change_description: 'Aktivita v aplikaci'
-        };
-        
-        const validRoles = ["technician", "manager", "admin", "superAdmin"];
-        if (user.user_type && validRoles.includes(user.user_type)) {
-          payload.user_type = user.user_type;
-        }
-        
-        if (user.company_id) {
-          payload.company_id = user.company_id;
-        }
-        
-        await base44.entities.AuditLog.create(payload);
+        await base44.functions.invoke('logUserActivity', {});
       } catch (error) {
         console.error("Error logging activity:", error);
-        try {
-          await base44.entities.SystemLog.create({
-            type: 'error',
-            message: `Failed to create AuditLog for ${user.email}: ${error.message}`,
-            timestamp: new Date().toISOString(),
-            user_email: user.email,
-            device_info: navigator.userAgent,
-            url: window.location.href
-          });
-        } catch (e) {}
       }
     };
     
