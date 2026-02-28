@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
             console.error("Failed to update user last_active_at", updateErr);
         }
 
-        // Zabránit spamu - kontrola posledního logu
+        // Zabránit spamu - sníženo na 10 sekund
         const recentLogs = await base44.asServiceRole.entities.AuditLog.filter({
             entity_type: 'Auth',
             changed_by: user.email,
@@ -29,9 +29,9 @@ Deno.serve(async (req) => {
             const lastLogDate = new Date(lastLog.created_date).getTime();
             const now = new Date().getTime();
             
-            // Logujeme aktivitu maximálně jednou za 5 minut (300000 ms) pro stejného uživatele
-            if (now - lastLogDate < 300000) {
-                return Response.json({ success: true, skipped: true, reason: 'throttled' });
+            // Limit snížen z 5 minut na 10 sekund, abyste viděl okamžité změny
+            if (now - lastLogDate < 10000) {
+                return Response.json({ success: true, skipped: true, reason: 'throttled_10s' });
             }
         }
 
@@ -39,13 +39,9 @@ Deno.serve(async (req) => {
             entity_type: 'Auth',
             entity_id: user.id,
             changed_by: user.email,
-            change_description: 'Aktivita v aplikaci'
+            change_description: 'Aktivita v aplikaci',
+            user_type: user.user_type || 'user'
         };
-
-        const validRoles = ["technician", "manager", "admin", "superAdmin"];
-        if (user.user_type && validRoles.includes(user.user_type)) {
-            payload.user_type = user.user_type;
-        }
 
         if (user.company_id) {
             payload.company_id = user.company_id;

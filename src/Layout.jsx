@@ -227,8 +227,8 @@ function LayoutContent({ children }) {
       const now = Date.now();
       const lastUpdate = lastActivityUpdateRef.current || 0;
       
-      // Throttle to once every 5 minut (300000 ms) lokálně
-      if (now - lastUpdate < 300000) {
+      // Throttle snížen na 10 sekund pro okamžitější testování
+      if (now - lastUpdate < 10000) {
         return;
       }
       
