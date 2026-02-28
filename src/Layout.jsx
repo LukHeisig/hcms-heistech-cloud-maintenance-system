@@ -267,11 +267,21 @@ function LayoutContent({ children }) {
         await base44.entities.AuditLog.create(payload);
       } catch (error) {
         console.error("Error logging activity:", error);
+        try {
+          await base44.entities.SystemLog.create({
+            type: 'error',
+            message: `Failed to create AuditLog for ${user.email}: ${error.message}`,
+            timestamp: new Date().toISOString(),
+            user_email: user.email,
+            device_info: navigator.userAgent,
+            url: window.location.href
+          });
+        } catch (e) {}
       }
     };
     
     logActivity();
-  }, [user]);
+  }, [user, location.pathname]);
 
   // Auto-logout logic
   useEffect(() => {
