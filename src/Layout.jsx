@@ -221,45 +221,34 @@ function LayoutContent({ children }) {
   };
 
   useEffect(() => {
-    const updateUserActivity = async () => {
-      if (!user) return;
-      
+    if (!user) return;
+
+    const trackActivity = async () => {
       const now = Date.now();
-      const lastUpdate = lastActivityUpdateRef.current;
+      const lastUpdate = lastActivityUpdateRef.current || 0;
       
-      if (lastUpdate && (now - lastUpdate) < 30000) {
+      // Throttle to once every 5 minut (300000 ms) lokálně
+      if (now - lastUpdate < 300000) {
         return;
       }
+      
+      lastActivityUpdateRef.current = now;
       
       try {
         await base44.auth.updateMe({ 
           last_active_at: new Date().toISOString() 
         });
-        lastActivityUpdateRef.current = now;
-      } catch (error) {
-        console.error("Error updating user activity:", error);
-      }
-    };
-    
-    updateUserActivity();
-  }, [user, location.pathname]);
-
-  useEffect(() => {
-    const logActivity = async () => {
-      if (!user) return;
-      try {
-        console.log("Invoking logUserActivity for", user.email, "at path", location.pathname);
+        
         const res = await base44.functions.invoke('logUserActivity', {});
-        console.log("logUserActivity response:", res.data);
         if (res.data && res.data.error) {
-           throw new Error(res.data.error);
+           console.error("Backend logUserActivity error:", res.data.error);
         }
       } catch (error) {
         console.error("Error logging activity:", error);
         try {
           await base44.entities.SystemLog.create({
             type: 'error',
-            message: `[logActivity] Error invoking logUserActivity for ${user.email}: ${error.message || error}`,
+            message: `[trackActivity] Error for ${user.email}: ${error.message || error}`,
             timestamp: new Date().toISOString(),
             user_email: user.email,
             device_info: navigator.userAgent,
@@ -268,9 +257,33 @@ function LayoutContent({ children }) {
         } catch (e) {}
       }
     };
-    
-    logActivity();
-  }, [user, location.pathname]);
+
+    trackActivity();
+
+    let timeoutId = null;
+    const handleUserActivity = () => {
+      if (timeoutId) return;
+      timeoutId = setTimeout(() => {
+        trackActivity();
+        timeoutId = null;
+      }, 2000);
+    };
+
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('touchstart', handleUserActivity, { passive: true });
+    window.addEventListener('scroll', handleUserActivity, { passive: true });
+    window.addEventListener('mousemove', handleUserActivity, { passive: true });
+
+    return () => {
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+      window.removeEventListener('mousemove', handleUserActivity);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [user]);
 
   // Auto-logout logic
   useEffect(() => {
