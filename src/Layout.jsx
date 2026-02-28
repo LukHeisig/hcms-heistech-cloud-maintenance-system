@@ -248,21 +248,19 @@ function LayoutContent({ children }) {
     const logActivity = async () => {
       if (!user) return;
       
+      // Log once per browser session (tab open / page refresh)
+      if (sessionStorage.getItem('activity_logged')) return;
+      
       try {
-        const dbLastActive = user.last_active_at ? new Date(user.last_active_at) : null;
-        const now = new Date();
-        
-        // Log activity if last active was >30 min ago (or never)
-        if (!dbLastActive || (now - dbLastActive) > 30 * 60 * 1000) {
-          await base44.entities.AuditLog.create({
-            entity_type: 'Auth',
-            entity_id: user.id,
-            changed_by: user.email,
-            change_description: 'Aktivita v aplikaci',
-            user_type: user.user_type,
-            company_id: user.company_id
-          });
-        }
+        await base44.entities.AuditLog.create({
+          entity_type: 'Auth',
+          entity_id: user.id,
+          changed_by: user.email,
+          change_description: 'Aktivita v aplikaci',
+          user_type: user.user_type,
+          company_id: user.company_id
+        });
+        sessionStorage.setItem('activity_logged', '1');
       } catch (error) {
         console.error("Error logging activity:", error);
       }
