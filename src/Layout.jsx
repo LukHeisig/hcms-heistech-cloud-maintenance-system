@@ -248,9 +248,22 @@ function LayoutContent({ children }) {
     const logActivity = async () => {
       if (!user) return;
       try {
-        await base44.functions.invoke('logUserActivity', {});
+        const res = await base44.functions.invoke('logUserActivity', {});
+        if (res.data && res.data.error) {
+           throw new Error(res.data.error);
+        }
       } catch (error) {
         console.error("Error logging activity:", error);
+        try {
+          await base44.entities.SystemLog.create({
+            type: 'error',
+            message: `[logActivity] Error invoking logUserActivity for ${user.email}: ${error.message || error}`,
+            timestamp: new Date().toISOString(),
+            user_email: user.email,
+            device_info: navigator.userAgent,
+            url: window.location.href
+          });
+        } catch (e) {}
       }
     };
     
