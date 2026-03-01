@@ -68,6 +68,12 @@ Deno.serve(async (req) => {
                 });
             } catch (dbError) {
                 console.error("Error creating AuditLog", dbError);
+                await base44.asServiceRole.entities.SystemLog.create({
+                    type: 'error',
+                    message: `[Backend Function logUserActivity] Error creating AuditLog for ${user.email}: ${dbError.message} | Payload: ${JSON.stringify(payload)}`,
+                    timestamp: new Date().toISOString(),
+                    user_email: user.email
+                });
             }
         }
 
