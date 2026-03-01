@@ -7,6 +7,24 @@ Deno.serve(async (req) => {
         // Fetch user
         const users = await base44.asServiceRole.entities.User.filter({email: 'lukas.heisig@heistech.cz'});
         const user = users[0];
+        
+        const payload = {
+                entity_type: 'Auth',
+                entity_id: user.id,
+                changed_by: user.email,
+                change_description: 'Aktivita v aplikaci',
+                user_type: user.user_type || 'user'
+            };
+
+        if (user.company_id) {
+            payload.company_id = user.company_id;
+        }
+
+        try {
+            await base44.asServiceRole.entities.AuditLog.create(payload);
+        } catch(e) {
+            return Response.json({ ERROR_IN_CREATE: e.message, payload })
+        }
 
         const now = new Date();
         
