@@ -28,35 +28,49 @@ Deno.serve(async (req) => {
             console.error("Failed to update user last_active_at", updateErr);
         }
 
-        // Všechna backendová omezení rychlosti odstraněna dle požadavku
+        // Omezíme zápis do AuditLogu na 1x za 15 minut, abychom nezahltili historii
+        // last_active_at se ale aktualizuje vždy, takže uživatel bude svítit "Online"
+        let shouldCreateAuditLog = false;
+        
+        // Můžeme to jednoduše zjistit tak, že zkontrolujeme, kdy naposledy byla aktivita zapsána
+        // Ale pro bezpečnost a rychlost raději rovnou zapíšeme AuditLog jen pokud uplynulo dost času
+        // Uložíme si čas posledního zápisu AuditLogu přímo do User entity (nové pole last_audit_log_at)
+        const now = new Date();
+        const lastAuditLog = user.last_audit_log_at ? new Date(user.last_audit_log_at) : new Date(0);
+        const minutesSinceLastLog = (now - lastAuditLog) / (1000 * 60);
 
-        const payload = {
-            entity_type: 'Auth',
-            entity_id: user.id,
-            changed_by: user.email,
-            change_description: 'Aktivita v aplikaci',
-            user_type: user.user_type || 'user'
-        };
-
-        if (user.company_id) {
-            payload.company_id = user.company_id;
+        if (minutesSinceLastLog > 15) {
+            shouldCreateAuditLog = true;
         }
 
-        // Use service role to bypass any potential permissions issues
-        try {
-            await base44.asServiceRole.entities.AuditLog.create(payload);
-        } catch (dbError) {
-            // Log creation failure
-            await base44.asServiceRole.entities.SystemLog.create({
-                type: 'error',
-                message: `[Backend Function logUserActivity] Error creating AuditLog: ${dbError.message}`,
-                timestamp: new Date().toISOString(),
-                user_email: user.email
-            });
-            return Response.json({ error: dbError.message }, { status: 500 });
+        let payload = null;
+
+        if (shouldCreateAuditLog) {
+            payload = {
+                entity_type: 'Auth',
+                entity_id: user.id,
+                changed_by: user.email,
+                change_description: 'Aktivita v aplikaci',
+                user_type: user.user_type || 'user'
+            };
+
+            if (user.company_id) {
+                payload.company_id = user.company_id;
+            }
+
+            try {
+                await base44.asServiceRole.entities.AuditLog.create(payload);
+                
+                // Uložíme si, že jsme zrovna vytvořili AuditLog
+                await base44.asServiceRole.entities.User.update(user.id, {
+                    last_audit_log_at: now.toISOString()
+                });
+            } catch (dbError) {
+                console.error("Error creating AuditLog", dbError);
+            }
         }
 
-        return Response.json({ success: true, payload });
+        return Response.json({ success: true, payload, skipped: !shouldCreateAuditLog });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
     }
