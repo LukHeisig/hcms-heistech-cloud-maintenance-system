@@ -39,7 +39,8 @@ Deno.serve(async (req) => {
         const lastAuditLog = user.last_audit_log_at ? new Date(user.last_audit_log_at) : new Date(0);
         const minutesSinceLastLog = (now - lastAuditLog) / (1000 * 60);
 
-        if (minutesSinceLastLog > 15) {
+        // Zápis bodu aktivity každých 5 minut
+        if (minutesSinceLastLog >= 5) {
             shouldCreateAuditLog = true;
         }
 

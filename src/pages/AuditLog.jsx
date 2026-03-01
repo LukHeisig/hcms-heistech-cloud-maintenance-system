@@ -174,6 +174,9 @@ export default function AuditLog() {
 
     if (entityTypeFilter !== "all") {
       logs = logs.filter(log => log.entity_type === entityTypeFilter);
+    } else {
+      // Skrýt rutinní logy aktivity z obecného přehledu historie, aby nerušily
+      logs = logs.filter(log => log.change_description !== "Aktivita v aplikaci");
     }
 
     if (userFilter !== "all") {
