@@ -36,8 +36,17 @@ Deno.serve(async (req) => {
         // Ale pro bezpečnost a rychlost raději rovnou zapíšeme AuditLog jen pokud uplynulo dost času
         // Uložíme si čas posledního zápisu AuditLogu přímo do User entity (nové pole last_audit_log_at)
         const now = new Date();
-        const lastAuditLog = user.last_audit_log_at ? new Date(user.last_audit_log_at) : new Date(0);
-        const minutesSinceLastLog = (now - lastAuditLog) / (1000 * 60);
+        
+        // Robustní parsování data
+        let lastAuditLog = new Date(0);
+        if (user.last_audit_log_at && user.last_audit_log_at !== "undefined" && user.last_audit_log_at !== "null") {
+            const parsedDate = new Date(user.last_audit_log_at);
+            if (!isNaN(parsedDate.getTime())) {
+                lastAuditLog = parsedDate;
+            }
+        }
+        
+        const minutesSinceLastLog = (now.getTime() - lastAuditLog.getTime()) / (1000 * 60);
 
         // Zápis bodu aktivity každých 5 minut
         if (minutesSinceLastLog >= 5) {
