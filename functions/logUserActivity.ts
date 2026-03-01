@@ -9,6 +9,16 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Nucený log pro debugging, abychom viděli, jestli se request vůbec dostane na server
+        if (user.email === 'lukas.heisig@heistech.cz') {
+            await base44.asServiceRole.entities.SystemLog.create({
+                type: 'info',
+                message: `[DEBUG] logUserActivity zavoláno pro ${user.email}`,
+                timestamp: new Date().toISOString(),
+                user_email: user.email
+            });
+        }
+
         // Aktualizujeme last_active_at uživatele (s administrátorskými právy přes serviceRole)
         try {
             await base44.asServiceRole.entities.User.update(user.id, {
