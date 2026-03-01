@@ -227,8 +227,8 @@ function LayoutContent({ children }) {
       const now = Date.now();
       const lastUpdate = lastActivityUpdateRef.current || 0;
       
-      // Všechna dlouhá omezení odstraněna - zachován jen 2s debounce proti DDOS
-      if (now - lastUpdate < 2000) {
+      // Omezení na 5 sekund, ale BEZ ZPOŽDĚNÍ (okamžitý fire)
+      if (now - lastUpdate < 5000) {
         return;
       }
       
@@ -241,43 +241,26 @@ function LayoutContent({ children }) {
         }
       } catch (error) {
         console.error("Error logging activity:", error);
-        try {
-          await base44.entities.SystemLog.create({
-            type: 'error',
-            message: `[trackActivity] Error for ${user.email}: ${error.message || error}`,
-            timestamp: new Date().toISOString(),
-            user_email: user.email,
-            device_info: navigator.userAgent,
-            url: window.location.href
-          });
-        } catch (e) {}
+        // Nepíšeme do SystemLogu při každém výpadku sítě, zbytečně to spamuje
       }
     };
 
+    // Vždy zapíšeme aktivitu ihned po načtení
     trackActivity();
 
-    let timeoutId = null;
-    const handleUserActivity = () => {
-      if (timeoutId) return;
-      timeoutId = setTimeout(() => {
-        trackActivity();
-        timeoutId = null;
-      }, 2000);
-    };
-
-    window.addEventListener('click', handleUserActivity);
-    window.addEventListener('keydown', handleUserActivity);
-    window.addEventListener('touchstart', handleUserActivity, { passive: true });
-    window.addEventListener('scroll', handleUserActivity, { passive: true });
-    window.addEventListener('mousemove', handleUserActivity, { passive: true });
+    // Přímé napojení bez setTimeout (řeší problém, kdy uživatel zavře appku dřív, než timeout vyprší)
+    window.addEventListener('click', trackActivity, { passive: true });
+    window.addEventListener('keydown', trackActivity, { passive: true });
+    window.addEventListener('touchstart', trackActivity, { passive: true });
+    window.addEventListener('scroll', trackActivity, { passive: true });
+    window.addEventListener('mousemove', trackActivity, { passive: true });
 
     return () => {
-      window.removeEventListener('click', handleUserActivity);
-      window.removeEventListener('keydown', handleUserActivity);
-      window.removeEventListener('touchstart', handleUserActivity);
-      window.removeEventListener('scroll', handleUserActivity);
-      window.removeEventListener('mousemove', handleUserActivity);
-      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener('click', trackActivity);
+      window.removeEventListener('keydown', trackActivity);
+      window.removeEventListener('touchstart', trackActivity);
+      window.removeEventListener('scroll', trackActivity);
+      window.removeEventListener('mousemove', trackActivity);
     };
   }, [user]);
 
