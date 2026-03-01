@@ -227,8 +227,8 @@ function LayoutContent({ children }) {
       const now = Date.now();
       const lastUpdate = lastActivityUpdateRef.current || 0;
       
-      // Omezení na 5 sekund, ale BEZ ZPOŽDĚNÍ (okamžitý fire)
-      if (now - lastUpdate < 5000) {
+      // Omezení na 30 sekund - bohatě stačí pro určení "Online" statusu (do 5 minut)
+      if (now - lastUpdate < 30000) {
         return;
       }
       
