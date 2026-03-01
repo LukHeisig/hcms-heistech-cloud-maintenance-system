@@ -227,8 +227,8 @@ function LayoutContent({ children }) {
       const now = Date.now();
       const lastUpdate = lastActivityUpdateRef.current || 0;
       
-      // Throttle snížen na 10 sekund pro okamžitější testování
-      if (now - lastUpdate < 10000) {
+      // Všechna dlouhá omezení odstraněna - zachován jen 2s debounce proti DDOS
+      if (now - lastUpdate < 2000) {
         return;
       }
       

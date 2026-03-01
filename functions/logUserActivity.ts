@@ -18,22 +18,7 @@ Deno.serve(async (req) => {
             console.error("Failed to update user last_active_at", updateErr);
         }
 
-        // Zabránit spamu - sníženo na 10 sekund
-        const recentLogs = await base44.asServiceRole.entities.AuditLog.filter({
-            entity_type: 'Auth',
-            changed_by: user.email,
-        }, '-created_date', 1);
-        
-        if (recentLogs && recentLogs.length > 0) {
-            const lastLog = recentLogs[0];
-            const lastLogDate = new Date(lastLog.created_date).getTime();
-            const now = new Date().getTime();
-            
-            // Limit snížen z 5 minut na 10 sekund, abyste viděl okamžité změny
-            if (now - lastLogDate < 10000) {
-                return Response.json({ success: true, skipped: true, reason: 'throttled_10s' });
-            }
-        }
+        // Všechna backendová omezení rychlosti odstraněna dle požadavku
 
         const payload = {
             entity_type: 'Auth',
