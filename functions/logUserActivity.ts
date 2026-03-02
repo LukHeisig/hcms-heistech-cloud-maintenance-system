@@ -37,10 +37,11 @@ Deno.serve(async (req) => {
         // Uložíme si čas posledního zápisu AuditLogu přímo do User entity (nové pole last_audit_log_at)
         const now = new Date();
         
-        // Robustní parsování data
+        // Robustní parsování data - auth.me() vrací data flat i nested, zkontrolujeme obojí
+        const lastAuditLogRaw = user.last_audit_log_at ?? user.data?.last_audit_log_at ?? null;
         let lastAuditLog = new Date(0);
-        if (user.last_audit_log_at && user.last_audit_log_at !== "undefined" && user.last_audit_log_at !== "null") {
-            const parsedDate = new Date(user.last_audit_log_at);
+        if (lastAuditLogRaw && lastAuditLogRaw !== "undefined" && lastAuditLogRaw !== "null") {
+            const parsedDate = new Date(lastAuditLogRaw);
             if (!isNaN(parsedDate.getTime())) {
                 lastAuditLog = parsedDate;
             }
