@@ -107,13 +107,6 @@ export function UserStatistics({ users, allLogs, companies }) {
         userStats[email].logins++;
       }
     });
-    
-    console.log("Stats debug:", { 
-      authLogsCount: authLogs.length, 
-      relevantLogsCount: relevantLogs.length,
-      lukLogs: relevantLogs.filter(l => l.changed_by?.toLowerCase() === 'luk.heisig@gmail.com').length,
-      startDate
-    });
 
     // Count confirmations - match case-insensitively
     relevantRecords.forEach(record => {
