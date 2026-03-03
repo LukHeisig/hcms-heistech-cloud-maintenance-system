@@ -214,7 +214,7 @@ export default function Dashboard() {
 
   const { data: allRecords = [] } = useQuery({
     queryKey: ["allRecords"],
-    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 100),
+    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 5000),
     enabled: !!user,
     staleTime: 300000,
   });
