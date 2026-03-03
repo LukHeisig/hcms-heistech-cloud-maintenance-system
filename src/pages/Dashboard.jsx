@@ -794,7 +794,7 @@ export default function Dashboard() {
       const pointRecords = selectedPointRecords;
       const pointIssues = demipIssues.filter(i => i.control_point_id === selectedPoint);
       const status = getPointStatus(currentPoint);
-      const nextDate = getNextControlDate(currentPoint);
+      const nextDate = getNextControlDate(currentPoint, selectedPointRecords);
       const lastRecord = pointRecords[0];
       const isOverdue = status === "overdue";
 
