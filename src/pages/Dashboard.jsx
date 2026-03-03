@@ -360,23 +360,23 @@ export default function Dashboard() {
     }
   }, [records, allMachines, allLines, allCompanies, userCompany]);
 
-  const getNextControlDate = useCallback((point) => {
-    const pointRecords = records
+  const getNextControlDate = useCallback((point, overrideRecords) => {
+    // Prioritně použít overrideRecords (detailní pohled), jinak globální records
+    const sourceRecords = overrideRecords || records;
+    const pointRecords = sourceRecords
       .filter(r => r.control_point_id === point.id)
       .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
     if (!point.interval_hours) return null;
 
     let lastPerformed;
-    if (pointRecords.length > 0 && point.first_confirmation_date) {
-        // Oba existují - vzít novější
-        const lastRecordDate = new Date(pointRecords[0].performed_at);
-        const firstConfirmDate = new Date(point.first_confirmation_date);
-        lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
-    } else if (pointRecords.length > 0) {
+    if (pointRecords.length > 0) {
+        // Máme záznamy - vzít nejnovější záznam (ignorujeme first_confirmation_date, protože záznamy mají vyšší prioritu)
         lastPerformed = new Date(pointRecords[0].performed_at);
     } else if (point.first_confirmation_date) {
+        // Žádné záznamy, ale máme datum prvního potvrzení
         lastPerformed = new Date(point.first_confirmation_date);
     } else {
+        // Nic nemáme - nezobrazovat
         return null;
     }
 
