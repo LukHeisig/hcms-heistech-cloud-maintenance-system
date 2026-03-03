@@ -111,14 +111,15 @@ export default function PointsList({
           ) : (
             <div className="divide-y divide-slate-200">
               {displayPoints.map((point) => {
-                const status = getPointStatus(point);
-                const nextDate = getNextControlDate(point);
-                const isOverdue = status === "overdue" || status === "warning" || status === "critical"; // Legacy support
-                const isWarning = status === "warning";
-                const isCritical = status === "critical" || status === "overdue"; // overdue mapped to critical in traffic light usually
-                
-                const pointRecords = records.filter(r => r.control_point_id === point.id);
+                const pointRecords = records
+                  .filter(r => r.control_point_id === point.id)
+                  .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
                 const lastRecord = pointRecords[0];
+
+                const status = getPointStatus(point);
+                const nextDate = getNextControlDate(point, pointRecords);
+                const isWarning = status === "warning";
+                const isCritical = status === "critical" || status === "overdue";
                 const pointIssues = demipIssues.filter(i => i.control_point_id === point.id);
 
                 let bgClass = "";
