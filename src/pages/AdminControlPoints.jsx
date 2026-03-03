@@ -138,7 +138,19 @@ export default function AdminControlPoints() {
   }, [controlPoints]);
 
   const createPointMutation = useMutation({
-    mutationFn: (data) => base44.entities.ControlPoint.create(data),
+    mutationFn: async (data) => {
+      const point = await base44.entities.ControlPoint.create(data);
+      const currentUser = await base44.auth.me();
+      await base44.entities.AuditLog.create({
+        entity_type: "ControlPoint",
+        entity_id: point.id,
+        changed_by: currentUser.email,
+        change_description: `Vytvořen kontrolní bod: ${data.name}`,
+        user_type: currentUser.user_type || "user",
+        company_id: line?.company_id || undefined,
+      });
+      return point;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
       setShowPointDialog(false);
@@ -147,7 +159,19 @@ export default function AdminControlPoints() {
   });
 
   const updatePointMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ControlPoint.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const point = await base44.entities.ControlPoint.update(id, data);
+      const currentUser = await base44.auth.me();
+      await base44.entities.AuditLog.create({
+        entity_type: "ControlPoint",
+        entity_id: id,
+        changed_by: currentUser.email,
+        change_description: `Upraven kontrolní bod: ${data.name}`,
+        user_type: currentUser.user_type || "user",
+        company_id: line?.company_id || undefined,
+      });
+      return point;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
       setShowPointDialog(false);
