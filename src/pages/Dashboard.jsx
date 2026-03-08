@@ -213,7 +213,7 @@ export default function Dashboard() {
   }, [user, allControlPoints, machines]);
 
   const { data: allRecords = [] } = useQuery({
-    queryKey: ["allRecords"],
+    queryKey: ["allRecords", user?.id],
     queryFn: () => base44.entities.ControlRecord.list("-performed_at", 5000),
     enabled: !!user,
     staleTime: 300000,
