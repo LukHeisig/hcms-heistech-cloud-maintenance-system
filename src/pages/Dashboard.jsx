@@ -220,7 +220,7 @@ export default function Dashboard() {
   });
 
   const { data: selectedPointRecords = [] } = useQuery({
-    queryKey: ["pointRecords", selectedPoint],
+    queryKey: ["pointRecords", selectedPoint, user?.id],
     queryFn: () => base44.entities.ControlRecord.filter({ control_point_id: selectedPoint }, "-performed_at", 50),
     enabled: !!selectedPoint,
   });
