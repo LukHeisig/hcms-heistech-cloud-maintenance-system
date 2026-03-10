@@ -376,6 +376,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{job ? "Upravit měření" : "Nové měření vibrací"}</DialogTitle>
+          <DialogDescription>Stroj: {machine?.name}</DialogDescription>
         </DialogHeader>
         
         {/* Header Info */}

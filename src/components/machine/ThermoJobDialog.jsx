@@ -246,6 +246,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
             <Thermometer className="w-5 h-5 text-orange-600" />
             {job ? "Upravit termodiagnostické měření" : "Nové termodiagnostické měření"}
           </DialogTitle>
+          <DialogDescription>Stroj: {machine?.name}</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
