@@ -16,13 +16,7 @@ import {
   ArrowLeft,
   Building2,
   Factory,
-  FileText,
-  Image as ImageIcon,
-  Camera,
-  Upload,
-  X,
   Loader2,
-  Pencil,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
