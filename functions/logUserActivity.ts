@@ -89,6 +89,15 @@ Deno.serve(async (req) => {
 
         return Response.json({ success: true, payload, skipped: !shouldCreateAuditLog });
     } catch (error) {
+        // Logujeme chybu do SystemLog, abychom věděli co přesně padlo
+        try {
+            const base44Fallback = createClientFromRequest(req);
+            await base44Fallback.asServiceRole.entities.SystemLog.create({
+                type: 'error',
+                message: `[logUserActivity] Unhandled error: ${error.message} | Stack: ${error.stack?.substring(0, 500)}`,
+                timestamp: new Date().toISOString(),
+            });
+        } catch (_) { /* ignore logging error */ }
         return Response.json({ error: error.message }, { status: 500 });
     }
 });
