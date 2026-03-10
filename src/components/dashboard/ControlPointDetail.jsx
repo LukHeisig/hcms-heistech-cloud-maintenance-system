@@ -75,7 +75,16 @@ export default function ControlPointDetail({
   const [nfcSupported] = useState('NDEFReader' in window);
 
   const [isConfirmingControl, setIsConfirmingControl] = useState(false);
+  // confirmSuccess se resetuje vždy, když přijde nový NFC sken (nfcScanned se změní na true)
   const [confirmSuccess, setConfirmSuccess] = useState(false);
+  const prevNfcScanned = useRef(nfcScanned);
+  if (nfcScanned && !prevNfcScanned.current) {
+    prevNfcScanned.current = true;
+    if (confirmSuccess) setConfirmSuccess(false);
+  }
+  if (!nfcScanned && prevNfcScanned.current) {
+    prevNfcScanned.current = false;
+  }
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
