@@ -86,9 +86,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadUser();
-    if ('NDEFReader' in window) {
-      setNfcSupported(true);
-    }
   }, []);
 
   const loadUser = async () => {
