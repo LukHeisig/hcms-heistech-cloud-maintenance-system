@@ -57,6 +57,7 @@ export default function AdminCompanies() {
     enable_thermo: true,
     enable_tribo: true,
     allow_manual_confirmation: true,
+    force_technician_demip_mobile: false,
     overdue_visualization_type: "two_colors",
     overdue_tolerance_percent: 4,
   });
