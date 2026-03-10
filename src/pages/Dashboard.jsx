@@ -53,6 +53,7 @@ import { cs } from "date-fns/locale";
 import LineSelection from "../components/dashboard/LineSelection";
 import MachineSelection from "../components/dashboard/MachineSelection";
 import PointsList from "../components/dashboard/PointsList";
+import ControlPointDetail from "../components/dashboard/ControlPointDetail";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -79,29 +80,6 @@ export default function Dashboard() {
   const selectedCompany = urlParams.get('company');
   const selectedLine = urlParams.get('line');
   const selectedMachine = urlParams.get('machine');
-
-  const [showIssueDialog, setShowIssueDialog] = useState(false);
-  const [issueDescription, setIssueDescription] = useState("");
-  const [issuePhoto, setIssuePhoto] = useState(null);
-  const [isReportingIssue, setIsReportingIssue] = useState(false);
-  const issuePhotoInputRef = useRef(null);
-  const issueCameraInputRef = useRef(null);
-
-  const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
-  const [selectedDocPreview, setSelectedDocPreview] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [deleteDocId, setDeleteDocId] = useState(null);
-  const [imageErrors, setImageErrors] = useState({});
-  const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
-
-  const [showEditPointDialog, setShowEditPointDialog] = useState(false);
-  const [editingPoint, setEditingPoint] = useState(null);
-  const [nfcChipId, setNfcChipId] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
-  const [nfcSupported, setNfcSupported] = useState(false);
-
-  const [isConfirmingControl, setIsConfirmingControl] = useState(false);
 
   const selectedPoint = urlParams.get('point');
   const nfcScanned = urlParams.get('nfc_scanned') === 'true';
