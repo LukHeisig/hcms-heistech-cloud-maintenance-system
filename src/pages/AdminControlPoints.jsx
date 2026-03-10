@@ -810,6 +810,9 @@ export default function AdminControlPoints() {
                 <Activity className="w-6 h-6" />
                 Skenování NFC čipu
               </DialogTitle>
+              <DialogDescription>
+                Přiložte NFC čip k zařízení pro načtení ID.
+              </DialogDescription>
             </DialogHeader>
             <div className="py-8 text-center">
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
