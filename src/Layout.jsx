@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeContext";
 import { OfflineProvider } from "@/components/OfflineProvider";
 import { DebugProvider } from "@/components/DebugContext";
+import UpdateBanner from "@/components/UpdateBanner";
 import {
   LayoutDashboard,
   Factory,
