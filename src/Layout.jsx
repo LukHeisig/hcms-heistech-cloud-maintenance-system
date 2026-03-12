@@ -308,6 +308,7 @@ function LayoutContent({ children }) {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
+      userRef.current = currentUser; // Sync ref pro NFC callback
     } catch (error) {
       console.error("Error loading user:", error);
     }
