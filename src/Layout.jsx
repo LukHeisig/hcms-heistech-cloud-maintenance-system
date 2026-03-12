@@ -160,8 +160,9 @@ function LayoutContent({ children }) {
               }
 
               // Check permissions for non-admins
-              if (user?.user_type !== "admin" && user?.user_type !== "superAdmin") {
-                  if (line.company_id !== user.company_id) {
+              const currentUser = userRef.current;
+              if (currentUser?.user_type !== "admin" && currentUser?.user_type !== "superAdmin") {
+                  if (line.company_id !== currentUser?.company_id) {
                       log(`⛔ Nemáte oprávnění k této lince (Jiné ID podniku)`);
                       continue;
                   }
