@@ -172,7 +172,7 @@ function LayoutContent({ children }) {
 
               // Našli jsme platný bod s existujícím strojem a linkou
               let url;
-              if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
+              if (currentUser?.user_type === "admin" || currentUser?.user_type === "superAdmin") {
                   const companyId = line?.company_id;
                   url = `Dashboard?company=${companyId}&line=${line?.id}&machine=${machine.id}&point=${point.id}&nfc_scanned=true`;
               } else {
