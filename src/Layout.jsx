@@ -218,7 +218,11 @@ function LayoutContent({ children }) {
 
     } catch (error) {
       console.error("NFC scan initiation error:", error);
-      log(`Chyba inicializace: ${error.message}`);
+      if (error.name === "NotAllowedError" || error.message?.includes("permission")) {
+        log(`⛔ NFC oprávnění odmítnuto. Povolte NFC v nastavení prohlížeče a zkuste znovu.`);
+      } else {
+        log(`Chyba inicializace: ${error.message}`);
+      }
       setIsNfcScanning(false);
       await saveNfcLogToDb("init_error", "init_error");
     }
