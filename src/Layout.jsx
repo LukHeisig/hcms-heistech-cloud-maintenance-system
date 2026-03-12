@@ -65,6 +65,7 @@ function LayoutContent({ children }) {
   const [nfcSupported, setNfcSupported] = useState(false);
   const [nfcLogs, setNfcLogs] = useState([]);
   const nfcLogsRef = useRef([]); // Pro přístup k logům v callbacku
+  const userRef = useRef(null); // Pro přístup k user v NFC callbacku (closure fix)
 
   useEffect(() => {
     loadUser();
