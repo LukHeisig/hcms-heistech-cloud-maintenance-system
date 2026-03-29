@@ -220,11 +220,9 @@ export default function Machine() {
   const { data: records = [] } = useQuery({
     queryKey: ["records", machineId],
     queryFn: async () => {
-        const ids = controlPoints.map(p => p.id);
-        const arrays = await Promise.all(ids.map(id => base44.entities.ControlRecord.filter({ control_point_id: id }, "-performed_at", 50)));
-        const all = arrays.flat();
-        all.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-        return all;
+        const all = await base44.entities.ControlRecord.list("-performed_at", 5000);
+        const cpIds = new Set(controlPoints.map(p => p.id));
+        return all.filter(r => cpIds.has(r.control_point_id));
     },
     enabled: !!machineId && controlPoints.length > 0,
     staleTime: 1000 * 60 * 5,

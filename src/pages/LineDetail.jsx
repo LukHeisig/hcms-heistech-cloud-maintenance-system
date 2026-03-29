@@ -118,17 +118,8 @@ export default function LineDetail() {
   });
 
   const { data: allRecords = [] } = useQuery({
-    queryKey: ["allRecords", lineId],
-    queryFn: async () => {
-      const machinesData = await base44.entities.Machine.filter({ line_id: lineId });
-      const points = await base44.entities.ControlPoint.list(null, 2000);
-      const linePointIds = points.filter(p => machinesData.some(m => m.id === p.machine_id)).map(p => p.id);
-      const arrays = await Promise.all(linePointIds.map(id => base44.entities.ControlRecord.filter({ control_point_id: id }, "-performed_at", 50)));
-      const all = arrays.flat();
-      all.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-      return all;
-    },
-    enabled: !!lineId,
+    queryKey: ["allRecords"],
+    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 5000),
     staleTime: 300000,
   });
 
