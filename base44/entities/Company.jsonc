@@ -1,0 +1,86 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev podniku"
+    },
+    "address": {
+      "type": "string",
+      "description": "Adresa podniku"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Kontaktn\u00ed osoba"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "enable_demip": {
+      "type": "boolean",
+      "default": true,
+      "description": "Povolit modul DEMIP (Kontroln\u00ed body, maz\u00e1n\u00ed)"
+    },
+    "enable_maintenance": {
+      "type": "boolean",
+      "default": true,
+      "description": "Povolit modul \u00dadr\u017eba"
+    },
+    "enable_parts": {
+      "type": "boolean",
+      "default": true,
+      "description": "Povolit modul N\u00e1hradn\u00ed d\u00edly"
+    },
+    "enable_vibration": {
+      "type": "boolean",
+      "default": true,
+      "description": "Povolit modul Vibrodiagnostika"
+    },
+    "enable_thermo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Povolit modul Termodiagnostika"
+    },
+    "enable_tribo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Povolit modul Tribodiagnostika"
+    },
+    "allow_manual_confirmation": {
+      "type": "boolean",
+      "default": true,
+      "description": "Povolit manu\u00e1ln\u00ed potvrzen\u00ed kontroly (bez NFC)"
+    },
+    "force_technician_demip_mobile": {
+      "type": "boolean",
+      "default": false,
+      "description": "Vynutit re\u017eim DEMIP pro techniky na mobiln\u00edch za\u0159\u00edzen\u00edch"
+    },
+    "overdue_visualization_type": {
+      "type": "string",
+      "enum": [
+        "traffic_light",
+        "two_colors"
+      ],
+      "default": "two_colors",
+      "description": "Zp\u016fsob vizualizace p\u0159ekro\u010den\u00ed intervalu"
+    },
+    "overdue_tolerance_percent": {
+      "type": "number",
+      "default": 4,
+      "description": "Tolerance v procentech pro semafor (\u017elut\u00e1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

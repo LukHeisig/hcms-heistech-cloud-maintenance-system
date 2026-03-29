@@ -1,0 +1,58 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "superAdmin",
+        "admin",
+        "manager",
+        "technician"
+      ],
+      "description": "Role u\u017eivatele v syst\u00e9mu"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID podniku (pro manager a technician)"
+    },
+    "assigned_company_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID p\u0159i\u0159azen\u00fdch podnik\u016f (pouze pro admin)"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefonn\u00ed \u010d\u00edslo"
+    },
+    "custom_display_name": {
+      "type": "string",
+      "description": "Vlastn\u00ed zobrazovan\u00e9 jm\u00e9no (pokud je pr\u00e1zdn\u00e9, pou\u017eije se full_name)"
+    },
+    "last_active_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u010casov\u00e1 zna\u010dka posledn\u00ed aktivity u\u017eivatele v syst\u00e9mu"
+    },
+    "last_audit_log_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u010casov\u00e1 zna\u010dka posledn\u00edho z\u00e1pisu do AuditLogu (pro throttling)"
+    },
+    "auto_logout_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Povolit automatick\u00e9 odhl\u00e1\u0161en\u00ed p\u0159i ne\u010dinnosti"
+    },
+    "auto_logout_minutes": {
+      "type": "number",
+      "default": 30,
+      "description": "Po\u010det minut ne\u010dinnosti pro automatick\u00e9 odhl\u00e1\u0161en\u00ed"
+    }
+  },
+  "required": [
+    "user_type"
+  ]
+}

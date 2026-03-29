@@ -1,0 +1,66 @@
+{
+  "name": "LineCheckRecord",
+  "type": "object",
+  "properties": {
+    "line_id": {
+      "type": "string",
+      "description": "ID linky"
+    },
+    "section_id": {
+      "type": "string",
+      "description": "ID sekce kontroln\u00edch bod\u016f"
+    },
+    "check_point_id": {
+      "type": "string",
+      "description": "ID kontroln\u00edho bodu"
+    },
+    "defect_description": {
+      "type": "string",
+      "description": "Popis z\u00e1vady"
+    },
+    "device_status": {
+      "type": "string",
+      "enum": [
+        "V provozu",
+        "Opraveno",
+        "Stoj\u00ed",
+        "\u010cek\u00e1 na opravu"
+      ],
+      "description": "Sou\u010dasn\u00fd stav za\u0159\u00edzen\u00ed"
+    },
+    "note": {
+      "type": "string",
+      "description": "Pozn\u00e1mka"
+    },
+    "spare_part_used": {
+      "type": "string",
+      "description": "Spot\u0159ebovan\u00fd n\u00e1hradn\u00ed d\u00edl"
+    },
+    "downtime_estimate": {
+      "type": "string",
+      "enum": [
+        "Hned za provozu",
+        "O p\u0159est\u00e1vce",
+        "V\u00edkend",
+        "Vlastn\u00ed \u010das"
+      ],
+      "description": "\u010casov\u00fd odhad odst\u00e1vky"
+    },
+    "downtime_hours": {
+      "type": "number",
+      "description": "Po\u010det hodin odst\u00e1vky (pokud je vlastn\u00ed \u010das)"
+    },
+    "planned_downtime_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum pl\u00e1novan\u00e9 odst\u00e1vky"
+    }
+  },
+  "required": [
+    "line_id",
+    "section_id",
+    "check_point_id",
+    "defect_description",
+    "device_status"
+  ]
+}

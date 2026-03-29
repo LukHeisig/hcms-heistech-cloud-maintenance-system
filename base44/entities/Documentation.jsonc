@@ -1,0 +1,45 @@
+{
+  "name": "Documentation",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje (voliteln\u00e9, pokud je dokumentace pro stroj)"
+    },
+    "control_point_id": {
+      "type": "string",
+      "description": "ID kontroln\u00edho bodu (voliteln\u00e9, pokud je dokumentace pro kontroln\u00ed bod)"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL souboru"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "file_type": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "schema",
+        "document",
+        "other_file"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "drawing",
+        "operational",
+        "other"
+      ],
+      "description": "Kategorie dokumentace"
+    }
+  },
+  "required": [
+    "file_url",
+    "file_name",
+    "file_type",
+    "category"
+  ]
+}

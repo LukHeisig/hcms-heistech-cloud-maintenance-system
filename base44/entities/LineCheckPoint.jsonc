@@ -1,0 +1,27 @@
+{
+  "name": "LineCheckPoint",
+  "type": "object",
+  "properties": {
+    "section_id": {
+      "type": "string",
+      "description": "ID sekce"
+    },
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev kontroln\u00edho bodu (nap\u0159. Tlak vzduch)"
+    },
+    "check_parameters": {
+      "type": "string",
+      "description": "Parametry kontroly (nap\u0159. 'kontroln\u00ed ukazovky:viz pracovn\u00ed b\u011b\u017en\u00e1')"
+    },
+    "order_index": {
+      "type": "number",
+      "description": "Po\u0159ad\u00ed zobrazen\u00ed bodu v sekci",
+      "default": 0
+    }
+  },
+  "required": [
+    "section_id",
+    "name"
+  ]
+}
