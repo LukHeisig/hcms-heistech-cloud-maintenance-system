@@ -1,0 +1,49 @@
+{
+  "name": "PredictiveAnalysis",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "analysis_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Datum a \u010das proveden\u00ed anal\u00fdzy"
+    },
+    "failure_probability": {
+      "type": "number",
+      "description": "Pravd\u011bpodobnost selh\u00e1n\u00ed v % (0-100)"
+    },
+    "health_score": {
+      "type": "number",
+      "description": "Sk\u00f3re zdrav\u00ed stroje (0-100, kde 100 je perfektn\u00ed stav)"
+    },
+    "predicted_issues": {
+      "type": "string",
+      "description": "Potenci\u00e1ln\u00ed probl\u00e9my identifikovan\u00e9 AI"
+    },
+    "recommendations": {
+      "type": "string",
+      "description": "Doporu\u010den\u00e1 preventivn\u00ed opat\u0159en\u00ed"
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "D\u016fvody pro predikci (vysv\u011btlen\u00ed AI)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "acknowledged",
+        "resolved"
+      ],
+      "default": "active",
+      "description": "Stav upozorn\u011bn\u00ed"
+    }
+  },
+  "required": [
+    "machine_id",
+    "analysis_date"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "Issue",
+  "type": "object",
+  "properties": {
+    "control_point_id": {
+      "type": "string",
+      "description": "ID kontroln\u00edho bodu (voliteln\u00e9)"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje (voliteln\u00e9 - pro z\u00e1vady t\u00fdkaj\u00edc\u00ed se cel\u00e9ho stroje)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Popis z\u00e1vady"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL fotografie z\u00e1vady"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "reported",
+        "work_order_created",
+        "resolved"
+      ],
+      "default": "reported",
+      "description": "Stav z\u00e1vady"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Datum vy\u0159e\u0161en\u00ed"
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Email u\u017eivatele, kter\u00fd vy\u0159e\u0161il z\u00e1vadu"
+    },
+    "resolution_note": {
+      "type": "string",
+      "description": "Pozn\u00e1mka k vy\u0159e\u0161en\u00ed"
+    },
+    "planned_maintenance_id": {
+      "type": "string",
+      "description": "ID vytvo\u0159en\u00e9ho pracovn\u00edho p\u0159\u00edkazu (PlannedMaintenance)"
+    }
+  },
+  "required": [
+    "description"
+  ]
+}

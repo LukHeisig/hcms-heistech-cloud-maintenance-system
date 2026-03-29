@@ -1,0 +1,28 @@
+{
+  "name": "VibrationTextTemplate",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short title/label for the template"
+    },
+    "content": {
+      "type": "string",
+      "description": "The text content"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "findings",
+        "recommendation",
+        "conclusion"
+      ],
+      "description": "Which field this template is for"
+    }
+  },
+  "required": [
+    "title",
+    "content",
+    "type"
+  ]
+}

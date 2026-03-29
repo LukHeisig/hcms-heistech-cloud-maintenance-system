@@ -1,0 +1,44 @@
+{
+  "name": "VibrationJob",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "order_number": {
+      "type": "string",
+      "description": "\u010c\u00edslo zak\u00e1zky"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum m\u011b\u0159en\u00ed"
+    },
+    "technician": {
+      "type": "string",
+      "description": "Technik"
+    },
+    "description": {
+      "type": "string",
+      "description": "Popis probl\u00e9mu / Vstupn\u00ed podm\u00ednky"
+    },
+    "findings": {
+      "type": "string",
+      "description": "N\u00e1lez"
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "Doporu\u010den\u00ed"
+    },
+    "conclusion": {
+      "type": "string",
+      "description": "Z\u00e1v\u011bry"
+    }
+  },
+  "required": [
+    "machine_id",
+    "order_number",
+    "date"
+  ]
+}

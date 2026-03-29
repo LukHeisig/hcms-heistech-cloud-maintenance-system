@@ -1,0 +1,49 @@
+{
+  "name": "ThermoSettings",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "ID of the company"
+    },
+    "technicians": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "qualification": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "List of available technicians"
+    },
+    "diagnostician_name": {
+      "type": "string",
+      "description": "Default diagnostician name"
+    },
+    "diagnostician_qualification": {
+      "type": "string",
+      "description": "Default qualification"
+    },
+    "camera_model": {
+      "type": "string",
+      "description": "IR Camera Model"
+    },
+    "camera_manufacturer": {
+      "type": "string",
+      "description": "IR Camera Manufacturer"
+    },
+    "calibration_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last calibration"
+    }
+  },
+  "required": [
+    "company_id"
+  ]
+}

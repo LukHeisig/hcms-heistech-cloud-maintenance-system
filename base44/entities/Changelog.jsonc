@@ -1,0 +1,39 @@
+{
+  "name": "Changelog",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Nadpis novinky"
+    },
+    "description": {
+      "type": "string",
+      "description": "Popis zm\u011bn (podporuje Markdown)"
+    },
+    "release_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum vyd\u00e1n\u00ed"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "feature",
+        "fix",
+        "improvement",
+        "announcement"
+      ],
+      "default": "improvement",
+      "description": "Typ zm\u011bny"
+    },
+    "version": {
+      "type": "string",
+      "description": "Verze (nap\u0159. 1.2.0)"
+    }
+  },
+  "required": [
+    "title",
+    "release_date",
+    "type"
+  ]
+}

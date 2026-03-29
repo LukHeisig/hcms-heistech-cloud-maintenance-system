@@ -1,0 +1,97 @@
+{
+  "name": "Machine",
+  "type": "object",
+  "properties": {
+    "line_id": {
+      "type": "string",
+      "description": "ID linky"
+    },
+    "parent_id": {
+      "type": "string",
+      "description": "ID nad\u0159azen\u00e9ho stroje (pokud je toto pod\u0159\u00edzen\u00e1 sou\u010d\u00e1st/rozvad\u011b\u010d)"
+    },
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev stroje nebo sekce linky"
+    },
+    "description": {
+      "type": "string"
+    },
+    "asset_type": {
+      "type": "string",
+      "enum": [
+        "machine",
+        "line_section"
+      ],
+      "default": "machine",
+      "description": "Typ z\u00e1znamu - fyzick\u00fd stroj nebo sekce linky pro \u00fadr\u017ebu"
+    },
+    "inventory_number": {
+      "type": "string",
+      "description": "Invent\u00e1rn\u00ed \u010d\u00edslo / intern\u00ed ozna\u010den\u00ed"
+    },
+    "sensor_id": {
+      "type": "string",
+      "description": "ID extern\u00edho senzoru (nap\u0159. AISSENS_001)"
+    },
+    "location": {
+      "type": "string",
+      "description": "Um\u00edst\u011bn\u00ed stroje (objekt/hala/sekce)"
+    },
+    "machine_type": {
+      "type": "string",
+      "enum": [
+        "press",
+        "conveyor",
+        "pump",
+        "fan",
+        "compressor",
+        "motor",
+        "gearbox",
+        "crane",
+        "robot",
+        "cnc_machine",
+        "welding_machine",
+        "switchboard",
+        "transformer",
+        "other"
+      ],
+      "description": "Typ za\u0159\u00edzen\u00ed (pouze pro asset_type=machine)"
+    },
+    "order_index": {
+      "type": "number",
+      "default": 0
+    },
+    "vibration_standard_id": {
+      "type": "string",
+      "description": "ID p\u0159i\u0159azen\u00e9 normy vibrac\u00ed"
+    },
+    "vibration_schema_id": {
+      "type": "string",
+      "description": "ID p\u0159i\u0159azen\u00e9ho sch\u00e9matu m\u011b\u0159en\u00ed (tabulky)"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL fotografie stroje pro vibra\u010dn\u00ed kartu"
+    },
+    "monitor_vibration": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sledov\u00e1no vibra\u010dn\u00ed diagnostikou"
+    },
+    "monitor_thermo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sledov\u00e1no termodiagnostikou"
+    },
+    "monitor_tribo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sledov\u00e1no tribodiagnostikou"
+    }
+  },
+  "required": [
+    "line_id",
+    "name"
+  ]
+}

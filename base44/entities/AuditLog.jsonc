@@ -1,0 +1,51 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "Company",
+        "Line",
+        "Machine",
+        "ControlPoint",
+        "Issue",
+        "User",
+        "Auth"
+      ],
+      "description": "Typ entity, kter\u00e1 byla zm\u011bn\u011bna"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID ovlivn\u011bn\u00e9 entity (voliteln\u00e9 pro Auth ud\u00e1losti)"
+    },
+    "changed_by": {
+      "type": "string",
+      "format": "email",
+      "description": "Email u\u017eivatele, kter\u00fd provedl zm\u011bnu"
+    },
+    "change_description": {
+      "type": "string",
+      "description": "Popis zm\u011bny"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "technician",
+        "manager",
+        "admin",
+        "superAdmin"
+      ],
+      "description": "Role u\u017eivatele v dob\u011b proveden\u00ed zm\u011bny"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID podniku u\u017eivatele (pro filtrov\u00e1n\u00ed podle hierarchie)"
+    }
+  },
+  "required": [
+    "entity_type",
+    "changed_by",
+    "change_description"
+  ]
+}

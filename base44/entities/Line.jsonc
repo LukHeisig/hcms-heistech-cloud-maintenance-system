@@ -1,0 +1,31 @@
+{
+  "name": "Line",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "ID podniku"
+    },
+    "name": {
+      "type": "string",
+      "description": "N\u00e1zev linky"
+    },
+    "description": {
+      "type": "string"
+    },
+    "responsible_person_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email odpov\u011bdn\u00e9 osoby za linku"
+    },
+    "order_index": {
+      "type": "number",
+      "description": "Po\u0159ad\u00ed zobrazen\u00ed",
+      "default": 0
+    }
+  },
+  "required": [
+    "company_id",
+    "name"
+  ]
+}
