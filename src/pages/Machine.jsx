@@ -220,17 +220,14 @@ export default function Machine() {
   const { data: records = [] } = useQuery({
     queryKey: ["records", machineId],
     queryFn: async () => {
-        // Fetch only records for this machine's control points (optimized)
-        // Since we can't filter by array of IDs in basic filter, we might need a custom function or multiple calls if strict
-        // But for now, let's keep it somewhat efficient but maybe increase page size slightly or rely on client filtering but only when needed
-        // Actually, fetching 500 global records is fine IF it's cached.
-        const allRecords = await base44.entities.ControlRecord.list("-performed_at", 500);
-        return allRecords.filter(record =>
-            controlPoints.some(point => point.id === record.control_point_id)
-        );
+        const ids = controlPoints.map(p => p.id);
+        const arrays = await Promise.all(ids.map(id => base44.entities.ControlRecord.filter({ control_point_id: id }, "-performed_at", 50)));
+        const all = arrays.flat();
+        all.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
+        return all;
     },
     enabled: !!machineId && controlPoints.length > 0,
-    staleTime: 1000 * 60 * 5, // Increased stale time to 5 minutes to reduce refetches
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: issues = [] } = useQuery({
