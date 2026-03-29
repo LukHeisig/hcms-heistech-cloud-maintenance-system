@@ -118,9 +118,18 @@ export default function LineDetail() {
   });
 
   const { data: allRecords = [] } = useQuery({
-    queryKey: ["allRecords"],
-    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 1000),
-    staleTime: 300000, // 5 minutes
+    queryKey: ["allRecords", lineId],
+    queryFn: async () => {
+      const machinesData = await base44.entities.Machine.filter({ line_id: lineId });
+      const points = await base44.entities.ControlPoint.list(null, 2000);
+      const linePointIds = points.filter(p => machinesData.some(m => m.id === p.machine_id)).map(p => p.id);
+      const arrays = await Promise.all(linePointIds.map(id => base44.entities.ControlRecord.filter({ control_point_id: id }, "-performed_at", 50)));
+      const all = arrays.flat();
+      all.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
+      return all;
+    },
+    enabled: !!lineId,
+    staleTime: 300000,
   });
 
   const { data: allIssues = [] } = useQuery({
@@ -281,14 +290,20 @@ export default function LineDetail() {
   };
 
   const getPointStatus = (point) => {
-    const pointRecords = records.filter((r) => r.control_point_id === point.id);
+    const pointRecords = records
+      .filter((r) => r.control_point_id === point.id)
+      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
     
     const vizType = company?.overdue_visualization_type || "two_colors";
     const tolerance = company?.overdue_tolerance_percent || 4;
     const interval = point.interval_hours || 0;
 
     let lastPerformed;
-    if (pointRecords.length > 0) {
+    if (pointRecords.length > 0 && point.first_confirmation_date) {
+      const lastRecordDate = new Date(pointRecords[0].performed_at);
+      const firstConfirmDate = new Date(point.first_confirmation_date);
+      lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
+    } else if (pointRecords.length > 0) {
       lastPerformed = new Date(pointRecords[0].performed_at);
     } else if (point.first_confirmation_date) {
       lastPerformed = new Date(point.first_confirmation_date);
