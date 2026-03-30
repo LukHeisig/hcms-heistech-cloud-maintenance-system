@@ -175,25 +175,25 @@ function parseAissensData(bytes) {
   // Header layout (19 data bytes total):
   //   [0-7]  timestamp uint64BE
   //   [8]    status_code
-  //   [9]    battery_info: upper nibble = level (0-4)
-  //   [10-11] RSSI as Int16BE (dBm, e.g. 0x0039 = 57 → displayed as positive)
-  //   [12-13] temperature raw uint16BE → temp = raw * 0.4625 (empirical: 48→22.1°C)
-  //   [14-15] reserved / interval
-  //   [16-17] reserved
+  //   [9]    reserved (0x00)
+  //   [10]   RSSI uint8 (magnitude, e.g. 57 for S9IMP)
+  //   [11]   reserved
+  //   [12]   temperature raw uint8 → temp = raw * 0.4625 (empirical: 48→22.2°C)
+  //   [13]   reserved
+  //   [14]   interval or unknown
+  //   [15-16] reserved
   //   [17-18] last ADC uint16BE → voltage = raw * 0.001745 (empirical: 1975→3.449V)
   else if (type === 4) {
     if (data.length < 9) return result;
     result.timestamp_unix = readUint64BE(data, 0);
     result.status_code = data[8];
     if (data.length >= 19) {
-      result.battery_level = (data[9] >> 4) & 0x0F;
-      const rssiRaw = (data[10] << 8) | data[11];
-      result.rssi = rssiRaw;  // stored as-is; display layer shows it as dBm
-      const tempRaw = (data[12] << 8) | data[13];
+      result.rssi = data[10];  // RSSI magnitude as uint8
+      const tempRaw = data[12];
       result.temperature = Math.round(tempRaw * 0.4625 * 10) / 10;
       const lastAdc = (data[17] << 8) | data[18];
       result.battery_voltage = Math.round(lastAdc * 0.001745 * 1000) / 1000;
-      console.log(`[Type4] battery_level=${result.battery_level} rssiRaw=${rssiRaw} tempRaw=${tempRaw} temp=${result.temperature} lastAdc=${lastAdc} voltage=${result.battery_voltage}`);
+      console.log(`[Type4] rssi=${result.rssi} tempRaw=${tempRaw} temp=${result.temperature} lastAdc=${lastAdc} voltage=${result.battery_voltage}`);
     }
   }
 
@@ -220,17 +220,12 @@ function parseAissensData(bytes) {
     if (data.length < 20) return result;
     result.timestamp_unix = readUint64BE(data, 0);
 
-    result.battery_level = (data[9] >> 4) & 0x0F;  // upper nibble
-
-    const lastAdc = (data[12] << 8) | data[13];
-    result.battery_voltage = adcToVoltage(lastAdc);
-
-    const tempRaw = readInt16BE(data, 14);
-    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
-
+    // Type 0 header does NOT carry reliable battery/temp in the same ADC format.
+    // Battery & temperature come from Type 4 (Hibernate/Wakeup) packets instead.
+    // Only extract interval and sample_rate from the header.
     result.interval = (data[16] << 8) | data[17];
 
-    console.log(`[Type0] battery_level=${result.battery_level} lastAdc=${lastAdc} voltage=${result.battery_voltage} tempRaw=${tempRaw} temp=${result.temperature} interval=${result.interval} dataLen=${data.length}`);
+    console.log(`[Type0] interval=${result.interval} dataLen=${data.length}`);
 
     const samplesOffset = 20;
     const remainingBytes = data.length - samplesOffset;
