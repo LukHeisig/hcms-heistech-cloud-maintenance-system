@@ -290,16 +290,19 @@ Deno.serve(async (req) => {
     const updates = {};
     
     console.log(`[computeSensorMetrics] Computing for ID=${sensorDataId}, rawZ.length=${rawZ.length}`);
+    console.log(`[computeSensorMetrics] rawX.length=${rawX.length}, rawY.length=${rawY.length}`);
     
     // RMS Z a Peak Z z akceleračních dat
     if (rawZ.length > 0) {
       const { rms: rmsZ_ms2, peak: peakZ_ms2 } = calcAveragedRMS_Peak(rawZ, Math.max(2, Math.floor(rawZ.length / 100)));
       console.log(`[computeSensorMetrics] RMS=${rmsZ_ms2} Peak=${peakZ_ms2}`);
-      if (rmsZ_ms2 !== null && rmsZ_ms2 > 0) {
+      if (rmsZ_ms2 !== null) {
         updates.rms_z_g = Math.round((rmsZ_ms2 / G_FACTOR) * 10000) / 10000;
+        console.log(`[computeSensorMetrics] Set rms_z_g=${updates.rms_z_g}`);
       }
-      if (peakZ_ms2 !== null && peakZ_ms2 > 0) {
+      if (peakZ_ms2 !== null) {
         updates.peak_z_g = Math.round((peakZ_ms2 / G_FACTOR) * 10000) / 10000;
+        console.log(`[computeSensorMetrics] Set peak_z_g=${updates.peak_z_g}`);
       }
     }
     
