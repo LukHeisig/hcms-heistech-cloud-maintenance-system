@@ -40,8 +40,8 @@ function StatusBadge({ lastSeen }) {
   return <Badge className="bg-red-100 text-red-600 border-red-200 border">Offline</Badge>;
 }
 
-// OA Values table with persistent cache per sensor
-function OAValuesTable({ statsData }) {
+// Metrics table with all calculated values per sensor
+function MetricsTable({ statsData }) {
   const cacheRef = useRef({});
 
   useEffect(() => {
@@ -49,18 +49,22 @@ function OAValuesTable({ statsData }) {
     statsData.forEach(row => {
       if (!cacheRef.current[row.sensor_id]) cacheRef.current[row.sensor_id] = {};
       const c = cacheRef.current[row.sensor_id];
-      if (row.oa_x != null && c.oa_ts == null || (row.created_date > (c.oa_ts || ""))) {
-        if (row.oa_x != null) { c.oa_x = row.oa_x; c.oa_y = row.oa_y; c.oa_z = row.oa_z; c.oa_ts = row.created_date; }
+      
+      // Store latest values for each metric
+      if (row.oa_x != null && (!c.oa_ts || row.created_date > c.oa_ts)) {
+        c.oa_x = row.oa_x; c.oa_y = row.oa_y; c.oa_z = row.oa_z; c.oa_ts = row.created_date;
       }
-      if (row.oa_acc_z != null) {
-        if (c.oa_acc_z_ts == null || row.created_date > c.oa_acc_z_ts) {
-          c.oa_acc_z = row.oa_acc_z; c.oa_acc_z_ts = row.created_date;
-        }
+      if (row.rms_z_g != null && (!c.rms_ts || row.created_date > c.rms_ts)) {
+        c.rms_z_g = row.rms_z_g; c.peak_z_g = row.peak_z_g; c.rms_ts = row.created_date;
       }
-      if (row.rms_z_g != null || row.peak_z_g != null) {
-        if (c.z_ts == null || row.created_date > c.z_ts) {
-          c.rms_z_g = row.rms_z_g; c.peak_z_g = row.peak_z_g; c.z_ts = row.created_date;
-        }
+      if (row.vel_rms_x_mm_s != null && (!c.vel_ts || row.created_date > c.vel_ts)) {
+        c.vel_rms_x_mm_s = row.vel_rms_x_mm_s; 
+        c.vel_rms_y_mm_s = row.vel_rms_y_mm_s; 
+        c.vel_rms_z_mm_s = row.vel_rms_z_mm_s; 
+        c.vel_ts = row.created_date;
+      }
+      if (row.env_rms_z != null && (!c.env_ts || row.created_date > c.env_ts)) {
+        c.env_rms_z = row.env_rms_z; c.env_ts = row.created_date;
       }
     });
   }, [statsData]);
@@ -70,14 +74,12 @@ function OAValuesTable({ statsData }) {
     return ids.map(id => ({ sensor_id: id, ...cacheRef.current[id] }));
   }, [statsData]);
 
-  const hasRMSData = sensors.some(s => s.rms_z_g != null || s.peak_z_g != null);
-
   return (
     <Card className="mt-6">
       <CardHeader className="border-b border-slate-100">
         <CardTitle className="flex items-center gap-2 text-base">
           <Activity className="w-5 h-5 text-purple-600" />
-          RMS a Peak Z (poslední batch)
+          Přehled všech metrик (poslední hodnoty)
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -86,27 +88,35 @@ function OAValuesTable({ statsData }) {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
-                <th className="text-left p-3 font-semibold text-slate-600">RMS Z (g)</th>
-                <th className="text-left p-3 font-semibold text-slate-600">Peak Z (g)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">OA X (m/s²)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">OA Y (m/s²)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">OA Z (m/s²)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">RMS Z (g)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">Peak Z (g)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">Vel RMS X (mm/s)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">Vel RMS Y (mm/s)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">Vel RMS Z (mm/s)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">Env RMS Z</th>
               </tr>
             </thead>
             <tbody>
               {sensors.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="p-4 text-center text-slate-400">Žádný senzor nejsou dostupné</td>
-                </tr>
-              ) : !hasRMSData ? (
-                <tr>
-                  <td colSpan="3" className="p-4 text-center text-slate-400 text-sm">
-                    Čekání na data Raw typu... (staré záznamy data nemají)
-                  </td>
+                  <td colSpan="10" className="p-4 text-center text-slate-400">Žádná data dostupná</td>
                 </tr>
               ) : (
                 sensors.map(s => (
                   <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
-                    <td className="p-3">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
-                    <td className="p-3 font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
+                    <td className="p-3 text-center text-slate-600">{s.oa_x != null ? s.oa_x.toFixed(4) : "–"}</td>
+                    <td className="p-3 text-center text-slate-600">{s.oa_y != null ? s.oa_y.toFixed(4) : "–"}</td>
+                    <td className="p-3 text-center text-slate-600">{s.oa_z != null ? s.oa_z.toFixed(4) : "–"}</td>
+                    <td className="p-3 text-center">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
+                    <td className="p-3 text-center font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
+                    <td className="p-3 text-center text-slate-600">{s.vel_rms_x_mm_s != null ? s.vel_rms_x_mm_s.toFixed(3) : "–"}</td>
+                    <td className="p-3 text-center text-slate-600">{s.vel_rms_y_mm_s != null ? s.vel_rms_y_mm_s.toFixed(3) : "–"}</td>
+                    <td className="p-3 text-center text-slate-600">{s.vel_rms_z_mm_s != null ? s.vel_rms_z_mm_s.toFixed(3) : "–"}</td>
+                    <td className="p-3 text-center text-slate-600">{s.env_rms_z != null ? s.env_rms_z.toFixed(4) : "–"}</td>
                   </tr>
                 ))
               )}
@@ -120,6 +130,7 @@ function OAValuesTable({ statsData }) {
 
 export default function MqttDashboard() {
   const navigate = useNavigate();
+  const [selectedSensorId, setSelectedSensorId] = useState(null);
 
   // Fetch last 100 SensorData records, refresh every 5s
   const { data: statsData = [], isLoading: loadingStats } = useQuery({
@@ -171,6 +182,28 @@ export default function MqttDashboard() {
     const cutoff = Date.now() - 86400000;
     return activeSensors.filter(s => s.lastSeen && new Date(s.lastSeen).getTime() > cutoff).length;
   }, [activeSensors]);
+
+  // Auto-select first sensor if none selected
+  const activeSensorId = selectedSensorId || activeSensors[0]?.sensor_id;
+
+  // Trend data for selected sensor
+  const trendData = useMemo(() => {
+    if (!activeSensorId) return [];
+    return statsData
+      .filter(r => r.sensor_id === activeSensorId)
+      .slice()
+      .reverse()
+      .slice(0, 50)
+      .map((r, i) => ({
+        t: i,
+        oa_z: r.oa_z,
+        rms_z: r.rms_z_g,
+        peak_z: r.peak_z_g,
+        vel_z: r.vel_rms_z_mm_s,
+        env_z: r.env_rms_z,
+        time: new Date(r.created_date).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+      }));
+  }, [statsData, activeSensorId]);
 
   return (
     <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
@@ -303,8 +336,95 @@ export default function MqttDashboard() {
           </CardContent>
         </Card>
 
-        {/* OA Values */}
-        <OAValuesTable statsData={statsData} />
+        {/* Metrics Table */}
+        <MetricsTable statsData={statsData} />
+
+        {/* Trend Charts */}
+        {activeSensorId && trendData.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader className="border-b border-slate-100">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart2 className="w-5 h-5 text-green-600" />
+                Trend metrík — {activeSensorId}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-slate-600">Vybrat senzor:</label>
+                <select
+                  value={activeSensorId}
+                  onChange={(e) => setSelectedSensorId(e.target.value)}
+                  className="mt-2 w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                >
+                  {activeSensors.map(s => (
+                    <option key={s.sensor_id} value={s.sensor_id}>{s.sensor_id}</option>
+                  ))}
+                </select>
+              </div>
+
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart
+                  data={trendData}
+                  margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="t" tick={{ fontSize: 10 }} />
+                  <YAxis label={{ value: "jednotky", angle: -90, position: "insideLeft" }} />
+                  <Tooltip 
+                    labelFormatter={(i) => trendData[i]?.time || i}
+                    formatter={(v) => v != null ? v.toFixed(4) : "–"}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="oa_z"
+                    stroke="#06b6d4"
+                    dot={false}
+                    strokeWidth={1.5}
+                    isAnimationActive={false}
+                    name="OA Z (m/s²)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="rms_z"
+                    stroke="#16a34a"
+                    dot={false}
+                    strokeWidth={1.5}
+                    isAnimationActive={false}
+                    name="RMS Z (g)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="peak_z"
+                    stroke="#ea580c"
+                    dot={false}
+                    strokeWidth={1.5}
+                    isAnimationActive={false}
+                    name="Peak Z (g)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="vel_z"
+                    stroke="#8b5cf6"
+                    dot={false}
+                    strokeWidth={1.5}
+                    isAnimationActive={false}
+                    name="Vel RMS Z (mm/s)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="env_z"
+                    stroke="#ec4899"
+                    dot={false}
+                    strokeWidth={1.5}
+                    isAnimationActive={false}
+                    name="Env RMS Z"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* RMS/Peak Z Trend Chart */}
         {statsData.length > 0 && (
