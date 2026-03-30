@@ -86,13 +86,23 @@ function applyBandpassFilter(signal, fs = 26700) {
 
 function calcAveragedVelocityRMS(velocityArray, numSegments = 10, isAlreadyInMmS = false) {
   if (!velocityArray || velocityArray.length === 0) return null;
-  const segmentSize = Math.floor(velocityArray.length / numSegments);
-  if (segmentSize < 1) return null;
+  
+  // Adjust segments for small arrays
+  const actualSegments = Math.max(1, Math.min(numSegments, velocityArray.length));
+  const segmentSize = Math.floor(velocityArray.length / actualSegments);
+  if (segmentSize < 1) {
+    // For very small arrays, just return RMS of whole array
+    let rms = calcRMS(velocityArray);
+    if (rms !== null && !isAlreadyInMmS) {
+      rms = rms * 1000;
+    }
+    return rms;
+  }
   
   const rmsValues = [];
-  for (let i = 0; i < numSegments; i++) {
+  for (let i = 0; i < actualSegments; i++) {
     const start = i * segmentSize;
-    const end = i === numSegments - 1 ? velocityArray.length : (i + 1) * segmentSize;
+    const end = i === actualSegments - 1 ? velocityArray.length : (i + 1) * segmentSize;
     const segment = velocityArray.slice(start, end);
     
     let rms = calcRMS(segment);
