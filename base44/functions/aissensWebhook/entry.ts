@@ -72,8 +72,8 @@ function parseAissensData(bytes) {
   if (type === 1) {
     if (data.length < 45) return result;
     result.timestamp_unix = readUint64BE(data, 0);
-    // status: data[8], battery_info: data[9]
-    result.battery_level = data[9] & 0x0F;
+    // status: data[8], battery_info: data[9] — upper nibble = level
+    result.battery_level = (data[9] >> 4) & 0x0F;
     const avgAdc = (data[10] << 8) | data[11];
     const lastAdc = (data[12] << 8) | data[13];
     result.battery_voltage = adcToVoltage(lastAdc);
@@ -139,7 +139,7 @@ function parseAissensData(bytes) {
   else if (type === 9) {
     if (data.length < 33) return result;
     result.timestamp_unix = readUint64BE(data, 0);
-    result.battery_level = data[9] & 0x0F;
+    result.battery_level = (data[9] >> 4) & 0x0F;
     const lastAdc = (data[12] << 8) | data[13];
     result.battery_voltage = adcToVoltage(lastAdc);
     const tempRaw = readInt16BE(data, 14);
@@ -196,23 +196,33 @@ function parseAissensData(bytes) {
   }
 
   // ── Type 0: Raw Data ─────────────────────────────────────────────────────
+  // Header layout (same as Type 1):
+  //   [0-7]  timestamp uint64BE
+  //   [8]    status
+  //   [9]    battery_info: upper nibble = level (0-4)
+  //   [10-11] avg ADC (uint16BE)
+  //   [12-13] last ADC (uint16BE) → voltage
+  //   [14-15] temperature raw Int16BE → °C = raw/256 + 28
+  //   [16-17] interval (uint16BE, seconds)
+  //   [18]   sample_rate code
+  //   [19]   reserved
+  //   [20..] Int16BE triplets: X, Y, Z per sample
   else if (type === 0) {
     if (data.length < 20) return result;
     result.timestamp_unix = readUint64BE(data, 0);
 
-    // bytes 8: status, 9: battery_info nibble
-    result.battery_level = data[9] & 0x0F;
+    result.battery_level = (data[9] >> 4) & 0x0F;  // upper nibble
 
-    // bytes 10-11: avg ADC, 12-13: last ADC
     const lastAdc = (data[12] << 8) | data[13];
     result.battery_voltage = adcToVoltage(lastAdc);
 
-    // bytes 14-15: temperature raw Int16BE
     const tempRaw = readInt16BE(data, 14);
     result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
 
-    // bytes 16: sample_rate code, 17: something, 18-19: num_samples or range
-    // After header (20 bytes): raw samples as Int16 triplets (X, Y, Z) each = 6 bytes
+    result.interval = (data[16] << 8) | data[17];
+
+    console.log(`[Type0] battery_level=${result.battery_level} lastAdc=${lastAdc} voltage=${result.battery_voltage} tempRaw=${tempRaw} temp=${result.temperature} interval=${result.interval} dataLen=${data.length}`);
+
     const samplesOffset = 20;
     const remainingBytes = data.length - samplesOffset;
     if (remainingBytes >= 6) {
