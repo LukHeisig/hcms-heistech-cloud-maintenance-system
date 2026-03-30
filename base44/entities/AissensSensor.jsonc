@@ -1,0 +1,72 @@
+{
+  "name": "AissensSensor",
+  "type": "object",
+  "properties": {
+    "sensor_id": {
+      "type": "string",
+      "description": "Unik\u00e1tn\u00ed ID senzoru (nap\u0159. S9IMP600001265H)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Vlastn\u00ed n\u00e1zev senzoru"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "ID p\u0159i\u0159azen\u00e9ho stroje"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Datum a \u010das posledn\u00edho p\u0159ijet\u00ed zpr\u00e1vy"
+    },
+    "last_report_type": {
+      "type": "number",
+      "description": "Typ posledn\u00edho reportu (0=Raw, 1=FFT, 3=Battery, 12=HeartBeat...)"
+    },
+    "last_battery_level": {
+      "type": "number",
+      "description": "Posledn\u00ed \u00farove\u0148 baterie (0-4)"
+    },
+    "last_battery_voltage": {
+      "type": "number",
+      "description": "Posledn\u00ed nap\u011bt\u00ed baterie v V"
+    },
+    "last_signal_strength": {
+      "type": "number",
+      "description": "Posledn\u00ed s\u00edla sign\u00e1lu Wi-Fi"
+    },
+    "last_temperature": {
+      "type": "number",
+      "description": "Posledn\u00ed teplota senzoru v \u00b0C"
+    },
+    "firmware_version": {
+      "type": "string",
+      "description": "Verze firmware senzoru"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model senzoru"
+    },
+    "mac_address": {
+      "type": "string",
+      "description": "MAC adresa senzoru"
+    },
+    "messages_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Celkov\u00fd po\u010det p\u0159ijat\u00fdch zpr\u00e1v"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Senzor je aktivn\u00ed"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Pozn\u00e1mky"
+    }
+  },
+  "required": [
+    "sensor_id"
+  ]
+}

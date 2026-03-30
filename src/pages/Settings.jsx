@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, FileText, Building2, Users } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Activity, FileText, Cpu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function Settings() {
@@ -54,19 +54,22 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Placeholder pro další nastavení */}
-          <Card className="opacity-60 border-dashed border-2">
+          {/* MQTT Senzory AISSENS */}
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-blue-500"
+            onClick={() => navigate(createPageUrl("MqttSensors"))}
+          >
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-slate-500">
-                <div className="p-2 bg-slate-100 rounded-lg">
-                  <FileText className="w-6 h-6 text-slate-400" />
+              <CardTitle className="flex items-center gap-3 text-slate-800">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Cpu className="w-6 h-6 text-blue-600" />
                 </div>
-                Šablony dokumentů
+                MQTT Senzory
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-500">
-                Připravujeme: Správa šablon pro protokoly a reporty.
+              <p className="text-sm text-slate-600">
+                Správa vibračních senzorů AISSENS připojených přes MQTT webhook. Přehled stavu, baterie, signálu a příjmu dat.
               </p>
             </CardContent>
           </Card>

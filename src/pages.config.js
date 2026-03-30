@@ -71,6 +71,7 @@ import LineDetail from './pages/LineDetail';
 import Lines from './pages/Lines';
 import Machine from './pages/Machine';
 import MobileHome from './pages/MobileHome';
+import MqttSensors from './pages/MqttSensors';
 import PendingApproval from './pages/PendingApproval';
 import Settings from './pages/Settings';
 import Setup from './pages/Setup';
@@ -105,6 +106,7 @@ export const PAGES = {
     "Lines": Lines,
     "Machine": Machine,
     "MobileHome": MobileHome,
+    "MqttSensors": MqttSensors,
     "PendingApproval": PendingApproval,
     "Settings": Settings,
     "Setup": Setup,
