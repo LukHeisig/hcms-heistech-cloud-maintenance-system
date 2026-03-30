@@ -49,6 +49,12 @@ export function UserStatistics({ users, allLogs, companies }) {
     staleTime: 60000,
   });
 
+  const { data: issues = [], isLoading: isLoadingIssues } = useQuery({
+    queryKey: ['issuesStats'],
+    queryFn: () => base44.entities.Issue.list('-created_date', 5000),
+    staleTime: 300000,
+  });
+
   const stats = useMemo(() => {
     const now = new Date();
     let startDate;
@@ -96,6 +102,7 @@ export function UserStatistics({ users, allLogs, companies }) {
         company_id: user.company_id,
         logins: 0,
         confirmations: 0,
+        issuesReported: 0,
         total: 0
       };
     });
@@ -116,15 +123,26 @@ export function UserStatistics({ users, allLogs, companies }) {
       }
     });
 
+    // Count reported issues
+    const relevantIssues = issues.filter(issue =>
+      new Date(issue.created_date) >= startDate
+    );
+    relevantIssues.forEach(issue => {
+      const email = issue.created_by?.toLowerCase();
+      if (email && userStats[email]) {
+        userStats[email].issuesReported++;
+      }
+    });
+
     // Convert to array and sort
     return Object.values(userStats)
       .map(stat => ({
         ...stat,
-        total: stat.logins + stat.confirmations
+        total: stat.logins + stat.confirmations + stat.issuesReported
       }))
       .sort((a, b) => b.confirmations - a.confirmations || b.logins - a.logins);
 
-  }, [users, authLogs, controlRecords, timeRange, companyFilter]);
+  }, [users, authLogs, controlRecords, issues, timeRange, companyFilter]);
 
   const chartData = useMemo(() => {
     return stats.slice(0, 10); // Top 10 users
@@ -153,7 +171,7 @@ export function UserStatistics({ users, allLogs, companies }) {
     // Add BOM for Excel to recognize UTF-8
     const BOM = "\uFEFF";
     
-    const headers = ["Jméno", "Email", "Role", "Firma", "Potvrzení", "Aktivita", "Celkem aktivita"];
+    const headers = ["Jméno", "Email", "Role", "Firma", "Potvrzení", "Závady nahlášeny", "Aktivita", "Celkem aktivita"];
     const rows = stats.map(user => {
         const companyName = companies?.find(c => c.id === user.company_id)?.name || "-";
         // Escape quotes and wrap in quotes for CSV safety
@@ -165,6 +183,7 @@ export function UserStatistics({ users, allLogs, companies }) {
             safe(user.role),
             safe(companyName),
             user.confirmations,
+            user.issuesReported,
             user.logins,
             user.total
         ].join(";");
@@ -182,7 +201,7 @@ export function UserStatistics({ users, allLogs, companies }) {
     document.body.removeChild(link);
   };
 
-  if (isLoadingRecords || isLoadingAuthLogs) {
+  if (isLoadingRecords || isLoadingAuthLogs || isLoadingIssues) {
     return (
         <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
@@ -258,6 +277,7 @@ export function UserStatistics({ users, allLogs, companies }) {
                   />
                   <Legend />
                   <Bar dataKey="confirmations" name="Potvrzení" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                  <Bar dataKey="issuesReported" name="Závady nahlášeny" fill="#f97316" radius={[4, 4, 0, 0]} maxBarSize={50} />
                   <Bar dataKey="logins" name="Aktivita" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
                 </BarChart>
               </ResponsiveContainer>
@@ -271,6 +291,7 @@ export function UserStatistics({ users, allLogs, companies }) {
                     <TableHead>Uživatel</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Potvrzení</TableHead>
+                    <TableHead className="text-right">Závady nahlášeny</TableHead>
                     <TableHead className="text-right">Aktivita</TableHead>
                     <TableHead className="text-right">Celkem aktivita</TableHead>
                   </TableRow>
@@ -286,13 +307,14 @@ export function UserStatistics({ users, allLogs, companies }) {
                       </TableCell>
                       <TableCell>{getRoleBadge(stat.role)}</TableCell>
                       <TableCell className="text-right font-bold text-green-600">{stat.confirmations}</TableCell>
-                      <TableCell className="text-right font-bold text-blue-600">{stat.logins}</TableCell>
-                      <TableCell className="text-right font-bold">{stat.total}</TableCell>
+                       <TableCell className="text-right font-bold text-orange-600">{stat.issuesReported}</TableCell>
+                       <TableCell className="text-right font-bold text-blue-600">{stat.logins}</TableCell>
+                       <TableCell className="text-right font-bold">{stat.total}</TableCell>
                     </TableRow>
                   ))}
                   {stats.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                        <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                             Žádná data pro vybrané období
                         </TableCell>
                     </TableRow>
