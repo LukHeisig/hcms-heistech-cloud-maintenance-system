@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,13 @@ export default function ControlPoint() {
   const cameraInputRef = useRef(null);
 
   const { isOnline, saveAction, getCachedData, setCachedData } = useOffline();
+  const [currentUser, setCurrentUser] = React.useState(null);
+
+  React.useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  const canDelete = currentUser?.user_type !== "technician";
 
   const { data: point } = useQuery({
     queryKey: ["controlPoint", pointId],
@@ -950,16 +957,18 @@ export default function ControlPoint() {
               >
                 Otevřít v nové záložce
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  setShowDocPreviewDialog(false);
-                  setDeleteDocId(selectedDocPreview?.id);
-                }}
-              >
-                <X className="w-4 h-4 mr-2" />
-                Smazat
-              </Button>
+              {canDelete && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setShowDocPreviewDialog(false);
+                    setDeleteDocId(selectedDocPreview?.id);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Smazat
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
