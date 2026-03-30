@@ -725,9 +725,7 @@ Deno.serve(async (req) => {
       battery_voltage: parsed.battery_voltage ?? null,
       rssi: parsed.rssi ?? null,
       interval: parsed.interval ?? null,
-      oa_x: parsed.oa_x ?? null,
-      oa_y: parsed.oa_y ?? null,
-      oa_z: parsed.oa_z ?? null,
+
       oa_acc_z: parsed.oa_acc_z ?? null,
       rms_z_g: parsed.rms_z_g ?? null,
       peak_z_g: parsed.peak_z_g ?? null,

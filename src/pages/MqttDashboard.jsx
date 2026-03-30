@@ -51,9 +51,6 @@ function MetricsTable({ statsData }) {
       const c = cacheRef.current[row.sensor_id];
       
       // Store latest values for each metric
-      if (row.oa_x != null && (!c.oa_ts || row.created_date > c.oa_ts)) {
-        c.oa_x = row.oa_x; c.oa_y = row.oa_y; c.oa_z = row.oa_z; c.oa_ts = row.created_date;
-      }
       if (row.rms_z_g != null && (!c.rms_ts || row.created_date > c.rms_ts)) {
         c.rms_z_g = row.rms_z_g; c.peak_z_g = row.peak_z_g; c.rms_ts = row.created_date;
       }
@@ -88,9 +85,6 @@ function MetricsTable({ statsData }) {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
-                <th className="text-center p-3 font-semibold text-slate-600">OA X (m/s²)</th>
-                <th className="text-center p-3 font-semibold text-slate-600">OA Y (m/s²)</th>
-                <th className="text-center p-3 font-semibold text-slate-600">OA Z (m/s²)</th>
                 <th className="text-center p-3 font-semibold text-slate-600">RMS Z (g)</th>
                 <th className="text-center p-3 font-semibold text-slate-600">Peak Z (g)</th>
                 <th className="text-center p-3 font-semibold text-slate-600">Vel RMS X (mm/s)</th>
@@ -102,15 +96,12 @@ function MetricsTable({ statsData }) {
             <tbody>
               {sensors.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="p-4 text-center text-slate-400">Žádná data dostupná</td>
+                  <td colSpan="7" className="p-4 text-center text-slate-400">Žádná data dostupná</td>
                 </tr>
               ) : (
                 sensors.map(s => (
                   <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
-                    <td className="p-3 text-center text-slate-600">{s.oa_x != null ? s.oa_x.toFixed(4) : "–"}</td>
-                    <td className="p-3 text-center text-slate-600">{s.oa_y != null ? s.oa_y.toFixed(4) : "–"}</td>
-                    <td className="p-3 text-center text-slate-600">{s.oa_z != null ? s.oa_z.toFixed(4) : "–"}</td>
                     <td className="p-3 text-center">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
                     <td className="p-3 text-center font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
                     <td className="p-3 text-center text-slate-600">{s.vel_rms_x_mm_s != null ? s.vel_rms_x_mm_s.toFixed(3) : "–"}</td>
@@ -196,7 +187,6 @@ export default function MqttDashboard() {
       .slice(0, 50)
       .map((r, i) => ({
         t: i,
-        oa_z: r.oa_z,
         rms_z: r.rms_z_g,
         peak_z: r.peak_z_g,
         vel_z: r.vel_rms_z_mm_s,
@@ -375,15 +365,6 @@ export default function MqttDashboard() {
                     formatter={(v) => v != null ? v.toFixed(4) : "–"}
                   />
                   <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="oa_z"
-                    stroke="#06b6d4"
-                    dot={false}
-                    strokeWidth={1.5}
-                    isAnimationActive={false}
-                    name="OA Z (m/s²)"
-                  />
                   <Line
                     type="monotone"
                     dataKey="rms_z"
