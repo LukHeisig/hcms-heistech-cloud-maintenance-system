@@ -86,6 +86,82 @@ function calcAveragedRMS_Peak(rawArray, numSegments = 10) {
   return { rms: avgRms, peak: avgPeak };
 }
 
+// Numerická integrace akcelerace na rychlost pomocí trapezoidní metody
+function accelerationToVelocity(accelArray, fs = 26700) {
+  if (!accelArray || accelArray.length < 2) return null;
+  
+  const dt = 1 / fs;
+  const velocity = [0]; // počáteční rychlost je 0
+  
+  for (let i = 1; i < accelArray.length; i++) {
+    // Trapezoidní integrace: v[n] = v[n-1] + (a[n-1] + a[n]) / 2 * dt
+    const avgAccel = (accelArray[i - 1] + accelArray[i]) / 2;
+    velocity.push(velocity[i - 1] + avgAccel * dt);
+  }
+  
+  return velocity;
+}
+
+// Jednoduchý bandpass filtr (high-pass 10Hz + low-pass 1000Hz)
+function applyBandpassFilter(signal, fs = 26700) {
+  // High-pass filtr 10 Hz
+  const Fc_high = 10;
+  const Rc_high = 1 / (2 * Math.PI * Fc_high);
+  const alpha_high = Rc_high / (Rc_high + 1 / fs);
+  
+  let highPassed = [];
+  let prevOut = 0;
+  let prevIn = signal[0];
+  
+  for (let i = 0; i < signal.length; i++) {
+    const out = alpha_high * (prevOut + signal[i] - prevIn);
+    highPassed.push(out);
+    prevOut = out;
+    prevIn = signal[i];
+  }
+  
+  // Low-pass filtr 1000 Hz
+  const Fc_low = 1000;
+  const Rc_low = 1 / (2 * Math.PI * Fc_low);
+  const alpha_low = Rc_low / (Rc_low + 1 / fs);
+  
+  let lowPassed = [];
+  prevOut = 0;
+  prevIn = highPassed[0];
+  
+  for (let i = 0; i < highPassed.length; i++) {
+    const out = alpha_low * (prevOut + highPassed[i] - prevIn);
+    lowPassed.push(out);
+    prevOut = out;
+    prevIn = highPassed[i];
+  }
+  
+  return lowPassed;
+}
+
+// Spočítá segmentovaný RMS z rychlosti v mm/s
+function calcAveragedVelocityRMS(velocityArray, numSegments = 10) {
+  if (!velocityArray || velocityArray.length === 0) return null;
+  
+  const segmentSize = Math.floor(velocityArray.length / numSegments);
+  if (segmentSize < 1) return null;
+  
+  const rmsValues = [];
+  const MM_PER_SECOND = 1000; // konverze z m/s na mm/s
+  
+  for (let i = 0; i < numSegments; i++) {
+    const start = i * segmentSize;
+    const end = i === numSegments - 1 ? velocityArray.length : (i + 1) * segmentSize;
+    const segment = velocityArray.slice(start, end);
+    
+    const rms = calcRMS(segment);
+    if (rms !== null) rmsValues.push(rms * MM_PER_SECOND); // m/s na mm/s
+  }
+  
+  // Vrátit průměrný RMS
+  return rmsValues.length > 0 ? rmsValues.reduce((a, b) => a + b) / rmsValues.length : null;
+}
+
 // High-pass filter (10 Hz) to remove DC component and low-freq drift
 // Fs = 26700 Hz, Fc = 10 Hz
 function applyHighPassFilter(samples) {
@@ -349,7 +425,27 @@ function parseAissensData(bytes) {
         result.peak_z_g = Math.round((peakZ_ms2 / G_FACTOR) * 10000) / 10000;
       }
       
-      console.log(`[Type0 RMS/Peak Z (segmentované)] RMS=${result.rms_z_g}g Peak=${result.peak_z_g}g`);
+      // Výpočet rychlosti vibrací RMS v pásmu 10-1000 Hz z bandpass filtrovaného signálu
+      // Aplikovat bandpass filtr (10-1000 Hz) na všechny tři osy
+      const rawX_filtered = applyBandpassFilter(rawX);
+      const rawY_filtered = applyBandpassFilter(rawY);
+      const rawZ_filtered = applyBandpassFilter(rawZ);
+      
+      // Integrovat akceleraci na rychlost
+      const velX = accelerationToVelocity(rawX_filtered);
+      const velY = accelerationToVelocity(rawY_filtered);
+      const velZ = accelerationToVelocity(rawZ_filtered);
+      
+      // Spočítat segmentovaný RMS rychlosti (mm/s) pro každou osu
+      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 10) : null;
+      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 10) : null;
+      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 10) : null;
+      
+      if (velRMS_X !== null) result.vel_rms_x_mm_s = Math.round(velRMS_X * 1000) / 1000;
+      if (velRMS_Y !== null) result.vel_rms_y_mm_s = Math.round(velRMS_Y * 1000) / 1000;
+      if (velRMS_Z !== null) result.vel_rms_z_mm_s = Math.round(velRMS_Z * 1000) / 1000;
+      
+      console.log(`[Type0 RMS/Peak Z] RMS=${result.rms_z_g}g Peak=${result.peak_z_g}g`);
     }
   }
 
@@ -438,6 +534,9 @@ Deno.serve(async (req) => {
       oa_acc_z: parsed.oa_acc_z ?? null,
       rms_z_g: parsed.rms_z_g ?? null,
       peak_z_g: parsed.peak_z_g ?? null,
+      vel_rms_x_mm_s: parsed.vel_rms_x_mm_s ?? null,
+      vel_rms_y_mm_s: parsed.vel_rms_y_mm_s ?? null,
+      vel_rms_z_mm_s: parsed.vel_rms_z_mm_s ?? null,
       has_fft: parsed.has_fft ?? false,
       has_raw: parsed.has_raw ?? false,
       num_samples: parsed.num_samples ?? null,

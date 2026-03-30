@@ -58,6 +58,18 @@
       "type": "number",
       "description": "Peak na ose Z v jednotkách g"
     },
+    "vel_rms_x_mm_s": {
+      "type": "number",
+      "description": "RMS rychlosti vibrací osa X v pásu 10-1000 Hz (mm/s)"
+    },
+    "vel_rms_y_mm_s": {
+      "type": "number",
+      "description": "RMS rychlosti vibrací osa Y v pásu 10-1000 Hz (mm/s)"
+    },
+    "vel_rms_z_mm_s": {
+      "type": "number",
+      "description": "RMS rychlosti vibrací osa Z v pásu 10-1000 Hz (mm/s)"
+    },
     "has_fft": {
       "type": "boolean",
       "default": false,
