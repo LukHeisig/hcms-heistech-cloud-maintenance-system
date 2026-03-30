@@ -9,6 +9,7 @@ import {
   BatteryFull, BatteryMedium, BatteryLow, Signal, RefreshCw,
   ArrowLeft, Database, BarChart2
 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { format, formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -56,14 +57,9 @@ function OAValuesTable({ statsData }) {
           c.oa_acc_z = row.oa_acc_z; c.oa_acc_z_ts = row.created_date;
         }
       }
-      if (row.rms_x_g != null) {
-        if (c.rms_ts == null || row.created_date > c.rms_ts) {
-          c.rms_x_g = row.rms_x_g; c.rms_y_g = row.rms_y_g; c.rms_z_g = row.rms_z_g; c.rms_ts = row.created_date;
-        }
-      }
-      if (row.peak_x_g != null) {
-        if (c.peak_ts == null || row.created_date > c.peak_ts) {
-          c.peak_x_g = row.peak_x_g; c.peak_y_g = row.peak_y_g; c.peak_z_g = row.peak_z_g; c.peak_ts = row.created_date;
+      if (row.rms_z_g != null || row.peak_z_g != null) {
+        if (c.z_ts == null || row.created_date > c.z_ts) {
+          c.rms_z_g = row.rms_z_g; c.peak_z_g = row.peak_z_g; c.z_ts = row.created_date;
         }
       }
     });
@@ -90,11 +86,7 @@ function OAValuesTable({ statsData }) {
             <thead className="bg-slate-50 border-b border-slate-200">
              <tr>
                <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
-               <th className="text-left p-3 font-semibold text-slate-600">RMS X (g)</th>
-               <th className="text-left p-3 font-semibold text-slate-600">RMS Y (g)</th>
                <th className="text-left p-3 font-semibold text-slate-600">RMS Z (g)</th>
-               <th className="text-left p-3 font-semibold text-slate-600">Peak X (g)</th>
-               <th className="text-left p-3 font-semibold text-slate-600">Peak Y (g)</th>
                <th className="text-left p-3 font-semibold text-slate-600">Peak Z (g)</th>
              </tr>
             </thead>
@@ -102,11 +94,7 @@ function OAValuesTable({ statsData }) {
              {sensors.map(s => (
                <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
                  <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
-                 <td className="p-3">{s.rms_x_g != null ? s.rms_x_g.toFixed(4) : "–"}</td>
-                 <td className="p-3">{s.rms_y_g != null ? s.rms_y_g.toFixed(4) : "–"}</td>
                  <td className="p-3">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
-                 <td className="p-3 font-semibold text-orange-600">{s.peak_x_g != null ? s.peak_x_g.toFixed(4) : "–"}</td>
-                 <td className="p-3 font-semibold text-orange-600">{s.peak_y_g != null ? s.peak_y_g.toFixed(4) : "–"}</td>
                  <td className="p-3 font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
                </tr>
              ))}
@@ -295,6 +283,61 @@ export default function MqttDashboard() {
 
         {/* OA Values */}
         <OAValuesTable statsData={statsData} />
+
+        {/* RMS/Peak Z Trend Chart */}
+        {statsData.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader className="border-b border-slate-100">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart2 className="w-5 h-5 text-green-600" />
+                Trend RMS Z a Peak Z
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart
+                  data={statsData
+                    .filter(r => r.rms_z_g != null || r.peak_z_g != null)
+                    .slice(-50)
+                    .map((r, i) => ({
+                      t: i,
+                      rms_z: r.rms_z_g,
+                      peak_z: r.peak_z_g,
+                      sensor: r.sensor_id,
+                    }))}
+                  margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="t" tick={{ fontSize: 10 }} />
+                  <YAxis label={{ value: "g", angle: -90, position: "insideLeft" }} />
+                  <Tooltip 
+                    formatter={(v) => v != null ? v.toFixed(4) : "–"}
+                    labelFormatter={(i) => `Index ${i}`}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="rms_z"
+                    stroke="#16a34a"
+                    dot={false}
+                    strokeWidth={2}
+                    isAnimationActive={false}
+                    name="RMS Z (g)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="peak_z"
+                    stroke="#ea580c"
+                    dot={false}
+                    strokeWidth={2}
+                    isAnimationActive={false}
+                    name="Peak Z (g)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stored Raw Messages */}
         <Card className="mt-6">

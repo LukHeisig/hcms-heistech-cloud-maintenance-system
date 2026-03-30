@@ -50,25 +50,9 @@
       "type": "number",
       "description": "RMS z acc_z FFT spektra (g,rms)"
     },
-    "rms_x_g": {
-      "type": "number",
-      "description": "RMS na ose X v jednotkách g"
-    },
-    "rms_y_g": {
-      "type": "number",
-      "description": "RMS na ose Y v jednotkách g"
-    },
     "rms_z_g": {
       "type": "number",
       "description": "RMS na ose Z v jednotkách g"
-    },
-    "peak_x_g": {
-      "type": "number",
-      "description": "Peak na ose X v jednotkách g"
-    },
-    "peak_y_g": {
-      "type": "number",
-      "description": "Peak na ose Y v jednotkách g"
     },
     "peak_z_g": {
       "type": "number",
