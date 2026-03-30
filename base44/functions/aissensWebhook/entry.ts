@@ -623,9 +623,15 @@ function parseAissensData(bytes) {
       rawY = applyHighPassFilter(rawY);
       rawZ = applyHighPassFilter(rawZ);
       
-      result.raw_x = rawX.map(v => Math.round(v * 100000) / 100000); // round to 5 decimals
-      result.raw_y = rawY.map(v => Math.round(v * 100000) / 100000);
-      result.raw_z = rawZ.map(v => Math.round(v * 100000) / 100000);
+      // Limit samples to first 5000 to avoid database field size issues
+      const maxSamples = 5000;
+      const trimmedX = rawX.slice(0, maxSamples);
+      const trimmedY = rawY.slice(0, maxSamples);
+      const trimmedZ = rawZ.slice(0, maxSamples);
+      
+      result.raw_x = trimmedX.map(v => Math.round(v * 100000) / 100000);
+      result.raw_y = trimmedY.map(v => Math.round(v * 100000) / 100000);
+      result.raw_z = trimmedZ.map(v => Math.round(v * 100000) / 100000);
       result.num_samples = numSamples;
       result.has_raw = true;
 

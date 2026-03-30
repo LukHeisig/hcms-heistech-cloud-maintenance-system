@@ -8,15 +8,24 @@ function calcRMS(arr) {
 
 function calcAveragedRMS_Peak(rawArray, numSegments = 10) {
   if (!rawArray || rawArray.length === 0) return { rms: null, peak: null };
-  const segmentSize = Math.floor(rawArray.length / numSegments);
-  if (segmentSize < 1) return { rms: null, peak: null };
+  
+  // Adjust num segments if array is too small
+  const actualSegments = Math.max(1, Math.min(numSegments, rawArray.length));
+  const segmentSize = Math.floor(rawArray.length / actualSegments);
+  if (segmentSize < 1) {
+    // If array is very small, just return whole array stats
+    return {
+      rms: calcRMS(rawArray),
+      peak: Math.max(...rawArray.map(Math.abs))
+    };
+  }
   
   const rmsValues = [];
   const peakValues = [];
   
-  for (let i = 0; i < numSegments; i++) {
+  for (let i = 0; i < actualSegments; i++) {
     const start = i * segmentSize;
-    const end = i === numSegments - 1 ? rawArray.length : (i + 1) * segmentSize;
+    const end = i === actualSegments - 1 ? rawArray.length : (i + 1) * segmentSize;
     const segment = rawArray.slice(start, end);
     
     const rms = calcRMS(segment);
@@ -249,23 +258,36 @@ Deno.serve(async (req) => {
     let rawX = [], rawY = [], rawZ = [];
     
     try {
-      if (data.raw_x_json) rawX = JSON.parse(data.raw_x_json);
-      if (data.raw_y_json) rawY = JSON.parse(data.raw_y_json);
-      if (data.raw_z_json) rawZ = JSON.parse(data.raw_z_json);
+      if (data.raw_x_json && typeof data.raw_x_json === 'string') {
+        rawX = JSON.parse(data.raw_x_json);
+        if (!Array.isArray(rawX)) rawX = [];
+      }
+      if (data.raw_y_json && typeof data.raw_y_json === 'string') {
+        rawY = JSON.parse(data.raw_y_json);
+        if (!Array.isArray(rawY)) rawY = [];
+      }
+      if (data.raw_z_json && typeof data.raw_z_json === 'string') {
+        rawZ = JSON.parse(data.raw_z_json);
+        if (!Array.isArray(rawZ)) rawZ = [];
+      }
     } catch (e) {
       console.error("Failed to parse raw data JSON:", e.message);
-      return Response.json({ error: 'Invalid raw data JSON' }, { status: 400 });
+      // Don't fail – just skip metric computation
+      return Response.json({ ok: true, skipped: 'Invalid raw data format' });
     }
     
     const updates = {};
     
+    console.log(`[computeSensorMetrics] Computing for ID=${sensorDataId}, rawZ.length=${rawZ.length}`);
+    
     // RMS Z a Peak Z z akceleračních dat
     if (rawZ.length > 0) {
-      const { rms: rmsZ_ms2, peak: peakZ_ms2 } = calcAveragedRMS_Peak(rawZ, 10);
-      if (rmsZ_ms2 !== null) {
+      const { rms: rmsZ_ms2, peak: peakZ_ms2 } = calcAveragedRMS_Peak(rawZ, Math.max(2, Math.floor(rawZ.length / 100)));
+      console.log(`[computeSensorMetrics] RMS=${rmsZ_ms2} Peak=${peakZ_ms2}`);
+      if (rmsZ_ms2 !== null && rmsZ_ms2 > 0) {
         updates.rms_z_g = Math.round((rmsZ_ms2 / G_FACTOR) * 10000) / 10000;
       }
-      if (peakZ_ms2 !== null) {
+      if (peakZ_ms2 !== null && peakZ_ms2 > 0) {
         updates.peak_z_g = Math.round((peakZ_ms2 / G_FACTOR) * 10000) / 10000;
       }
     }
