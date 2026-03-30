@@ -42,9 +42,9 @@ import {
   Building2,
   Factory,
   Settings,
-  FileText, // Added for generic files
-  File as FileIcon, // Added for generic files
-  FileImage // Added for image files
+  FileText,
+  File as FileIcon,
+  Image as FileImage
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
