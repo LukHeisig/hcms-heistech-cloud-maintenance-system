@@ -12,7 +12,7 @@
     },
     "timestamp_unix": {
       "type": "number",
-      "description": "UNIX timestamp z hlavi\u010dky senzoru (big-endian)"
+      "description": "UNIX timestamp z hlavi\u010dky senzoru"
     },
     "temperature": {
       "type": "number",
@@ -28,15 +28,15 @@
     },
     "rssi": {
       "type": "number",
-      "description": "S\u00edla sign\u00e1lu Wi-Fi (SignalStrength)"
+      "description": "S\u00edla sign\u00e1lu Wi-Fi"
     },
     "interval": {
       "type": "number",
-      "description": "Interval m\u011b\u0159en\u00ed v sekund\u00e1ch (ze Status reportu)"
+      "description": "Interval m\u011b\u0159en\u00ed v sekund\u00e1ch"
     },
     "oa_x": {
       "type": "number",
-      "description": "Overall Acceleration X (mm/s RMS z ISO-10816)"
+      "description": "Overall Acceleration X"
     },
     "oa_y": {
       "type": "number",
@@ -54,6 +54,27 @@
       "type": "boolean",
       "default": false,
       "description": "Zda zpr\u00e1va obsahuje FFT data"
+    },
+    "has_raw": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zda zpr\u00e1va obsahuje Raw vzorky"
+    },
+    "num_samples": {
+      "type": "number",
+      "description": "Po\u010det vzork\u016f v Raw Data"
+    },
+    "raw_x_json": {
+      "type": "string",
+      "description": "JSON pole surov\u00fdch vzork\u016f osy X (Int16)"
+    },
+    "raw_y_json": {
+      "type": "string",
+      "description": "JSON pole surov\u00fdch vzork\u016f osy Y (Int16)"
+    },
+    "raw_z_json": {
+      "type": "string",
+      "description": "JSON pole surov\u00fdch vzork\u016f osy Z (Int16)"
     },
     "mqtt_message_id": {
       "type": "string",

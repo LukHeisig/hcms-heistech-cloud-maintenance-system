@@ -199,11 +199,42 @@ function parseAissensData(bytes) {
   else if (type === 0) {
     if (data.length < 20) return result;
     result.timestamp_unix = readUint64BE(data, 0);
-    result.battery_level = data[17] & 0x0F;
-    const lastAdc = (data[18] << 8) | data[19];
+
+    // bytes 8: status, 9: battery_info nibble
+    result.battery_level = data[9] & 0x0F;
+
+    // bytes 10-11: avg ADC, 12-13: last ADC
+    const lastAdc = (data[12] << 8) | data[13];
     result.battery_voltage = adcToVoltage(lastAdc);
+
+    // bytes 14-15: temperature raw Int16BE
     const tempRaw = readInt16BE(data, 14);
     result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
+
+    // bytes 16: sample_rate code, 17: something, 18-19: num_samples or range
+    // After header (20 bytes): raw samples as Int16 triplets (X, Y, Z) each = 6 bytes
+    const samplesOffset = 20;
+    const remainingBytes = data.length - samplesOffset;
+    if (remainingBytes >= 6) {
+      const numSamples = Math.floor(remainingBytes / 6);
+      const rawX = [], rawY = [], rawZ = [];
+      for (let i = 0; i < numSamples; i++) {
+        const off = samplesOffset + i * 6;
+        rawX.push(readInt16BE(data, off));
+        rawY.push(readInt16BE(data, off + 2));
+        rawZ.push(readInt16BE(data, off + 4));
+      }
+      result.raw_x = rawX;
+      result.raw_y = rawY;
+      result.raw_z = rawZ;
+      result.num_samples = numSamples;
+      result.has_raw = true;
+
+      // Compute RMS from raw ADC counts
+      result.oa_x = Math.round(calcRMS(rawX) * 100) / 100;
+      result.oa_y = Math.round(calcRMS(rawY) * 100) / 100;
+      result.oa_z = Math.round(calcRMS(rawZ) * 100) / 100;
+    }
   }
 
   return result;
@@ -285,6 +316,11 @@ Deno.serve(async (req) => {
       oa_z: parsed.oa_z ?? null,
       oa_acc_z: parsed.oa_acc_z ?? null,
       has_fft: parsed.has_fft ?? false,
+      has_raw: parsed.has_raw ?? false,
+      num_samples: parsed.num_samples ?? null,
+      raw_x_json: parsed.has_raw ? JSON.stringify(parsed.raw_x) : null,
+      raw_y_json: parsed.has_raw ? JSON.stringify(parsed.raw_y) : null,
+      raw_z_json: parsed.has_raw ? JSON.stringify(parsed.raw_z) : null,
       mqtt_message_id: msgRecord.id,
     });
 

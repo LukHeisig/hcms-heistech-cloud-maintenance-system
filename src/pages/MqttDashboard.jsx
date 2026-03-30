@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Wifi, WifiOff, Activity, Cpu, MessageSquare, Thermometer,
   BatteryFull, BatteryMedium, BatteryLow, Signal, RefreshCw,
-  ArrowLeft, Database
+  ArrowLeft, Database, BarChart2
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -164,9 +164,14 @@ export default function MqttDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Button variant="ghost" size="sm" onClick={() => navigate(createPageUrl("MqttSensors"))} className="mb-2">
+            <div className="flex gap-2 mb-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate(createPageUrl("MqttSensors"))}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Zpět na správu senzorů
             </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(createPageUrl("RawSignalChart"))}>
+              <BarChart2 className="w-4 h-4 mr-2" /> Surový signál
+            </Button>
+          </div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
               <Cpu className="w-6 h-6 text-blue-600" />
               MQTT Dashboard — Live
