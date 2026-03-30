@@ -171,20 +171,29 @@ function parseAissensData(bytes) {
     result.battery_voltage = adcToVoltage(lastAdc);
   }
 
-  // ── Type 4: Hibernate/Wakeup (Status) ───────────────────────────────────
+  // ── Type 4: Hibernate/Wakeup (Status) — binary format ───────────────────
+  // Header layout (19 data bytes total):
+  //   [0-7]  timestamp uint64BE
+  //   [8]    status_code
+  //   [9]    battery_info: upper nibble = level (0-4)
+  //   [10-11] RSSI as Int16BE (dBm, e.g. 0x0039 = 57 → displayed as positive)
+  //   [12-13] temperature raw uint16BE → temp = raw * 0.4625 (empirical: 48→22.1°C)
+  //   [14-15] reserved / interval
+  //   [16-17] reserved
+  //   [17-18] last ADC uint16BE → voltage = raw * 0.001745 (empirical: 1975→3.449V)
   else if (type === 4) {
     if (data.length < 9) return result;
     result.timestamp_unix = readUint64BE(data, 0);
     result.status_code = data[8];
-    if (data.length > 9) {
-      try {
-        const jsonStr = new TextDecoder().decode(data.slice(9));
-        const parsed = JSON.parse(jsonStr);
-        result.rssi = parsed.SignalStrength ?? null;
-        result.battery_level = parsed.BatteryLevel ?? null;
-        result.battery_voltage = parsed.BatVoltage ?? null;
-        result.temperature = parsed.Temperature ? parseFloat(parsed.Temperature) : null;
-      } catch (_) {}
+    if (data.length >= 19) {
+      result.battery_level = (data[9] >> 4) & 0x0F;
+      const rssiRaw = (data[10] << 8) | data[11];
+      result.rssi = rssiRaw;  // stored as-is; display layer shows it as dBm
+      const tempRaw = (data[12] << 8) | data[13];
+      result.temperature = Math.round(tempRaw * 0.4625 * 10) / 10;
+      const lastAdc = (data[17] << 8) | data[18];
+      result.battery_voltage = Math.round(lastAdc * 0.001745 * 1000) / 1000;
+      console.log(`[Type4] battery_level=${result.battery_level} rssiRaw=${rssiRaw} tempRaw=${tempRaw} temp=${result.temperature} lastAdc=${lastAdc} voltage=${result.battery_voltage}`);
     }
   }
 
