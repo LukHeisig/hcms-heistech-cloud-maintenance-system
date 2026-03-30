@@ -638,16 +638,11 @@ function parseAissensData(bytes) {
       if (velRMS_Y !== null) result.vel_rms_y_mm_s = Math.round(velRMS_Y * 1000) / 1000;
       if (velRMS_Z !== null) result.vel_rms_z_mm_s = Math.round(velRMS_Z * 1000) / 1000;
       
-      // Envelope RMS demodulace (bandpass 0.5-6 kHz, FFT 10-1000 Hz) - všechny tři osy
-      const envRMS_X = getEnvelopeRMS_10_1000Hz(rawX);
-      const envRMS_Y = getEnvelopeRMS_10_1000Hz(rawY);
+      // Envelope RMS demodulace (bandpass 0.5-6 kHz, FFT 10-1000 Hz) - osa Z
       const envRMS_Z = getEnvelopeRMS_10_1000Hz(rawZ);
-      
-      if (envRMS_X !== null) result.env_rms_x = envRMS_X;
-      if (envRMS_Y !== null) result.env_rms_y = envRMS_Y;
       if (envRMS_Z !== null) result.env_rms_z = envRMS_Z;
       
-      console.log(`[Type0 Envelope RMS] X=${envRMS_X} Y=${envRMS_Y} Z=${envRMS_Z}`);
+      console.log(`[Type0 Envelope RMS Z] ${envRMS_Z}`);
     }
   }
 
@@ -739,8 +734,6 @@ Deno.serve(async (req) => {
       vel_rms_x_mm_s: parsed.vel_rms_x_mm_s ?? null,
       vel_rms_y_mm_s: parsed.vel_rms_y_mm_s ?? null,
       vel_rms_z_mm_s: parsed.vel_rms_z_mm_s ?? null,
-      env_rms_x: parsed.env_rms_x ?? null,
-      env_rms_y: parsed.env_rms_y ?? null,
       env_rms_z: parsed.env_rms_z ?? null,
       has_fft: parsed.has_fft ?? false,
       has_raw: parsed.has_raw ?? false,
