@@ -85,11 +85,11 @@ function MetricsTable({ statsData }) {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
-                <th className="text-center p-3 font-semibold text-slate-600">RMS Z (g)</th>
-                <th className="text-center p-3 font-semibold text-slate-600">Peak Z (g)</th>
                 <th className="text-center p-3 font-semibold text-slate-600">Vel RMS X (mm/s)</th>
                 <th className="text-center p-3 font-semibold text-slate-600">Vel RMS Y (mm/s)</th>
                 <th className="text-center p-3 font-semibold text-slate-600">Vel RMS Z (mm/s)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">RMS Z (g)</th>
+                <th className="text-center p-3 font-semibold text-slate-600">Peak Z (g)</th>
                 <th className="text-center p-3 font-semibold text-slate-600">Env RMS Z</th>
               </tr>
             </thead>
@@ -102,11 +102,11 @@ function MetricsTable({ statsData }) {
                 sensors.map(s => (
                   <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
-                    <td className="p-3 text-center">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
-                    <td className="p-3 text-center font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
                     <td className="p-3 text-center text-slate-600">{s.vel_rms_x_mm_s != null ? s.vel_rms_x_mm_s.toFixed(3) : "–"}</td>
                     <td className="p-3 text-center text-slate-600">{s.vel_rms_y_mm_s != null ? s.vel_rms_y_mm_s.toFixed(3) : "–"}</td>
                     <td className="p-3 text-center text-slate-600">{s.vel_rms_z_mm_s != null ? s.vel_rms_z_mm_s.toFixed(3) : "–"}</td>
+                    <td className="p-3 text-center">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
+                    <td className="p-3 text-center font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
                     <td className="p-3 text-center text-slate-600">{s.env_rms_z != null ? s.env_rms_z.toFixed(4) : "–"}</td>
                   </tr>
                 ))
