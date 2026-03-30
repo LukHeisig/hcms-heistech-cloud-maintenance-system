@@ -70,34 +70,46 @@ function OAValuesTable({ statsData }) {
     return ids.map(id => ({ sensor_id: id, ...cacheRef.current[id] }));
   }, [statsData]);
 
-  if (sensors.length === 0) return null;
+  const hasRMSData = sensors.some(s => s.rms_z_g != null || s.peak_z_g != null);
 
   return (
     <Card className="mt-6">
       <CardHeader className="border-b border-slate-100">
         <CardTitle className="flex items-center gap-2 text-base">
           <Activity className="w-5 h-5 text-purple-600" />
-          OA Hodnoty (poslední batch)
+          RMS a Peak Z (poslední batch)
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-             <tr>
-               <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
-               <th className="text-left p-3 font-semibold text-slate-600">RMS Z (g)</th>
-               <th className="text-left p-3 font-semibold text-slate-600">Peak Z (g)</th>
-             </tr>
+              <tr>
+                <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
+                <th className="text-left p-3 font-semibold text-slate-600">RMS Z (g)</th>
+                <th className="text-left p-3 font-semibold text-slate-600">Peak Z (g)</th>
+              </tr>
             </thead>
             <tbody>
-             {sensors.map(s => (
-               <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
-                 <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
-                 <td className="p-3">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
-                 <td className="p-3 font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
-               </tr>
-             ))}
+              {sensors.length === 0 ? (
+                <tr>
+                  <td colSpan="3" className="p-4 text-center text-slate-400">Žádný senzor nejsou dostupné</td>
+                </tr>
+              ) : !hasRMSData ? (
+                <tr>
+                  <td colSpan="3" className="p-4 text-center text-slate-400 text-sm">
+                    Čekání na data Raw typu... (staré záznamy data nemají)
+                  </td>
+                </tr>
+              ) : (
+                sensors.map(s => (
+                  <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
+                    <td className="p-3">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
+                    <td className="p-3 font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
