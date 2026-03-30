@@ -56,13 +56,13 @@ function calcRMS(arr) {
   return Math.sqrt(sum / arr.length);
 }
 
-// High-pass filter (1 Hz) to remove DC component
-// Fs = 26700 Hz, Fc = 1 Hz
+// High-pass filter (10 Hz) to remove DC component and low-freq drift
+// Fs = 26700 Hz, Fc = 10 Hz
 function applyHighPassFilter(samples) {
   if (!samples || samples.length < 2) return samples;
   
   const Fs = 26700;
-  const Fc = 1;
+  const Fc = 10;
   const Dt = 1 / Fs;
   const RC = 1 / (2 * Math.PI * Fc);
   const alpha = RC / (RC + Dt);
