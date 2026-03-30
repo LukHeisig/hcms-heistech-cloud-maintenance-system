@@ -56,6 +56,16 @@ function OAValuesTable({ statsData }) {
           c.oa_acc_z = row.oa_acc_z; c.oa_acc_z_ts = row.created_date;
         }
       }
+      if (row.rms_x_g != null) {
+        if (c.rms_ts == null || row.created_date > c.rms_ts) {
+          c.rms_x_g = row.rms_x_g; c.rms_y_g = row.rms_y_g; c.rms_z_g = row.rms_z_g; c.rms_ts = row.created_date;
+        }
+      }
+      if (row.peak_x_g != null) {
+        if (c.peak_ts == null || row.created_date > c.peak_ts) {
+          c.peak_x_g = row.peak_x_g; c.peak_y_g = row.peak_y_g; c.peak_z_g = row.peak_z_g; c.peak_ts = row.created_date;
+        }
+      }
     });
   }, [statsData]);
 
@@ -78,24 +88,28 @@ function OAValuesTable({ statsData }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
-                <th className="text-left p-3 font-semibold text-slate-600">OA X (mm/s)</th>
-                <th className="text-left p-3 font-semibold text-slate-600">OA Y (mm/s)</th>
-                <th className="text-left p-3 font-semibold text-slate-600">OA Z (mm/s)</th>
-                <th className="text-left p-3 font-semibold text-slate-600">OA Acc Z (g,rms)</th>
-              </tr>
+             <tr>
+               <th className="text-left p-3 font-semibold text-slate-600">Sensor ID</th>
+               <th className="text-left p-3 font-semibold text-slate-600">RMS X (g)</th>
+               <th className="text-left p-3 font-semibold text-slate-600">RMS Y (g)</th>
+               <th className="text-left p-3 font-semibold text-slate-600">RMS Z (g)</th>
+               <th className="text-left p-3 font-semibold text-slate-600">Peak X (g)</th>
+               <th className="text-left p-3 font-semibold text-slate-600">Peak Y (g)</th>
+               <th className="text-left p-3 font-semibold text-slate-600">Peak Z (g)</th>
+             </tr>
             </thead>
             <tbody>
-              {sensors.map(s => (
-                <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
-                  <td className="p-3">{s.oa_x != null ? s.oa_x.toFixed(4) : "–"}</td>
-                  <td className="p-3">{s.oa_y != null ? s.oa_y.toFixed(4) : "–"}</td>
-                  <td className="p-3">{s.oa_z != null ? s.oa_z.toFixed(4) : "–"}</td>
-                  <td className="p-3 font-semibold text-purple-700">{s.oa_acc_z != null ? s.oa_acc_z.toFixed(4) : "–"}</td>
-                </tr>
-              ))}
+             {sensors.map(s => (
+               <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
+                 <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
+                 <td className="p-3">{s.rms_x_g != null ? s.rms_x_g.toFixed(4) : "–"}</td>
+                 <td className="p-3">{s.rms_y_g != null ? s.rms_y_g.toFixed(4) : "–"}</td>
+                 <td className="p-3">{s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "–"}</td>
+                 <td className="p-3 font-semibold text-orange-600">{s.peak_x_g != null ? s.peak_x_g.toFixed(4) : "–"}</td>
+                 <td className="p-3 font-semibold text-orange-600">{s.peak_y_g != null ? s.peak_y_g.toFixed(4) : "–"}</td>
+                 <td className="p-3 font-semibold text-orange-600">{s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "–"}</td>
+               </tr>
+             ))}
             </tbody>
           </table>
         </div>
