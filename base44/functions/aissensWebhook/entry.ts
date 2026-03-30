@@ -56,6 +56,31 @@ function calcRMS(arr) {
   return Math.sqrt(sum / arr.length);
 }
 
+// High-pass filter (1 Hz) to remove DC component
+// Fs = 26700 Hz, Fc = 1 Hz
+function applyHighPassFilter(samples) {
+  if (!samples || samples.length < 2) return samples;
+  
+  const Fs = 26700;
+  const Fc = 1;
+  const Dt = 1 / Fs;
+  const RC = 1 / (2 * Math.PI * Fc);
+  const alpha = RC / (RC + Dt);
+  
+  const filtered = [];
+  let prevOutput = 0;
+  let prevInput = samples[0];
+  
+  for (let i = 0; i < samples.length; i++) {
+    const output = alpha * (prevOutput + samples[i] - prevInput);
+    filtered.push(output);
+    prevOutput = output;
+    prevInput = samples[i];
+  }
+  
+  return filtered;
+}
+
 // ─── AISSENS binary parser ───────────────────────────────────────────────────
 
 function parseAissensData(bytes) {
@@ -260,9 +285,15 @@ function parseAissensData(bytes) {
       }
       // Convert signed (two's complement)
       const toSigned16 = (v) => v >= 0x8000 ? v - 0x10000 : v;
-      const sX = rawX.map(toSigned16);
-      const sY = rawY.map(toSigned16);
-      const sZ = rawZ.map(toSigned16);
+      let sX = rawX.map(toSigned16);
+      let sY = rawY.map(toSigned16);
+      let sZ = rawZ.map(toSigned16);
+      
+      // Apply high-pass filter to remove DC component
+      sX = applyHighPassFilter(sX);
+      sY = applyHighPassFilter(sY);
+      sZ = applyHighPassFilter(sZ);
+      
       result.raw_x = sX;
       result.raw_y = sY;
       result.raw_z = sZ;
