@@ -209,6 +209,31 @@ function parseAissensData(bytes) {
   return result;
 }
 
+// ─── OPC-UA handler ──────────────────────────────────────────────────────────
+
+async function handleOpcUa(body, base44) {
+  const { tag_name, value, quality, source_timestamp, server_name, server_id, endpoint } = body;
+
+  if (!tag_name) {
+    return Response.json({ error: "Missing tag_name" }, { status: 400 });
+  }
+
+  const numericValue = typeof value === 'number' ? value : parseFloat(value);
+
+  await base44.asServiceRole.entities.OpcUaValue.create({
+    tag_name,
+    value: isNaN(numericValue) ? null : numericValue,
+    value_raw: value != null ? String(value) : null,
+    quality: quality ?? null,
+    source_timestamp: source_timestamp ?? null,
+    server_name: server_name ?? null,
+    server_id: server_id != null ? String(server_id) : null,
+    endpoint: endpoint ?? null,
+  });
+
+  return Response.json({ ok: true, format: "opcua", tag_name, value, quality });
+}
+
 // ─── main handler ────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -225,6 +250,12 @@ Deno.serve(async (req) => {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // ── Detect OPC-UA format ─────────────────────────────────────────────────
+  if (body.tag_name !== undefined) {
+    return handleOpcUa(body, base44);
+  }
+
+  // ── AISSENS binary format ────────────────────────────────────────────────
   // Expected: { topic: "SENSORID/report", payload: "HEX: 01 00 ...", qos: 0 }
   const { topic, payload, qos } = body;
 
