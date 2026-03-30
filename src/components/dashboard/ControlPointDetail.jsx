@@ -433,7 +433,7 @@ export default function ControlPointDetail({
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
                 {documentation.map((doc) => (
-                  <div key={doc.id} className="group relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-400 transition-all cursor-pointer" onClick={() => { setSelectedDocPreview(doc); setShowDocPreviewDialog(true); }}>
+                  <div key={doc.id} className="relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-400 transition-all cursor-pointer" onClick={() => { setSelectedDocPreview(doc); setShowDocPreviewDialog(true); }}>
                     {doc.file_type === "photo" && !imageErrors[doc.id] ? (
                       <img src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover" loading="lazy" onError={() => setImageErrors(p => ({ ...p, [doc.id]: true }))} />
                     ) : (
@@ -442,11 +442,6 @@ export default function ControlPointDetail({
                         <span className="text-[10px] text-slate-600 text-center truncate w-full px-1">{doc.file_name}</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
-                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white" onClick={(e) => { e.stopPropagation(); setDeleteDocId(doc.id); }}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -479,9 +474,11 @@ export default function ControlPointDetail({
           </div>
           <DialogFooter className="p-4 border-t">
             <Button variant="outline" onClick={() => selectedDocPreview?.file_url && window.open(selectedDocPreview.file_url, "_blank")}>Otevřít v nové záložce</Button>
-            <Button variant="destructive" onClick={() => { setShowDocPreviewDialog(false); setDeleteDocId(selectedDocPreview?.id); }}>
-              <X className="w-4 h-4 mr-2" />Smazat
-            </Button>
+            {canEdit && (
+              <Button variant="destructive" onClick={() => { setShowDocPreviewDialog(false); setDeleteDocId(selectedDocPreview?.id); }}>
+                <X className="w-4 h-4 mr-2" />Smazat
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
