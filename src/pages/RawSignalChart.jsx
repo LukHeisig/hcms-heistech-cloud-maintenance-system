@@ -25,6 +25,12 @@ function downsample(arr, maxPoints) {
   return result;
 }
 
+// Convert m/s² to g (1g = 9.81 m/s²)
+function toG(value) {
+  if (value === null || value === undefined) return null;
+  return value / 9.81;
+}
+
 export default function RawSignalChart() {
   const navigate = useNavigate();
   const [selectedSensorId, setSelectedSensorId] = useState(null);
@@ -79,9 +85,9 @@ export default function RawSignalChart() {
       for (let i = 0; i < len; i += step) {
         result.push({
           t: Math.round(i * dtMs),
-          x: rawX[i] ?? null,
-          y: rawY[i] ?? null,
-          z: rawZ[i] ?? null,
+          x: toG(rawX[i]) ?? null,
+          y: toG(rawY[i]) ?? null,
+          z: toG(rawZ[i]) ?? null,
         });
       }
       return result;
@@ -102,12 +108,12 @@ export default function RawSignalChart() {
       return {
         samples: rawX.length,
         fs: 26700,
-        rmsX: rms(rawX).toFixed(1),
-        rmsY: rms(rawY).toFixed(1),
-        rmsZ: rms(rawZ).toFixed(1),
-        peakX: peak(rawX),
-        peakY: peak(rawY),
-        peakZ: peak(rawZ),
+        rmsX: (rms(rawX) / 9.81).toFixed(3),
+        rmsY: (rms(rawY) / 9.81).toFixed(3),
+        rmsZ: (rms(rawZ) / 9.81).toFixed(3),
+        peakX: (peak(rawX) / 9.81).toFixed(3),
+        peakY: (peak(rawY) / 9.81).toFixed(3),
+        peakZ: (peak(rawZ) / 9.81).toFixed(3),
       };
     } catch { return null; }
   }, [activeRecord]);
@@ -212,16 +218,11 @@ export default function RawSignalChart() {
                 </Card>
                 <Card>
                   <CardContent className="p-4">
-                    <p className="text-xs text-slate-500 mb-1">RMS (ADC counts)</p>
+                    <p className="text-xs text-slate-500 mb-1">RMS (g) / Peak (g)</p>
                     <div className="flex gap-2 text-sm font-semibold">
-                      <span className="text-blue-600">X:{stats.rmsX}</span>
-                      <span className="text-green-600">Y:{stats.rmsY}</span>
-                      <span className="text-red-600">Z:{stats.rmsZ}</span>
-                    </div>
-                    <div className="flex gap-2 text-xs text-slate-400 mt-1">
-                      <span>Pk X:{stats.peakX}</span>
-                      <span>Y:{stats.peakY}</span>
-                      <span>Z:{stats.peakZ}</span>
+                      <span className="text-blue-600">X:{stats.rmsX}g / {stats.peakX}g</span>
+                      <span className="text-green-600">Y:{stats.rmsY}g / {stats.peakY}g</span>
+                      <span className="text-red-600">Z:{stats.rmsZ}g / {stats.peakZ}g</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -240,7 +241,7 @@ export default function RawSignalChart() {
                     <CardHeader className="pb-2 border-b border-slate-100">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: color }} />
-                        {label} — Surový akcelerační signál (ADC counts)
+                        {label} — Akcelerační signál (g)
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-2 pt-4">
@@ -253,7 +254,7 @@ export default function RawSignalChart() {
                             tick={{ fontSize: 10 }}
                             label={{ value: "čas (s)", position: "insideBottomRight", offset: -10, fontSize: 10 }}
                           />
-                          <YAxis tick={{ fontSize: 10 }} width={55} label={{ value: "ADC", angle: -90, position: "insideLeft", fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 10 }} width={55} label={{ value: "g", angle: -90, position: "insideLeft", fontSize: 10 }} />
                           <Tooltip
                             formatter={(v) => [v, label]}
                             labelFormatter={(l) => `t = ${(l / 1000).toFixed(3)} s`}
