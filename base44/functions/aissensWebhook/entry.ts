@@ -456,6 +456,24 @@ function parseAissensData(bytes) {
       result.vel_y = velY;
       result.vel_z = velZ;
       result.oa_acc_z = Math.round(calcRMS(accZ) * 10000) / 10000;
+      
+      // Calculate RMS Z and Peak Z from FFT acceleration data
+      const G_FACTOR = 9.81;
+      const { rms: rmsZ_ms2, peak: peakZ_ms2 } = calcAveragedRMS_Peak(accZ, 4);
+      if (rmsZ_ms2 !== null) {
+        result.rms_z_g = Math.round((rmsZ_ms2 / G_FACTOR) * 10000) / 10000;
+      }
+      if (peakZ_ms2 !== null) {
+        result.peak_z_g = Math.round((peakZ_ms2 / G_FACTOR) * 10000) / 10000;
+      }
+      
+      // Calculate velocity RMS from FFT velocity data (mm/s)
+      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 4) : null;
+      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 4) : null;
+      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 4) : null;
+      if (velRMS_X !== null) result.vel_rms_x_mm_s = Math.round(velRMS_X * 1000) / 1000;
+      if (velRMS_Y !== null) result.vel_rms_y_mm_s = Math.round(velRMS_Y * 1000) / 1000;
+      if (velRMS_Z !== null) result.vel_rms_z_mm_s = Math.round(velRMS_Z * 1000) / 1000;
     }
   }
 
