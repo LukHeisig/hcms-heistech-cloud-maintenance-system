@@ -306,11 +306,31 @@ function parseAissensData(bytes) {
       result.num_samples = numSamples;
       result.has_raw = true;
 
-      // OA = RMS of filtered signal in m/s² (NOT mm/s!)
-      result.oa_x = Math.round(calcRMS(rawX) * 10000) / 10000;
-      result.oa_y = Math.round(calcRMS(rawY) * 10000) / 10000;
-      result.oa_z = Math.round(calcRMS(rawZ) * 10000) / 10000;
-      console.log(`[Type0 OA] X=${result.oa_x} m/s², Y=${result.oa_y} m/s², Z=${result.oa_z} m/s²`);
+      // OA = RMS of filtered signal in m/s²
+      const rmsX_ms2 = calcRMS(rawX);
+      const rmsY_ms2 = calcRMS(rawY);
+      const rmsZ_ms2 = calcRMS(rawZ);
+      
+      // Convert RMS to 'g' (1g = 9.81 m/s²)
+      const G_FACTOR = 9.81;
+      result.rms_x_g = Math.round((rmsX_ms2 / G_FACTOR) * 10000) / 10000;
+      result.rms_y_g = Math.round((rmsY_ms2 / G_FACTOR) * 10000) / 10000;
+      result.rms_z_g = Math.round((rmsZ_ms2 / G_FACTOR) * 10000) / 10000;
+      
+      // Calculate Peak values in 'g'
+      const peak_x_g = Math.max(...rawX.map(Math.abs)) / G_FACTOR;
+      const peak_y_g = Math.max(...rawY.map(Math.abs)) / G_FACTOR;
+      const peak_z_g = Math.max(...rawZ.map(Math.abs)) / G_FACTOR;
+      result.peak_x_g = Math.round(peak_x_g * 10000) / 10000;
+      result.peak_y_g = Math.round(peak_y_g * 10000) / 10000;
+      result.peak_z_g = Math.round(peak_z_g * 10000) / 10000;
+      
+      // Store OA in m/s² for backwards compatibility
+      result.oa_x = Math.round(rmsX_ms2 * 10000) / 10000;
+      result.oa_y = Math.round(rmsY_ms2 * 10000) / 10000;
+      result.oa_z = Math.round(rmsZ_ms2 * 10000) / 10000;
+      
+      console.log(`[Type0 RMS] X=${result.rms_x_g}g Y=${result.rms_y_g}g Z=${result.rms_z_g}g | Peak X=${result.peak_x_g}g Y=${result.peak_y_g}g Z=${result.peak_z_g}g`);
     }
   }
 
@@ -397,6 +417,12 @@ Deno.serve(async (req) => {
       oa_y: parsed.oa_y ?? null,
       oa_z: parsed.oa_z ?? null,
       oa_acc_z: parsed.oa_acc_z ?? null,
+      rms_x_g: parsed.rms_x_g ?? null,
+      rms_y_g: parsed.rms_y_g ?? null,
+      rms_z_g: parsed.rms_z_g ?? null,
+      peak_x_g: parsed.peak_x_g ?? null,
+      peak_y_g: parsed.peak_y_g ?? null,
+      peak_z_g: parsed.peak_z_g ?? null,
       has_fft: parsed.has_fft ?? false,
       has_raw: parsed.has_raw ?? false,
       num_samples: parsed.num_samples ?? null,

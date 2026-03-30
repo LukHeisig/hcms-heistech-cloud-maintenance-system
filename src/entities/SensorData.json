@@ -1,0 +1,112 @@
+{
+  "name": "SensorData",
+  "type": "object",
+  "properties": {
+    "sensor_id": {
+      "type": "string",
+      "description": "ID senzoru"
+    },
+    "report_type": {
+      "type": "number",
+      "description": "Typ reportu (0=Raw, 1=FFT, 2=Feature, 3=Battery, 4=Status, 9=OA, 12=HeartBeat)"
+    },
+    "timestamp_unix": {
+      "type": "number",
+      "description": "UNIX timestamp z hlavičky senzoru"
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Teplota senzoru v °C"
+    },
+    "battery_level": {
+      "type": "number",
+      "description": "Úroveň baterie 0-4"
+    },
+    "battery_voltage": {
+      "type": "number",
+      "description": "Napětí baterie ve V"
+    },
+    "rssi": {
+      "type": "number",
+      "description": "Síla signálu Wi-Fi"
+    },
+    "interval": {
+      "type": "number",
+      "description": "Interval měření v sekundách"
+    },
+    "oa_x": {
+      "type": "number",
+      "description": "Overall Acceleration X (m/s²)"
+    },
+    "oa_y": {
+      "type": "number",
+      "description": "Overall Acceleration Y (m/s²)"
+    },
+    "oa_z": {
+      "type": "number",
+      "description": "Overall Acceleration Z (m/s²)"
+    },
+    "oa_acc_z": {
+      "type": "number",
+      "description": "RMS z acc_z FFT spektra (g,rms)"
+    },
+    "rms_x_g": {
+      "type": "number",
+      "description": "RMS na ose X v jednotkách g"
+    },
+    "rms_y_g": {
+      "type": "number",
+      "description": "RMS na ose Y v jednotkách g"
+    },
+    "rms_z_g": {
+      "type": "number",
+      "description": "RMS na ose Z v jednotkách g"
+    },
+    "peak_x_g": {
+      "type": "number",
+      "description": "Peak na ose X v jednotkách g"
+    },
+    "peak_y_g": {
+      "type": "number",
+      "description": "Peak na ose Y v jednotkách g"
+    },
+    "peak_z_g": {
+      "type": "number",
+      "description": "Peak na ose Z v jednotkách g"
+    },
+    "has_fft": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zda zpráva obsahuje FFT data"
+    },
+    "has_raw": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zda zpráva obsahuje Raw vzorky"
+    },
+    "num_samples": {
+      "type": "number",
+      "description": "Počet vzorků v Raw Data"
+    },
+    "raw_x_json": {
+      "type": "string",
+      "description": "JSON pole surových vzorků osy X (m/s²)"
+    },
+    "raw_y_json": {
+      "type": "string",
+      "description": "JSON pole surových vzorků osy Y (m/s²)"
+    },
+    "raw_z_json": {
+      "type": "string",
+      "description": "JSON pole surových vzorků osy Z (m/s²)"
+    },
+    "mqtt_message_id": {
+      "type": "string",
+      "description": "ID záznamu MqttMessage"
+    }
+  },
+  "required": [
+    "sensor_id",
+    "report_type"
+  ]
+}
