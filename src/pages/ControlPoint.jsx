@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ import {
   Factory,
   Settings,
   FileText, // Added for generic files
-  FileIcon, // Added for generic files
+  File as FileIcon, // Added for generic files
   FileImage // Added for image files
 } from "lucide-react";
 import { format } from "date-fns";
