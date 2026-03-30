@@ -313,7 +313,7 @@ export default function MqttDashboard() {
                     {rawMessages.map(m => (
                       <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="p-3 text-slate-500 whitespace-nowrap">
-                          {format(new Date(m.created_date), "HH:mm:ss", { locale: cs })}
+                          {new Date(m.created_date).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </td>
                         <td className="p-3 font-mono text-blue-600 text-xs">{m.topic}</td>
                         <td className="p-3">
