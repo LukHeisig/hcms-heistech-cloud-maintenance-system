@@ -372,6 +372,11 @@ Deno.serve(async (req) => {
   // 2. Save parsed SensorData
   let sensorDataRecord = null;
   if (parsed) {
+    // Use sensor timestamp if available (convert from unix seconds to ISO), otherwise use server time
+    const recordTimestamp = parsed.timestamp_unix 
+      ? new Date(parsed.timestamp_unix * 1000).toISOString()
+      : now;
+    
     sensorDataRecord = await base44.asServiceRole.entities.SensorData.create({
       sensor_id,
       report_type,
