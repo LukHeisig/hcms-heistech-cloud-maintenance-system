@@ -123,11 +123,11 @@ export default function MqttDashboard() {
   const navigate = useNavigate();
   const [selectedSensorId, setSelectedSensorId] = useState(null);
 
-  // Fetch last 100 SensorData records, refresh every 5s
-  const { data: statsData = [], isLoading: loadingStats } = useQuery({
+  // Fetch last 100 SensorData records, refresh every 3s
+  const { data: statsData = [], isLoading: loadingStats, refetch: refetchStats } = useQuery({
     queryKey: ["sensorData_dashboard"],
     queryFn: () => base44.entities.SensorData.list("-created_date", 100),
-    refetchInterval: 5000,
+    refetchInterval: 3000,
   });
 
   // Fetch raw messages (last 50)
