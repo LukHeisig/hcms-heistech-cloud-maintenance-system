@@ -245,10 +245,11 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { event, data } = body;
+    // Entity automation payload: { event: {...}, data: {...} }
+    const data = body.data || body;
     
     if (!data || !data.id) {
-      return Response.json({ error: 'Missing data' }, { status: 400 });
+      return Response.json({ error: 'Missing data.id' }, { status: 400 });
     }
 
     const sensorDataId = data.id;
