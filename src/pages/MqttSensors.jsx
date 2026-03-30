@@ -44,7 +44,10 @@ import {
   RefreshCw,
   Info,
   Link as LinkIcon,
+  LayoutDashboard,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -92,6 +95,7 @@ function StatusBadge({ lastSeen }) {
 }
 
 export default function MqttSensors() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editSensor, setEditSensor] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
@@ -169,6 +173,10 @@ export default function MqttSensors() {
             <p className="text-slate-500 mt-1">Přehled vibračních senzorů komunikujících přes MQTT webhook</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate(createPageUrl("MqttDashboard"))}>
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              Live Dashboard
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Obnovit
