@@ -56,6 +56,36 @@ function calcRMS(arr) {
   return Math.sqrt(sum / arr.length);
 }
 
+// Rozdělí signál na segmenty a vrátí průměrné RMS a Peak
+function calcAveragedRMS_Peak(rawArray, numSegments = 10) {
+  if (!rawArray || rawArray.length === 0) return { rms: null, peak: null };
+  
+  const segmentSize = Math.floor(rawArray.length / numSegments);
+  if (segmentSize < 1) return { rms: null, peak: null };
+  
+  const rmsValues = [];
+  const peakValues = [];
+  
+  // Projít segmenty a spočítat RMS a Peak pro každý
+  for (let i = 0; i < numSegments; i++) {
+    const start = i * segmentSize;
+    const end = i === numSegments - 1 ? rawArray.length : (i + 1) * segmentSize;
+    const segment = rawArray.slice(start, end);
+    
+    const rms = calcRMS(segment);
+    if (rms !== null) rmsValues.push(rms);
+    
+    const peak = Math.max(...segment.map(Math.abs));
+    peakValues.push(peak);
+  }
+  
+  // Spočítat průměr RMS a Peak hodnot
+  const avgRms = rmsValues.length > 0 ? rmsValues.reduce((a, b) => a + b) / rmsValues.length : null;
+  const avgPeak = peakValues.length > 0 ? peakValues.reduce((a, b) => a + b) / peakValues.length : null;
+  
+  return { rms: avgRms, peak: avgPeak };
+}
+
 // High-pass filter (10 Hz) to remove DC component and low-freq drift
 // Fs = 26700 Hz, Fc = 10 Hz
 function applyHighPassFilter(samples) {
@@ -307,17 +337,19 @@ function parseAissensData(bytes) {
       result.has_raw = true;
 
       // OA = RMS of filtered signal in m/s² (only Z axis)
-      const rmsZ_ms2 = calcRMS(rawZ);
-      
-      // Convert RMS to 'g' (1g = 9.81 m/s²)
+      // Použít segmentovaný průměr (10 segmentů)
       const G_FACTOR = 9.81;
-      result.rms_z_g = Math.round((rmsZ_ms2 / G_FACTOR) * 10000) / 10000;
+      const { rms: rmsZ_ms2, peak: peakZ_ms2 } = calcAveragedRMS_Peak(rawZ, 10);
       
-      // Calculate Peak value in 'g' (only Z axis)
-      const peak_z_g = Math.max(...rawZ.map(Math.abs)) / G_FACTOR;
-      result.peak_z_g = Math.round(peak_z_g * 10000) / 10000;
+      if (rmsZ_ms2 !== null) {
+        result.rms_z_g = Math.round((rmsZ_ms2 / G_FACTOR) * 10000) / 10000;
+      }
       
-      console.log(`[Type0 RMS/Peak Z] RMS=${result.rms_z_g}g Peak=${result.peak_z_g}g`);
+      if (peakZ_ms2 !== null) {
+        result.peak_z_g = Math.round((peakZ_ms2 / G_FACTOR) * 10000) / 10000;
+      }
+      
+      console.log(`[Type0 RMS/Peak Z (segmentované)] RMS=${result.rms_z_g}g Peak=${result.peak_z_g}g`);
     }
   }
 
