@@ -187,6 +187,199 @@ function applyHighPassFilter(samples) {
   return filtered;
 }
 
+// Bandpass filtr 0.5-6 kHz
+function applyBandpass_0_5_6kHz(signal, fs = 26700) {
+  if (!signal || signal.length < 2) return signal;
+  
+  // High-pass 0.5 Hz
+  const Fc_hp = 0.5;
+  const Rc_hp = 1 / (2 * Math.PI * Fc_hp);
+  const alpha_hp = Rc_hp / (Rc_hp + 1 / fs);
+  
+  let highPassed = [];
+  let prevOut = 0;
+  let prevIn = signal[0];
+  for (let i = 0; i < signal.length; i++) {
+    const out = alpha_hp * (prevOut + signal[i] - prevIn);
+    highPassed.push(out);
+    prevOut = out;
+    prevIn = signal[i];
+  }
+  
+  // Low-pass 6 kHz
+  const Fc_lp = 6000;
+  const Rc_lp = 1 / (2 * Math.PI * Fc_lp);
+  const alpha_lp = Rc_lp / (Rc_lp + 1 / fs);
+  
+  let lowPassed = [];
+  prevOut = 0;
+  prevIn = highPassed[0];
+  for (let i = 0; i < highPassed.length; i++) {
+    const out = alpha_lp * (prevOut + highPassed[i] - prevIn);
+    lowPassed.push(out);
+    prevOut = out;
+    prevIn = highPassed[i];
+  }
+  
+  return lowPassed;
+}
+
+// Jednoduchá FFT (Cooley-Tukey)
+function fft(x) {
+  const N = x.length;
+  if (N <= 1) return x;
+  
+  // Pad to power of 2
+  let n = 1;
+  while (n < N) n *= 2;
+  const padded = new Array(n).fill(0);
+  for (let i = 0; i < N; i++) padded[i] = x[i];
+  
+  const result = fftHelper(padded);
+  return result.slice(0, N);
+}
+
+function fftHelper(x) {
+  const N = x.length;
+  if (N <= 1) return x;
+  
+  const even = [];
+  const odd = [];
+  for (let i = 0; i < N; i++) {
+    if (i % 2 === 0) even.push(x[i]);
+    else odd.push(x[i]);
+  }
+  
+  const fftEven = fftHelper(even);
+  const fftOdd = fftHelper(odd);
+  
+  const result = new Array(N).fill(0);
+  for (let k = 0; k < N / 2; k++) {
+    const angle = -2 * Math.PI * k / N;
+    const wr = Math.cos(angle);
+    const wi = Math.sin(angle);
+    
+    const oddReal = fftOdd[k * 2] || 0;
+    const oddImag = fftOdd[k * 2 + 1] || 0;
+    
+    const tr = wr * oddReal - wi * oddImag;
+    const ti = wr * oddImag + wi * oddReal;
+    
+    result[k] = (fftEven[k] || 0) + tr;
+    result[k + N / 2] = (fftEven[k] || 0) - tr;
+  }
+  
+  return result;
+}
+
+// Hilbertova transformace - vypočítá obálku (absolutní hodnota analytického signálu)
+function getEnvelope(signal, fs = 26700) {
+  if (!signal || signal.length < 2) return null;
+  
+  // Bandpass 0.5-6 kHz
+  const filtered = applyBandpass_0_5_6kHz(signal, fs);
+  
+  // Hilbert transform via FFT (jednoduché):
+  // Real: filtrovaný signál, Imag: z FFT
+  const N = filtered.length;
+  
+  // Pad to nearest power of 2
+  let n = 1;
+  while (n < N) n *= 2;
+  const padded = new Array(n).fill(0);
+  for (let i = 0; i < N; i++) padded[i] = filtered[i];
+  
+  // Jednoduchý Hilbert: vytvoř analytický signál pomocí okamžitých vzorků
+  // Aproximace: procházíme oknem a počítáme obálku
+  const envelope = [];
+  const windowSize = Math.min(Math.floor(fs / 100), N); // ~100 Hz okno
+  
+  for (let i = 0; i < N; i++) {
+    let sumSq = 0;
+    let count = 0;
+    for (let j = Math.max(0, i - windowSize / 2); j < Math.min(N, i + windowSize / 2); j++) {
+      sumSq += padded[j] * padded[j];
+      count++;
+    }
+    envelope.push(Math.sqrt(sumSq / count));
+  }
+  
+  return envelope;
+}
+
+// Envelope RMS s FFT analýzou v pásmu 10-1000 Hz
+function getEnvelopeRMS_10_1000Hz(signal, fs = 26700) {
+  if (!signal || signal.length < 2) return null;
+  
+  // Krok 1: Bandpass 0.5-6 kHz
+  const filtered = applyBandpass_0_5_6kHz(signal, fs);
+  
+  // Krok 2: Vypočítej obálku
+  const envelope = [];
+  const winSize = Math.min(Math.floor(fs / 100), filtered.length);
+  
+  for (let i = 0; i < filtered.length; i++) {
+    let sumSq = 0;
+    let count = 0;
+    for (let j = Math.max(0, i - winSize / 2); j < Math.min(filtered.length, i + winSize / 2); j++) {
+      sumSq += filtered[j] * filtered[j];
+      count++;
+    }
+    envelope.push(Math.sqrt(sumSq / count));
+  }
+  
+  // Krok 3: Odečti průměr
+  const mean = envelope.reduce((a, b) => a + b) / envelope.length;
+  const demeaned = envelope.map(v => v - mean);
+  
+  // Krok 4: Aplikuj Hanningovo okno
+  const N = demeaned.length;
+  const windowed = [];
+  for (let i = 0; i < N; i++) {
+    const hann = 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1)));
+    windowed.push(demeaned[i] * hann);
+  }
+  
+  // Krok 5: FFT (jednoduché DFT pro malé signály, nebo aproximace)
+  // Zde spočítáme power spectrum v pásmu 10-1000 Hz
+  const freqResolution = fs / N;
+  const bin10Hz = Math.ceil(10 / freqResolution);
+  const bin1000Hz = Math.floor(1000 / freqResolution);
+  
+  // Krok 6: Goertzel nebo Welch periodogram pro pásmo
+  let powerSum = 0;
+  
+  // Jednoduchý Welch: rozdělíme na segmenty a FFT každý
+  const segmentLen = Math.min(1024, N);
+  const numSegments = Math.ceil(N / segmentLen);
+  
+  for (let seg = 0; seg < numSegments; seg++) {
+    const start = seg * segmentLen;
+    const end = Math.min(start + segmentLen, N);
+    const segment = windowed.slice(start, end);
+    
+    // DFT v pásmu 10-1000 Hz (cyklus přes frekvence)
+    for (let f = bin10Hz; f <= Math.min(bin1000Hz, segment.length / 2); f++) {
+      const freq = f * freqResolution;
+      let real = 0, imag = 0;
+      
+      for (let i = 0; i < segment.length; i++) {
+        const angle = -2 * Math.PI * f * i / segmentLen;
+        real += segment[i] * Math.cos(angle);
+        imag += segment[i] * Math.sin(angle);
+      }
+      
+      const mag = Math.sqrt(real * real + imag * imag);
+      powerSum += mag * mag;
+    }
+  }
+  
+  // Součet čtverců → odmocnina (RMS)
+  const envelopeRMS = Math.sqrt(powerSum / (numSegments * (bin1000Hz - bin10Hz + 1)));
+  
+  return Math.round(envelopeRMS * 100000) / 100000;
+}
+
 // ─── AISSENS binary parser ───────────────────────────────────────────────────
 
 function parseAissensData(bytes) {
@@ -445,7 +638,16 @@ function parseAissensData(bytes) {
       if (velRMS_Y !== null) result.vel_rms_y_mm_s = Math.round(velRMS_Y * 1000) / 1000;
       if (velRMS_Z !== null) result.vel_rms_z_mm_s = Math.round(velRMS_Z * 1000) / 1000;
       
-      console.log(`[Type0 RMS/Peak Z] RMS=${result.rms_z_g}g Peak=${result.peak_z_g}g`);
+      // Envelope RMS demodulace (bandpass 0.5-6 kHz, FFT 10-1000 Hz) - všechny tři osy
+      const envRMS_X = getEnvelopeRMS_10_1000Hz(rawX);
+      const envRMS_Y = getEnvelopeRMS_10_1000Hz(rawY);
+      const envRMS_Z = getEnvelopeRMS_10_1000Hz(rawZ);
+      
+      if (envRMS_X !== null) result.env_rms_x = envRMS_X;
+      if (envRMS_Y !== null) result.env_rms_y = envRMS_Y;
+      if (envRMS_Z !== null) result.env_rms_z = envRMS_Z;
+      
+      console.log(`[Type0 Envelope RMS] X=${envRMS_X} Y=${envRMS_Y} Z=${envRMS_Z}`);
     }
   }
 
@@ -537,6 +739,9 @@ Deno.serve(async (req) => {
       vel_rms_x_mm_s: parsed.vel_rms_x_mm_s ?? null,
       vel_rms_y_mm_s: parsed.vel_rms_y_mm_s ?? null,
       vel_rms_z_mm_s: parsed.vel_rms_z_mm_s ?? null,
+      env_rms_x: parsed.env_rms_x ?? null,
+      env_rms_y: parsed.env_rms_y ?? null,
+      env_rms_z: parsed.env_rms_z ?? null,
       has_fft: parsed.has_fft ?? false,
       has_raw: parsed.has_raw ?? false,
       num_samples: parsed.num_samples ?? null,

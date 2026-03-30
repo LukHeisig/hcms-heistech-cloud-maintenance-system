@@ -70,6 +70,18 @@
       "type": "number",
       "description": "RMS rychlosti vibrací osa Z v pásu 10-1000 Hz (mm/s)"
     },
+    "env_rms_x": {
+      "type": "number",
+      "description": "Envelope RMS osa X (bandpass 0.5-6 kHz, FFT 10-1000 Hz)"
+    },
+    "env_rms_y": {
+      "type": "number",
+      "description": "Envelope RMS osa Y (bandpass 0.5-6 kHz, FFT 10-1000 Hz)"
+    },
+    "env_rms_z": {
+      "type": "number",
+      "description": "Envelope RMS osa Z (bandpass 0.5-6 kHz, FFT 10-1000 Hz)"
+    },
     "has_fft": {
       "type": "boolean",
       "default": false,
