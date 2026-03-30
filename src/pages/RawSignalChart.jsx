@@ -67,9 +67,8 @@ export default function RawSignalChart() {
       const rawZ = JSON.parse(activeRecord.raw_z_json || "[]");
 
       const len = Math.max(rawX.length, rawY.length, rawZ.length);
-      // Assume ~800 Hz sample rate for 2s recording (adjust if known)
-      // We infer from num_samples: 2s => num_samples samples => fs = num_samples/2
-      const fs = activeRecord.num_samples ? activeRecord.num_samples / 2 : 800;
+      // AISSENS: fs = 26700 Hz, recording time = 2s
+      const fs = 26700;
       const dtMs = 1000 / fs;
 
       // Downsample to 2000 points for chart performance
@@ -102,7 +101,7 @@ export default function RawSignalChart() {
       const peak = (arr) => Math.max(...arr.map(Math.abs));
       return {
         samples: rawX.length,
-        fs: activeRecord.num_samples ? Math.round(activeRecord.num_samples / 2) : "–",
+        fs: 26700,
         rmsX: rms(rawX).toFixed(1),
         rmsY: rms(rawY).toFixed(1),
         rmsZ: rms(rawZ).toFixed(1),
@@ -188,7 +187,7 @@ export default function RawSignalChart() {
                   <CardContent className="p-4">
                     <p className="text-xs text-slate-500 mb-1">Počet vzorků</p>
                     <p className="text-2xl font-bold text-slate-900">{stats.samples}</p>
-                    <p className="text-xs text-slate-400">~{stats.fs} Hz vzorkovací fr.</p>
+                    <p className="text-xs text-slate-400">26 700 Hz vzorkovací fr.</p>
                   </CardContent>
                 </Card>
                 <Card>
