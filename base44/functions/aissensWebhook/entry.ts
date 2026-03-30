@@ -171,29 +171,37 @@ function parseAissensData(bytes) {
     result.battery_voltage = adcToVoltage(lastAdc);
   }
 
-  // ── Type 4: Hibernate/Wakeup (Status) — binary format ───────────────────
-  // Header layout (19 data bytes total):
-  //   [0-7]  timestamp uint64BE
-  //   [8]    status_code
-  //   [9]    reserved (0x00)
-  //   [10]   RSSI uint8 (magnitude, e.g. 57 for S9IMP)
-  //   [11]   reserved
-  //   [12]   temperature raw uint8 → temp = raw * 0.4625 (empirical: 48→22.2°C)
-  //   [13]   reserved
-  //   [14]   interval or unknown
-  //   [15-16] reserved
-  //   [17-18] last ADC uint16BE → voltage = raw * 0.001745 (empirical: 1975→3.449V)
+  // ── Type 4: Hibernate/Wakeup ─────────────────────────────────────────────
+  // Per spec v1.7:
+  //   Hibernate: Timestamp(8B) | Status(1B) | Sensor Information(json string)
+  //   Wakeup:    Timestamp(8B) | Status(1B) | OnlineDuration(2B) | WiFiOnlineDuration(2B) | TransmissionDuration(2B) | BatteryUsageTime(4B)
+  // Battery/Temp/RSSI are ONLY in JSON (Hibernate) via SensorInformation field
   else if (type === 4) {
     if (data.length < 9) return result;
     result.timestamp_unix = readUint64BE(data, 0);
     result.status_code = data[8];
-    if (data.length >= 19) {
-      result.rssi = data[10];  // RSSI magnitude as uint8
-      const tempRaw = data[12];
-      result.temperature = Math.round(tempRaw * 0.4625 * 10) / 10;
-      const lastAdc = (data[17] << 8) | data[18];
-      result.battery_voltage = Math.round(lastAdc * 0.001745 * 1000) / 1000;
-      console.log(`[Type4] rssi=${result.rssi} tempRaw=${tempRaw} temp=${result.temperature} lastAdc=${lastAdc} voltage=${result.battery_voltage}`);
+    // status: 0=ManualHibernate, 1=ManualWakeup, 2=ScheduleHibernate, 3=ScheduleWakeup
+    const isHibernate = result.status_code === 0 || result.status_code === 2;
+    if (isHibernate && data.length > 9) {
+      // JSON sensor information follows status byte
+      try {
+        const jsonStr = new TextDecoder().decode(data.slice(9));
+        const info = JSON.parse(jsonStr);
+        if (info.Temperature != null) result.temperature = parseFloat(info.Temperature);
+        if (info.BatVoltage != null) result.battery_voltage = parseFloat(info.BatVoltage);
+        if (info.BatteryLevel != null) result.battery_level = parseInt(info.BatteryLevel);
+        if (info.SignalStrength != null) result.rssi = parseInt(info.SignalStrength);
+        console.log(`[Type4 Hibernate] temp=${result.temperature} voltage=${result.battery_voltage} level=${result.battery_level} rssi=${result.rssi}`);
+      } catch(e) {
+        console.log(`[Type4 Hibernate] JSON parse error: ${e.message}`);
+      }
+    } else if (!isHibernate && data.length >= 17) {
+      // Wakeup: parse durations (no battery/temp info)
+      result.online_duration = (data[9] << 8) | data[10];
+      result.wifi_online_duration = (data[11] << 8) | data[12];
+      result.transmission_duration = (data[13] << 8) | data[14];
+      result.battery_usage_time = readUint32BE(data, 15);
+      console.log(`[Type4 Wakeup] online=${result.online_duration}s wifi=${result.wifi_online_duration}s`);
     }
   }
 
@@ -205,28 +213,39 @@ function parseAissensData(bytes) {
   }
 
   // ── Type 0: Raw Data ─────────────────────────────────────────────────────
-  // Header layout (same as Type 1):
-  //   [0-7]  timestamp uint64BE
-  //   [8]    status
-  //   [9]    battery_info: upper nibble = level (0-4)
-  //   [10-11] avg ADC (uint16BE)
-  //   [12-13] last ADC (uint16BE) → voltage
-  //   [14-15] temperature raw Int16BE → °C = raw/256 + 28
-  //   [16-17] interval (uint16BE, seconds)
-  //   [18]   sample_rate code
-  //   [19]   reserved
-  //   [20..] Int16BE triplets: X, Y, Z per sample
+  // Per spec v1.7, Header (20B):
+  //   [0-7]   Timestamp (8B, uint64BE)
+  //   [8]     Control Flags (1B)
+  //   [9]     *Index (1B, always 1)
+  //   [10]    *Total (1B, always 1)
+  //   [11-12] Temp (2B, Int16BE) → temperature = value/256.0 + 28
+  //   [13-14] Real ODR (2B, Int16BE)
+  //   [15]    Battery information (1B) — battery level 0-4
+  //   [16-17] Last ADC (2B, Int16BE) → voltage = (adc-1400)*0.001547+2.7
+  //   [18-19] Average ADC (2B, Int16BE)
+  //   [20..] Acceleration data: x(2B LE), y(2B LE), z(2B LE) per sample
+  //   Raw XYZ conversion: (Byte1<<8 | Byte0) * 0.0002441062  (little-endian!)
   else if (type === 0) {
     if (data.length < 20) return result;
     result.timestamp_unix = readUint64BE(data, 0);
 
-    // Type 0 header does NOT carry reliable battery/temp in the same ADC format.
-    // Battery & temperature come from Type 4 (Hibernate/Wakeup) packets instead.
-    // Only extract interval and sample_rate from the header.
-    result.interval = (data[16] << 8) | data[17];
+    // Temp: Int16BE at [11-12]
+    const tempRaw = readInt16BE(data, 11);
+    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
 
-    console.log(`[Type0] interval=${result.interval} dataLen=${data.length}`);
+    // Battery level: [15]
+    result.battery_level = data[15] & 0x0F;
 
+    // Last ADC: Int16BE at [16-17]
+    const lastAdc = readInt16BE(data, 16);
+    result.battery_voltage = Math.round(((lastAdc - 1400) * 0.001547 + 2.7) * 1000) / 1000;
+
+    // Real ODR: Int16BE at [13-14]
+    result.real_odr = readInt16BE(data, 13);
+
+    console.log(`[Type0] tempRaw=${tempRaw} temp=${result.temperature} batLevel=${result.battery_level} lastAdc=${lastAdc} voltage=${result.battery_voltage} odr=${result.real_odr} dataLen=${data.length}`);
+
+    // Raw acceleration data starts at offset 20 — little-endian Int16
     const samplesOffset = 20;
     const remainingBytes = data.length - samplesOffset;
     if (remainingBytes >= 6) {
@@ -234,20 +253,26 @@ function parseAissensData(bytes) {
       const rawX = [], rawY = [], rawZ = [];
       for (let i = 0; i < numSamples; i++) {
         const off = samplesOffset + i * 6;
-        rawX.push(readInt16BE(data, off));
-        rawY.push(readInt16BE(data, off + 2));
-        rawZ.push(readInt16BE(data, off + 4));
+        // Little-endian: Byte1<<8 | Byte0
+        rawX.push((data[off+1] << 8) | data[off]);
+        rawY.push((data[off+3] << 8) | data[off+2]);
+        rawZ.push((data[off+5] << 8) | data[off+4]);
       }
-      result.raw_x = rawX;
-      result.raw_y = rawY;
-      result.raw_z = rawZ;
+      // Convert signed (two's complement)
+      const toSigned16 = (v) => v >= 0x8000 ? v - 0x10000 : v;
+      const sX = rawX.map(toSigned16);
+      const sY = rawY.map(toSigned16);
+      const sZ = rawZ.map(toSigned16);
+      result.raw_x = sX;
+      result.raw_y = sY;
+      result.raw_z = sZ;
       result.num_samples = numSamples;
       result.has_raw = true;
 
-      // Compute RMS from raw ADC counts
-      result.oa_x = Math.round(calcRMS(rawX) * 100) / 100;
-      result.oa_y = Math.round(calcRMS(rawY) * 100) / 100;
-      result.oa_z = Math.round(calcRMS(rawZ) * 100) / 100;
+      // OA = RMS of raw ADC counts (for display)
+      result.oa_x = Math.round(calcRMS(sX) * 100) / 100;
+      result.oa_y = Math.round(calcRMS(sY) * 100) / 100;
+      result.oa_z = Math.round(calcRMS(sZ) * 100) / 100;
     }
   }
 
