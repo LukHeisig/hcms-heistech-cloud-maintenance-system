@@ -355,13 +355,12 @@ export default function MqttDashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart
                   data={trendData}
-                  margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                  margin={{ top: 5, right: 30, left: 0, bottom: 40 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="t" tick={{ fontSize: 10 }} />
+                  <XAxis dataKey="time" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
                   <YAxis label={{ value: "jednotky", angle: -90, position: "insideLeft" }} />
                   <Tooltip 
-                    labelFormatter={(i) => trendData[i]?.time || i}
                     formatter={(v) => v != null ? v.toFixed(4) : "–"}
                   />
                   <Legend />
