@@ -1,0 +1,67 @@
+{
+  "name": "SensorFFTData",
+  "type": "object",
+  "properties": {
+    "sensor_id": {
+      "type": "string",
+      "description": "ID senzoru"
+    },
+    "sensor_data_id": {
+      "type": "string",
+      "description": "ID z\u00e1znamu SensorData"
+    },
+    "timestamp_unix": {
+      "type": "number",
+      "description": "UNIX timestamp z hlavi\u010dky"
+    },
+    "frequency_resolution": {
+      "type": "number",
+      "description": "Rozli\u0161en\u00ed frekvence v Hz"
+    },
+    "report_len": {
+      "type": "number",
+      "description": "D\u00e9lka spektra (po\u010det bod\u016f na osu)"
+    },
+    "oa_x": {
+      "type": "number"
+    },
+    "oa_y": {
+      "type": "number"
+    },
+    "oa_z": {
+      "type": "number"
+    },
+    "oa_acc_z": {
+      "type": "number",
+      "description": "RMS z acc_z spektra"
+    },
+    "acc_x_json": {
+      "type": "string",
+      "description": "JSON array prvn\u00edch 512 hodnot acc X spektra"
+    },
+    "acc_y_json": {
+      "type": "string",
+      "description": "JSON array prvn\u00edch 512 hodnot acc Y spektra"
+    },
+    "acc_z_json": {
+      "type": "string",
+      "description": "JSON array prvn\u00edch 512 hodnot acc Z spektra"
+    },
+    "vel_x_json": {
+      "type": "string",
+      "description": "JSON array prvn\u00edch 512 hodnot vel X spektra"
+    },
+    "vel_y_json": {
+      "type": "string",
+      "description": "JSON array prvn\u00edch 512 hodnot vel Y spektra"
+    },
+    "vel_z_json": {
+      "type": "string",
+      "description": "JSON array prvn\u00edch 512 hodnot vel Z spektra"
+    }
+  },
+  "required": [
+    "sensor_id",
+    "timestamp_unix"
+  ]
+}
