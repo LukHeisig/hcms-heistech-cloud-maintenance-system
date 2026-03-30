@@ -253,7 +253,7 @@ export default function MqttDashboard() {
                           <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
                           <td className="p-3 text-slate-600">
                             {s.lastSeen
-                              ? formatDistanceToNow(new Date(s.lastSeen), { addSuffix: true, locale: cs })
+                              ? formatDistanceToNow(new Date(s.lastSeen + 'Z'), { addSuffix: true, locale: cs })
                               : "–"}
                           </td>
                           <td className="p-3"><StatusBadge lastSeen={s.lastSeen} /></td>
