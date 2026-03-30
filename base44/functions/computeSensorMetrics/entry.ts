@@ -157,58 +157,73 @@ function applyBandpass_0_5_6kHz(signal, fs = 26700) {
 function getEnvelopeRMS_10_1000Hz(signal, fs = 26700) {
   if (!signal || signal.length < 2) return null;
   
-  const filtered = applyBandpass_0_5_6kHz(signal, fs);
-  
-  const envelope = [];
-  const winSize = Math.min(Math.floor(fs / 100), filtered.length);
-  
-  for (let i = 0; i < filtered.length; i++) {
-    let sumSq = 0;
-    let count = 0;
-    for (let j = Math.max(0, i - winSize / 2); j < Math.min(filtered.length, i + winSize / 2); j++) {
-      sumSq += filtered[j] * filtered[j];
-      count++;
-    }
-    envelope.push(Math.sqrt(sumSq / count));
-  }
-  
-  const mean = envelope.reduce((a, b) => a + b) / envelope.length;
-  const demeaned = envelope.map(v => v - mean);
-  
-  const N = demeaned.length;
-  const windowed = [];
-  for (let i = 0; i < N; i++) {
-    const hann = 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1)));
-    windowed.push(demeaned[i] * hann);
-  }
-  
-  const freqResolution = fs / N;
-  const bin10Hz = Math.ceil(10 / freqResolution);
-  const bin1000Hz = Math.floor(1000 / freqResolution);
-  
-  let powerSum = 0;
-  const segmentLen = Math.min(1024, N);
-  const numSegments = Math.ceil(N / segmentLen);
-  
-  for (let seg = 0; seg < numSegments; seg++) {
-    const start = seg * segmentLen;
-    const end = Math.min(start + segmentLen, N);
-    const segment = windowed.slice(start, end);
+  try {
+    const filtered = applyBandpass_0_5_6kHz(signal, fs);
     
-    for (let f = bin10Hz; f <= Math.min(bin1000Hz, segment.length / 2); f++) {
-      let real = 0, imag = 0;
-      for (let i = 0; i < segment.length; i++) {
-        const angle = -2 * Math.PI * f * i / segmentLen;
-        real += segment[i] * Math.cos(angle);
-        imag += segment[i] * Math.sin(angle);
+    const envelope = [];
+    const winSize = Math.min(Math.floor(fs / 100), filtered.length);
+    if (winSize < 1) return null;
+    
+    for (let i = 0; i < filtered.length; i++) {
+      let sumSq = 0;
+      let count = 0;
+      for (let j = Math.max(0, i - winSize / 2); j < Math.min(filtered.length, i + winSize / 2); j++) {
+        sumSq += filtered[j] * filtered[j];
+        count++;
       }
-      const mag = Math.sqrt(real * real + imag * imag);
-      powerSum += mag * mag;
+      if (count > 0) envelope.push(Math.sqrt(sumSq / count));
     }
+    
+    if (envelope.length === 0) return null;
+    
+    const mean = envelope.reduce((a, b) => a + b) / envelope.length;
+    const demeaned = envelope.map(v => v - mean);
+    
+    const N = demeaned.length;
+    if (N < 2) return null;
+    
+    const windowed = [];
+    for (let i = 0; i < N; i++) {
+      const hann = 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1)));
+      windowed.push(demeaned[i] * hann);
+    }
+    
+    const freqResolution = fs / N;
+    const bin10Hz = Math.ceil(10 / freqResolution);
+    const bin1000Hz = Math.floor(1000 / freqResolution);
+    
+    if (bin10Hz >= bin1000Hz) return null;
+    
+    let powerSum = 0;
+    let binCount = 0;
+    const segmentLen = Math.min(1024, N);
+    const numSegments = Math.ceil(N / segmentLen);
+    
+    for (let seg = 0; seg < numSegments; seg++) {
+      const start = seg * segmentLen;
+      const end = Math.min(start + segmentLen, N);
+      const segment = windowed.slice(start, end);
+      
+      for (let f = bin10Hz; f <= Math.min(bin1000Hz, Math.floor(segment.length / 2)); f++) {
+        let real = 0, imag = 0;
+        for (let i = 0; i < segment.length; i++) {
+          const angle = -2 * Math.PI * f * i / segmentLen;
+          real += segment[i] * Math.cos(angle);
+          imag += segment[i] * Math.sin(angle);
+        }
+        const mag = Math.sqrt(real * real + imag * imag);
+        powerSum += mag * mag;
+        binCount++;
+      }
+    }
+    
+    if (binCount === 0) return null;
+    const envelopeRMS = Math.sqrt(powerSum / binCount);
+    return isFinite(envelopeRMS) ? Math.round(envelopeRMS * 100000) / 100000 : null;
+  } catch (e) {
+    console.error("Envelope RMS error:", e.message);
+    return null;
   }
-  
-  const envelopeRMS = Math.sqrt(powerSum / (numSegments * (bin1000Hz - bin10Hz + 1)));
-  return Math.round(envelopeRMS * 100000) / 100000;
 }
 
 Deno.serve(async (req) => {
