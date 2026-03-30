@@ -1,381 +1,129 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// AISSENS Report Type mapping
+const REPORT_TYPES = {
+  0: "Raw Data",
+  1: "FFT",
+  2: "Feature",
+  3: "Battery",
+  4: "Hibernate/Wakeup",
+  5: "Real Time Raw Data",
+  6: "Real Time FFT",
+  71: "Raw Data + FFT",
+  72: "Raw Data + FFT (2)",
+  81: "Real Time Raw+FFT",
+  82: "Real Time Raw+FFT (2)",
+  9: "OA Only",
+  10: "Real Time OA Only",
+  11: "Ask Command",
+  12: "Heart Beat"
+};
 
-function hexToBytes(hex) {
-  const clean = hex.replace(/\s+/g, '');
-  const bytes = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(clean.substr(i * 2, 2), 16);
-  }
-  return bytes;
-}
-
-function readUint32BE(bytes, offset) {
-  return ((bytes[offset] << 24) | (bytes[offset+1] << 16) | (bytes[offset+2] << 8) | bytes[offset+3]) >>> 0;
-}
-
-function readUint64BE(bytes, offset) {
-  const hi = readUint32BE(bytes, offset);
-  const lo = readUint32BE(bytes, offset + 4);
-  return hi * 4294967296 + lo;
-}
-
-function readInt16BE(bytes, offset) {
-  const v = (bytes[offset] << 8) | bytes[offset+1];
-  return v >= 0x8000 ? v - 0x10000 : v;
-}
-
-function readFloat32LE(bytes, offset) {
-  const buf = new ArrayBuffer(4);
-  const view = new DataView(buf);
-  view.setUint8(0, bytes[offset]);
-  view.setUint8(1, bytes[offset+1]);
-  view.setUint8(2, bytes[offset+2]);
-  view.setUint8(3, bytes[offset+3]);
-  return view.getFloat32(0, true); // little-endian
-}
-
-function readUint32LE(bytes, offset) {
-  const buf = new ArrayBuffer(4);
-  const view = new DataView(buf);
-  view.setUint8(0, bytes[offset]);
-  view.setUint8(1, bytes[offset+1]);
-  view.setUint8(2, bytes[offset+2]);
-  view.setUint8(3, bytes[offset+3]);
-  return view.getUint32(0, true);
-}
-
+// Parse battery voltage from ADC value
 function adcToVoltage(adc) {
-  return Math.round(((adc - 1400) * 0.001547 + 2.7) * 1000) / 1000;
+  return (adc - 1400) * 0.001547 + 2.7;
 }
 
-function calcRMS(arr) {
-  if (!arr || arr.length === 0) return null;
-  const sum = arr.reduce((s, v) => s + v * v, 0);
-  return Math.sqrt(sum / arr.length);
+// Parse temperature from raw 2-byte big-endian value
+function parseTemperature(rawValue) {
+  return rawValue / 256.0 + 28;
 }
-
-// ─── AISSENS binary parser ───────────────────────────────────────────────────
-
-function parseAissensData(bytes) {
-  if (!bytes || bytes.length < 5) return null;
-
-  const type = bytes[0];
-  // bytes 1-4: data length (big-endian uint32)
-  const dataLength = readUint32BE(bytes, 1);
-  const data = bytes.slice(5); // data field starts at byte 5
-
-  const result = { report_type: type };
-
-  // ── Type 1: FFT ──────────────────────────────────────────────────────────
-  if (type === 1) {
-    if (data.length < 45) return result;
-    result.timestamp_unix = readUint64BE(data, 0);
-    // status: data[8], battery_info: data[9]
-    result.battery_level = data[9] & 0x0F;
-    const avgAdc = (data[10] << 8) | data[11];
-    const lastAdc = (data[12] << 8) | data[13];
-    result.battery_voltage = adcToVoltage(lastAdc);
-    const tempRaw = readInt16BE(data, 14);
-    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
-
-    // OA X,Y,Z at offset 16 (3 * float32 LE)
-    result.oa_x = Math.round(readFloat32LE(data, 16) * 10000) / 10000;
-    result.oa_y = Math.round(readFloat32LE(data, 20) * 10000) / 10000;
-    result.oa_z = Math.round(readFloat32LE(data, 24) * 10000) / 10000;
-
-    // frequency_resolution at 28 (float32 LE)
-    result.frequency_resolution = Math.round(readFloat32LE(data, 28) * 10000) / 10000;
-    // fft_length at 32 (uint32 BE)
-    result.fft_length = readUint32BE(data, 32);
-    // report_len at 36 (uint32 BE)
-    result.report_len = readUint32BE(data, 36);
-    // reserved 5 bytes at 40
-    // FFT data starts at offset 45
-    const fftOffset = 45;
-    const reportLen = result.report_len;
-
-    if (reportLen > 0 && data.length >= fftOffset + reportLen * 4 * 6) {
-      const maxPoints = Math.min(reportLen, 512);
-      const accX = [], accY = [], accZ = [], velX = [], velY = [], velZ = [];
-
-      for (let i = 0; i < maxPoints; i++) {
-        accX.push(Math.round(readFloat32LE(data, fftOffset + i * 4) * 100000) / 100000);
-      }
-      const accYOff = fftOffset + reportLen * 4;
-      for (let i = 0; i < maxPoints; i++) {
-        accY.push(Math.round(readFloat32LE(data, accYOff + i * 4) * 100000) / 100000);
-      }
-      const accZOff = fftOffset + reportLen * 4 * 2;
-      for (let i = 0; i < maxPoints; i++) {
-        accZ.push(Math.round(readFloat32LE(data, accZOff + i * 4) * 100000) / 100000);
-      }
-      const velXOff = fftOffset + reportLen * 4 * 3;
-      for (let i = 0; i < maxPoints; i++) {
-        velX.push(Math.round(readFloat32LE(data, velXOff + i * 4) * 100000) / 100000);
-      }
-      const velYOff = fftOffset + reportLen * 4 * 4;
-      for (let i = 0; i < maxPoints; i++) {
-        velY.push(Math.round(readFloat32LE(data, velYOff + i * 4) * 100000) / 100000);
-      }
-      const velZOff = fftOffset + reportLen * 4 * 5;
-      for (let i = 0; i < maxPoints; i++) {
-        velZ.push(Math.round(readFloat32LE(data, velZOff + i * 4) * 100000) / 100000);
-      }
-
-      result.has_fft = true;
-      result.acc_x = accX;
-      result.acc_y = accY;
-      result.acc_z = accZ;
-      result.vel_x = velX;
-      result.vel_y = velY;
-      result.vel_z = velZ;
-      result.oa_acc_z = Math.round(calcRMS(accZ) * 10000) / 10000;
-    }
-  }
-
-  // ── Type 9: OA Only ──────────────────────────────────────────────────────
-  else if (type === 9) {
-    if (data.length < 33) return result;
-    result.timestamp_unix = readUint64BE(data, 0);
-    result.battery_level = data[9] & 0x0F;
-    const lastAdc = (data[12] << 8) | data[13];
-    result.battery_voltage = adcToVoltage(lastAdc);
-    const tempRaw = readInt16BE(data, 14);
-    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
-    result.oa_x = Math.round(readFloat32LE(data, 16) * 10000) / 10000;
-    result.oa_y = Math.round(readFloat32LE(data, 20) * 10000) / 10000;
-    result.oa_z = Math.round(readFloat32LE(data, 24) * 10000) / 10000;
-  }
-
-  // ── Type 2: Feature (JSON) ───────────────────────────────────────────────
-  else if (type === 2) {
-    if (data.length < 9) return result;
-    result.timestamp_unix = readUint64BE(data, 0);
-    try {
-      const jsonStr = new TextDecoder().decode(data.slice(8));
-      const parsed = JSON.parse(jsonStr);
-      result.temperature = parsed.Temperature ? parseFloat(parsed.Temperature) : null;
-      result.battery_voltage = parsed.BatVoltage ?? null;
-      result.feature_json = jsonStr;
-    } catch (_) {}
-  }
-
-  // ── Type 3: Battery ──────────────────────────────────────────────────────
-  else if (type === 3) {
-    if (data.length < 9) return result;
-    result.timestamp_unix = readUint64BE(data, 0);
-    result.battery_level = data[8] & 0x0F;
-    const lastAdc = (data[9] << 8) | data[10];
-    result.battery_voltage = adcToVoltage(lastAdc);
-  }
-
-  // ── Type 4: Hibernate/Wakeup (Status) ───────────────────────────────────
-  else if (type === 4) {
-    if (data.length < 9) return result;
-    result.timestamp_unix = readUint64BE(data, 0);
-    result.status_code = data[8];
-    if (data.length > 9) {
-      try {
-        const jsonStr = new TextDecoder().decode(data.slice(9));
-        const parsed = JSON.parse(jsonStr);
-        result.rssi = parsed.SignalStrength ?? null;
-        result.battery_level = parsed.BatteryLevel ?? null;
-        result.battery_voltage = parsed.BatVoltage ?? null;
-        result.temperature = parsed.Temperature ? parseFloat(parsed.Temperature) : null;
-      } catch (_) {}
-    }
-  }
-
-  // ── Type 12: Heart Beat ──────────────────────────────────────────────────
-  else if (type === 12) {
-    if (data.length < 9) return result;
-    result.timestamp_unix = readUint64BE(data, 0);
-    result.status_code = data[8];
-  }
-
-  // ── Type 0: Raw Data ─────────────────────────────────────────────────────
-  else if (type === 0) {
-    if (data.length < 20) return result;
-    result.timestamp_unix = readUint64BE(data, 0);
-    result.battery_level = data[17] & 0x0F;
-    const lastAdc = (data[18] << 8) | data[19];
-    result.battery_voltage = adcToVoltage(lastAdc);
-    const tempRaw = readInt16BE(data, 14);
-    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
-  }
-
-  return result;
-}
-
-// ─── OPC-UA handler ──────────────────────────────────────────────────────────
-
-async function handleOpcUa(body, base44) {
-  const { tag_name, value, quality, source_timestamp, server_name, server_id, endpoint } = body;
-
-  if (!tag_name) {
-    return Response.json({ error: "Missing tag_name" }, { status: 400 });
-  }
-
-  const numericValue = typeof value === 'number' ? value : parseFloat(value);
-
-  await base44.asServiceRole.entities.OpcUaValue.create({
-    tag_name,
-    value: isNaN(numericValue) ? null : numericValue,
-    value_raw: value != null ? String(value) : null,
-    quality: quality ?? null,
-    source_timestamp: source_timestamp ?? null,
-    server_name: server_name ?? null,
-    server_id: server_id != null ? String(server_id) : null,
-    endpoint: endpoint ?? null,
-  });
-
-  return Response.json({ ok: true, format: "opcua", tag_name, value, quality });
-}
-
-// ─── main handler ────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
+  // Only accept POST
   if (req.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
+  // Token validation disabled - accept all requests
+  // To re-enable, set VIBRATION_API_TOKEN secret and send it as x-webhook-token header
+
   const base44 = createClientFromRequest(req);
 
-  let body;
-  try {
-    body = await req.json();
-  } catch (_) {
-    return Response.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await req.json();
 
-  // ── Detect OPC-UA format ─────────────────────────────────────────────────
-  if (body.tag_name !== undefined) {
-    return handleOpcUa(body, base44);
-  }
+  // Expected payload: { sensor_id: string, report_type: number, data: object, raw_hex?: string }
+  const { sensor_id, report_type, data, raw_hex } = body;
 
-  // ── AISSENS binary format ────────────────────────────────────────────────
-  // Expected: { topic: "SENSORID/report", payload: "HEX: 01 00 ...", qos: 0 }
-  const { topic, payload, qos } = body;
-
-  if (!topic || !payload) {
-    return Response.json({ error: "Missing topic or payload" }, { status: 400 });
-  }
-
-  // Extract sensor_id from topic (e.g. "S9IMP600001265H/report")
-  const sensor_id = topic.split('/')[0];
   if (!sensor_id) {
-    return Response.json({ error: "Cannot parse sensor_id from topic" }, { status: 400 });
+    return Response.json({ error: "Missing sensor_id" }, { status: 400 });
   }
 
-  // Extract hex string — support "HEX: xx xx" prefix or plain hex
-  let hexStr = payload;
-  if (typeof payload === 'string' && payload.startsWith('HEX: ')) {
-    hexStr = payload.slice(5);
-  } else if (typeof payload === 'string' && payload.startsWith('HEX:')) {
-    hexStr = payload.slice(4);
-  }
-
-  // Parse binary data
-  let parsed = null;
-  let bytes = null;
-  try {
-    bytes = hexToBytes(hexStr);
-    parsed = parseAissensData(bytes);
-  } catch (e) {
-    console.error("Parse error:", e.message);
-  }
-
+  const reportTypeName = REPORT_TYPES[report_type] ?? `Unknown (${report_type})`;
   const now = new Date().toISOString();
-  const report_type = parsed?.report_type ?? -1;
 
-  // 1. Save raw message
-  const msgRecord = await base44.asServiceRole.entities.MqttMessage.create({
-    topic,
-    sensor_id,
-    payload_hex: hexStr.substring(0, 4000), // trim very large payloads
-    report_type,
-    payload_size: bytes ? bytes.length : 0,
-  });
+  // Extract metadata from parsed data
+  let batteryLevel = data?.battery_level ?? null;
+  let batteryVoltage = null;
+  let temperature = null;
+  let signalStrength = null;
 
-  // 2. Save parsed SensorData
-  let sensorDataRecord = null;
-  if (parsed) {
-    sensorDataRecord = await base44.asServiceRole.entities.SensorData.create({
-      sensor_id,
-      report_type,
-      timestamp_unix: parsed.timestamp_unix ?? null,
-      temperature: parsed.temperature ?? null,
-      battery_level: parsed.battery_level ?? null,
-      battery_voltage: parsed.battery_voltage ?? null,
-      rssi: parsed.rssi ?? null,
-      interval: parsed.interval ?? null,
-      oa_x: parsed.oa_x ?? null,
-      oa_y: parsed.oa_y ?? null,
-      oa_z: parsed.oa_z ?? null,
-      oa_acc_z: parsed.oa_acc_z ?? null,
-      has_fft: parsed.has_fft ?? false,
-      mqtt_message_id: msgRecord.id,
-    });
-
-    // 3. Save FFT data if present
-    if (parsed.has_fft && sensorDataRecord) {
-      await base44.asServiceRole.entities.SensorFFTData.create({
-        sensor_id,
-        sensor_data_id: sensorDataRecord.id,
-        timestamp_unix: parsed.timestamp_unix ?? null,
-        frequency_resolution: parsed.frequency_resolution ?? null,
-        report_len: parsed.report_len ?? null,
-        oa_x: parsed.oa_x ?? null,
-        oa_y: parsed.oa_y ?? null,
-        oa_z: parsed.oa_z ?? null,
-        oa_acc_z: parsed.oa_acc_z ?? null,
-        acc_x_json: JSON.stringify(parsed.acc_x ?? []),
-        acc_y_json: JSON.stringify(parsed.acc_y ?? []),
-        acc_z_json: JSON.stringify(parsed.acc_z ?? []),
-        vel_x_json: JSON.stringify(parsed.vel_x ?? []),
-        vel_y_json: JSON.stringify(parsed.vel_y ?? []),
-        vel_z_json: JSON.stringify(parsed.vel_z ?? []),
-      });
-    }
+  if (data?.last_adc != null) {
+    batteryVoltage = Math.round(adcToVoltage(data.last_adc) * 1000) / 1000;
+  }
+  if (data?.average_adc != null && batteryVoltage == null) {
+    batteryVoltage = Math.round(adcToVoltage(data.average_adc) * 1000) / 1000;
+  }
+  if (data?.temp != null) {
+    temperature = Math.round(parseTemperature(data.temp) * 100) / 100;
+  }
+  if (data?.signal_strength != null) {
+    signalStrength = data.signal_strength;
   }
 
-  // 4. Update AissensSensor registry
+  // Find or create sensor record
   const existing = await base44.asServiceRole.entities.AissensSensor.filter({ sensor_id });
-  const updateData = {
-    last_seen: now,
-    last_report_type: report_type,
-    messages_total: (existing[0]?.messages_total || 0) + 1,
-  };
-  if (parsed?.battery_level != null) updateData.last_battery_level = parsed.battery_level;
-  if (parsed?.battery_voltage != null) updateData.last_battery_voltage = parsed.battery_voltage;
-  if (parsed?.temperature != null) updateData.last_temperature = parsed.temperature;
-  if (parsed?.rssi != null) updateData.last_signal_strength = parsed.rssi;
 
+  let sensorRecord;
   if (existing.length > 0) {
-    await base44.asServiceRole.entities.AissensSensor.update(existing[0].id, updateData);
+    sensorRecord = existing[0];
+    const updateData = {
+      last_seen: now,
+      last_report_type: report_type ?? null,
+      messages_total: (sensorRecord.messages_total || 0) + 1,
+    };
+    if (batteryLevel !== null) updateData.last_battery_level = batteryLevel;
+    if (batteryVoltage !== null) updateData.last_battery_voltage = batteryVoltage;
+    if (temperature !== null) updateData.last_temperature = temperature;
+    if (signalStrength !== null) updateData.last_signal_strength = signalStrength;
+    if (data?.firmware_version) updateData.firmware_version = data.firmware_version;
+    if (data?.model) updateData.model = data.model;
+    if (data?.mac_address) updateData.mac_address = data.mac_address;
+
+    await base44.asServiceRole.entities.AissensSensor.update(sensorRecord.id, updateData);
   } else {
-    await base44.asServiceRole.entities.AissensSensor.create({
+    // Auto-register new sensor
+    sensorRecord = await base44.asServiceRole.entities.AissensSensor.create({
       sensor_id,
       name: sensor_id,
-      is_active: true,
-      messages_total: 1,
       last_seen: now,
-      last_report_type: report_type,
-      last_battery_level: parsed?.battery_level ?? null,
-      last_battery_voltage: parsed?.battery_voltage ?? null,
-      last_temperature: parsed?.temperature ?? null,
+      last_report_type: report_type ?? null,
+      last_battery_level: batteryLevel,
+      last_battery_voltage: batteryVoltage,
+      last_temperature: temperature,
+      last_signal_strength: signalStrength,
+      firmware_version: data?.firmware_version || null,
+      model: data?.model || null,
+      mac_address: data?.mac_address || null,
+      messages_total: 1,
+      is_active: true,
     });
   }
+
+  // Save raw message to SystemLog for traceability
+  await base44.asServiceRole.entities.SystemLog.create({
+    level: "info",
+    message: `AISSENS [${sensor_id}] report type ${report_type} (${reportTypeName})`,
+    details: JSON.stringify({ sensor_id, report_type, report_type_name: reportTypeName, data: data || {}, raw_hex: raw_hex || null }),
+    source: "aissensWebhook",
+  });
 
   return Response.json({
     ok: true,
     sensor_id,
     report_type,
-    parsed: parsed ? true : false,
-    has_fft: parsed?.has_fft ?? false,
-    mqtt_message_id: msgRecord.id,
-    sensor_data_id: sensorDataRecord?.id ?? null,
+    report_type_name: reportTypeName,
+    sensor_record_id: sensorRecord.id,
+    auto_registered: existing.length === 0,
   });
 });
