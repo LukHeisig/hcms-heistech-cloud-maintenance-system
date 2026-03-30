@@ -275,35 +275,42 @@ function parseAissensData(bytes) {
     const remainingBytes = data.length - samplesOffset;
     if (remainingBytes >= 6) {
       const numSamples = Math.floor(remainingBytes / 6);
-      const rawX = [], rawY = [], rawZ = [];
+      const adcX = [], adcY = [], adcZ = [];
       for (let i = 0; i < numSamples; i++) {
         const off = samplesOffset + i * 6;
         // Little-endian: Byte1<<8 | Byte0
-        rawX.push((data[off+1] << 8) | data[off]);
-        rawY.push((data[off+3] << 8) | data[off+2]);
-        rawZ.push((data[off+5] << 8) | data[off+4]);
+        adcX.push((data[off+1] << 8) | data[off]);
+        adcY.push((data[off+3] << 8) | data[off+2]);
+        adcZ.push((data[off+5] << 8) | data[off+4]);
       }
       // Convert signed (two's complement)
       const toSigned16 = (v) => v >= 0x8000 ? v - 0x10000 : v;
-      let sX = rawX.map(toSigned16);
-      let sY = rawY.map(toSigned16);
-      let sZ = rawZ.map(toSigned16);
+      let rawX = adcX.map(toSigned16);
+      let rawY = adcY.map(toSigned16);
+      let rawZ = adcZ.map(toSigned16);
       
-      // Apply high-pass filter to remove DC component
-      sX = applyHighPassFilter(sX);
-      sY = applyHighPassFilter(sY);
-      sZ = applyHighPassFilter(sZ);
+      // Convert ADC counts → m/s² per AISSENS spec: value * 0.0002441062
+      const ADC_TO_MS2 = 0.0002441062;
+      rawX = rawX.map(v => v * ADC_TO_MS2);
+      rawY = rawY.map(v => v * ADC_TO_MS2);
+      rawZ = rawZ.map(v => v * ADC_TO_MS2);
       
-      result.raw_x = sX;
-      result.raw_y = sY;
-      result.raw_z = sZ;
+      // Apply high-pass filter to remove DC component and low-freq drift
+      rawX = applyHighPassFilter(rawX);
+      rawY = applyHighPassFilter(rawY);
+      rawZ = applyHighPassFilter(rawZ);
+      
+      result.raw_x = rawX.map(v => Math.round(v * 100000) / 100000); // round to 5 decimals
+      result.raw_y = rawY.map(v => Math.round(v * 100000) / 100000);
+      result.raw_z = rawZ.map(v => Math.round(v * 100000) / 100000);
       result.num_samples = numSamples;
       result.has_raw = true;
 
-      // OA = RMS of raw ADC counts (for display)
-      result.oa_x = Math.round(calcRMS(sX) * 100) / 100;
-      result.oa_y = Math.round(calcRMS(sY) * 100) / 100;
-      result.oa_z = Math.round(calcRMS(sZ) * 100) / 100;
+      // OA = RMS of filtered signal in m/s² (NOT mm/s!)
+      result.oa_x = Math.round(calcRMS(rawX) * 10000) / 10000;
+      result.oa_y = Math.round(calcRMS(rawY) * 10000) / 10000;
+      result.oa_z = Math.round(calcRMS(rawZ) * 10000) / 10000;
+      console.log(`[Type0 OA] X=${result.oa_x} m/s², Y=${result.oa_y} m/s², Z=${result.oa_z} m/s²`);
     }
   }
 
