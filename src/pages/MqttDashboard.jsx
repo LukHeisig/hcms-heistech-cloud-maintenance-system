@@ -46,7 +46,9 @@ function MetricsTable({ statsData }) {
 
   useEffect(() => {
     if (!statsData || statsData.length === 0) return;
+    console.log("[MetricsTable] statsData received:", statsData.length, "records");
     statsData.forEach(row => {
+      console.log(`[MetricsTable] Row ${row.sensor_id}:`, { rms_z_g: row.rms_z_g, vel_rms_z_mm_s: row.vel_rms_z_mm_s, env_rms_z: row.env_rms_z });
       if (!cacheRef.current[row.sensor_id]) cacheRef.current[row.sensor_id] = {};
       const c = cacheRef.current[row.sensor_id];
       
@@ -128,6 +130,7 @@ export default function MqttDashboard() {
     queryKey: ["sensorData_dashboard"],
     queryFn: () => base44.entities.SensorData.list("-created_date", 100),
     refetchInterval: 3000,
+    staleTime: 0,
   });
 
   // Fetch raw messages (last 50)
