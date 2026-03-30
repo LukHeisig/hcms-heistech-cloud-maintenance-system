@@ -415,7 +415,7 @@ function parseAissensData(bytes) {
       // OA = RMS of filtered signal in m/s² (only Z axis)
       // Použít segmentovaný průměr (10 segmentů)
       const G_FACTOR = 9.81;
-      const { rms: rmsZ_ms2, peak: peakZ_ms2 } = calcAveragedRMS_Peak(rawZ, 10);
+      const { rms: rmsZ_ms2, peak: peakZ_ms2 } = calcAveragedRMS_Peak(rawZ, 4);
       
       if (rmsZ_ms2 !== null) {
         result.rms_z_g = Math.round((rmsZ_ms2 / G_FACTOR) * 10000) / 10000;
@@ -437,9 +437,9 @@ function parseAissensData(bytes) {
       const velZ = accelerationToVelocity(rawZ_filtered);
       
       // Spočítat segmentovaný RMS rychlosti (mm/s) pro každou osu
-      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 10) : null;
-      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 10) : null;
-      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 10) : null;
+      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 4) : null;
+      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 4) : null;
+      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 4) : null;
       
       if (velRMS_X !== null) result.vel_rms_x_mm_s = Math.round(velRMS_X * 1000) / 1000;
       if (velRMS_Y !== null) result.vel_rms_y_mm_s = Math.round(velRMS_Y * 1000) / 1000;

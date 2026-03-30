@@ -194,7 +194,7 @@ export default function MqttDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-6 flex items-start justify-between">
               <div>
@@ -223,6 +223,16 @@ export default function MqttDashboard() {
                 <p className="text-xs text-slate-400 mt-1">In current view batch</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-xl"><Database className="w-6 h-6 text-purple-600" /></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 flex items-start justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Signal Segments</p>
+                <p className="text-3xl font-bold text-slate-900">4</p>
+                <p className="text-xs text-slate-400 mt-1">RMS/Peak averaging</p>
+              </div>
+              <div className="p-3 bg-indigo-100 rounded-xl"><Activity className="w-6 h-6 text-indigo-600" /></div>
             </CardContent>
           </Card>
         </div>
