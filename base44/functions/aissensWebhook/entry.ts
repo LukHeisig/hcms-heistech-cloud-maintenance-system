@@ -140,22 +140,28 @@ function applyBandpassFilter(signal, fs = 26700) {
 }
 
 // Spočítá segmentovaný RMS z rychlosti v mm/s
-function calcAveragedVelocityRMS(velocityArray, numSegments = 10) {
+// isAlreadyInMmS: pokud je true, data jsou již v mm/s (FFT), jinak jsou v m/s a musí se konvertovat
+function calcAveragedVelocityRMS(velocityArray, numSegments = 10, isAlreadyInMmS = false) {
   if (!velocityArray || velocityArray.length === 0) return null;
   
   const segmentSize = Math.floor(velocityArray.length / numSegments);
   if (segmentSize < 1) return null;
   
   const rmsValues = [];
-  const MM_PER_SECOND = 1000; // konverze z m/s na mm/s
   
   for (let i = 0; i < numSegments; i++) {
     const start = i * segmentSize;
     const end = i === numSegments - 1 ? velocityArray.length : (i + 1) * segmentSize;
     const segment = velocityArray.slice(start, end);
     
-    const rms = calcRMS(segment);
-    if (rms !== null) rmsValues.push(rms * MM_PER_SECOND); // m/s na mm/s
+    let rms = calcRMS(segment);
+    if (rms !== null) {
+      // Pokud nejsou již v mm/s, převeď z m/s na mm/s
+      if (!isAlreadyInMmS) {
+        rms = rms * 1000;
+      }
+      rmsValues.push(rms);
+    }
   }
   
   // Vrátit průměrný RMS
@@ -467,10 +473,10 @@ function parseAissensData(bytes) {
         result.peak_z_g = Math.round((peakZ_ms2 / G_FACTOR) * 10000) / 10000;
       }
       
-      // Calculate velocity RMS from FFT velocity data (mm/s)
-      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 4) : null;
-      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 4) : null;
-      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 4) : null;
+      // Calculate velocity RMS from FFT velocity data (already in mm/s from senzoru)
+      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 10, true) : null;
+      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 10, true) : null;
+      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 10, true) : null;
       if (velRMS_X !== null) result.vel_rms_x_mm_s = Math.round(velRMS_X * 1000) / 1000;
       if (velRMS_Y !== null) result.vel_rms_y_mm_s = Math.round(velRMS_Y * 1000) / 1000;
       if (velRMS_Z !== null) result.vel_rms_z_mm_s = Math.round(velRMS_Z * 1000) / 1000;
@@ -648,9 +654,9 @@ function parseAissensData(bytes) {
       const velZ = accelerationToVelocity(rawZ_filtered);
       
       // Spočítat segmentovaný RMS rychlosti (mm/s) pro každou osu
-      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 4) : null;
-      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 4) : null;
-      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 4) : null;
+      const velRMS_X = velX ? calcAveragedVelocityRMS(velX, 10, false) : null;
+      const velRMS_Y = velY ? calcAveragedVelocityRMS(velY, 10, false) : null;
+      const velRMS_Z = velZ ? calcAveragedVelocityRMS(velZ, 10, false) : null;
       
       if (velRMS_X !== null) result.vel_rms_x_mm_s = Math.round(velRMS_X * 1000) / 1000;
       if (velRMS_Y !== null) result.vel_rms_y_mm_s = Math.round(velRMS_Y * 1000) / 1000;
