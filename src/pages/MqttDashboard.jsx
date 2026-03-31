@@ -142,41 +142,16 @@ export default function MqttDashboard() {
     refetchInterval: 10000,
   });
 
-  // Active sensors list — derived from statsData with backfill
-  const activeSensors = useMemo(() => {
-    const map = new Map();
-
-    for (const row of statsData) {
-      const sensor = row.data || {};
-      if (!sensor.sensor_id) continue;
-
-      if (!map.has(sensor.sensor_id)) {
-        map.set(sensor.sensor_id, {
-          sensor_id: sensor.sensor_id,
-          lastSeen: row.created_date,
-          report_type: sensor.report_type,
-          battery_level: sensor.battery_level,
-          battery_voltage: sensor.battery_voltage,
-          temperature: sensor.temperature,
-          rssi: sensor.rssi,
-          interval: sensor.interval,
-        });
-      } else {
-        const s = map.get(sensor.sensor_id);
-        if (s.battery_level == null && sensor.battery_level != null) s.battery_level = sensor.battery_level;
-        if (s.battery_voltage == null && sensor.battery_voltage != null) s.battery_voltage = sensor.battery_voltage;
-        if (s.rssi == null && sensor.rssi != null) s.rssi = sensor.rssi;
-        if (s.interval == null && sensor.interval != null) s.interval = sensor.interval;
-        if (s.temperature == null && sensor.temperature != null) s.temperature = sensor.temperature;
-      }
-    }
-
-    return Array.from(map.values()).sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen));
-  }, [statsData]);
+  const { data: activeSensors = [], isLoading: loadingActiveSensors } = useQuery({
+    queryKey: ["aissens_sensors_dashboard"],
+    queryFn: () => base44.entities.AissensSensor.list("-last_seen", 500),
+    refetchInterval: 30000,
+    staleTime: 0,
+  });
 
   const activeLast24h = useMemo(() => {
     const cutoff = Date.now() - 86400000;
-    return activeSensors.filter(s => s.lastSeen && new Date(s.lastSeen).getTime() > cutoff).length;
+    return activeSensors.filter(s => s.last_seen && new Date(s.last_seen).getTime() > cutoff).length;
   }, [activeSensors]);
 
   // Auto-select first sensor if none selected
@@ -274,7 +249,7 @@ export default function MqttDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {loadingStats ? (
+            {loadingActiveSensors ? (
               <div className="flex items-center justify-center py-10 text-slate-400">
                 <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Načítám...
               </div>
@@ -304,22 +279,22 @@ export default function MqttDashboard() {
                         <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
                           <td className="p-3 text-slate-600">
-                            {s.lastSeen
-                              ? formatDistanceToNow(new Date(s.lastSeen + 'Z'), { addSuffix: true, locale: cs })
+                            {s.last_seen
+                              ? formatDistanceToNow(new Date(s.last_seen), { addSuffix: true, locale: cs })
                               : "–"}
                           </td>
-                          <td className="p-3"><StatusBadge lastSeen={s.lastSeen} /></td>
+                          <td className="p-3"><StatusBadge lastSeen={s.last_seen} /></td>
                           <td className="p-3">
-                            {s.battery_level != null
-                              ? <BatteryDisplay level={s.battery_level} voltage={s.battery_voltage} />
+                            {s.last_battery_level != null
+                              ? <BatteryDisplay level={s.last_battery_level} voltage={s.last_battery_voltage} />
                               : "–"}
                           </td>
                           <td className="p-3">
-                            {s.rssi != null
-                              ? <span className="flex items-center gap-1"><Signal className="w-4 h-4 text-blue-400" />{s.rssi} dBm</span>
+                            {s.last_signal_strength != null
+                              ? <span className="flex items-center gap-1"><Signal className="w-4 h-4 text-blue-400" />{s.last_signal_strength} dBm</span>
                               : "–"}
                           </td>
-                          <td className="p-3">{s.interval != null ? `${s.interval}s` : "–"}</td>
+                          <td className="p-3">–</td>
                           <td className="p-3 font-semibold">{count}</td>
                         </tr>
                       );
