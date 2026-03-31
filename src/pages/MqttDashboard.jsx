@@ -42,15 +42,15 @@ function StatusBadge({ lastSeen }) {
 
 // Metrics table with all calculated values per sensor
 function MetricsTable({ statsData }) {
-  const cacheRef = useRef({});
-
-  useEffect(() => {
-    if (!statsData || statsData.length === 0) return;
+  const sensors = useMemo(() => {
+    if (!statsData || statsData.length === 0) return [];
+    
+    const cache = {};
     statsData.forEach(row => {
       const sensor = row;
       if (!sensor.sensor_id) return;
-      if (!cacheRef.current[sensor.sensor_id]) cacheRef.current[sensor.sensor_id] = {};
-      const c = cacheRef.current[sensor.sensor_id];
+      if (!cache[sensor.sensor_id]) cache[sensor.sensor_id] = {};
+      const c = cache[sensor.sensor_id];
       
       if (sensor.rms_z_g != null && (!c.rms_ts || row.created_date > c.rms_ts)) {
         c.rms_z_g = sensor.rms_z_g;
@@ -68,11 +68,8 @@ function MetricsTable({ statsData }) {
         c.env_ts = row.created_date;
       }
     });
-  }, [statsData]);
 
-  const sensors = useMemo(() => {
-    const ids = [...new Set((statsData || []).map(r => r.sensor_id).filter(Boolean))];
-    return ids.map(id => ({ sensor_id: id, ...cacheRef.current[id] }));
+    return Object.keys(cache).map(id => ({ sensor_id: id, ...cache[id] }));
   }, [statsData]);
 
   return (
