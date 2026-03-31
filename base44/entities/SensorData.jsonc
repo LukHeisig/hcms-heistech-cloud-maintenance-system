@@ -79,6 +79,30 @@
     "mqtt_message_id": {
       "type": "string",
       "description": "ID z\u00e1znamu MqttMessage"
+    },
+    "rms_z_g": {
+      "type": "number",
+      "description": "Vypo\u010d\u00edtan\u00e9 RMS z (g)"
+    },
+    "peak_z_g": {
+      "type": "number",
+      "description": "Vypo\u010d\u00edtan\u00e9 Peak z (g)"
+    },
+    "vel_rms_x_mm_s": {
+      "type": "number",
+      "description": "Vypo\u010d\u00edtan\u00e9 Velocity RMS X (mm/s)"
+    },
+    "vel_rms_y_mm_s": {
+      "type": "number",
+      "description": "Vypo\u010d\u00edtan\u00e9 Velocity RMS Y (mm/s)"
+    },
+    "vel_rms_z_mm_s": {
+      "type": "number",
+      "description": "Vypo\u010d\u00edtan\u00e9 Velocity RMS Z (mm/s)"
+    },
+    "env_rms_z": {
+      "type": "number",
+      "description": "Vypo\u010d\u00edtan\u00e9 Envelope RMS Z"
     }
   },
   "required": [
