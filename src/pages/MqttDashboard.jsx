@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Wifi, WifiOff, Activity, Cpu, MessageSquare, Thermometer,
   BatteryFull, BatteryMedium, BatteryLow, Signal, RefreshCw,
-  ArrowLeft, Database, BarChart2
+  ArrowLeft, Database, BarChart2, Download
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { format, formatDistanceToNow } from "date-fns";
@@ -175,6 +175,55 @@ export default function MqttDashboard() {
       }));
   }, [statsData, activeSensorId]);
 
+  const handleExportCSV = () => {
+    // Collect all sensors with metrics from cache
+    const cache = {};
+    if (statsData) {
+      statsData.forEach(row => {
+        const sensor = row.data || {};
+        if (!sensor.sensor_id) return;
+        if (!cache[sensor.sensor_id]) cache[sensor.sensor_id] = {};
+        const c = cache[sensor.sensor_id];
+        if (sensor.rms_z_g != null && (!c.rms_ts || row.created_date > c.rms_ts)) {
+          c.rms_z_g = sensor.rms_z_g; c.peak_z_g = sensor.peak_z_g; c.rms_ts = row.created_date;
+        }
+        if (sensor.vel_rms_x_mm_s != null && (!c.vel_ts || row.created_date > c.vel_ts)) {
+          c.vel_rms_x_mm_s = sensor.vel_rms_x_mm_s; c.vel_rms_y_mm_s = sensor.vel_rms_y_mm_s; c.vel_rms_z_mm_s = sensor.vel_rms_z_mm_s; c.vel_ts = row.created_date;
+        }
+        if (sensor.env_rms_z != null && (!c.env_ts || row.created_date > c.env_ts)) {
+          c.env_rms_z = sensor.env_rms_z; c.env_ts = row.created_date;
+        }
+      });
+    }
+
+    const rows = [
+      ["Sensor ID", "Vel RMS X (mm/s)", "Vel RMS Y (mm/s)", "Vel RMS Z (mm/s)", "RMS Z (g)", "Peak Z (g)", "Env RMS Z"]
+    ];
+
+    const sensorIds = [...new Set((statsData || []).map(r => r.data?.sensor_id).filter(Boolean))];
+    sensorIds.forEach(id => {
+      const s = cache[id] || {};
+      rows.push([
+        id,
+        s.vel_rms_x_mm_s != null ? s.vel_rms_x_mm_s.toFixed(3) : "",
+        s.vel_rms_y_mm_s != null ? s.vel_rms_y_mm_s.toFixed(3) : "",
+        s.vel_rms_z_mm_s != null ? s.vel_rms_z_mm_s.toFixed(3) : "",
+        s.rms_z_g != null ? s.rms_z_g.toFixed(4) : "",
+        s.peak_z_g != null ? s.peak_z_g.toFixed(4) : "",
+        s.env_rms_z != null ? s.env_rms_z.toFixed(4) : ""
+      ]);
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + rows.map(e => e.join(";")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `MQTT_Metriky_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -194,6 +243,9 @@ export default function MqttDashboard() {
               MQTT Dashboard — Live
             </h1>
           </div>
+          <Button variant="outline" onClick={handleExportCSV} className="gap-2">
+            <Download className="w-4 h-4" /> Export (Excel/CSV)
+          </Button>
         </div>
 
         {/* Stats */}

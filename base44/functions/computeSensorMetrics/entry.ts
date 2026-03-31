@@ -248,15 +248,22 @@ function getEnvelopeRMS_10_1000Hz(signal, fs = 26700) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const body = await req.json();
-    // Entity automation payload: { event: {...}, data: {...} }
-    const data = body.data || body;
+    
+    // Entity automation payload: { event: {...}, data: {...}, payload_too_large: bool }
+    let data;
+    if (body.payload_too_large) {
+      // Raw data exceeded 200KB limit — fetch entity manually
+      const entityId = body.event?.entity_id;
+      if (!entityId) {
+        return Response.json({ error: 'Missing entity_id in payload_too_large scenario' }, { status: 400 });
+      }
+      const records = await base44.asServiceRole.entities.SensorData.filter({ id: entityId });
+      data = records[0];
+    } else {
+      data = body.data || body;
+    }
     
     if (!data || !data.id) {
       return Response.json({ error: 'Missing data.id' }, { status: 400 });
@@ -264,6 +271,12 @@ Deno.serve(async (req) => {
 
     const sensorDataId = data.id;
     const G_FACTOR = 9.81;
+    
+    // If has_raw is set but raw arrays are missing (automation may truncate large fields), fetch from DB
+    if (data.has_raw && !data.raw_z_json) {
+      const records = await base44.asServiceRole.entities.SensorData.filter({ id: sensorDataId });
+      if (records[0]) data = records[0];
+    }
     
     // Parse raw data from JSON strings
     let rawX = [], rawY = [], rawZ = [];
@@ -334,9 +347,9 @@ Deno.serve(async (req) => {
       if (envRMS_Z !== null) updates.env_rms_z = envRMS_Z;
     }
     
-    // Update SensorData record
+    // Update SensorData record (use service role — called from automation without user session)
     if (Object.keys(updates).length > 0) {
-      await base44.entities.SensorData.update(sensorDataId, updates);
+      await base44.asServiceRole.entities.SensorData.update(sensorDataId, updates);
       console.log(`[computeSensorMetrics] Updated ${sensorDataId} with:`, updates);
     }
     
