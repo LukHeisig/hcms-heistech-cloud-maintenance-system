@@ -47,7 +47,7 @@ function MetricsTable({ statsData }) {
   useEffect(() => {
     if (!statsData || statsData.length === 0) return;
     statsData.forEach(row => {
-      const sensor = row;
+      const sensor = row.data || {};
       if (!sensor.sensor_id) return;
       if (!cacheRef.current[sensor.sensor_id]) cacheRef.current[sensor.sensor_id] = {};
       const c = cacheRef.current[sensor.sensor_id];
@@ -71,7 +71,7 @@ function MetricsTable({ statsData }) {
   }, [statsData]);
 
   const sensors = useMemo(() => {
-    const ids = [...new Set((statsData || []).map(r => r.sensor_id).filter(Boolean))];
+    const ids = [...new Set((statsData || []).map(r => r.data?.sensor_id).filter(Boolean))];
     return ids.map(id => ({ sensor_id: id, ...cacheRef.current[id] }));
   }, [statsData]);
 
@@ -161,16 +161,16 @@ export default function MqttDashboard() {
   const trendData = useMemo(() => {
     if (!activeSensorId) return [];
     return statsData
-      .filter(r => r.sensor_id === activeSensorId)
+      .filter(r => r.data?.sensor_id === activeSensorId)
       .slice()
       .reverse()
       .slice(0, 50)
       .map((r, i) => ({
         t: i,
-        rms_z: r.rms_z_g,
-        peak_z: r.peak_z_g,
-        vel_z: r.vel_rms_z_mm_s,
-        env_z: r.env_rms_z,
+        rms_z: r.data?.rms_z_g,
+        peak_z: r.data?.peak_z_g,
+        vel_z: r.data?.vel_rms_z_mm_s,
+        env_z: r.data?.env_rms_z,
         time: new Date(r.created_date).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
       }));
   }, [statsData, activeSensorId]);
@@ -274,7 +274,7 @@ export default function MqttDashboard() {
                   </thead>
                   <tbody>
                     {activeSensors.map(s => {
-                      const count = statsData.filter(r => r.sensor_id === s.sensor_id).length;
+                      const count = statsData.filter(r => r.data?.sensor_id === s.sensor_id).length;
                       return (
                         <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
@@ -399,13 +399,13 @@ export default function MqttDashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart
                   data={statsData
-                    .filter(r => r.rms_z_g != null || r.peak_z_g != null)
+                    .filter(r => r.data?.rms_z_g != null || r.data?.peak_z_g != null)
                     .slice(-50)
                     .map((r, i) => ({
                       t: i,
-                      rms_z: r.rms_z_g,
-                      peak_z: r.peak_z_g,
-                      sensor: r.sensor_id,
+                      rms_z: r.data?.rms_z_g,
+                      peak_z: r.data?.peak_z_g,
+                      sensor: r.data?.sensor_id,
                     }))}
                   margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                 >
