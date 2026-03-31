@@ -46,30 +46,32 @@ function MetricsTable({ statsData }) {
 
   useEffect(() => {
     if (!statsData || statsData.length === 0) return;
-    console.log("[MetricsTable] statsData received:", statsData.length, "records");
     statsData.forEach(row => {
-      console.log(`[MetricsTable] Row ${row.sensor_id}:`, { rms_z_g: row.rms_z_g, vel_rms_z_mm_s: row.vel_rms_z_mm_s, env_rms_z: row.env_rms_z });
-      if (!cacheRef.current[row.sensor_id]) cacheRef.current[row.sensor_id] = {};
-      const c = cacheRef.current[row.sensor_id];
+      const sensor = row.data || {};
+      if (!sensor.sensor_id) return;
+      if (!cacheRef.current[sensor.sensor_id]) cacheRef.current[sensor.sensor_id] = {};
+      const c = cacheRef.current[sensor.sensor_id];
       
-      // Store latest values for each metric
-      if (row.rms_z_g != null && (!c.rms_ts || row.created_date > c.rms_ts)) {
-        c.rms_z_g = row.rms_z_g; c.peak_z_g = row.peak_z_g; c.rms_ts = row.created_date;
+      if (sensor.rms_z_g != null && (!c.rms_ts || row.created_date > c.rms_ts)) {
+        c.rms_z_g = sensor.rms_z_g;
+        c.peak_z_g = sensor.peak_z_g;
+        c.rms_ts = row.created_date;
       }
-      if (row.vel_rms_x_mm_s != null && (!c.vel_ts || row.created_date > c.vel_ts)) {
-        c.vel_rms_x_mm_s = row.vel_rms_x_mm_s; 
-        c.vel_rms_y_mm_s = row.vel_rms_y_mm_s; 
-        c.vel_rms_z_mm_s = row.vel_rms_z_mm_s; 
+      if (sensor.vel_rms_x_mm_s != null && (!c.vel_ts || row.created_date > c.vel_ts)) {
+        c.vel_rms_x_mm_s = sensor.vel_rms_x_mm_s;
+        c.vel_rms_y_mm_s = sensor.vel_rms_y_mm_s;
+        c.vel_rms_z_mm_s = sensor.vel_rms_z_mm_s;
         c.vel_ts = row.created_date;
       }
-      if (row.env_rms_z != null && (!c.env_ts || row.created_date > c.env_ts)) {
-        c.env_rms_z = row.env_rms_z; c.env_ts = row.created_date;
+      if (sensor.env_rms_z != null && (!c.env_ts || row.created_date > c.env_ts)) {
+        c.env_rms_z = sensor.env_rms_z;
+        c.env_ts = row.created_date;
       }
     });
   }, [statsData]);
 
   const sensors = useMemo(() => {
-    const ids = [...new Set((statsData || []).map(r => r.sensor_id))];
+    const ids = [...new Set((statsData || []).map(r => r.data?.sensor_id).filter(Boolean))];
     return ids.map(id => ({ sensor_id: id, ...cacheRef.current[id] }));
   }, [statsData]);
 
@@ -143,29 +145,29 @@ export default function MqttDashboard() {
   // Active sensors list — derived from statsData with backfill
   const activeSensors = useMemo(() => {
     const map = new Map();
-    const now = Date.now();
 
     for (const row of statsData) {
-      if (!map.has(row.sensor_id)) {
-        // First (newest) record for this sensor
-        map.set(row.sensor_id, {
-          sensor_id: row.sensor_id,
+      const sensor = row.data || {};
+      if (!sensor.sensor_id) continue;
+
+      if (!map.has(sensor.sensor_id)) {
+        map.set(sensor.sensor_id, {
+          sensor_id: sensor.sensor_id,
           lastSeen: row.created_date,
-          report_type: row.report_type,
-          battery_level: row.battery_level,
-          battery_voltage: row.battery_voltage,
-          temperature: row.temperature,
-          rssi: row.rssi,
-          interval: row.interval,
+          report_type: sensor.report_type,
+          battery_level: sensor.battery_level,
+          battery_voltage: sensor.battery_voltage,
+          temperature: sensor.temperature,
+          rssi: sensor.rssi,
+          interval: sensor.interval,
         });
       } else {
-        // Backfill missing values from older records
-        const s = map.get(row.sensor_id);
-        if (s.battery_level == null && row.battery_level != null) s.battery_level = row.battery_level;
-        if (s.battery_voltage == null && row.battery_voltage != null) s.battery_voltage = row.battery_voltage;
-        if (s.rssi == null && row.rssi != null) s.rssi = row.rssi;
-        if (s.interval == null && row.interval != null) s.interval = row.interval;
-        if (s.temperature == null && row.temperature != null) s.temperature = row.temperature;
+        const s = map.get(sensor.sensor_id);
+        if (s.battery_level == null && sensor.battery_level != null) s.battery_level = sensor.battery_level;
+        if (s.battery_voltage == null && sensor.battery_voltage != null) s.battery_voltage = sensor.battery_voltage;
+        if (s.rssi == null && sensor.rssi != null) s.rssi = sensor.rssi;
+        if (s.interval == null && sensor.interval != null) s.interval = sensor.interval;
+        if (s.temperature == null && sensor.temperature != null) s.temperature = sensor.temperature;
       }
     }
 
@@ -184,16 +186,16 @@ export default function MqttDashboard() {
   const trendData = useMemo(() => {
     if (!activeSensorId) return [];
     return statsData
-      .filter(r => r.sensor_id === activeSensorId)
+      .filter(r => r.data?.sensor_id === activeSensorId)
       .slice()
       .reverse()
       .slice(0, 50)
       .map((r, i) => ({
         t: i,
-        rms_z: r.rms_z_g,
-        peak_z: r.peak_z_g,
-        vel_z: r.vel_rms_z_mm_s,
-        env_z: r.env_rms_z,
+        rms_z: r.data?.rms_z_g,
+        peak_z: r.data?.peak_z_g,
+        vel_z: r.data?.vel_rms_z_mm_s,
+        env_z: r.data?.env_rms_z,
         time: new Date(r.created_date).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
       }));
   }, [statsData, activeSensorId]);
@@ -297,7 +299,7 @@ export default function MqttDashboard() {
                   </thead>
                   <tbody>
                     {activeSensors.map(s => {
-                      const count = statsData.filter(r => r.sensor_id === s.sensor_id).length;
+                      const count = statsData.filter(r => r.data?.sensor_id === s.sensor_id).length;
                       return (
                         <tr key={s.sensor_id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-3 font-mono text-blue-600 font-semibold">{s.sensor_id}</td>
@@ -422,13 +424,13 @@ export default function MqttDashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart
                   data={statsData
-                    .filter(r => r.rms_z_g != null || r.peak_z_g != null)
+                    .filter(r => r.data?.rms_z_g != null || r.data?.peak_z_g != null)
                     .slice(-50)
                     .map((r, i) => ({
                       t: i,
-                      rms_z: r.rms_z_g,
-                      peak_z: r.peak_z_g,
-                      sensor: r.sensor_id,
+                      rms_z: r.data?.rms_z_g,
+                      peak_z: r.data?.peak_z_g,
+                      sensor: r.data?.sensor_id,
                     }))}
                   margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                 >
