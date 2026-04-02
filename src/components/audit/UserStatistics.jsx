@@ -30,7 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, BarChart3, Calendar, Building2, Download } from "lucide-react";
-import { startOfDay, startOfWeek, startOfMonth, isAfter } from "date-fns";
+import { startOfDay, startOfWeek, startOfMonth, endOfMonth, isAfter } from "date-fns";
 
 export function UserStatistics({ users, allLogs, companies }) {
   const [timeRange, setTimeRange] = useState('month'); // day, week, month
@@ -58,6 +58,7 @@ export function UserStatistics({ users, allLogs, companies }) {
   const stats = useMemo(() => {
     const now = new Date();
     let startDate;
+    let endDate = now;
     
     switch (timeRange) {
       case 'day':
@@ -66,6 +67,11 @@ export function UserStatistics({ users, allLogs, companies }) {
       case 'week':
         startDate = startOfWeek(now, { weekStartsOn: 1 });
         break;
+      case 'last_month':
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        startDate = startOfMonth(lastMonth);
+        endDate = endOfMonth(lastMonth);
+        break;
       case 'month':
       default:
         startDate = startOfMonth(now);
@@ -73,14 +79,16 @@ export function UserStatistics({ users, allLogs, companies }) {
     }
 
     // Use dedicated authLogs (higher limit) filtered by time range
-    const relevantLogs = authLogs.filter(log => 
-      new Date(log.created_date) >= startDate
-    );
+    const relevantLogs = authLogs.filter(log => {
+      const d = new Date(log.created_date);
+      return d >= startDate && d <= endDate;
+    });
 
     // Filter records for confirmations
-    const relevantRecords = controlRecords.filter(record => 
-      new Date(record.performed_at) >= startDate
-    );
+    const relevantRecords = controlRecords.filter(record => {
+      const d = new Date(record.performed_at);
+      return d >= startDate && d <= endDate;
+    });
 
     // Group by user
     const userStats = {};
@@ -124,9 +132,10 @@ export function UserStatistics({ users, allLogs, companies }) {
     });
 
     // Count reported issues
-    const relevantIssues = issues.filter(issue =>
-      new Date(issue.created_date) >= startDate
-    );
+    const relevantIssues = issues.filter(issue => {
+      const d = new Date(issue.created_date);
+      return d >= startDate && d <= endDate;
+    });
     relevantIssues.forEach(issue => {
       const email = issue.created_by?.toLowerCase();
       if (email && userStats[email]) {
@@ -153,6 +162,7 @@ export function UserStatistics({ users, allLogs, companies }) {
       case 'day': return 'Dnes';
       case 'week': return 'Tento týden';
       case 'month': return 'Tento měsíc';
+      case 'last_month': return 'Minulý měsíc';
       default: return '';
     }
   };
@@ -245,6 +255,7 @@ export function UserStatistics({ users, allLogs, companies }) {
                     <SelectItem value="day">Dnes</SelectItem>
                     <SelectItem value="week">Tento týden</SelectItem>
                     <SelectItem value="month">Tento měsíc</SelectItem>
+                    <SelectItem value="last_month">Minulý měsíc</SelectItem>
                     </SelectContent>
                 </Select>
               </div>
