@@ -5,7 +5,7 @@ export const handler = async (req) => {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
         
-        if (!user || (user.user_type !== 'admin' && user.user_type !== 'superAdmin')) {
+        if (!user || user.user_type === 'technician') {
              return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -15,8 +15,27 @@ export const handler = async (req) => {
             return Response.json({ error: 'Missing type or id' }, { status: 400 });
         }
 
-        const log = [];
         const client = base44.asServiceRole;
+
+        if (user.user_type === 'manager') {
+            let itemCompanyId = null;
+            if (type === 'machine') {
+                const machines = await client.entities.Machine.filter({ id });
+                if (machines.length > 0) {
+                    const lines = await client.entities.Line.filter({ id: machines[0].line_id });
+                    if (lines.length > 0) itemCompanyId = lines[0].company_id;
+                }
+            } else if (type === 'line') {
+                const lines = await client.entities.Line.filter({ id });
+                if (lines.length > 0) itemCompanyId = lines[0].company_id;
+            }
+
+            if (itemCompanyId && itemCompanyId !== user.company_id) {
+                return Response.json({ error: 'Forbidden' }, { status: 403 });
+            }
+        }
+
+        const log = [];
 
         if (type === 'machine') {
             await deleteMachineCascade(client, id, log);
