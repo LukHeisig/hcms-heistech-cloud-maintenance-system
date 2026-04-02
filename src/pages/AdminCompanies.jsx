@@ -389,7 +389,7 @@ export default function AdminCompanies() {
                     <div className="flex items-center space-x-2">
                         <Checkbox 
                             id="enable_demip" 
-                            checked={formData.enable_demip}
+                            checked={!!formData.enable_demip}
                             onCheckedChange={(checked) => setFormData({...formData, enable_demip: checked})}
                         />
                         <Label htmlFor="enable_demip" className="cursor-pointer">DEMIP (Kontrolní body)</Label>
@@ -397,7 +397,7 @@ export default function AdminCompanies() {
                     <div className="flex items-center space-x-2">
                         <Checkbox 
                             id="enable_maintenance" 
-                            checked={formData.enable_maintenance}
+                            checked={!!formData.enable_maintenance}
                             onCheckedChange={(checked) => setFormData({...formData, enable_maintenance: checked})}
                         />
                         <Label htmlFor="enable_maintenance" className="cursor-pointer">Údržba</Label>
@@ -405,7 +405,7 @@ export default function AdminCompanies() {
                     <div className="flex items-center space-x-2">
                         <Checkbox 
                             id="enable_parts" 
-                            checked={formData.enable_parts}
+                            checked={!!formData.enable_parts}
                             onCheckedChange={(checked) => setFormData({...formData, enable_parts: checked})}
                         />
                         <Label htmlFor="enable_parts" className="cursor-pointer">Náhradní díly</Label>
@@ -413,7 +413,7 @@ export default function AdminCompanies() {
                     <div className="flex items-center space-x-2">
                         <Checkbox 
                             id="enable_vibration" 
-                            checked={formData.enable_vibration}
+                            checked={!!formData.enable_vibration}
                             onCheckedChange={(checked) => setFormData({...formData, enable_vibration: checked})}
                         />
                         <Label htmlFor="enable_vibration" className="cursor-pointer">Vibrodiagnostika</Label>
@@ -421,7 +421,7 @@ export default function AdminCompanies() {
                     <div className="flex items-center space-x-2">
                         <Checkbox 
                             id="enable_thermo" 
-                            checked={formData.enable_thermo}
+                            checked={!!formData.enable_thermo}
                             onCheckedChange={(checked) => setFormData({...formData, enable_thermo: checked})}
                         />
                         <Label htmlFor="enable_thermo" className="cursor-pointer">Termodiagnostika</Label>
@@ -429,7 +429,7 @@ export default function AdminCompanies() {
                     <div className="flex items-center space-x-2">
                         <Checkbox 
                             id="enable_tribo" 
-                            checked={formData.enable_tribo}
+                            checked={!!formData.enable_tribo}
                             onCheckedChange={(checked) => setFormData({...formData, enable_tribo: checked})}
                         />
                         <Label htmlFor="enable_tribo" className="cursor-pointer">Tribodiagnostika</Label>
@@ -445,7 +445,7 @@ export default function AdminCompanies() {
                 <div className="flex items-center space-x-2">
                     <Checkbox 
                         id="allow_manual_confirmation" 
-                        checked={formData.allow_manual_confirmation}
+                        checked={!!formData.allow_manual_confirmation}
                         onCheckedChange={(checked) => setFormData({...formData, allow_manual_confirmation: checked})}
                     />
                     <div className="grid gap-1.5 leading-none">
@@ -461,7 +461,7 @@ export default function AdminCompanies() {
                 <div className="flex items-center space-x-2 pt-2 border-t border-slate-200 mt-2">
                     <Checkbox 
                         id="force_technician_demip_mobile" 
-                        checked={formData.force_technician_demip_mobile}
+                        checked={!!formData.force_technician_demip_mobile}
                         onCheckedChange={(checked) => setFormData({...formData, force_technician_demip_mobile: checked})}
                     />
                     <div className="grid gap-1.5 leading-none">

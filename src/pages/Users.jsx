@@ -609,7 +609,7 @@ export default function Users() {
                       <label key={company.id} className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={formData.assigned_company_ids?.includes(company.id)}
+                          checked={formData.assigned_company_ids?.includes(company.id) || false}
                           onChange={(e) => {
                             const currentIds = formData.assigned_company_ids || [];
                             if (e.target.checked) {

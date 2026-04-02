@@ -402,7 +402,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
               <div className="md:col-span-3 flex items-center gap-2 pt-2 border-t border-slate-200">
                   <Checkbox 
                       id="copyTexts" 
-                      checked={copyLastTexts} 
+                      checked={!!copyLastTexts} 
                       onCheckedChange={setCopyLastTexts} 
                   />
                   <Label htmlFor="copyTexts" className="cursor-pointer text-sm text-slate-700 flex items-center gap-2">
@@ -434,7 +434,7 @@ export default function VibrationJobDialog({ machine, open, onOpenChange, job = 
                                 <label key={dir} className="flex items-center gap-2 cursor-pointer hover:text-slate-900">
                                     <input 
                                         type="checkbox" 
-                                        checked={visibleDirections[dir]} 
+                                        checked={!!visibleDirections[dir]} 
                                         onChange={e => setVisibleDirections(prev => ({ ...prev, [dir]: e.target.checked }))}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                     />

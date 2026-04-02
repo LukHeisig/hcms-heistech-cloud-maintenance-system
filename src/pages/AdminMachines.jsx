@@ -721,7 +721,7 @@ export default function AdminMachines() {
                       <div className="flex items-center space-x-2">
                           <Checkbox 
                               id="monitor_vibration" 
-                              checked={formData.monitor_vibration}
+                              checked={!!formData.monitor_vibration}
                               onCheckedChange={(checked) => setFormData({...formData, monitor_vibration: checked})}
                           />
                           <Label htmlFor="monitor_vibration" className="cursor-pointer font-normal">Vibrace</Label>
@@ -729,7 +729,7 @@ export default function AdminMachines() {
                       <div className="flex items-center space-x-2">
                           <Checkbox 
                               id="monitor_thermo" 
-                              checked={formData.monitor_thermo}
+                              checked={!!formData.monitor_thermo}
                               onCheckedChange={(checked) => setFormData({...formData, monitor_thermo: checked})}
                           />
                           <Label htmlFor="monitor_thermo" className="cursor-pointer font-normal">Termo</Label>
@@ -737,7 +737,7 @@ export default function AdminMachines() {
                       <div className="flex items-center space-x-2">
                           <Checkbox 
                               id="monitor_tribo" 
-                              checked={formData.monitor_tribo}
+                              checked={!!formData.monitor_tribo}
                               onCheckedChange={(checked) => setFormData({...formData, monitor_tribo: checked})}
                           />
                           <Label htmlFor="monitor_tribo" className="cursor-pointer font-normal">Tribo</Label>
