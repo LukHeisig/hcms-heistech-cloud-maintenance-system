@@ -528,10 +528,10 @@ function parseAissensData(bytes) {
     if (data.length < 9) return result;
     result.timestamp_unix = readUint64BE(data, 0);
     result.status_code = data[8];
-    // status: 0=ManualHibernate, 1=ManualWakeup, 2=ScheduleHibernate, 3=ScheduleWakeup
-    const isHibernate = result.status_code === 0 || result.status_code === 2;
-    if (isHibernate && data.length > 9) {
-      // JSON sensor information follows status byte
+    
+    // Zda zpráva obsahuje JSON zjistíme spolehlivě podle toho, že na pozici 9 začíná znakem '{' (0x7B)
+    // Různé verze firmwaru totiž posílají JSON buď při Wakeup, nebo Hibernate.
+    if (data.length > 9 && data[9] === 0x7B) {
       try {
         const jsonStr = new TextDecoder().decode(data.slice(9));
         const info = JSON.parse(jsonStr);
@@ -539,17 +539,17 @@ function parseAissensData(bytes) {
         if (info.BatVoltage != null) result.battery_voltage = parseFloat(info.BatVoltage);
         if (info.BatteryLevel != null) result.battery_level = parseInt(info.BatteryLevel);
         if (info.SignalStrength != null) result.rssi = parseInt(info.SignalStrength);
-        console.log(`[Type4 Hibernate] temp=${result.temperature} voltage=${result.battery_voltage} level=${result.battery_level} rssi=${result.rssi}`);
+        console.log(`[Type4 JSON] temp=${result.temperature} voltage=${result.battery_voltage} level=${result.battery_level} rssi=${result.rssi}`);
       } catch(e) {
-        console.log(`[Type4 Hibernate] JSON parse error: ${e.message}`);
+        console.log(`[Type4 JSON] parse error: ${e.message}`);
       }
-    } else if (!isHibernate && data.length >= 17) {
-      // Wakeup: parse durations (no battery/temp info)
+    } else if (data.length >= 17) {
+      // Binární data o délkách připojení
       result.online_duration = (data[9] << 8) | data[10];
       result.wifi_online_duration = (data[11] << 8) | data[12];
       result.transmission_duration = (data[13] << 8) | data[14];
       result.battery_usage_time = readUint32BE(data, 15);
-      console.log(`[Type4 Wakeup] online=${result.online_duration}s wifi=${result.wifi_online_duration}s`);
+      console.log(`[Type4 Binary] online=${result.online_duration}s wifi=${result.wifi_online_duration}s`);
     }
   }
 
