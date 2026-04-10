@@ -56,6 +56,25 @@ function calcRMS(arr) {
   return Math.sqrt(sum / arr.length);
 }
 
+function applyHighPassFilter(samples) {
+  if (!samples || samples.length < 2) return samples;
+  const Fs = 26700;
+  const Fc = 10;
+  const Dt = 1 / Fs;
+  const RC = 1 / (2 * Math.PI * Fc);
+  const alpha = RC / (RC + Dt);
+  const filtered = [];
+  let prevOutput = 0;
+  let prevInput = samples[0];
+  for (let i = 0; i < samples.length; i++) {
+    const output = alpha * (prevOutput + samples[i] - prevInput);
+    filtered.push(output);
+    prevOutput = output;
+    prevInput = samples[i];
+  }
+  return filtered;
+}
+
 // ─── DSP Utils ───────────────────────────────────────────────────────────────
 
 function applyHanning(signal) {

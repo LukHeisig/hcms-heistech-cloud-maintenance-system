@@ -115,6 +115,13 @@ export default function DSPVisualization() {
         <div className="flex items-center justify-center p-12 text-slate-500">
           <RefreshCw className="w-6 h-6 animate-spin mr-2" /> Probíhá načítání dat...
         </div>
+      ) : !activeFFT ? (
+        <Card><CardContent className="p-12 text-center text-slate-500">
+          <Activity className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+          <p className="font-semibold text-lg text-slate-700">Starý záznam</p>
+          <p className="mt-2">Tento záznam z databáze nemá uložená FFT spektra.</p>
+          <p className="text-sm mt-1">Zpracování na serveru se provádí automaticky až pro všechna <b>nově</b> přijatá data ze senzorů.</p>
+        </CardContent></Card>
       ) : !dspResults ? (
         <Card><CardContent className="p-12 text-center text-slate-500">Vyberte platný záznam s raw daty.</CardContent></Card>
       ) : (
