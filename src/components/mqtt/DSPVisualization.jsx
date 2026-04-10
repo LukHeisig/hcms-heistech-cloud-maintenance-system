@@ -9,6 +9,7 @@ import { RefreshCw, Activity } from "lucide-react";
 import { format } from "date-fns";
 
 export default function DSPVisualization() {
+  // force vite restart
   const [selectedRecordId, setSelectedRecordId] = useState(null);
 
   const { data: records = [], isLoading } = useQuery({
