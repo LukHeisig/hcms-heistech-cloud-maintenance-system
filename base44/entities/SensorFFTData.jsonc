@@ -58,6 +58,10 @@
     "vel_z_json": {
       "type": "string",
       "description": "JSON array prvn\u00edch 512 hodnot vel Z spektra"
+    },
+    "env_z_json": {
+      "type": "string",
+      "description": "JSON array spektra ob\u00e1lky"
     }
   },
   "required": [

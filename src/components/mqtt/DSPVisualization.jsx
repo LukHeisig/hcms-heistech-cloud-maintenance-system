@@ -5,17 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { RefreshCw, Activity } from "lucide-react";
-import { applyHanning, computeRFFT, getVelocitySpectrum, calculateRMSFromSpectrum, computeHilbertEnvelope, filtfiltButterworthHPF } from "@/utils/dspMath";
+
 import { format } from "date-fns";
 
 export default function DSPVisualization() {
   const [selectedRecordId, setSelectedRecordId] = useState(null);
 
   const { data: records = [], isLoading } = useQuery({
-    queryKey: ["rawSensorData"],
+    queryKey: ["sensorDataWithFFT"],
     queryFn: async () => {
-      const all = await base44.entities.SensorData.list("-created_date", 200);
-      return all.filter(r => r.has_raw && r.raw_x_json && r.raw_z_json);
+      return await base44.entities.SensorData.list("-created_date", 200);
     },
     refetchInterval: 30000,
   });
@@ -23,83 +22,75 @@ export default function DSPVisualization() {
   const activeRecordId = selectedRecordId || records[0]?.id;
   const activeRecord = records.find(r => r.id === activeRecordId);
 
+  // Zvlášť natáhneme FFT entitu, která patří k vybranému záznamu
+  const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
+    queryKey: ["sensorFFT", activeRecord?.id],
+    queryFn: async () => {
+      if (!activeRecord) return [];
+      return await base44.entities.SensorFFTData.filter({ sensor_data_id: activeRecord.id });
+    },
+    enabled: !!activeRecord,
+  });
+
+  const activeFFT = fftRecords[0];
+
   const dspResults = useMemo(() => {
-    if (!activeRecord) return null;
+    if (!activeRecord || !activeFFT) return null;
     try {
-      const rawX = JSON.parse(activeRecord.raw_x_json);
-      const rawY = JSON.parse(activeRecord.raw_y_json);
-      const rawZ = JSON.parse(activeRecord.raw_z_json);
-      const fs = 26700;
-
-      // Zpracování osy Z - Zrychlení
-      const winZ = applyHanning(rawZ);
-      const fftZ = computeRFFT(winZ, fs);
-      const rmsAccZ = calculateRMSFromSpectrum(fftZ.amplitudes, fftZ.frequencies, 0, fs/2);
-
-      // Zpracování X, Y, Z - Rychlost
-      const winX = applyHanning(rawX);
-      const fftX = computeRFFT(winX, fs);
-      const velXAmps = getVelocitySpectrum(fftX.amplitudes, fftX.frequencies);
-      const rmsVelX = calculateRMSFromSpectrum(velXAmps, fftX.frequencies, 2, 1000);
-
-      const winY = applyHanning(rawY);
-      const fftY = computeRFFT(winY, fs);
-      const velYAmps = getVelocitySpectrum(fftY.amplitudes, fftY.frequencies);
-      const rmsVelY = calculateRMSFromSpectrum(velYAmps, fftY.frequencies, 2, 1000);
-
-      const velZAmps = getVelocitySpectrum(fftZ.amplitudes, fftZ.frequencies);
-      const rmsVelZ = calculateRMSFromSpectrum(velZAmps, fftZ.frequencies, 2, 1000);
-
-      // Obálka Z
-      const filteredZ = filtfiltButterworthHPF(rawZ, 500, fs);
-      const envelopeZ = computeHilbertEnvelope(filteredZ);
-      
-      const meanEnv = envelopeZ.reduce((a,b)=>a+b,0)/envelopeZ.length;
-      const demeanedEnv = new Float64Array(envelopeZ.length);
-      for(let i=0;i<envelopeZ.length;i++) demeanedEnv[i] = envelopeZ[i] - meanEnv;
-      
-      const winEnvZ = applyHanning(demeanedEnv);
-      const fftEnvZ = computeRFFT(winEnvZ, fs);
-      const rmsEnvZ = calculateRMSFromSpectrum(fftEnvZ.amplitudes, fftEnvZ.frequencies, 0, fs/2);
-
-      // Data pro grafy (downsampling na cca 500 bodů pro svižné vykreslení)
-      const downsample = (arr, max=500) => {
-        const step = Math.max(1, Math.floor(arr.length / max));
-        const res = [];
-        for(let i=0; i<arr.length; i+=step) res.push(arr[i]);
-        return res;
-      };
-
-      const rawChart = downsample(rawZ, 500).map((val, i) => ({ 
-          t: (i * (rawZ.length/500) * (1/fs)*1000).toFixed(1), 
-          z: val 
-      }));
-      
-      const specAccZ = [];
-      const specVel = [];
-      const specEnvZ = [];
-      
-      const freqStep = Math.max(1, Math.ceil(fftZ.frequencies.length/500));
-      for(let i=0; i<fftZ.frequencies.length; i+=freqStep) {
-        specAccZ.push({ f: fftZ.frequencies[i].toFixed(1), amp: fftZ.amplitudes[i] });
-        if (fftZ.frequencies[i] <= 1000) {
-            specVel.push({ 
-                f: fftZ.frequencies[i].toFixed(1), 
-                x: velXAmps[i], y: velYAmps[i], z: velZAmps[i] 
-            });
+      // 1) Časová vlna surových dat
+      let rawChart = [];
+      if (activeRecord.has_raw && activeRecord.raw_z_json) {
+        const rawZ = JSON.parse(activeRecord.raw_z_json);
+        const fs = 26700;
+        const maxLen = 500;
+        const step = Math.max(1, Math.floor(rawZ.length / maxLen));
+        for (let i = 0; i < rawZ.length; i += step) {
+          rawChart.push({
+            t: (i * (1/fs)*1000).toFixed(1),
+            z: rawZ[i]
+          });
         }
-        specEnvZ.push({ f: fftEnvZ.frequencies[i].toFixed(1), amp: fftEnvZ.amplitudes[i] });
+      }
+
+      // 2) Frekvenční spektra
+      const freqRes = activeFFT.frequency_resolution || 3.259;
+      
+      const accZ = activeFFT.acc_z_json ? JSON.parse(activeFFT.acc_z_json) : [];
+      const velX = activeFFT.vel_x_json ? JSON.parse(activeFFT.vel_x_json) : [];
+      const velY = activeFFT.vel_y_json ? JSON.parse(activeFFT.vel_y_json) : [];
+      const velZ = activeFFT.vel_z_json ? JSON.parse(activeFFT.vel_z_json) : [];
+      const envZ = activeFFT.env_z_json ? JSON.parse(activeFFT.env_z_json) : [];
+
+      const specAccZ = accZ.map((amp, i) => ({ f: (i * freqRes).toFixed(1), amp }));
+      const specEnvZ = envZ.map((amp, i) => ({ f: (i * freqRes).toFixed(1), amp }));
+      
+      const specVel = [];
+      const maxVelLen = Math.max(velX.length, velY.length, velZ.length);
+      for (let i = 0; i < maxVelLen; i++) {
+        specVel.push({
+          f: (i * freqRes).toFixed(1),
+          x: velX[i] || 0,
+          y: velY[i] || 0,
+          z: velZ[i] || 0
+        });
       }
 
       return {
-        rmsAccZ, rmsVelX, rmsVelY, rmsVelZ, rmsEnvZ,
-        rawChart, specAccZ, specVel, specEnvZ
+        rmsAccZ: activeRecord.rms_z_g || 0,
+        rmsVelX: activeRecord.vel_rms_x_mm_s || 0,
+        rmsVelY: activeRecord.vel_rms_y_mm_s || 0,
+        rmsVelZ: activeRecord.vel_rms_z_mm_s || 0,
+        rmsEnvZ: activeRecord.env_rms_z || 0,
+        rawChart,
+        specAccZ,
+        specVel,
+        specEnvZ
       };
     } catch(e) {
-      console.error(e);
+      console.error("Chyba parsování FFT:", e);
       return null;
     }
-  }, [activeRecord]);
+  }, [activeRecord, activeFFT]);
 
   return (
     <div className="space-y-6">
