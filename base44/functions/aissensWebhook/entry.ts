@@ -496,12 +496,28 @@ function parseAissensData(bytes) {
 
       // Prepare FFT data for storage
       result.has_fft = true;
-      result.frequency_resolution = fftZ.frequencies[1] || 0;
+      const freqRes = fftZ.frequencies[1] || 1;
+      result.frequency_resolution = freqRes;
       
-      // Store up to 1000 points for acceleration and envelope (~3.2 kHz) to save space
-      const maxAccPoints = 1000;
-      // Store up to 350 points for velocity (~1.1 kHz) 
-      const maxVelPoints = 350;
+      // Vynulování frekvencí pod 2 Hz (odstranění DC a velmi nízkých frekvencí pro požadovaný rozsah 2+ Hz)
+      for (let i = 0; i < fftZ.frequencies.length; i++) {
+        if (fftZ.frequencies[i] < 2) {
+          fftX.amplitudes[i] = 0;
+          fftY.amplitudes[i] = 0;
+          fftZ.amplitudes[i] = 0;
+          velXAmps[i] = 0;
+          velYAmps[i] = 0;
+          velZAmps[i] = 0;
+          fftEnvZ.amplitudes[i] = 0;
+        } else {
+          break;
+        }
+      }
+
+      // Výpočet adekvátního počtu čar (bodů) pro požadované maximální frekvence
+      const maxVelPoints = Math.ceil(1000 / freqRes) + 1; // Rychlost: rozsah do 1000 Hz
+      const maxAccPoints = Math.ceil(6000 / freqRes) + 1; // Zrychlení: rozsah do 6000 Hz
+      const maxEnvPoints = Math.ceil(1000 / freqRes) + 1; // Obálka zrychlení: rozsah do 1000 Hz
 
       result.acc_x = Array.from(fftX.amplitudes.slice(0, maxAccPoints)).map(v => Math.round(v * 100000)/100000);
       result.acc_y = Array.from(fftY.amplitudes.slice(0, maxAccPoints)).map(v => Math.round(v * 100000)/100000);
@@ -511,7 +527,7 @@ function parseAissensData(bytes) {
       result.vel_y = Array.from(velYAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000)/100000);
       result.vel_z = Array.from(velZAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000)/100000);
       
-      result.env_z = Array.from(fftEnvZ.amplitudes.slice(0, maxAccPoints)).map(v => Math.round(v * 100000)/100000);
+      result.env_z = Array.from(fftEnvZ.amplitudes.slice(0, maxEnvPoints)).map(v => Math.round(v * 100000)/100000);
       result.report_len = result.acc_z.length;
     }
   }
