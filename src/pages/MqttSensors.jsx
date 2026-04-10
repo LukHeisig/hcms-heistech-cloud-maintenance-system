@@ -51,6 +51,8 @@ import { createPageUrl } from "@/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DSPVisualization from "@/components/mqtt/DSPVisualization";
 
 const REPORT_TYPE_LABELS = {
   0: "Raw Data",
@@ -173,10 +175,6 @@ export default function MqttSensors() {
             <p className="text-slate-500 mt-1">Přehled vibračních senzorů komunikujících přes MQTT webhook</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate(createPageUrl("MqttDashboard"))}>
-              <LayoutDashboard className="w-4 h-4 mr-2" />
-              Live Dashboard
-            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Obnovit
@@ -187,6 +185,14 @@ export default function MqttSensors() {
             </Button>
           </div>
         </div>
+
+        <Tabs defaultValue="sensors" className="mb-8">
+          <TabsList className="mb-4">
+            <TabsTrigger value="sensors">Seznam senzorů a Statistiky</TabsTrigger>
+            <TabsTrigger value="dsp">DSP Vizualizace a Analýza</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="sensors">
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -358,6 +364,12 @@ export default function MqttSensors() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="dsp">
+            <DSPVisualization />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Edit / Add Dialog */}
