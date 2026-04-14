@@ -111,7 +111,7 @@ function LayoutContent({ children }) {
     };
 
     try {
-      const ndef = new NDEFReader();
+      const ndef = new window.NDEFReader();
       const abortController = new AbortController();
       
       await ndef.scan({ signal: abortController.signal });

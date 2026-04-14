@@ -282,7 +282,7 @@ export default function AdminControlPoints() {
     setIsNfcScanning(true);
 
     try {
-      const ndef = new NDEFReader();
+      const ndef = new window.NDEFReader();
       const abortController = new AbortController();
       
       await ndef.scan({ signal: abortController.signal });

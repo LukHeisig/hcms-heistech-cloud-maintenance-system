@@ -108,6 +108,12 @@ export default function DemipView({
     ? activeIssues
     : issues;
 
+  const { data: documentation = [] } = useQuery({
+    queryKey: ["documentation", selectedPoint],
+    queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
+    enabled: !!selectedPoint,
+  });
+
   // Point detail view
   if (selectedPoint) {
     const currentPoint = demipControlPoints.find(p => p.id === selectedPoint);
@@ -121,12 +127,6 @@ export default function DemipView({
     const nextDate = getNextControlDate(currentPoint);
     const lastRecord = pointRecords[0];
     const isOverdue = status === "overdue";
-
-    const { data: documentation = [] } = useQuery({
-      queryKey: ["documentation", selectedPoint],
-      queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
-      enabled: !!selectedPoint,
-    });
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">

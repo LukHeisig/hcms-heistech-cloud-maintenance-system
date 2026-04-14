@@ -15,7 +15,7 @@ export default function DSPVisualization() {
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT"],
     queryFn: async () => {
-      return await base44.entities.SensorData.list("-created_date", 200);
+      return await base44.entities.SensorData.filter({ has_raw: true }, "-created_date", 200);
     },
     refetchInterval: 30000,
   });

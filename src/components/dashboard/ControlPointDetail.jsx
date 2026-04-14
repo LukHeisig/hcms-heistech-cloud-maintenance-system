@@ -212,7 +212,7 @@ export default function ControlPointDetail({
     if (!nfcSupported) { alert("NFC není podporováno v tomto prohlížeči."); return; }
     setIsScanning(true);
     try {
-      const ndef = new NDEFReader();
+      const ndef = new window.NDEFReader();
       const abortController = new AbortController();
       await ndef.scan({ signal: abortController.signal });
       const timeoutId = setTimeout(() => { abortController.abort(); alert("Časový limit vypršel (10s)."); setIsScanning(false); }, 10000);
