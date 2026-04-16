@@ -190,37 +190,27 @@ export default function DSPVisualization() {
             <CardHeader className="border-b border-slate-100 bg-slate-50">
               <CardTitle className="text-base flex items-center gap-2"><Activity className="w-5 h-5 text-blue-600"/> Tabulka celkových hodnot RMS</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-100 text-slate-600 border-b border-slate-200">
-                  <tr>
-                    <th className="p-3 text-left">Metrika</th>
-                    <th className="p-3 text-left">Osa X</th>
-                    <th className="p-3 text-left">Osa Y</th>
-                    <th className="p-3 text-left">Osa Z</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-3 font-medium">RMS Rychlosti (2-1000 Hz) [mm/s]</td>
-                    <td className="p-3">{dspResults.rmsVelX.toFixed(3)}</td>
-                    <td className="p-3">{dspResults.rmsVelY.toFixed(3)}</td>
-                    <td className="p-3 font-bold">{dspResults.rmsVelZ.toFixed(3)}</td>
-                  </tr>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-3 font-medium">RMS Zrychlení (Peak to RMS) [g]</td>
-                    <td className="p-3 text-slate-400">-</td>
-                    <td className="p-3 text-slate-400">-</td>
-                    <td className="p-3 font-bold">{dspResults.rmsAccZ.toFixed(3)}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-medium">RMS Obálky (&gt;500 Hz filtr) [g]</td>
-                    <td className="p-3 text-slate-400">-</td>
-                    <td className="p-3 text-slate-400">-</td>
-                    <td className="p-3 font-bold text-orange-600">{dspResults.rmsEnvZ.toFixed(3)}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-6">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">RMS Rychlosti (2-1000 Hz) [mm/s]</span>
+                  <div className="flex gap-4">
+                    <span className="text-sm">X: <span className="font-semibold">{dspResults.rmsVelX.toFixed(3)}</span></span>
+                    <span className="text-sm">Y: <span className="font-semibold">{dspResults.rmsVelY.toFixed(3)}</span></span>
+                    <span className="text-sm">Z: <span className="font-bold text-blue-700">{dspResults.rmsVelZ.toFixed(3)}</span></span>
+                  </div>
+                </div>
+                <div className="w-px bg-slate-200 self-stretch hidden sm:block" />
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">RMS Zrychlení Z (2-6000 Hz) [g]</span>
+                  <span className="text-sm">Z: <span className="font-bold text-green-700">{dspResults.rmsAccZ.toFixed(3)}</span></span>
+                </div>
+                <div className="w-px bg-slate-200 self-stretch hidden sm:block" />
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500">RMS Obálky Z (&gt;500 Hz filtr) [g]</span>
+                  <span className="text-sm">Z: <span className="font-bold text-orange-600">{dspResults.rmsEnvZ.toFixed(3)}</span></span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
