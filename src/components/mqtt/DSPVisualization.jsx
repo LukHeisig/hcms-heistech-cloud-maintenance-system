@@ -3,8 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { RefreshCw, Activity } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
+import { RefreshCw, Activity, ZoomOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { format } from "date-fns";
 
@@ -34,6 +35,42 @@ export default function DSPVisualization() {
   });
 
   const activeFFT = fftRecords[0];
+
+  // Zoom states pro grafy
+  const [zoomStates, setZoomStates] = useState({
+    raw: { refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax', top: 'dataMax+1', bottom: 'dataMin-1' },
+    acc: { refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax', top: 'dataMax+1', bottom: 'dataMin-1' },
+    vel: { refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax', top: 'dataMax+1', bottom: 'dataMin-1' },
+    env: { refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax', top: 'dataMax+1', bottom: 'dataMin-1' }
+  });
+
+  const zoomOut = (chartId) => {
+    setZoomStates(prev => ({
+      ...prev,
+      [chartId]: { ...prev[chartId], refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax', top: 'dataMax+1', bottom: 'dataMin-1' }
+    }));
+  };
+
+  const handleZoom = (chartId, xAxisKey) => {
+    let { refAreaLeft, refAreaRight } = zoomStates[chartId];
+    if (refAreaLeft === refAreaRight || refAreaRight === '') {
+      setZoomStates(prev => ({ ...prev, [chartId]: { ...prev[chartId], refAreaLeft: '', refAreaRight: '' } }));
+      return;
+    }
+
+    if (refAreaLeft > refAreaRight) [refAreaLeft, refAreaRight] = [refAreaRight, refAreaLeft];
+
+    setZoomStates(prev => ({
+      ...prev,
+      [chartId]: {
+        ...prev[chartId],
+        refAreaLeft: '',
+        refAreaRight: '',
+        left: refAreaLeft,
+        right: refAreaRight
+      }
+    }));
+  };
 
   const dspResults = useMemo(() => {
     if (!activeRecord || !activeFFT) return null;
@@ -167,63 +204,99 @@ export default function DSPVisualization() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Časová vlna Z (Surová data) [g]</CardTitle></CardHeader>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Časová vlna Z (Surová data) [g]</CardTitle>
+                {zoomStates.raw.left !== 'dataMin' && <Button variant="outline" size="sm" onClick={() => zoomOut('raw')} className="h-7 px-2 text-xs"><ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom</Button>}
+              </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={dspResults.rawChart}>
+                  <LineChart 
+                    data={dspResults.rawChart} 
+                    onMouseDown={e => e && setZoomStates(prev => ({ ...prev, raw: { ...prev.raw, refAreaLeft: e.activeLabel } }))} 
+                    onMouseMove={e => zoomStates.raw.refAreaLeft && e && setZoomStates(prev => ({ ...prev, raw: { ...prev.raw, refAreaRight: e.activeLabel } }))} 
+                    onMouseUp={() => handleZoom('raw', 't')}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="t" label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} />
-                    <YAxis />
+                    <XAxis dataKey="t" domain={[zoomStates.raw.left, zoomStates.raw.right]} type="number" allowDataOverflow label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
                     <Tooltip />
                     <Line type="monotone" dataKey="z" stroke="#3b82f6" dot={false} isAnimationActive={false} />
+                    {zoomStates.raw.refAreaLeft && zoomStates.raw.refAreaRight ? <ReferenceArea x1={zoomStates.raw.refAreaLeft} x2={zoomStates.raw.refAreaRight} strokeOpacity={0.3} /> : null}
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Spektrum Zrychlení Z (g Peak)</CardTitle></CardHeader>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Spektrum Zrychlení Z (g Peak)</CardTitle>
+                {zoomStates.acc.left !== 'dataMin' && <Button variant="outline" size="sm" onClick={() => zoomOut('acc')} className="h-7 px-2 text-xs"><ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom</Button>}
+              </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={dspResults.specAccZ}>
+                  <LineChart 
+                    data={dspResults.specAccZ}
+                    onMouseDown={e => e && setZoomStates(prev => ({ ...prev, acc: { ...prev.acc, refAreaLeft: e.activeLabel } }))} 
+                    onMouseMove={e => zoomStates.acc.refAreaLeft && e && setZoomStates(prev => ({ ...prev, acc: { ...prev.acc, refAreaRight: e.activeLabel } }))} 
+                    onMouseUp={() => handleZoom('acc', 'f')}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="f" label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} />
-                    <YAxis />
+                    <XAxis dataKey="f" domain={[zoomStates.acc.left, zoomStates.acc.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} />
+                    {zoomStates.acc.refAreaLeft && zoomStates.acc.refAreaRight ? <ReferenceArea x1={zoomStates.acc.refAreaLeft} x2={zoomStates.acc.refAreaRight} strokeOpacity={0.3} /> : null}
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Spektrum Rychlosti X, Y, Z (mm/s) [0-1000 Hz]</CardTitle></CardHeader>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Spektrum Rychlosti X, Y, Z (mm/s) [0-1000 Hz]</CardTitle>
+                {zoomStates.vel.left !== 'dataMin' && <Button variant="outline" size="sm" onClick={() => zoomOut('vel')} className="h-7 px-2 text-xs"><ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom</Button>}
+              </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={dspResults.specVel}>
+                  <LineChart 
+                    data={dspResults.specVel}
+                    onMouseDown={e => e && setZoomStates(prev => ({ ...prev, vel: { ...prev.vel, refAreaLeft: e.activeLabel } }))} 
+                    onMouseMove={e => zoomStates.vel.refAreaLeft && e && setZoomStates(prev => ({ ...prev, vel: { ...prev.vel, refAreaRight: e.activeLabel } }))} 
+                    onMouseUp={() => handleZoom('vel', 'f')}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="f" />
-                    <YAxis />
+                    <XAxis dataKey="f" domain={[zoomStates.vel.left, zoomStates.vel.right]} type="number" allowDataOverflow />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
                     <Tooltip />
                     <Legend />
                     <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X" />
                     <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y" />
                     <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z" />
+                    {zoomStates.vel.refAreaLeft && zoomStates.vel.refAreaRight ? <ReferenceArea x1={zoomStates.vel.refAreaLeft} x2={zoomStates.vel.refAreaRight} strokeOpacity={0.3} /> : null}
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Spektrum Obálky Z</CardTitle></CardHeader>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Spektrum Obálky Z</CardTitle>
+                {zoomStates.env.left !== 'dataMin' && <Button variant="outline" size="sm" onClick={() => zoomOut('env')} className="h-7 px-2 text-xs"><ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom</Button>}
+              </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={dspResults.specEnvZ}>
+                  <LineChart 
+                    data={dspResults.specEnvZ}
+                    onMouseDown={e => e && setZoomStates(prev => ({ ...prev, env: { ...prev.env, refAreaLeft: e.activeLabel } }))} 
+                    onMouseMove={e => zoomStates.env.refAreaLeft && e && setZoomStates(prev => ({ ...prev, env: { ...prev.env, refAreaRight: e.activeLabel } }))} 
+                    onMouseUp={() => handleZoom('env', 'f')}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="f" />
-                    <YAxis />
+                    <XAxis dataKey="f" domain={[zoomStates.env.left, zoomStates.env.right]} type="number" allowDataOverflow />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
+                    {zoomStates.env.refAreaLeft && zoomStates.env.refAreaRight ? <ReferenceArea x1={zoomStates.env.refAreaLeft} x2={zoomStates.env.refAreaRight} strokeOpacity={0.3} /> : null}
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
