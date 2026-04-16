@@ -58,7 +58,10 @@ export default function DSPVisualization() {
       return;
     }
 
-    if (refAreaLeft > refAreaRight) [refAreaLeft, refAreaRight] = [refAreaRight, refAreaLeft];
+    let left = Number(refAreaLeft);
+    let right = Number(refAreaRight);
+
+    if (left > right) [left, right] = [right, left];
 
     setZoomStates(prev => ({
       ...prev,
@@ -66,8 +69,8 @@ export default function DSPVisualization() {
         ...prev[chartId],
         refAreaLeft: '',
         refAreaRight: '',
-        left: refAreaLeft,
-        right: refAreaRight
+        left,
+        right
       }
     }));
   };
@@ -84,7 +87,7 @@ export default function DSPVisualization() {
         const step = Math.max(1, Math.floor(rawZ.length / maxLen));
         for (let i = 0; i < rawZ.length; i += step) {
           rawChart.push({
-            t: (i * (1/fs)*1000).toFixed(1),
+            t: Number((i * (1/fs)*1000).toFixed(1)),
             z: rawZ[i]
           });
         }
@@ -99,14 +102,14 @@ export default function DSPVisualization() {
       const velZ = activeFFT.vel_z_json ? JSON.parse(activeFFT.vel_z_json) : [];
       const envZ = activeFFT.env_z_json ? JSON.parse(activeFFT.env_z_json) : [];
 
-      const specAccZ = accZ.map((amp, i) => ({ f: (i * freqRes).toFixed(1), amp }));
-      const specEnvZ = envZ.map((amp, i) => ({ f: (i * freqRes).toFixed(1), amp }));
+      const specAccZ = accZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp }));
+      const specEnvZ = envZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp }));
       
       const specVel = [];
       const maxVelLen = Math.max(velX.length, velY.length, velZ.length);
       for (let i = 0; i < maxVelLen; i++) {
         specVel.push({
-          f: (i * freqRes).toFixed(1),
+          f: Number((i * freqRes).toFixed(1)),
           x: velX[i] || 0,
           y: velY[i] || 0,
           z: velZ[i] || 0
