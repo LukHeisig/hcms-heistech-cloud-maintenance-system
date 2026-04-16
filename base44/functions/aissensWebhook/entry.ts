@@ -138,7 +138,8 @@ function computeRFFT(signal, fs) {
   amplitudes[0] = Math.sqrt(real[0]*real[0] + imag[0]*imag[0]) / N;
   frequencies[0] = 0;
   for (let i = 1; i < numBins; i++) {
-    amplitudes[i] = (Math.sqrt(real[i]*real[i] + imag[i]*imag[i]) / N) * 4; 
+    // *2 pro jednostranné spektrum (správná peak amplituda)
+    amplitudes[i] = (Math.sqrt(real[i]*real[i] + imag[i]*imag[i]) / N) * 2;
     frequencies[i] = (i * fs) / N;
   }
   return { amplitudes, frequencies };
@@ -155,15 +156,16 @@ function getVelocitySpectrum(accelAmps, freqs) {
 }
 
 function calculateRMSFromSpectrum(amps, freqs, minFreq, maxFreq) {
+  // Amps jsou peak amplitudy z jednostranného FFT (normalizované na fyzikální jednotky).
+  // Parsevalova věta: RMS = sqrt( sum( (A_peak_i / sqrt(2))^2 ) ) = sqrt( sum(A_i^2) / 2 )
   let sumSq = 0;
   for (let i = 0; i < amps.length; i++) {
     const f = freqs[i];
     if (f >= minFreq && f <= maxFreq && f > 0) {
-      const rmsBin = amps[i] / Math.SQRT2;
-      sumSq += rmsBin * rmsBin;
+      sumSq += amps[i] * amps[i];
     }
   }
-  return Math.sqrt(sumSq);
+  return Math.sqrt(sumSq / 2);
 }
 
 function computeHilbertEnvelope(signal) {

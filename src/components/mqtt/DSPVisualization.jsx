@@ -75,6 +75,18 @@ export default function DSPVisualization() {
     }));
   };
 
+  // Výpočet RMS z peak amplitud spektra (Parsevalova věta)
+  const calcRMSFromSpectrum = (amps, freqRes, minFreq, maxFreq) => {
+    let sumSq = 0;
+    for (let i = 0; i < amps.length; i++) {
+      const f = i * freqRes;
+      if (f >= minFreq && f <= maxFreq && f > 0) {
+        sumSq += amps[i] * amps[i];
+      }
+    }
+    return Math.sqrt(sumSq / 2);
+  };
+
   const dspResults = useMemo(() => {
     if (!activeRecord || !activeFFT) return null;
     try {
@@ -116,12 +128,19 @@ export default function DSPVisualization() {
         });
       }
 
+      // Počítej RMS přímo ze spekter (Parsevalova věta: RMS = sqrt(sum(A_i^2)/2))
+      const rmsVelX = calcRMSFromSpectrum(specVel.map(p => p.x), freqRes, 2, 1000);
+      const rmsVelY = calcRMSFromSpectrum(specVel.map(p => p.y), freqRes, 2, 1000);
+      const rmsVelZ = calcRMSFromSpectrum(specVel.map(p => p.z), freqRes, 2, 1000);
+      const rmsAccZ = calcRMSFromSpectrum(specAccZ.map(p => p.amp), freqRes, 2, 6000);
+      const rmsEnvZ = calcRMSFromSpectrum(specEnvZ.map(p => p.amp), freqRes, 2, 1000);
+
       return {
-        rmsAccZ: activeRecord.rms_z_g || 0,
-        rmsVelX: activeRecord.vel_rms_x_mm_s || 0,
-        rmsVelY: activeRecord.vel_rms_y_mm_s || 0,
-        rmsVelZ: activeRecord.vel_rms_z_mm_s || 0,
-        rmsEnvZ: activeRecord.env_rms_z || 0,
+        rmsAccZ,
+        rmsVelX,
+        rmsVelY,
+        rmsVelZ,
+        rmsEnvZ,
         rawChart,
         specAccZ,
         specVel,
