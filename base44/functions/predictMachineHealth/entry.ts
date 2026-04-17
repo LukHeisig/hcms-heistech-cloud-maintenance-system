@@ -1,6 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
+    // Funkce dočasně zakázána (spotřebovává integrační kredity)
+    return Response.json({ error: 'Tato funkce je dočasně zakázána.' }, { status: 503 });
+
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
