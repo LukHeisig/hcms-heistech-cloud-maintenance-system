@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClient } from 'npm:@base44/sdk@0.8.25';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -544,7 +544,14 @@ Deno.serve(async (req) => {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
-  const base44 = createClientFromRequest(req);
+  // Ověření webhook tokenu
+  const token = req.headers.get("x-webhook-token") || req.headers.get("authorization")?.replace("Bearer ", "");
+  const expectedToken = Deno.env.get("VIBRATION_API_TOKEN");
+  if (expectedToken && token !== expectedToken) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const base44 = createClient({ appId: Deno.env.get("BASE44_APP_ID") });
 
   let body;
   try {
