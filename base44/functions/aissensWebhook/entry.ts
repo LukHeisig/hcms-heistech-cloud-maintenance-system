@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -551,7 +551,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const base44 = createClient({ appId: Deno.env.get("BASE44_APP_ID") });
+  const base44 = createClientFromRequest(req);
 
   let body;
   try {
@@ -574,11 +574,11 @@ Deno.serve(async (req) => {
   }
 
   // Extract hex string — support "HEX: xx xx" prefix or plain hex
-  let hexStr = payload;
-  if (typeof payload === 'string' && payload.startsWith('HEX: ')) {
-    hexStr = payload.slice(5);
-  } else if (typeof payload === 'string' && payload.startsWith('HEX:')) {
-    hexStr = payload.slice(4);
+  let hexStr = typeof payload === 'string' ? payload : String(payload);
+  if (hexStr.startsWith('HEX: ')) {
+    hexStr = hexStr.slice(5);
+  } else if (hexStr.startsWith('HEX:')) {
+    hexStr = hexStr.slice(4);
   }
 
   // Parse binary data
