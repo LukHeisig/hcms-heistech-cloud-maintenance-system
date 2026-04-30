@@ -41,7 +41,7 @@ import {
   FileImage,
   FileJson,
   Send,
-  FileSpreadsheet
+  FileSpreadsheet, Brain, Sparkles, Cpu
 } from "lucide-react";
 import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
 import VibrationCard from "@/components/machine/VibrationCard";
@@ -53,7 +53,6 @@ import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
-import { Brain, Sparkles, Cpu } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
