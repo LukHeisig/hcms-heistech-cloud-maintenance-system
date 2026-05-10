@@ -764,9 +764,9 @@ export default function Machine() {
               </TabsTrigger>
             )}
             
-            {showVibration && (
-              <TabsTrigger value="vibration" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
-                <FileSpreadsheet className="w-4 h-4" />
+            {machine?.monitor_vibration && (
+              <TabsTrigger value="vibro-diag" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
+                <Activity className="w-4 h-4" />
                 <span className="hidden md:inline">Vibrace</span>
               </TabsTrigger>
             )}
@@ -1325,37 +1325,13 @@ export default function Machine() {
           </TabsContent>
 
           {/* Vibrodiagnostika */}
-          <TabsContent value="vibration" className="space-y-6">
-             <div className="flex justify-end mb-4">
-                 <Button 
-                     onClick={() => { setEditingVibrationJob(null); setShowVibrationDialog(true); }} 
-                     className="bg-blue-600 hover:bg-blue-700"
-                 >
-                     <Plus className="w-4 h-4 mr-2" /> Nové měření
-                 </Button>
-             </div>
-             
-             <VibrationCard machine={machine} jobs={vibrationJobs} />
-             
-             {/* Edit buttons for jobs - keep them accessible or maybe integrate into card? 
-                 For now, let's add a small list below for editing if needed, or rely on Admin access.
-                 Actually, let's keep the edit functionality available.
-             */}
-             {vibrationJobs.length > 0 && (
-                <div className="mt-8 pt-8 border-t">
-                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Správa měření</h3>
-                    <div className="grid gap-2">
-                         {vibrationJobs.map(job => (
-                            <div key={job.id} className="flex items-center justify-between p-3 bg-white border rounded-lg text-sm">
-                                <span>{format(new Date(job.date), "d. M. yyyy", { locale: cs })} - Zakázka {job.order_number}</span>
-                                <Button variant="ghost" size="sm" onClick={() => { setEditingVibrationJob(job); setShowVibrationDialog(true); }}>
-                                    <Pencil className="w-3 h-3 mr-2" /> Upravit
-                                </Button>
-                            </div>
-                         ))}
-                    </div>
-                </div>
-             )}
+          <TabsContent value="vibro-diag" className="space-y-6">
+            <Card className="border-none shadow-lg">
+              <CardContent className="p-12 text-center">
+                <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Modul Vibrodiagnostika — obsah bude doplněn.</p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Odpovědnost */}
