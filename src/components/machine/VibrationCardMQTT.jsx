@@ -87,7 +87,7 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId
 }
 
 // DSP grafy — znovupoužitelný, totožný s DSPVisualization
-function SensorDSPPanel({ sensorId }) {
+function SensorDSPPanel({ sensorId, initialRecordId }) {
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId],
     queryFn: () => base44.entities.SensorData.filter({ sensor_id: sensorId, has_raw: true }, "-created_date", 50),
@@ -95,7 +95,7 @@ function SensorDSPPanel({ sensorId }) {
   });
 
   const [selectedRecordId, setSelectedRecordId] = useState(null);
-  const activeRecordId = selectedRecordId || records[0]?.id;
+  const activeRecordId = selectedRecordId || initialRecordId || records[0]?.id;
   const activeRecord = records.find(r => r.id === activeRecordId);
 
   const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
@@ -635,7 +635,7 @@ export default function VibrationCardMQTT({ machine }) {
                 {/* Rozbalené DSP grafy */}
                 {isExpanded && sensorId && (
                   <div className="px-4 pb-4">
-                    <SensorDSPPanel sensorId={sensorId} />
+                    <SensorDSPPanel sensorId={sensorId} initialRecordId={latest?.id} />
                   </div>
                 )}
               </div>
