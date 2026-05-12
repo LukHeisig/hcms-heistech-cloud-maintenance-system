@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
 import VibrationCard from "@/components/machine/VibrationCard";
+import VibrationCardMQTT from "@/components/machine/VibrationCardMQTT";
 import ThermoJobDialog from "@/components/machine/ThermoJobDialog";
 import ThermoCard from "@/components/machine/ThermoCard";
 import MaintenanceTab from "@/components/machine/MaintenanceTab";
@@ -1326,12 +1327,7 @@ export default function Machine() {
 
           {/* Vibrodiagnostika */}
           <TabsContent value="vibro-diag" className="space-y-6">
-            <Card className="border-none shadow-lg">
-              <CardContent className="p-12 text-center">
-                <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Modul Vibrodiagnostika — obsah bude doplněn.</p>
-              </CardContent>
-            </Card>
+            <VibrationCardMQTT machine={machine} />
           </TabsContent>
 
           {/* Odpovědnost */}
