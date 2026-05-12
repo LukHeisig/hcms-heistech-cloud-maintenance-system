@@ -530,7 +530,7 @@ export default function VibrationCardMQTT({ machine }) {
           {/* Hlavička tabulky */}
           <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
             <div>Místo</div>
-            <div>ID senzoru</div>
+            <div>ID senzoru / čas měření</div>
             <div className="text-center">Vel X<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
             <div className="text-center">Vel Y<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
             <div className="text-center">Vel Z<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
@@ -566,9 +566,16 @@ export default function VibrationCardMQTT({ machine }) {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-0.5">
                     {sensorId ? (
-                      <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{sensorId}</span>
+                      <>
+                        <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
+                        {latest?.created_date && (
+                          <span className="text-[10px] text-slate-400 pl-0.5">
+                            {new Date(latest.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className="text-slate-400 text-xs italic">— nepřiřazen —</span>
                     )}
