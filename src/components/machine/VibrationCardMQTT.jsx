@@ -396,7 +396,14 @@ export default function VibrationCardMQTT({ machine }) {
     localStorage.setItem(storageKey, JSON.stringify(updated));
   };
 
-  const [expandedRow, setExpandedRow] = useState(null);
+  // Defaultně vyber první řádek, který má přiřazený senzor
+  const firstAssignedIdx = useMemo(() => {
+    return schemaRows.findIndex((_, idx) => !!rowSensors[idx]);
+  }, [schemaRows, rowSensors]);
+
+  const [selectedRow, setSelectedRow] = useState(null);
+  const activeRowIdx = selectedRow !== null ? selectedRow : firstAssignedIdx;
+
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
 
   // Načteme poslední data pro každý přiřazený senzor (pro RMS hodnoty v tabulce)
@@ -552,25 +559,21 @@ export default function VibrationCardMQTT({ machine }) {
 
           {schemaRows.map((row, idx) => {
             const sensorId = rowSensors[idx];
-            const sensor = getSensorById(sensorId);
             const latest = getDisplayData(sensorId);
-            const isExpanded = expandedRow === idx;
+            const isSelected = activeRowIdx === idx;
             const label = row.label || row.name || `Bod ${idx + 1}`;
             const name = row.name || "";
 
             return (
               <div key={idx} className="border-b border-slate-100 last:border-0">
-                {/* Řádek tabulky */}
                 <div
-                  className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-3 text-sm cursor-pointer hover:bg-blue-50/50 transition-colors items-center ${isExpanded ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
-                  onClick={() => sensorId && setExpandedRow(isExpanded ? null : idx)}
+                  className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-3 text-sm transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
+                  onClick={() => sensorId && setSelectedRow(idx)}
                 >
                   <div className="flex items-center gap-2">
-                    {sensorId ? (
-                      isExpanded ? <ChevronDown className="w-4 h-4 text-blue-500 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    ) : (
-                      <div className="w-4 h-4 flex-shrink-0" />
-                    )}
+                    <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+                      {isSelected && sensorId && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                    </div>
                     <div>
                       <span className="font-semibold text-slate-900">{label}</span>
                       {name && name !== label && <span className="text-slate-500 ml-1 text-xs">{name}</span>}
@@ -594,29 +597,19 @@ export default function VibrationCardMQTT({ machine }) {
 
                   {/* RMS hodnoty */}
                   <div className="text-center font-mono text-xs">
-                    {latest?.vel_rms_x_mm_s != null ? (
-                      <span className="text-blue-700 font-semibold">{latest.vel_rms_x_mm_s.toFixed(3)}</span>
-                    ) : <span className="text-slate-300">—</span>}
+                    {latest?.vel_rms_x_mm_s != null ? <span className="text-blue-700 font-semibold">{latest.vel_rms_x_mm_s.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
                   </div>
                   <div className="text-center font-mono text-xs">
-                    {latest?.vel_rms_y_mm_s != null ? (
-                      <span className="text-blue-700 font-semibold">{latest.vel_rms_y_mm_s.toFixed(3)}</span>
-                    ) : <span className="text-slate-300">—</span>}
+                    {latest?.vel_rms_y_mm_s != null ? <span className="text-blue-700 font-semibold">{latest.vel_rms_y_mm_s.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
                   </div>
                   <div className="text-center font-mono text-xs">
-                    {latest?.vel_rms_z_mm_s != null ? (
-                      <span className="text-blue-700 font-semibold">{latest.vel_rms_z_mm_s.toFixed(3)}</span>
-                    ) : <span className="text-slate-300">—</span>}
+                    {latest?.vel_rms_z_mm_s != null ? <span className="text-blue-700 font-semibold">{latest.vel_rms_z_mm_s.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
                   </div>
                   <div className="text-center font-mono text-xs">
-                    {latest?.oa_acc_z != null ? (
-                      <span className="text-green-700 font-semibold">{latest.oa_acc_z.toFixed(3)}</span>
-                    ) : <span className="text-slate-300">—</span>}
+                    {latest?.oa_acc_z != null ? <span className="text-green-700 font-semibold">{latest.oa_acc_z.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
                   </div>
                   <div className="text-center font-mono text-xs">
-                    {latest?.env_rms_z != null ? (
-                      <span className="text-orange-600 font-semibold">{latest.env_rms_z.toFixed(3)}</span>
-                    ) : <span className="text-slate-300">—</span>}
+                    {latest?.env_rms_z != null ? <span className="text-orange-600 font-semibold">{latest.env_rms_z.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
                   </div>
 
                   {/* Tlačítko přiřazení */}
@@ -631,18 +624,33 @@ export default function VibrationCardMQTT({ machine }) {
                     </Button>
                   </div>
                 </div>
-
-                {/* Rozbalené DSP grafy */}
-                {isExpanded && sensorId && (
-                  <div className="px-4 pb-4">
-                    <SensorDSPPanel sensorId={sensorId} initialRecordId={latest?.id} />
-                  </div>
-                )}
               </div>
             );
           })}
         </CardContent>
       </Card>
+
+      {/* DSP panel pod tabulkou */}
+      {activeRowIdx >= 0 && rowSensors[activeRowIdx] && (() => {
+        const activeSensorId = rowSensors[activeRowIdx];
+        const activeLatest = getDisplayData(activeSensorId);
+        const activeRow = schemaRows[activeRowIdx];
+        const activeLabel = activeRow?.label || activeRow?.name || `Bod ${activeRowIdx + 1}`;
+        return (
+          <Card className="border-none shadow-lg">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-3 px-4">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-blue-600" />
+                Spektrální analýza — <span className="text-blue-700">{activeLabel}</span>
+                <span className="font-mono text-xs text-slate-400 ml-1">{activeSensorId}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <SensorDSPPanel sensorId={activeSensorId} initialRecordId={activeLatest?.id} />
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Dialog přiřazení senzoru */}
       {assignDialog && (
