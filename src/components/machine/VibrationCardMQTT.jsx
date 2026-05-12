@@ -438,11 +438,12 @@ export default function VibrationCardMQTT({ machine }) {
     return Math.sqrt(sumSq / 2);
   };
 
-  // Načteme FFT data pro senzory, které nemají předpočítané RMS
+  // Načteme FFT data pro senzory, které nemají VŠECHNY předpočítané RMS hodnoty
   const sensorsNeedingFFT = useMemo(() => {
     return assignedSensorIds.filter(sid => {
       const d = latestSensorData.find(r => r.sensor_id === sid);
-      return !d || (d.vel_rms_x_mm_s == null && d.vel_rms_z_mm_s == null && d.oa_acc_z == null);
+      // Potřebujeme FFT pokud chybí alespoň jedna z klíčových hodnot
+      return !d || d.vel_rms_x_mm_s == null || d.vel_rms_z_mm_s == null || d.oa_acc_z == null || d.env_rms_z == null;
     });
   }, [assignedSensorIds, latestSensorData]);
 
@@ -479,12 +480,22 @@ export default function VibrationCardMQTT({ machine }) {
     staleTime: 60000,
   });
 
-  // Sloučíme SensorData hodnoty s FFT fallback hodnotami
+  // Sloučíme SensorData hodnoty s FFT fallback hodnotami — doplníme chybějící pole z FFT
   const getDisplayData = (sensorId) => {
     const d = latestSensorData.find(r => r.sensor_id === sensorId);
-    const hasRms = d && (d.vel_rms_x_mm_s != null || d.vel_rms_z_mm_s != null || d.oa_acc_z != null);
-    if (hasRms) return d;
-    return fallbackFFTData.find(r => r.sensor_id === sensorId) || d || null;
+    const fft = fallbackFFTData.find(r => r.sensor_id === sensorId);
+    if (!d && !fft) return null;
+    if (!fft) return d;
+    if (!d) return fft;
+    // Sloučíme: SensorData má prioritu, FFT doplní chybějící hodnoty
+    return {
+      ...d,
+      vel_rms_x_mm_s: d.vel_rms_x_mm_s ?? fft.vel_rms_x_mm_s,
+      vel_rms_y_mm_s: d.vel_rms_y_mm_s ?? fft.vel_rms_y_mm_s,
+      vel_rms_z_mm_s: d.vel_rms_z_mm_s ?? fft.vel_rms_z_mm_s,
+      oa_acc_z: d.oa_acc_z ?? fft.oa_acc_z,
+      env_rms_z: d.env_rms_z ?? fft.env_rms_z,
+    };
   };
 
   // Pokud není přiřazeno schéma, zobraz informaci
