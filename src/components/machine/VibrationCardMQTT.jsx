@@ -408,12 +408,16 @@ export default function VibrationCardMQTT({ machine }) {
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return [];
+      // Načteme posledních 10 záznamů pro každý senzor a najdeme ten s RMS hodnotami
       const results = await Promise.all(
-        assignedSensorIds.map(sid =>
-          base44.entities.SensorData.filter({ sensor_id: sid }, "-created_date", 1)
-        )
+        assignedSensorIds.map(async (sid) => {
+          const records = await base44.entities.SensorData.filter({ sensor_id: sid }, "-created_date", 10);
+          // Preferujeme záznam, který má předpočítané RMS hodnoty
+          const withRms = records.find(r => r.vel_rms_x_mm_s != null || r.vel_rms_z_mm_s != null || r.oa_acc_z != null);
+          return withRms || records[0] || null;
+        })
       );
-      return results.flat();
+      return results.filter(Boolean);
     },
     enabled: assignedSensorIds.length > 0,
     staleTime: 30000,
@@ -422,6 +426,66 @@ export default function VibrationCardMQTT({ machine }) {
 
   const getLatestData = (sensorId) => latestSensorData.find(d => d.sensor_id === sensorId);
   const getSensorById = (sensorId) => sensors.find(s => s.sensor_id === sensorId);
+
+  // Pomocná funkce pro calcRMS ze spektra (stejná jako v SensorDSPPanel)
+  const calcRMSFromSpectrum = (amps, freqRes, minF, maxF) => {
+    if (!amps || !amps.length) return null;
+    let sumSq = 0;
+    for (let i = 0; i < amps.length; i++) {
+      const f = i * freqRes;
+      if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
+    }
+    return Math.sqrt(sumSq / 2);
+  };
+
+  // Načteme FFT data pro senzory, které nemají předpočítané RMS
+  const sensorsNeedingFFT = useMemo(() => {
+    return assignedSensorIds.filter(sid => {
+      const d = latestSensorData.find(r => r.sensor_id === sid);
+      return !d || (d.vel_rms_x_mm_s == null && d.vel_rms_z_mm_s == null && d.oa_acc_z == null);
+    });
+  }, [assignedSensorIds, latestSensorData]);
+
+  const { data: fallbackFFTData = [] } = useQuery({
+    queryKey: ["fallbackFFT", sensorsNeedingFFT.join(",")],
+    queryFn: async () => {
+      if (sensorsNeedingFFT.length === 0) return [];
+      const results = await Promise.all(
+        sensorsNeedingFFT.map(async (sid) => {
+          const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
+          if (!records[0]) return null;
+          const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: records[0].id });
+          const fft = fftRecs[0];
+          if (!fft) return null;
+          const freqRes = fft.frequency_resolution || 3.259;
+          const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
+          const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
+          const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
+          const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
+          const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
+          return {
+            sensor_id: sid,
+            vel_rms_x_mm_s: calcRMSFromSpectrum(velX, freqRes, 2, 1000),
+            vel_rms_y_mm_s: calcRMSFromSpectrum(velY, freqRes, 2, 1000),
+            vel_rms_z_mm_s: calcRMSFromSpectrum(velZ, freqRes, 2, 1000),
+            oa_acc_z: calcRMSFromSpectrum(accZ, freqRes, 2, 6000),
+            env_rms_z: calcRMSFromSpectrum(envZ, freqRes, 2, 1000),
+          };
+        })
+      );
+      return results.filter(Boolean);
+    },
+    enabled: sensorsNeedingFFT.length > 0,
+    staleTime: 60000,
+  });
+
+  // Sloučíme SensorData hodnoty s FFT fallback hodnotami
+  const getDisplayData = (sensorId) => {
+    const d = latestSensorData.find(r => r.sensor_id === sensorId);
+    const hasRms = d && (d.vel_rms_x_mm_s != null || d.vel_rms_z_mm_s != null || d.oa_acc_z != null);
+    if (hasRms) return d;
+    return fallbackFFTData.find(r => r.sensor_id === sensorId) || d || null;
+  };
 
   // Pokud není přiřazeno schéma, zobraz informaci
   if (!machine?.vibration_schema_id) {
@@ -478,7 +542,7 @@ export default function VibrationCardMQTT({ machine }) {
           {schemaRows.map((row, idx) => {
             const sensorId = rowSensors[idx];
             const sensor = getSensorById(sensorId);
-            const latest = getLatestData(sensorId);
+            const latest = getDisplayData(sensorId);
             const isExpanded = expandedRow === idx;
             const label = row.label || row.name || `Bod ${idx + 1}`;
             const name = row.name || "";
