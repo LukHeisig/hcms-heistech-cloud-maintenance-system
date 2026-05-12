@@ -17,25 +17,31 @@ import { format } from "date-fns";
 function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId, onAssign }) {
   const [selected, setSelected] = useState(currentSensorId || "");
 
-  // Načteme všechna unikátní sensor_id, která kdy byla aktivní (ze SensorData)
-  const { data: allSensorIds = [], isLoading } = useQuery({
-    queryKey: ["allActiveSensorIds"],
-    queryFn: async () => {
-      const records = await base44.entities.SensorData.list(null, 5000);
-      const unique = [...new Set(records.map(r => r.sensor_id).filter(Boolean))].sort();
-      return unique;
-    },
-    enabled: open,
-    staleTime: 60000,
-  });
-
-  // Načteme registrované senzory pro zobrazení názvů
-  const { data: registeredSensors = [] } = useQuery({
+  // Načteme registrované senzory (malá tabulka, rychlé)
+  const { data: registeredSensors = [], isLoading } = useQuery({
     queryKey: ["aissens_sensors"],
     queryFn: () => base44.entities.AissensSensor.list(null, 500),
     enabled: open,
     staleTime: 60000,
   });
+
+  // Doplníme o IDs z posledních 200 SensorData záznamů (zachytí neregistrované senzory)
+  const { data: recentSensorData = [] } = useQuery({
+    queryKey: ["recentSensorDataIds"],
+    queryFn: async () => {
+      const records = await base44.entities.SensorData.list("-created_date", 200);
+      return [...new Set(records.map(r => r.sensor_id).filter(Boolean))].sort();
+    },
+    enabled: open,
+    staleTime: 60000,
+  });
+
+  // Sloučíme: registrované + neregistrované z posledních dat
+  const allSensorIds = useMemo(() => {
+    const registeredIds = registeredSensors.map(s => s.sensor_id);
+    const merged = [...new Set([...registeredIds, ...recentSensorData])].sort();
+    return merged;
+  }, [registeredSensors, recentSensorData]);
 
   const getSensorName = (sid) => registeredSensors.find(s => s.sensor_id === sid)?.name || null;
 

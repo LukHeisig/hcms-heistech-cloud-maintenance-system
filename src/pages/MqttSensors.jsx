@@ -100,7 +100,7 @@ function AllSensorIds({ sensors }) {
   const { data: sensorDataIds = [], isLoading } = useQuery({
     queryKey: ["allSensorDataIds"],
     queryFn: async () => {
-      const records = await base44.entities.SensorData.list(null, 5000);
+      const records = await base44.entities.SensorData.list("-created_date", 200);
       const unique = [...new Set(records.map(r => r.sensor_id).filter(Boolean))];
       return unique.sort();
     },
