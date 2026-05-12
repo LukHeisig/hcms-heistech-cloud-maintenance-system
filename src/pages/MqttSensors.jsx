@@ -96,6 +96,104 @@ function StatusBadge({ lastSeen }) {
   return <Badge className="bg-red-100 text-red-600 border-red-200">Offline</Badge>;
 }
 
+function AllSensorIds({ sensors }) {
+  const { data: sensorDataIds = [], isLoading } = useQuery({
+    queryKey: ["allSensorDataIds"],
+    queryFn: async () => {
+      const records = await base44.entities.SensorData.list(null, 5000);
+      const unique = [...new Set(records.map(r => r.sensor_id).filter(Boolean))];
+      return unique.sort();
+    },
+    staleTime: 60000,
+  });
+
+  const [copyDone, setCopyDone] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(sensorDataIds.join("\n"));
+    setCopyDone(true);
+    setTimeout(() => setCopyDone(false), 2000);
+  };
+
+  const registeredIds = new Set(sensors.map(s => s.sensor_id));
+
+  return (
+    <Card>
+      <CardHeader className="border-b border-slate-100">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-blue-600" />
+            Všechna ID senzorů z přijatých dat
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{sensorDataIds.length} unikátních ID</Badge>
+            <Button variant="outline" size="sm" onClick={handleCopy} disabled={sensorDataIds.length === 0}>
+              {copyDone ? "Zkopírováno ✓" : "Kopírovat vše"}
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-slate-500 mt-1">
+          Všechna unikátní ID senzorů, která kdy odeslala data přes webhook (z tabulky SensorData).
+        </p>
+      </CardHeader>
+      <CardContent className="p-0">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12 text-slate-400">
+            <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Načítám data...
+          </div>
+        ) : sensorDataIds.length === 0 ? (
+          <div className="text-center py-12 text-slate-400">
+            <WifiOff className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <p>Žádná data senzorů nebyla dosud přijata.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="text-left p-4 text-sm font-semibold text-slate-600">#</th>
+                  <th className="text-left p-4 text-sm font-semibold text-slate-600">Sensor ID</th>
+                  <th className="text-left p-4 text-sm font-semibold text-slate-600">Stav registrace</th>
+                  <th className="text-left p-4 text-sm font-semibold text-slate-600">Vlastní název</th>
+                  <th className="text-left p-4 text-sm font-semibold text-slate-600">Poslední aktivita</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sensorDataIds.map((sid, idx) => {
+                  const registered = sensors.find(s => s.sensor_id === sid);
+                  return (
+                    <tr key={sid} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="p-4 text-sm text-slate-400">{idx + 1}</td>
+                      <td className="p-4">
+                        <code className="text-blue-600 font-mono text-sm font-semibold">{sid}</code>
+                      </td>
+                      <td className="p-4">
+                        {registered
+                          ? <Badge className="bg-green-100 text-green-700 border-green-300">Registrován</Badge>
+                          : <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Neregistrován</Badge>
+                        }
+                      </td>
+                      <td className="p-4 text-sm text-slate-600">
+                        {registered?.name || <span className="text-slate-400">—</span>}
+                      </td>
+                      <td className="p-4 text-sm text-slate-600">
+                        {registered?.last_seen
+                          ? format(new Date(registered.last_seen), "d.M.yyyy HH:mm", { locale: cs })
+                          : <span className="text-slate-400">—</span>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function MqttSensors() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -190,6 +288,7 @@ export default function MqttSensors() {
           <TabsList className="mb-4">
             <TabsTrigger value="sensors">Seznam senzorů a Statistiky</TabsTrigger>
             <TabsTrigger value="dsp">DSP Vizualizace a Analýza</TabsTrigger>
+            <TabsTrigger value="all-ids">Všechna ID senzorů</TabsTrigger>
           </TabsList>
           
           <TabsContent value="sensors">
@@ -368,6 +467,10 @@ export default function MqttSensors() {
 
           <TabsContent value="dsp">
             <DSPVisualization />
+          </TabsContent>
+
+          <TabsContent value="all-ids">
+            <AllSensorIds sensors={sensors} />
           </TabsContent>
         </Tabs>
       </div>
