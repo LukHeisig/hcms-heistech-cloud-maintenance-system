@@ -14,14 +14,30 @@ import { Activity, RefreshCw, ZoomOut, Settings2, ChevronDown, ChevronRight } fr
 import { format } from "date-fns";
 
 // Dialog pro přiřazení senzoru k řádku
-function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, machineId, currentSensorId, onAssign }) {
+function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId, onAssign }) {
   const [selected, setSelected] = useState(currentSensorId || "");
 
-  const { data: sensors = [] } = useQuery({
-    queryKey: ["aissens-sensors", machineId],
-    queryFn: () => base44.entities.AissensSensor.filter({ machine_id: machineId }),
-    enabled: open && !!machineId,
+  // Načteme všechna unikátní sensor_id, která kdy byla aktivní (ze SensorData)
+  const { data: allSensorIds = [], isLoading } = useQuery({
+    queryKey: ["allActiveSensorIds"],
+    queryFn: async () => {
+      const records = await base44.entities.SensorData.list(null, 5000);
+      const unique = [...new Set(records.map(r => r.sensor_id).filter(Boolean))].sort();
+      return unique;
+    },
+    enabled: open,
+    staleTime: 60000,
   });
+
+  // Načteme registrované senzory pro zobrazení názvů
+  const { data: registeredSensors = [] } = useQuery({
+    queryKey: ["aissens_sensors"],
+    queryFn: () => base44.entities.AissensSensor.list(null, 500),
+    enabled: open,
+    staleTime: 60000,
+  });
+
+  const getSensorName = (sid) => registeredSensors.find(s => s.sensor_id === sid)?.name || null;
 
   const handleSave = () => {
     onAssign(rowIndex, selected || null);
@@ -36,17 +52,20 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, machineId, curr
         </DialogHeader>
         <div className="space-y-4 py-2">
           <p className="text-sm text-slate-500">
-            Vyberte MQTT senzor přiřazený k tomuto měřicímu místu.
+            Vyberte senzor ze všech aktivních ID senzorů, která kdy odeslala data.
           </p>
-          <Select value={selected} onValueChange={setSelected}>
+          <Select value={selected || "__none__"} onValueChange={v => setSelected(v === "__none__" ? "" : v)}>
             <SelectTrigger>
               <SelectValue placeholder="— bez senzoru —" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={null}>— bez senzoru —</SelectItem>
-              {sensors.map(s => (
-                <SelectItem key={s.id} value={s.sensor_id}>
-                  {s.sensor_id}{s.name ? ` — ${s.name}` : ""}
+              <SelectItem value="__none__">— bez senzoru —</SelectItem>
+              {isLoading ? (
+                <SelectItem value="__loading__" disabled>Načítám...</SelectItem>
+              ) : allSensorIds.map(sid => (
+                <SelectItem key={sid} value={sid}>
+                  <span className="font-mono text-blue-700">{sid}</span>
+                  {getSensorName(sid) && <span className="text-slate-500 ml-2 text-xs">— {getSensorName(sid)}</span>}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -544,7 +563,6 @@ export default function VibrationCardMQTT({ machine }) {
           onClose={() => setAssignDialog(null)}
           rowIndex={assignDialog.rowIndex}
           rowLabel={assignDialog.rowLabel}
-          machineId={machineId}
           currentSensorId={rowSensors[assignDialog.rowIndex] || ""}
           onAssign={assignSensor}
         />
