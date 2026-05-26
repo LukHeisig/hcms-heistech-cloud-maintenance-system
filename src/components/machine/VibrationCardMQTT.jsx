@@ -411,6 +411,9 @@ export default function VibrationCardMQTT({ machine }) {
   const activeTrendSensorId = trendConfig?.sensorId ?? defaultTrendSensorId;
   const activeTrendMetric = trendConfig?.metricKey ?? "vel_xyz";
 
+  // Vybraný sensor_data_id z kliknutí na bod trendu → předá se do SensorDSPPanel
+  const [trendSelectedSensorDataId, setTrendSelectedSensorDataId] = useState(null);
+
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
 
   // Načteme poslední data pro každý přiřazený senzor (pro RMS hodnoty v tabulce)
@@ -679,6 +682,13 @@ export default function VibrationCardMQTT({ machine }) {
             sensorId={activeTrendSensorId}
             metricKey={activeTrendMetric}
             sensorLabel={trendLabel}
+            onSelectRecord={(sensorDataId) => {
+              setTrendSelectedSensorDataId(sensorDataId);
+              // Přepne DSP panel na řádek odpovídající aktivnímu trend senzoru
+              const rowIdx = Object.entries(rowSensors).find(([, sid]) => sid === activeTrendSensorId)?.[0];
+              if (rowIdx != null) setSelectedRow(Number(rowIdx));
+            }}
+            selectedSensorDataId={trendSelectedSensorDataId}
           />
         );
       })()}
@@ -699,7 +709,10 @@ export default function VibrationCardMQTT({ machine }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              <SensorDSPPanel sensorId={activeSensorId} initialRecordId={activeLatest?.id} />
+              <SensorDSPPanel
+            sensorId={activeSensorId}
+            initialRecordId={trendSelectedSensorDataId || activeLatest?.id}
+          />
             </CardContent>
           </Card>
         );

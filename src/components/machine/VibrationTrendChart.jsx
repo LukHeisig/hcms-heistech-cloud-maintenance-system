@@ -57,7 +57,7 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
   );
 };
 
-export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }) {
+export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
 
   // Pomocná funkce pro výpočet RMS ze spektra
@@ -91,7 +91,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }
           : format(new Date(r.created_date), "dd.MM HH:mm");
         return {
           ts,
-          // Přednostně skalární hodnoty, fallback na výpočet ze spektra
+          sensor_data_id: r.sensor_data_id, // pro párování se spektrální analýzou
           vel_rms_x_mm_s: r.oa_x ?? calcRMS(r.vel_x_json, freqRes, 2, 1000),
           vel_rms_y_mm_s: r.oa_y ?? calcRMS(r.vel_y_json, freqRes, 2, 1000),
           vel_rms_z_mm_s: r.oa_z ?? calcRMS(r.vel_z_json, freqRes, 2, 1000),
@@ -106,7 +106,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }
 
   const chartData = useMemo(() => {
     return historyData.map(r => {
-      const point = { ts: r.ts };
+      const point = { ts: r.ts, sensor_data_id: r.sensor_data_id };
       metricDef.lines.forEach(l => { point[l.key] = r[l.key]; });
       return point;
     });
@@ -129,7 +129,16 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+              onClick={(e) => {
+                if (e?.activePayload?.[0]?.payload?.sensor_data_id && onSelectRecord) {
+                  onSelectRecord(e.activePayload[0].payload.sensor_data_id);
+                }
+              }}
+              style={{ cursor: onSelectRecord ? "pointer" : "default" }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis
                 dataKey="ts"
@@ -150,8 +159,22 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }
                   name={l.name}
                   stroke={l.color}
                   strokeWidth={2}
-                  dot={{ r: 2, fill: l.color }}
-                  activeDot={{ r: 4 }}
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    const isSelected = selectedSensorDataId && payload.sensor_data_id === selectedSensorDataId;
+                    return (
+                      <circle
+                        key={`dot-${props.index}`}
+                        cx={cx}
+                        cy={cy}
+                        r={isSelected ? 6 : 2}
+                        fill={isSelected ? "#1d4ed8" : l.color}
+                        stroke={isSelected ? "#fff" : "none"}
+                        strokeWidth={isSelected ? 2 : 0}
+                      />
+                    );
+                  }}
+                  activeDot={{ r: 5 }}
                   isAnimationActive={false}
                   connectNulls={false}
                 />
