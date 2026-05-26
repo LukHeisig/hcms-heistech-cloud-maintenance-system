@@ -16,8 +16,6 @@ import {
   Pencil,
   Trash2,
   CheckCircle,
-  XCircle,
-  Download,
   Upload,
   ChevronRight,
   Wrench,
@@ -27,8 +25,6 @@ import {
   Loader2,
   Package,
   Users,
-  User,
-  Bell,
   Image as ImageIcon,
   LayoutDashboard,
   Settings,
@@ -39,7 +35,6 @@ import {
   X,
   FileIcon,
   FileImage,
-  FileJson,
   Send,
   FileSpreadsheet, Brain, Sparkles, Cpu
 } from "lucide-react";
@@ -403,6 +398,7 @@ export default function Machine() {
   const preventionStatus = getGroupStatus(preventionPoints);
 
   const lowStockParts = spareParts.filter(p => p.quantity_in_stock <= (p.minimum_stock || 0));
+  const vibrationTabAlertLevelResolved = (!machine?.monitor_vibration || !machineId) ? -1 : (() => { try { return parseInt(localStorage.getItem(`vibro_tab_alert_${machineId}`) || "-1", 10); } catch { return -1; } })();
 
   // Visibility Logic
   const showDemip = company?.enable_demip !== false && controlPoints.length > 0;
