@@ -557,6 +557,18 @@ export default function LineDetail() {
                                     styles.text.includes('orange') ? 'border-l-orange-500' : 
                                     'border-l-green-500';
 
+                  // DEMIP badge counts
+                  const demipPoints = controlPoints.filter(p => p.machine_id === machine.id);
+                  const demipOverdue = demipPoints.filter(p => ["warning", "critical"].includes(getPointStatus(p))).length;
+                  const demipIssues = issues.filter(i =>
+                    (i.machine_id === machine.id) ||
+                    (i.control_point_id && demipPoints.some(p => p.id === i.control_point_id))
+                  ).length;
+                  const demipBadge = demipOverdue + demipIssues;
+
+                  // Vibration badge
+                  const vibroLevel = getVibroAlertLevel(machine.id);
+
                   return (
                     <Card 
                       key={machine.id} 
@@ -578,15 +590,63 @@ export default function LineDetail() {
                           </p>
                         </div>
 
-                        <div className="hidden sm:flex gap-2 flex-wrap justify-end items-center">
-                            {machine.monitor_vibration && (
-                              <div className="flex items-center gap-1">
-                                <Badge variant="secondary" className="text-[10px]">Vibrace</Badge>
-                                <VibroStatusDot machineId={machine.id} />
-                              </div>
+                        {/* Module badges */}
+                        <div className="hidden sm:flex gap-3 items-center flex-shrink-0">
+                          {/* DEMIP */}
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">DEMIP</span>
+                            {demipBadge > 0 ? (
+                              <span className="min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                {demipBadge}
+                              </span>
+                            ) : (
+                              <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                <span className="text-white text-[9px] font-bold">✓</span>
+                              </span>
                             )}
-                            {machine.monitor_thermo && <Badge variant="secondary" className="text-[10px]">Termo</Badge>}
-                            {machine.monitor_tribo && <Badge variant="secondary" className="text-[10px]">Tribo</Badge>}
+                          </div>
+
+                          {/* Vibrace */}
+                          {machine.monitor_vibration && (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Vibrace</span>
+                              {vibroLevel < 0 ? (
+                                <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
+                                  <span className="text-white text-[9px]">–</span>
+                                </span>
+                              ) : vibroLevel === 0 ? (
+                                <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                  <span className="text-white text-[9px] font-bold">✓</span>
+                                </span>
+                              ) : (
+                                <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{
+                                  backgroundColor: vibroLevel === 1 ? '#eab308' : vibroLevel === 2 ? '#f97316' : '#dc2626'
+                                }}>
+                                  <span className="text-white text-[9px] font-bold">!</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Termo */}
+                          {machine.monitor_thermo && (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Termo</span>
+                              <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
+                                <span className="text-white text-[9px]">–</span>
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Tribo */}
+                          {machine.monitor_tribo && (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Tribo</span>
+                              <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
+                                <span className="text-white text-[9px]">–</span>
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" />
