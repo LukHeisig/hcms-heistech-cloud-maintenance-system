@@ -294,20 +294,20 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
               <div>
                 <p className="text-xs text-slate-400">RMS Rychlosti (2-1000 Hz) [mm/s]</p>
                 <div className="flex gap-3 mt-1">
-                  <span className="text-sm">X: <span className="font-semibold text-blue-700">{dsp.rmsVelX.toFixed(3)}</span></span>
-                  <span className="text-sm">Y: <span className="font-semibold text-blue-700">{dsp.rmsVelY.toFixed(3)}</span></span>
-                  <span className="text-sm">Z: <span className="font-bold text-blue-700">{dsp.rmsVelZ.toFixed(3)}</span></span>
+                  <span className="text-base">X: <span className="font-semibold text-blue-700">{dsp.rmsVelX.toFixed(2)}</span></span>
+                  <span className="text-base">Y: <span className="font-semibold text-blue-700">{dsp.rmsVelY.toFixed(2)}</span></span>
+                  <span className="text-base">Z: <span className="font-bold text-blue-700">{dsp.rmsVelZ.toFixed(2)}</span></span>
                 </div>
               </div>
               <div className="w-px bg-slate-200 self-stretch hidden sm:block" />
               <div>
                 <p className="text-xs text-slate-400">RMS Zrychlení Z (2-6000 Hz) [g]</p>
-                <span className="text-sm mt-1">Z: <span className="font-bold text-green-700">{dsp.rmsAccZ.toFixed(3)}</span></span>
+                <span className="text-base mt-1">Z: <span className="font-bold text-green-700">{dsp.rmsAccZ.toFixed(2)}</span></span>
               </div>
               <div className="w-px bg-slate-200 self-stretch hidden sm:block" />
               <div>
                 <p className="text-xs text-slate-400">RMS Obálky Z (&gt;500 Hz) [g]</p>
-                <span className="text-sm mt-1">Z: <span className="font-bold text-orange-600">{dsp.rmsEnvZ.toFixed(3)}</span></span>
+                <span className="text-base mt-1">Z: <span className="font-bold text-orange-600">{dsp.rmsEnvZ.toFixed(2)}</span></span>
               </div>
             </div>
           </div>
@@ -629,19 +629,19 @@ export default function VibrationCardMQTT({ machine }) {
         {/* Tabulka */}
         <CardContent className="p-0">
           {/* Hlavička tabulky */}
-          <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            <div>Místo</div>
-            <div>ID senzoru / čas měření</div>
-            <div className="text-center">Vel X<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
-            <div className="text-center">Vel Y<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
-            <div className="text-center">Vel Z<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
-            <div className="text-center">Acc Z<br/><span className="text-[10px] normal-case font-normal">[g]</span></div>
-            <div className="text-center">Obálka Z<br/><span className="text-[10px] normal-case font-normal">[g]</span></div>
-            <div className="text-center">Teplota<br/><span className="text-[10px] normal-case font-normal">[°C]</span></div>
-            <div className="text-center">Baterie<br/><span className="text-[10px] normal-case font-normal">[0-4]</span></div>
-            <div className="text-center">Signál<br/><span className="text-[10px] normal-case font-normal">[dBm]</span></div>
-            <div></div>
-          </div>
+           <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 uppercase tracking-wide">
+             <div>Místo</div>
+             <div>ID senzoru / čas měření</div>
+             <div className="text-center">Vel X<br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
+             <div className="text-center">Vel Y<br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
+             <div className="text-center">Vel Z<br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
+             <div className="text-center">Acc Z<br/><span className="text-xs normal-case font-normal">[g]</span></div>
+             <div className="text-center">Obálka Z<br/><span className="text-xs normal-case font-normal">[g]</span></div>
+             <div className="text-center">Teplota<br/><span className="text-xs normal-case font-normal">[°C]</span></div>
+             <div className="text-center">Baterie<br/><span className="text-xs normal-case font-normal">[0-4]</span></div>
+             <div className="text-center">Signál<br/><span className="text-xs normal-case font-normal">[dBm]</span></div>
+             <div></div>
+           </div>
 
           {schemaRows.map((row, idx) => {
             const assignment = rowAssignments[idx] || {};
@@ -670,7 +670,7 @@ export default function VibrationCardMQTT({ machine }) {
             return (
               <div key={idx} className="border-b border-slate-100 last:border-0">
                 <div
-                  className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-3 text-sm transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
+                  className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-4 text-base transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
                   onClick={() => {
                     if (!sensorId) return;
                     setSelectedRow(idx);
@@ -721,29 +721,29 @@ export default function VibrationCardMQTT({ machine }) {
                     return (
                       <div
                         key={metricKey}
-                        className={`text-center font-mono text-xs rounded transition-colors ${sensorId ? "cursor-pointer hover:bg-blue-100" : ""} ${isActiveTrend ? "bg-blue-100 ring-1 ring-blue-400" : ""}`}
+                        className={`text-center font-mono text-sm rounded transition-colors ${sensorId ? "cursor-pointer hover:bg-blue-100" : ""} ${isActiveTrend ? "bg-blue-100 ring-1 ring-blue-400" : ""}`}
                         onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey }); }}
                         title={sensorId ? `Zobrazit trend: ${METRIC_DEFS[metricKey]?.label}` : ""}
                       >
-                        {value != null ? <span className={displayClass}>{value.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
+                        {value != null ? <span className={displayClass}>{value.toFixed(2)}</span> : <span className="text-slate-300">—</span>}
                       </div>
                     );
                   })}
 
                   {/* Teplota */}
-                  <div className="text-center font-mono text-xs">
-                    {temp != null ? <span className="text-purple-700 font-semibold">{temp.toFixed(1)}</span> : <span className="text-slate-300">—</span>}
-                  </div>
+                   <div className="text-center font-mono text-sm font-semibold">
+                     {temp != null ? <span className="text-purple-700">{temp.toFixed(1)}°</span> : <span className="text-slate-300">—</span>}
+                   </div>
 
-                  {/* Baterie */}
-                  <div className="text-center font-mono text-xs">
-                    {batteryLevel != null ? <span className={`font-semibold ${batteryColor}`}>{batteryLevel}/4</span> : <span className="text-slate-300">—</span>}
-                  </div>
+                   {/* Baterie */}
+                   <div className="text-center font-mono text-sm font-semibold">
+                     {batteryLevel != null ? <span className={batteryColor}>{batteryLevel}/4</span> : <span className="text-slate-300">—</span>}
+                   </div>
 
-                  {/* Signál */}
-                  <div className="text-center font-mono text-xs">
-                    {rssi != null ? <span className={`font-semibold ${rssiColor}`}>{rssi}</span> : <span className="text-slate-300">—</span>}
-                  </div>
+                   {/* Signál */}
+                   <div className="text-center font-mono text-sm font-semibold">
+                     {rssi != null ? <span className={rssiColor}>{rssi}</span> : <span className="text-slate-300">—</span>}
+                   </div>
 
                   {/* Tlačítko přiřazení */}
                   <div className="flex justify-end">
