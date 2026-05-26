@@ -783,6 +783,21 @@ export default function Machine() {
               <TabsTrigger value="vibro-diag" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
                 <Activity className="w-4 h-4" />
                 <span className="hidden md:inline">Vibrace</span>
+                {vibrationTabAlertLevelResolved >= 0 && (
+                  <div className={`w-2.5 h-2.5 rounded-full ml-1 flex-shrink-0 ${
+                    vibrationTabAlertLevelResolved === 0 ? "bg-green-500" :
+                    vibrationTabAlertLevelResolved === 1 ? "bg-yellow-400" :
+                    vibrationTabAlertLevelResolved === 2 ? "bg-orange-500" :
+                    "bg-red-600 animate-pulse"
+                  }`}
+                    title={
+                      vibrationTabAlertLevelResolved === 0 ? "Vibrace: OK" :
+                      vibrationTabAlertLevelResolved === 1 ? "Vibrace: Pozor (A/B)" :
+                      vibrationTabAlertLevelResolved === 2 ? "Vibrace: Alarm (B/C)" :
+                      "Vibrace: KRITICKÉ (C/D)"
+                    }
+                  />
+                )}
               </TabsTrigger>
             )}
 
