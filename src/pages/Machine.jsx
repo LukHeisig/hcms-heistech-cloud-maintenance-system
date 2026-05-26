@@ -79,9 +79,6 @@ export default function Machine() {
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => setCurrentUser(null));
-    if (window.location.hash === "#maintenance") {
-      setTimeout(() => { document.querySelector('[value="maintenance"]')?.click(); }, 100);
-    }
   }, []);
 
   const { data: machine } = useQuery({
@@ -742,7 +739,13 @@ export default function Machine() {
         </div>
 
         {/* Záložky */}
-        <Tabs defaultValue={urlParams.get("tab") || "overview"} className="space-y-6">
+        <Tabs defaultValue={
+          window.location.hash === "#vibration" ? "vibro-diag" :
+          window.location.hash === "#thermo" ? "thermo" :
+          window.location.hash === "#tribo" ? "tribo" :
+          window.location.hash === "#maintenance" ? "maintenance" :
+          urlParams.get("tab") || "overview"
+        } className="space-y-6">
           <TabsList className="flex flex-wrap w-full bg-white shadow-md p-2 h-auto gap-2">
             <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <LayoutDashboard className="w-4 h-4" />
