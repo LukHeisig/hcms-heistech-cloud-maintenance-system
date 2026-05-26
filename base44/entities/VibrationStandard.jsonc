@@ -6,6 +6,15 @@
       "type": "string",
       "description": "N\u00e1zev normy (nap\u0159. \u010cSN 20 816-3 Sk. 1)"
     },
+    "limit_type": {
+      "type": "string",
+      "enum": [
+        "velocity",
+        "acceleration"
+      ],
+      "default": "velocity",
+      "description": "Typ limit\u016f: velocity = rychlost [mm/s], acceleration = zrychlen\u00ed [g]"
+    },
     "limit_ab": {
       "type": "number",
       "description": "Limit A/B pro rychlost vibrace [mm/s]"
@@ -36,8 +45,6 @@
   },
   "required": [
     "name",
-    "limit_ab",
-    "limit_bc",
-    "limit_cd"
+    "limit_type"
   ]
 }

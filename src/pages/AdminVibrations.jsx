@@ -38,6 +38,7 @@ export default function AdminVibrations() {
   const [showStandardDialog, setShowStandardDialog] = useState(false);
   const [standardForm, setStandardForm] = useState({
     name: "",
+    limit_type: "velocity",
     limit_ab: "",
     limit_bc: "",
     limit_cd: "",
@@ -157,25 +158,24 @@ export default function AdminVibrations() {
 
   // Handlers - Standards
   const handleSaveStandard = () => {
-    const limit_ab = parseFloat(standardForm.limit_ab);
-    const limit_bc = parseFloat(standardForm.limit_bc);
-    const limit_cd = parseFloat(standardForm.limit_cd);
+    if (!standardForm.name) return;
+    const isVelocity = standardForm.limit_type === "velocity";
 
-    if (!standardForm.name || isNaN(limit_ab) || isNaN(limit_bc) || isNaN(limit_cd)) return;
-
-    const acc_ab = standardForm.acc_limit_ab !== "" ? parseFloat(standardForm.acc_limit_ab) : null;
-    const acc_bc = standardForm.acc_limit_bc !== "" ? parseFloat(standardForm.acc_limit_bc) : null;
-    const acc_cd = standardForm.acc_limit_cd !== "" ? parseFloat(standardForm.acc_limit_cd) : null;
+    const a = parseFloat(isVelocity ? standardForm.limit_ab : standardForm.acc_limit_ab);
+    const b = parseFloat(isVelocity ? standardForm.limit_bc : standardForm.acc_limit_bc);
+    const c = parseFloat(isVelocity ? standardForm.limit_cd : standardForm.acc_limit_cd);
+    if (isNaN(a) || isNaN(b) || isNaN(c)) return;
 
     const data = {
       name: standardForm.name,
       description: standardForm.description,
-      limit_ab,
-      limit_bc,
-      limit_cd,
-      acc_limit_ab: acc_ab != null && !isNaN(acc_ab) ? acc_ab : null,
-      acc_limit_bc: acc_bc != null && !isNaN(acc_bc) ? acc_bc : null,
-      acc_limit_cd: acc_cd != null && !isNaN(acc_cd) ? acc_cd : null,
+      limit_type: standardForm.limit_type,
+      limit_ab: isVelocity ? a : null,
+      limit_bc: isVelocity ? b : null,
+      limit_cd: isVelocity ? c : null,
+      acc_limit_ab: !isVelocity ? a : null,
+      acc_limit_bc: !isVelocity ? b : null,
+      acc_limit_cd: !isVelocity ? c : null,
     };
 
     if (editingStandard) {
@@ -191,15 +191,16 @@ export default function AdminVibrations() {
       setStandardForm({
         name: standard.name,
         description: standard.description || "",
-        limit_ab: standard.limit_ab,
-        limit_bc: standard.limit_bc,
-        limit_cd: standard.limit_cd,
+        limit_type: standard.limit_type || (standard.limit_ab != null ? "velocity" : "acceleration"),
+        limit_ab: standard.limit_ab ?? "",
+        limit_bc: standard.limit_bc ?? "",
+        limit_cd: standard.limit_cd ?? "",
         acc_limit_ab: standard.acc_limit_ab ?? "",
         acc_limit_bc: standard.acc_limit_bc ?? "",
         acc_limit_cd: standard.acc_limit_cd ?? "",
       });
     } else {
-      setStandardForm({ name: "", description: "", limit_ab: "", limit_bc: "", limit_cd: "", acc_limit_ab: "", acc_limit_bc: "", acc_limit_cd: "" });
+      setStandardForm({ name: "", description: "", limit_type: "velocity", limit_ab: "", limit_bc: "", limit_cd: "", acc_limit_ab: "", acc_limit_bc: "", acc_limit_cd: "" });
     }
     setShowStandardDialog(true);
   };
@@ -334,15 +335,19 @@ export default function AdminVibrations() {
                     <div>
                       <h3 className="font-bold text-lg">{std.name}</h3>
                       <p className="text-sm text-slate-500 mb-2">{std.description}</p>
-                      <div className="flex flex-wrap gap-2 text-sm">
-                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">A/B: {std.limit_ab} mm/s</Badge>
-                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">B/C: {std.limit_bc} mm/s</Badge>
-                        <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">C/D: {std.limit_cd} mm/s</Badge>
-                        {std.acc_limit_ab != null && <>
-                          <Badge className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-50">A/B: {std.acc_limit_ab} g</Badge>
-                          <Badge className="bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-50">B/C: {std.acc_limit_bc} g</Badge>
-                          <Badge className="bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-50">C/D: {std.acc_limit_cd} g</Badge>
-                        </>}
+                      <div className="flex flex-wrap gap-2 text-sm items-center">
+                        <Badge variant="outline" className="text-xs text-slate-500">
+                          {std.limit_type === "acceleration" ? "Zrychlení [g]" : "Rychlost [mm/s]"}
+                        </Badge>
+                        {std.limit_type === "acceleration" ? (<>
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">A/B: {std.acc_limit_ab} g</Badge>
+                          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">B/C: {std.acc_limit_bc} g</Badge>
+                          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">C/D: {std.acc_limit_cd} g</Badge>
+                        </>) : (<>
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">A/B: {std.limit_ab} mm/s</Badge>
+                          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">B/C: {std.limit_bc} mm/s</Badge>
+                          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">C/D: {std.limit_cd} mm/s</Badge>
+                        </>)}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -441,39 +446,58 @@ export default function AdminVibrations() {
                 <Input value={standardForm.name} onChange={(e) => setStandardForm({...standardForm, name: e.target.value})} placeholder="např. ČSN 20 816-3" />
               </div>
               <div>
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Limity rychlosti vibrace [mm/s]</Label>
-                <div className="grid grid-cols-3 gap-4 mt-2">
-                  <div>
-                    <Label className="text-xs">Limit A/B</Label>
-                    <Input type="number" step="0.1" value={standardForm.limit_ab} onChange={(e) => setStandardForm({...standardForm, limit_ab: e.target.value})} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Limit B/C</Label>
-                    <Input type="number" step="0.1" value={standardForm.limit_bc} onChange={(e) => setStandardForm({...standardForm, limit_bc: e.target.value})} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Limit C/D</Label>
-                    <Input type="number" step="0.1" value={standardForm.limit_cd} onChange={(e) => setStandardForm({...standardForm, limit_cd: e.target.value})} />
+                <Label>Typ limitů</Label>
+                <Select value={standardForm.limit_type} onValueChange={(v) => setStandardForm({...standardForm, limit_type: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="velocity">Rychlost vibrací [mm/s]</SelectItem>
+                    <SelectItem value="acceleration">Zrychlení vibrací [g]</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {standardForm.limit_type === "velocity" && (
+                <div>
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Limity rychlosti [mm/s]</Label>
+                  <div className="grid grid-cols-3 gap-4 mt-2">
+                    <div>
+                      <Label className="text-xs">Limit A/B</Label>
+                      <Input type="number" step="0.1" placeholder="např. 2.3" value={standardForm.limit_ab} onChange={(e) => setStandardForm({...standardForm, limit_ab: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Limit B/C</Label>
+                      <Input type="number" step="0.1" placeholder="např. 4.5" value={standardForm.limit_bc} onChange={(e) => setStandardForm({...standardForm, limit_bc: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Limit C/D</Label>
+                      <Input type="number" step="0.1" placeholder="např. 7.1" value={standardForm.limit_cd} onChange={(e) => setStandardForm({...standardForm, limit_cd: e.target.value})} />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Limity zrychlení vibrace [g] <span className="font-normal normal-case text-slate-400">(volitelné)</span></Label>
-                <div className="grid grid-cols-3 gap-4 mt-2">
-                  <div>
-                    <Label className="text-xs">Limit A/B</Label>
-                    <Input type="number" step="0.001" placeholder="např. 0.5" value={standardForm.acc_limit_ab} onChange={(e) => setStandardForm({...standardForm, acc_limit_ab: e.target.value})} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Limit B/C</Label>
-                    <Input type="number" step="0.001" placeholder="např. 1.0" value={standardForm.acc_limit_bc} onChange={(e) => setStandardForm({...standardForm, acc_limit_bc: e.target.value})} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Limit C/D</Label>
-                    <Input type="number" step="0.001" placeholder="např. 2.0" value={standardForm.acc_limit_cd} onChange={(e) => setStandardForm({...standardForm, acc_limit_cd: e.target.value})} />
+              )}
+
+              {standardForm.limit_type === "acceleration" && (
+                <div>
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Limity zrychlení [g]</Label>
+                  <div className="grid grid-cols-3 gap-4 mt-2">
+                    <div>
+                      <Label className="text-xs">Limit A/B</Label>
+                      <Input type="number" step="0.001" placeholder="např. 0.5" value={standardForm.acc_limit_ab} onChange={(e) => setStandardForm({...standardForm, acc_limit_ab: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Limit B/C</Label>
+                      <Input type="number" step="0.001" placeholder="např. 1.0" value={standardForm.acc_limit_bc} onChange={(e) => setStandardForm({...standardForm, acc_limit_bc: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Limit C/D</Label>
+                      <Input type="number" step="0.001" placeholder="např. 2.0" value={standardForm.acc_limit_cd} onChange={(e) => setStandardForm({...standardForm, acc_limit_cd: e.target.value})} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
               <div>
                 <Label>Popis</Label>
                 <Textarea value={standardForm.description} onChange={(e) => setStandardForm({...standardForm, description: e.target.value})} />
@@ -481,7 +505,13 @@ export default function AdminVibrations() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowStandardDialog(false)}>Zrušit</Button>
-              <Button onClick={handleSaveStandard} disabled={!standardForm.name || standardForm.limit_ab === "" || standardForm.limit_bc === "" || standardForm.limit_cd === ""}>Uložit</Button>
+              <Button onClick={handleSaveStandard} disabled={
+                !standardForm.name || (
+                  standardForm.limit_type === "velocity"
+                    ? (standardForm.limit_ab === "" || standardForm.limit_bc === "" || standardForm.limit_cd === "")
+                    : (standardForm.acc_limit_ab === "" || standardForm.acc_limit_bc === "" || standardForm.acc_limit_cd === "")
+                )
+              }>Uložit</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
