@@ -80,9 +80,10 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }
     queryFn: async () => {
       const records = await base44.entities.SensorFFTData.filter(
         { sensor_id: sensorId },
-        "timestamp_unix",
-        200
+        "-created_date",
+        50
       );
+      records.reverse(); // nejstarší → nejnovější pro správné zobrazení grafu
       return records.map(r => {
         const freqRes = r.frequency_resolution || 3.259;
         const ts = r.timestamp_unix
