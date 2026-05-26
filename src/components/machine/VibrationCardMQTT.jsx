@@ -435,7 +435,17 @@ export default function VibrationCardMQTT({ machine }) {
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return [];
-      // Sekvenčně, aby nedocházelo k rate limit chybám
+
+      const calcRMS = (amps, freqRes, minF, maxF) => {
+        if (!amps || !amps.length) return null;
+        let sumSq = 0;
+        for (let i = 0; i < amps.length; i++) {
+          const f = i * freqRes;
+          if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
+        }
+        return Math.sqrt(sumSq / 2);
+      };
+
       const results = [];
       for (const sid of assignedSensorIds) {
         const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
@@ -445,13 +455,26 @@ export default function VibrationCardMQTT({ machine }) {
         const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: sensorDataRecord.id });
         const fft = fftRecs[0];
 
+        if (!fft) {
+          results.push(sensorDataRecord);
+          continue;
+        }
+
+        const freqRes = fft.frequency_resolution || 3.259;
+        const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
+        const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
+        const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
+        const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
+        const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
+
         results.push({
           ...sensorDataRecord,
-          vel_rms_x_mm_s: sensorDataRecord.vel_rms_x_mm_s ?? fft?.oa_x ?? null,
-          vel_rms_y_mm_s: sensorDataRecord.vel_rms_y_mm_s ?? fft?.oa_y ?? null,
-          vel_rms_z_mm_s: sensorDataRecord.vel_rms_z_mm_s ?? fft?.oa_z ?? null,
-          oa_acc_z: sensorDataRecord.oa_acc_z ?? fft?.oa_acc_z ?? null,
-          env_rms_z: sensorDataRecord.env_rms_z ?? null,
+          // Vždy přepočítáme ze spekter — stejná logika jako v DSP panelu
+          vel_rms_x_mm_s: calcRMS(velX, freqRes, 2, 1000),
+          vel_rms_y_mm_s: calcRMS(velY, freqRes, 2, 1000),
+          vel_rms_z_mm_s: calcRMS(velZ, freqRes, 2, 1000),
+          oa_acc_z: calcRMS(accZ, freqRes, 2, 6000),
+          env_rms_z: calcRMS(envZ, freqRes, 2, 1000),
         });
       }
       return results;
