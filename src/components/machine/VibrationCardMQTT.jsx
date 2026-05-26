@@ -14,11 +14,22 @@ import { Activity, RefreshCw, ZoomOut, Settings2 } from "lucide-react";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 
-// Dialog pro přiřazení senzoru k řádku
-function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId, onAssign }) {
-  const [selected, setSelected] = useState(currentSensorId || "");
+// Dialog pro přiřazení senzoru + normy k řádku
+function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignment, onAssign }) {
+  const current = currentAssignment || {};
+  const [selectedSensor, setSelectedSensor] = useState(current.sensorId || "");
+  const [selectedVelStandard, setSelectedVelStandard] = useState(current.velStandardId || "");
+  const [selectedAccStandard, setSelectedAccStandard] = useState(current.accStandardId || "");
 
-  // Načteme registrované senzory (malá tabulka, rychlé)
+  // Reset při otevření
+  useEffect(() => {
+    if (open) {
+      setSelectedSensor(current.sensorId || "");
+      setSelectedVelStandard(current.velStandardId || "");
+      setSelectedAccStandard(current.accStandardId || "");
+    }
+  }, [open]);
+
   const { data: registeredSensors = [], isLoading } = useQuery({
     queryKey: ["aissens_sensors"],
     queryFn: () => base44.entities.AissensSensor.list(null, 500),
@@ -26,7 +37,6 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId
     staleTime: 60000,
   });
 
-  // Doplníme o IDs z posledních 200 SensorData záznamů (zachytí neregistrované senzory)
   const { data: recentSensorData = [] } = useQuery({
     queryKey: ["recentSensorDataIds"],
     queryFn: async () => {
@@ -37,46 +47,102 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId
     staleTime: 60000,
   });
 
-  // Sloučíme: registrované + neregistrované z posledních dat
+  const { data: allStandards = [] } = useQuery({
+    queryKey: ["vibrationStandards"],
+    queryFn: () => base44.entities.VibrationStandard.list(null, 500),
+    enabled: open,
+    staleTime: 60000,
+  });
+
+  const velStandards = useMemo(() => allStandards.filter(s => !s.limit_type || s.limit_type === "velocity"), [allStandards]);
+  const accStandards = useMemo(() => allStandards.filter(s => s.limit_type === "acceleration"), [allStandards]);
+
   const allSensorIds = useMemo(() => {
     const registeredIds = registeredSensors.map(s => s.sensor_id);
-    const merged = [...new Set([...registeredIds, ...recentSensorData])].sort();
-    return merged;
+    return [...new Set([...registeredIds, ...recentSensorData])].sort();
   }, [registeredSensors, recentSensorData]);
 
   const getSensorName = (sid) => registeredSensors.find(s => s.sensor_id === sid)?.name || null;
 
   const handleSave = () => {
-    onAssign(rowIndex, selected || null);
+    onAssign(rowIndex, {
+      sensorId: selectedSensor || null,
+      velStandardId: selectedVelStandard || null,
+      accStandardId: selectedAccStandard || null,
+    });
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Přiřadit senzor — {rowLabel}</DialogTitle>
+          <DialogTitle>Konfigurace měřicího místa — {rowLabel}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <p className="text-sm text-slate-500">
-            Vyberte senzor ze všech aktivních ID senzorů, která kdy odeslala data.
-          </p>
-          <Select value={selected || "__none__"} onValueChange={v => setSelected(v === "__none__" ? "" : v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="— bez senzoru —" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">— bez senzoru —</SelectItem>
-              {isLoading ? (
-                <SelectItem value="__loading__" disabled>Načítám...</SelectItem>
-              ) : allSensorIds.map(sid => (
-                <SelectItem key={sid} value={sid}>
-                  <span className="font-mono text-blue-700">{sid}</span>
-                  {getSensorName(sid) && <span className="text-slate-500 ml-2 text-xs">— {getSensorName(sid)}</span>}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-5 py-2">
+          {/* Senzor */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">ID senzoru</label>
+            <Select value={selectedSensor || "__none__"} onValueChange={v => setSelectedSensor(v === "__none__" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="— bez senzoru —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— bez senzoru —</SelectItem>
+                {isLoading ? (
+                  <SelectItem value="__loading__" disabled>Načítám...</SelectItem>
+                ) : allSensorIds.map(sid => (
+                  <SelectItem key={sid} value={sid}>
+                    <span className="font-mono text-blue-700">{sid}</span>
+                    {getSensorName(sid) && <span className="text-slate-500 ml-2 text-xs">— {getSensorName(sid)}</span>}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Norma pro rychlost */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
+              Norma pro rychlost vibrací <span className="normal-case font-normal text-blue-600">[mm/s]</span>
+            </label>
+            <Select value={selectedVelStandard || "__none__"} onValueChange={v => setSelectedVelStandard(v === "__none__" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="— bez normy —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— bez normy —</SelectItem>
+                {velStandards.map(s => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-slate-400 ml-2 text-xs">A/B: {s.limit_ab} · B/C: {s.limit_bc} · C/D: {s.limit_cd} mm/s</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Norma pro zrychlení/obálku */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
+              Norma pro zrychlení a obálku <span className="normal-case font-normal text-green-600">[g]</span>
+            </label>
+            <Select value={selectedAccStandard || "__none__"} onValueChange={v => setSelectedAccStandard(v === "__none__" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="— bez normy —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— bez normy —</SelectItem>
+                {accStandards.map(s => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-slate-400 ml-2 text-xs">A/B: {s.acc_limit_ab} · B/C: {s.acc_limit_bc} · C/D: {s.acc_limit_cd} g</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose}>Zrušit</Button>
             <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">Uložit</Button>
@@ -395,16 +461,51 @@ export default function VibrationCardMQTT({ machine }) {
     } catch (e) { return []; }
   }, [vibrationSchema]);
 
-  // Lokální stav — přiřazení sensorId k indexu řádku (uloženo v localStorage per machine)
-  const storageKey = `vibro_row_sensors_${machineId}`;
-  const [rowSensors, setRowSensors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { return {}; }
+  // Lokální stav — přiřazení senzoru + norem k indexu řádku (uloženo v localStorage per machine)
+  // Struktura: { [rowIndex]: { sensorId, velStandardId, accStandardId } }
+  const storageKey = `vibro_row_sensors_v2_${machineId}`;
+  const [rowAssignments, setRowAssignments] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      // Migrace starého formátu (string → objekt)
+      const migrated = {};
+      for (const [k, v] of Object.entries(raw)) {
+        migrated[k] = typeof v === "string" ? { sensorId: v } : v;
+      }
+      return migrated;
+    } catch { return {}; }
   });
 
-  const assignSensor = (rowIndex, sensorId) => {
-    const updated = { ...rowSensors, [rowIndex]: sensorId };
-    setRowSensors(updated);
+  // Zpětná kompatibilita — rowSensors[idx] = sensorId (string)
+  const rowSensors = useMemo(() => {
+    const out = {};
+    for (const [k, v] of Object.entries(rowAssignments)) {
+      out[k] = v?.sensorId || null;
+    }
+    return out;
+  }, [rowAssignments]);
+
+  const assignSensor = (rowIndex, assignment) => {
+    const updated = { ...rowAssignments, [rowIndex]: assignment };
+    setRowAssignments(updated);
     localStorage.setItem(storageKey, JSON.stringify(updated));
+  };
+
+  // Načtení norem pro zobrazení limitů
+  const { data: allStandards = [] } = useQuery({
+    queryKey: ["vibrationStandards"],
+    queryFn: () => base44.entities.VibrationStandard.list(null, 500),
+    staleTime: 120000,
+  });
+  const standardsById = useMemo(() => Object.fromEntries(allStandards.map(s => [s.id, s])), [allStandards]);
+
+  // Helper: vrátí CSS třídu pro barevné pásmo limitu
+  const getLimitClass = (value, limitA, limitB, limitC) => {
+    if (value == null || limitA == null) return "";
+    if (value < limitA) return "text-green-700 font-semibold";
+    if (value < limitB) return "text-yellow-600 font-semibold";
+    if (value < limitC) return "text-orange-600 font-semibold";
+    return "text-red-600 font-bold";
   };
 
   // Defaultně vyber první řádek, který má přiřazený senzor
@@ -543,7 +644,10 @@ export default function VibrationCardMQTT({ machine }) {
           </div>
 
           {schemaRows.map((row, idx) => {
-            const sensorId = rowSensors[idx];
+            const assignment = rowAssignments[idx] || {};
+            const sensorId = assignment.sensorId || null;
+            const velStd = standardsById[assignment.velStandardId];
+            const accStd = standardsById[assignment.accStandardId];
             const latest = getDisplayData(sensorId);
             const sensorInfo = getSensorById(sensorId);
             const isSelected = activeRowIdx === idx;
@@ -558,6 +662,10 @@ export default function VibrationCardMQTT({ machine }) {
             const rssiColor = rssi == null ? "text-slate-300" : rssi >= -65 ? "text-green-600" : rssi >= -80 ? "text-yellow-600" : "text-red-600";
             // Teplota
             const temp = sensorInfo?.last_temperature;
+
+            // Barevné třídy dle normy
+            const velClass = (v) => getLimitClass(v, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd);
+            const accClass = (v) => getLimitClass(v, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd);
 
             return (
               <div key={idx} className="border-b border-slate-100 last:border-0">
@@ -577,6 +685,11 @@ export default function VibrationCardMQTT({ machine }) {
                     <div>
                       <span className="font-semibold text-slate-900">{label}</span>
                       {name && name !== label && <span className="text-slate-500 ml-1 text-xs">{name}</span>}
+                      {/* Badge norem */}
+                      <div className="flex gap-1 mt-0.5 flex-wrap">
+                        {velStd && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 rounded px-1">{velStd.name}</span>}
+                        {accStd && <span className="text-[9px] bg-green-50 text-green-700 border border-green-200 rounded px-1">{accStd.name}</span>}
+                      </div>
                     </div>
                   </div>
 
@@ -595,15 +708,16 @@ export default function VibrationCardMQTT({ machine }) {
                     )}
                   </div>
 
-                  {/* RMS hodnoty — kliknutím nastaví trend */}
+                  {/* RMS hodnoty — kliknutím nastaví trend, barevně dle normy */}
                   {[
-                    { metricKey: "vel_x", value: latest?.vel_rms_x_mm_s, color: "text-blue-700" },
-                    { metricKey: "vel_y", value: latest?.vel_rms_y_mm_s, color: "text-blue-700" },
-                    { metricKey: "vel_z", value: latest?.vel_rms_z_mm_s, color: "text-blue-700" },
-                    { metricKey: "acc_z", value: latest?.oa_acc_z, color: "text-green-700" },
-                    { metricKey: "env_z", value: latest?.env_rms_z, color: "text-orange-600" },
-                  ].map(({ metricKey, value, color }) => {
+                    { metricKey: "vel_x", value: latest?.vel_rms_x_mm_s, colorClass: velClass(latest?.vel_rms_x_mm_s), fallbackColor: "text-blue-700" },
+                    { metricKey: "vel_y", value: latest?.vel_rms_y_mm_s, colorClass: velClass(latest?.vel_rms_y_mm_s), fallbackColor: "text-blue-700" },
+                    { metricKey: "vel_z", value: latest?.vel_rms_z_mm_s, colorClass: velClass(latest?.vel_rms_z_mm_s), fallbackColor: "text-blue-700" },
+                    { metricKey: "acc_z", value: latest?.oa_acc_z, colorClass: accClass(latest?.oa_acc_z), fallbackColor: "text-green-700" },
+                    { metricKey: "env_z", value: latest?.env_rms_z, colorClass: accClass(latest?.env_rms_z), fallbackColor: "text-orange-600" },
+                  ].map(({ metricKey, value, colorClass, fallbackColor }) => {
                     const isActiveTrend = sensorId && activeTrendSensorId === sensorId && activeTrendMetric === metricKey;
+                    const displayClass = colorClass || fallbackColor;
                     return (
                       <div
                         key={metricKey}
@@ -611,7 +725,7 @@ export default function VibrationCardMQTT({ machine }) {
                         onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey }); }}
                         title={sensorId ? `Zobrazit trend: ${METRIC_DEFS[metricKey]?.label}` : ""}
                       >
-                        {value != null ? <span className={`${color} font-semibold`}>{value.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
+                        {value != null ? <span className={displayClass}>{value.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
                       </div>
                     );
                   })}
@@ -637,7 +751,7 @@ export default function VibrationCardMQTT({ machine }) {
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-xs text-slate-500 hover:text-blue-600"
-                      onClick={(e) => { e.stopPropagation(); setAssignDialog({ rowIndex: idx, rowLabel: `${label}${name && name !== label ? ' — ' + name : ''}` }); }}
+                      onClick={(e) => { e.stopPropagation(); setAssignDialog({ rowIndex: idx, rowLabel: `${label}${name && name !== label ? ' — ' + name : ''}`, currentAssignment: rowAssignments[idx] }); }}
                     >
                       <Settings2 className="w-3 h-3" />
                     </Button>
@@ -702,7 +816,7 @@ export default function VibrationCardMQTT({ machine }) {
           onClose={() => setAssignDialog(null)}
           rowIndex={assignDialog.rowIndex}
           rowLabel={assignDialog.rowLabel}
-          currentSensorId={rowSensors[assignDialog.rowIndex] || ""}
+          currentAssignment={rowAssignments[assignDialog.rowIndex] || {}}
           onAssign={assignSensor}
         />
       )}
