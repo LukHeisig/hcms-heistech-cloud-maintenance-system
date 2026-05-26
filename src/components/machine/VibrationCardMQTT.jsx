@@ -546,7 +546,7 @@ export default function VibrationCardMQTT({ machine }) {
         {/* Tabulka */}
         <CardContent className="p-0">
           {/* Hlavička tabulky */}
-          <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
             <div>Místo</div>
             <div>ID senzoru / čas měření</div>
             <div className="text-center">Vel X<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
@@ -554,20 +554,33 @@ export default function VibrationCardMQTT({ machine }) {
             <div className="text-center">Vel Z<br/><span className="text-[10px] normal-case font-normal">[mm/s]</span></div>
             <div className="text-center">Acc Z<br/><span className="text-[10px] normal-case font-normal">[g]</span></div>
             <div className="text-center">Obálka Z<br/><span className="text-[10px] normal-case font-normal">[g]</span></div>
+            <div className="text-center">Teplota<br/><span className="text-[10px] normal-case font-normal">[°C]</span></div>
+            <div className="text-center">Baterie<br/><span className="text-[10px] normal-case font-normal">[0-4]</span></div>
+            <div className="text-center">Signál<br/><span className="text-[10px] normal-case font-normal">[dBm]</span></div>
             <div></div>
           </div>
 
           {schemaRows.map((row, idx) => {
             const sensorId = rowSensors[idx];
             const latest = getDisplayData(sensorId);
+            const sensorInfo = getSensorById(sensorId);
             const isSelected = activeRowIdx === idx;
             const label = row.label || row.name || `Bod ${idx + 1}`;
             const name = row.name || "";
 
+            // Baterie: barva dle úrovně (0=prázdná, 4=plná)
+            const batteryLevel = sensorInfo?.last_battery_level;
+            const batteryColor = batteryLevel == null ? "text-slate-300" : batteryLevel >= 3 ? "text-green-600" : batteryLevel >= 2 ? "text-yellow-600" : "text-red-600";
+            // Signál: barva dle dBm
+            const rssi = sensorInfo?.last_signal_strength;
+            const rssiColor = rssi == null ? "text-slate-300" : rssi >= -65 ? "text-green-600" : rssi >= -80 ? "text-yellow-600" : "text-red-600";
+            // Teplota
+            const temp = sensorInfo?.last_temperature;
+
             return (
               <div key={idx} className="border-b border-slate-100 last:border-0">
                 <div
-                  className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-3 text-sm transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
+                  className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-3 text-sm transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
                   onClick={() => sensorId && setSelectedRow(idx)}
                 >
                   <div className="flex items-center gap-2">
@@ -610,6 +623,21 @@ export default function VibrationCardMQTT({ machine }) {
                   </div>
                   <div className="text-center font-mono text-xs">
                     {latest?.env_rms_z != null ? <span className="text-orange-600 font-semibold">{latest.env_rms_z.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
+                  </div>
+
+                  {/* Teplota */}
+                  <div className="text-center font-mono text-xs">
+                    {temp != null ? <span className="text-purple-700 font-semibold">{temp.toFixed(1)}</span> : <span className="text-slate-300">—</span>}
+                  </div>
+
+                  {/* Baterie */}
+                  <div className="text-center font-mono text-xs">
+                    {batteryLevel != null ? <span className={`font-semibold ${batteryColor}`}>{batteryLevel}/4</span> : <span className="text-slate-300">—</span>}
+                  </div>
+
+                  {/* Signál */}
+                  <div className="text-center font-mono text-xs">
+                    {rssi != null ? <span className={`font-semibold ${rssiColor}`}>{rssi}</span> : <span className="text-slate-300">—</span>}
                   </div>
 
                   {/* Tlačítko přiřazení */}
