@@ -63,13 +63,6 @@ export default function Dashboard() {
     loadUser();
   }, []);
 
-  // Auto-expand if only one company
-  useEffect(() => {
-    if (companies && companies.length === 1 && !selectedCompany) {
-      setExpandedCompanies({ [companies[0].id]: true });
-    }
-  }, [companies, selectedCompany]);
-
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
@@ -348,6 +341,13 @@ export default function Dashboard() {
     }
     return companies;
   }, [companies, user]);
+
+  // Auto-expand if only one company
+  useEffect(() => {
+    if (activeCompanies && activeCompanies.length === 1 && !selectedCompany) {
+      setExpandedCompanies({ [activeCompanies[0].id]: true });
+    }
+  }, [activeCompanies, selectedCompany]);
 
   const activeCompanyIds = React.useMemo(() => activeCompanies.map(c => c.id), [activeCompanies]);
 
