@@ -460,6 +460,17 @@ function parseAissensData(bytes) {
       const trimmedY = rawY.slice(0, maxSamples);
       const trimmedZ = rawZ.slice(0, maxSamples);
       
+      // Validace: odmítni záznamy s příliš malým počtem vzorků (< 1000 = nesmyslná data)
+      // Správný záznam při 26700 Hz / 1 sec má ~26700 vzorků, minimum akceptujeme 1000
+      const MIN_VALID_SAMPLES = 1000;
+      if (numSamples < MIN_VALID_SAMPLES) {
+        console.log(`[Type0] REJECTED: only ${numSamples} samples (min ${MIN_VALID_SAMPLES}), skipping raw/FFT storage`);
+        result.has_raw = false;
+        result.has_fft = false;
+        result.num_samples = numSamples;
+        return result;
+      }
+
       result.raw_x = trimmedX.map(v => Math.round(v * 100000) / 100000);
       result.raw_y = trimmedY.map(v => Math.round(v * 100000) / 100000);
       result.raw_z = trimmedZ.map(v => Math.round(v * 100000) / 100000);
