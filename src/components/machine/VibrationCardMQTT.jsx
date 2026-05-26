@@ -508,6 +508,37 @@ export default function VibrationCardMQTT({ machine }) {
     return "text-red-600 font-bold";
   };
 
+  // Helper: vrátí úroveň závažnosti 0=ok, 1=warning, 2=alarm, 3=kritická — pro semafor puntík
+  const getLimitLevel = (value, limitA, limitB, limitC) => {
+    if (value == null || limitA == null) return -1; // bez normy
+    if (value < limitA) return 0;
+    if (value < limitB) return 1;
+    if (value < limitC) return 2;
+    return 3;
+  };
+
+  // Vypočítá nejhorší úroveň ze všech hodnot v řádku (semafor)
+  const getRowAlertLevel = (latest, velStd, accStd) => {
+    if (!latest) return -1;
+    const levels = [
+      getLimitLevel(latest.vel_rms_x_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
+      getLimitLevel(latest.vel_rms_y_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
+      getLimitLevel(latest.vel_rms_z_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
+      getLimitLevel(latest.oa_acc_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd),
+      getLimitLevel(latest.env_rms_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd),
+    ].filter(l => l >= 0);
+    if (levels.length === 0) return -1;
+    return Math.max(...levels);
+  };
+
+  const alertDotStyle = (level) => {
+    if (level < 0) return "bg-slate-300"; // bez dat / bez normy
+    if (level === 0) return "bg-green-500 shadow-[0_0_6px_2px_rgba(34,197,94,0.4)]";
+    if (level === 1) return "bg-yellow-400 shadow-[0_0_6px_2px_rgba(234,179,8,0.5)]";
+    if (level === 2) return "bg-orange-500 shadow-[0_0_6px_2px_rgba(249,115,22,0.5)]";
+    return "bg-red-600 shadow-[0_0_8px_3px_rgba(220,38,38,0.6)] animate-pulse";
+  };
+
   // Defaultně vyber první řádek, který má přiřazený senzor
   const firstAssignedIdx = useMemo(() => {
     return schemaRows.findIndex((_, idx) => !!rowSensors[idx]);
@@ -667,6 +698,14 @@ export default function VibrationCardMQTT({ machine }) {
             const velClass = (v) => getLimitClass(v, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd);
             const accClass = (v) => getLimitClass(v, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd);
 
+            const alertLevel = getRowAlertLevel(latest, velStd, accStd);
+            const alertTitle = alertLevel < 0
+              ? (sensorId ? "Bez přiřazené normy" : "Bez senzoru")
+              : alertLevel === 0 ? "Stav: OK — všechny hodnoty v pásmu A"
+              : alertLevel === 1 ? "Stav: Pozor — překročeno pásmo A/B"
+              : alertLevel === 2 ? "Stav: Alarm — překročeno pásmo B/C"
+              : "Stav: KRITICKÝ — překročeno pásmo C/D";
+
             return (
               <div key={idx} className="border-b border-slate-100 last:border-0">
                 <div
@@ -679,11 +718,13 @@ export default function VibrationCardMQTT({ machine }) {
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
-                      {isSelected && sensorId && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                    </div>
+                    {/* Semafor puntík */}
+                    <div
+                      className={`w-4 h-4 rounded-full flex-shrink-0 ${alertDotStyle(sensorId ? alertLevel : -1)}`}
+                      title={alertTitle}
+                    />
                     <div>
-                      <span className="font-semibold text-slate-900">{label}</span>
+                      <span className={`font-semibold ${isSelected && sensorId ? "text-blue-700" : "text-slate-900"}`}>{label}</span>
                       {name && name !== label && <span className="text-slate-500 ml-1 text-xs">{name}</span>}
                       {/* Badge norem */}
                       <div className="flex gap-1 mt-0.5 flex-wrap">
