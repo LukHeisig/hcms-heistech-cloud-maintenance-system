@@ -60,19 +60,44 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
 
-  // Načteme historická data přímo ze SensorFFTData (tam jsou OA/RMS hodnoty)
+  // Pomocná funkce pro výpočet RMS ze spektra
+  const calcRMS = (json, freqRes, minF, maxF) => {
+    if (!json) return null;
+    try {
+      const amps = JSON.parse(json);
+      let sumSq = 0;
+      for (let i = 0; i < amps.length; i++) {
+        const f = i * freqRes;
+        if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
+      }
+      return Math.sqrt(sumSq / 2);
+    } catch { return null; }
+  };
+
+  // Načteme FFT záznamy a přepočítáme RMS ze spekter
   const { data: historyData = [], isLoading } = useQuery({
     queryKey: ["sensorTrend", sensorId, metricKey],
     queryFn: async () => {
-      // SensorFFTData má sensor_id přímo a obsahuje oa_x, oa_y, oa_z, oa_acc_z
       const records = await base44.entities.SensorFFTData.filter(
         { sensor_id: sensorId },
         "timestamp_unix",
         200
       );
-      // Filtrujeme záznamy, kde je alespoň jedna z požadovaných hodnot
-      const fftKeys = metricDef.lines.map(l => l.fftKey);
-      return records.filter(r => fftKeys.some(k => r[k] != null));
+      return records.map(r => {
+        const freqRes = r.frequency_resolution || 3.259;
+        const ts = r.timestamp_unix
+          ? format(new Date(r.timestamp_unix * 1000), "dd.MM HH:mm")
+          : format(new Date(r.created_date), "dd.MM HH:mm");
+        return {
+          ts,
+          // Přednostně skalární hodnoty, fallback na výpočet ze spektra
+          vel_rms_x_mm_s: r.oa_x ?? calcRMS(r.vel_x_json, freqRes, 2, 1000),
+          vel_rms_y_mm_s: r.oa_y ?? calcRMS(r.vel_y_json, freqRes, 2, 1000),
+          vel_rms_z_mm_s: r.oa_z ?? calcRMS(r.vel_z_json, freqRes, 2, 1000),
+          oa_acc_z:       r.oa_acc_z ?? calcRMS(r.acc_z_json, freqRes, 2, 6000),
+          env_rms_z:      calcRMS(r.env_z_json, freqRes, 2, 1000),
+        };
+      }).filter(r => metricDef.lines.some(l => r[l.key] != null));
     },
     enabled: !!sensorId,
     staleTime: 30000,
@@ -80,14 +105,8 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }
 
   const chartData = useMemo(() => {
     return historyData.map(r => {
-      // Datum z timestamp_unix nebo created_date
-      const ts = r.timestamp_unix
-        ? format(new Date(r.timestamp_unix * 1000), "dd.MM HH:mm")
-        : format(new Date(r.created_date), "dd.MM HH:mm");
-      const point = { ts };
-      metricDef.lines.forEach(l => {
-        if (r[l.fftKey] != null) point[l.key] = r[l.fftKey];
-      });
+      const point = { ts: r.ts };
+      metricDef.lines.forEach(l => { point[l.key] = r[l.key]; });
       return point;
     });
   }, [historyData, metricDef]);
