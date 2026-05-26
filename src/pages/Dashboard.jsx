@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -13,6 +12,8 @@ import {
   Activity,
   ArrowRight,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Clock,
   ArrowLeft,
   Building2,
