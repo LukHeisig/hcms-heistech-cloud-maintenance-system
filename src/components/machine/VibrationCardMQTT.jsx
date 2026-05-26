@@ -10,8 +10,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut, Settings2, ChevronDown, ChevronRight } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Settings2 } from "lucide-react";
 import { format } from "date-fns";
+import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 
 // Dialog pro přiřazení senzoru k řádku
 function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId, onAssign }) {
@@ -404,6 +405,12 @@ export default function VibrationCardMQTT({ machine }) {
   const [selectedRow, setSelectedRow] = useState(null);
   const activeRowIdx = selectedRow !== null ? selectedRow : firstAssignedIdx;
 
+  // Trend: { sensorId, metricKey }
+  const defaultTrendSensorId = useMemo(() => rowSensors[firstAssignedIdx] || null, [firstAssignedIdx, rowSensors]);
+  const [trendConfig, setTrendConfig] = useState(null); // null = použij default
+  const activeTrendSensorId = trendConfig?.sensorId ?? defaultTrendSensorId;
+  const activeTrendMetric = trendConfig?.metricKey ?? "vel_xyz";
+
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
 
   // Načteme poslední data pro každý přiřazený senzor (pro RMS hodnoty v tabulce)
@@ -608,22 +615,26 @@ export default function VibrationCardMQTT({ machine }) {
                     )}
                   </div>
 
-                  {/* RMS hodnoty */}
-                  <div className="text-center font-mono text-xs">
-                    {latest?.vel_rms_x_mm_s != null ? <span className="text-blue-700 font-semibold">{latest.vel_rms_x_mm_s.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
-                  </div>
-                  <div className="text-center font-mono text-xs">
-                    {latest?.vel_rms_y_mm_s != null ? <span className="text-blue-700 font-semibold">{latest.vel_rms_y_mm_s.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
-                  </div>
-                  <div className="text-center font-mono text-xs">
-                    {latest?.vel_rms_z_mm_s != null ? <span className="text-blue-700 font-semibold">{latest.vel_rms_z_mm_s.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
-                  </div>
-                  <div className="text-center font-mono text-xs">
-                    {latest?.oa_acc_z != null ? <span className="text-green-700 font-semibold">{latest.oa_acc_z.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
-                  </div>
-                  <div className="text-center font-mono text-xs">
-                    {latest?.env_rms_z != null ? <span className="text-orange-600 font-semibold">{latest.env_rms_z.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
-                  </div>
+                  {/* RMS hodnoty — kliknutím nastaví trend */}
+                  {[
+                    { metricKey: "vel_x", value: latest?.vel_rms_x_mm_s, color: "text-blue-700" },
+                    { metricKey: "vel_y", value: latest?.vel_rms_y_mm_s, color: "text-blue-700" },
+                    { metricKey: "vel_z", value: latest?.vel_rms_z_mm_s, color: "text-blue-700" },
+                    { metricKey: "acc_z", value: latest?.oa_acc_z, color: "text-green-700" },
+                    { metricKey: "env_z", value: latest?.env_rms_z, color: "text-orange-600" },
+                  ].map(({ metricKey, value, color }) => {
+                    const isActiveTrend = sensorId && activeTrendSensorId === sensorId && activeTrendMetric === metricKey;
+                    return (
+                      <div
+                        key={metricKey}
+                        className={`text-center font-mono text-xs rounded transition-colors ${sensorId ? "cursor-pointer hover:bg-blue-100" : ""} ${isActiveTrend ? "bg-blue-100 ring-1 ring-blue-400" : ""}`}
+                        onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey }); }}
+                        title={sensorId ? `Zobrazit trend: ${METRIC_DEFS[metricKey]?.label}` : ""}
+                      >
+                        {value != null ? <span className={`${color} font-semibold`}>{value.toFixed(3)}</span> : <span className="text-slate-300">—</span>}
+                      </div>
+                    );
+                  })}
 
                   {/* Teplota */}
                   <div className="text-center font-mono text-xs">
@@ -657,6 +668,20 @@ export default function VibrationCardMQTT({ machine }) {
           })}
         </CardContent>
       </Card>
+
+      {/* Trend panel */}
+      {activeTrendSensorId && (() => {
+        const trendRowIdx = Object.entries(rowSensors).find(([, sid]) => sid === activeTrendSensorId)?.[0];
+        const trendRow = trendRowIdx != null ? schemaRows[trendRowIdx] : null;
+        const trendLabel = trendRow?.label || trendRow?.name || activeTrendSensorId;
+        return (
+          <VibrationTrendChart
+            sensorId={activeTrendSensorId}
+            metricKey={activeTrendMetric}
+            sensorLabel={trendLabel}
+          />
+        );
+      })()}
 
       {/* DSP panel pod tabulkou */}
       {activeRowIdx >= 0 && rowSensors[activeRowIdx] && (() => {
