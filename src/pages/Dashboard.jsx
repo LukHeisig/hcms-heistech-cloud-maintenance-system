@@ -65,10 +65,10 @@ export default function Dashboard() {
 
   // Auto-expand if only one company
   useEffect(() => {
-    if (activeCompanies.length === 1 && !selectedCompany) {
-      setExpandedCompanies({ [activeCompanies[0].id]: true });
+    if (companies && companies.length === 1 && !selectedCompany) {
+      setExpandedCompanies({ [companies[0].id]: true });
     }
-  }, [activeCompanies, selectedCompany]);
+  }, [companies, selectedCompany]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
