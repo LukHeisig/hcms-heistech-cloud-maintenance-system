@@ -610,11 +610,7 @@ export default function LineDetail() {
                           {machine.monitor_vibration && (
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Vibrace</span>
-                              {vibroLevel < 0 ? (
-                                <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
-                                  <span className="text-white text-[9px]">–</span>
-                                </span>
-                              ) : vibroLevel === 0 ? (
+                              {vibroLevel <= 0 ? (
                                 <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                                   <span className="text-white text-[9px] font-bold">✓</span>
                                 </span>
