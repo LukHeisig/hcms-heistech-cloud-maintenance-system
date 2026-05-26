@@ -279,6 +279,17 @@ export default function LineDetail() {
     );
   };
 
+  const getVibroBgText = (machineId) => {
+    const level = getVibroAlertLevel(machineId);
+    const colorPairs = [
+      { bg: "bg-green-100", text: "text-green-600" },
+      { bg: "bg-yellow-100", text: "text-yellow-600" },
+      { bg: "bg-orange-100", text: "text-orange-600" },
+      { bg: "bg-red-100", text: "text-red-600" }
+    ];
+    return colorPairs[level] || { bg: "bg-blue-100", text: "text-blue-600" };
+  };
+
   const getMachineStatusStyles = (machineId) => {
     const activeIssues = issues.filter(i => i.machine_id === machineId || 
         (i.control_point_id && controlPoints.find(cp => cp.id === i.control_point_id && cp.machine_id === machineId)));
@@ -640,7 +651,7 @@ export default function LineDetail() {
                     ) : (
                       <div className="space-y-2">
                         {machines.filter(m => m.monitor_vibration).map((machine) => {
-                           const styles = getMachineStatusStyles(machine.id);
+                           const vibroBgText = getVibroBgText(machine.id);
                            return (
                              <div
                                key={machine.id}
@@ -648,7 +659,7 @@ export default function LineDetail() {
                                onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#vibration`))}
                              >
                                <div className="flex items-center gap-3">
-                                 <div className={`p-2 rounded ${styles.bg} ${styles.text}`}>
+                                 <div className={`p-2 rounded ${vibroBgText.bg} ${vibroBgText.text}`}>
                                    <Activity className="w-5 h-5" />
                                  </div>
                                  <div>
@@ -659,10 +670,7 @@ export default function LineDetail() {
                                    </div>
                                  </div>
                                </div>
-                               <div className="flex items-center gap-2">
-                                 <VibroStatusDot machineId={machine.id} />
-                                 <ChevronRight className="w-5 h-5 text-slate-400" />
-                               </div>
+                               <ChevronRight className="w-5 h-5 text-slate-400" />
                              </div>
                            );
                         })}
