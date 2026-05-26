@@ -287,7 +287,7 @@ export default function LineDetail() {
       { bg: "bg-orange-100", text: "text-orange-600" },
       { bg: "bg-red-100", text: "text-red-600" }
     ];
-    return colorPairs[level] || { bg: "bg-blue-100", text: "text-blue-600" };
+    return colorPairs[level] || colorPairs[0];
   };
 
   const getMachineStatusStyles = (machineId) => {
