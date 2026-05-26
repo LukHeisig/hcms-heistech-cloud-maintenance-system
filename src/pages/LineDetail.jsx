@@ -411,11 +411,6 @@ export default function LineDetail() {
   };
 
   const getMachineStatusStyles = (machineId) => {
-    const activeIssues = issues.filter(i => i.machine_id === machineId || 
-        (i.control_point_id && controlPoints.find(cp => cp.id === i.control_point_id && cp.machine_id === machineId)));
-    
-    if (activeIssues.length > 0) return { bg: "bg-red-100", text: "text-red-600", border: "border-red-200" };
-
     const mPoints = controlPoints.filter(p => p.machine_id === machineId);
     const hasCritical = mPoints.some(p => getPointStatus(p) === "critical");
     const hasWarning = mPoints.some(p => getPointStatus(p) === "warning");
