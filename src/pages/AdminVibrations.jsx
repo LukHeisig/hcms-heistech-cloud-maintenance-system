@@ -157,15 +157,25 @@ export default function AdminVibrations() {
 
   // Handlers - Standards
   const handleSaveStandard = () => {
+    const limit_ab = parseFloat(standardForm.limit_ab);
+    const limit_bc = parseFloat(standardForm.limit_bc);
+    const limit_cd = parseFloat(standardForm.limit_cd);
+
+    if (!standardForm.name || isNaN(limit_ab) || isNaN(limit_bc) || isNaN(limit_cd)) return;
+
+    const acc_ab = standardForm.acc_limit_ab !== "" ? parseFloat(standardForm.acc_limit_ab) : null;
+    const acc_bc = standardForm.acc_limit_bc !== "" ? parseFloat(standardForm.acc_limit_bc) : null;
+    const acc_cd = standardForm.acc_limit_cd !== "" ? parseFloat(standardForm.acc_limit_cd) : null;
+
     const data = {
       name: standardForm.name,
       description: standardForm.description,
-      limit_ab: parseFloat(standardForm.limit_ab),
-      limit_bc: parseFloat(standardForm.limit_bc),
-      limit_cd: parseFloat(standardForm.limit_cd),
-      acc_limit_ab: standardForm.acc_limit_ab !== "" ? parseFloat(standardForm.acc_limit_ab) : null,
-      acc_limit_bc: standardForm.acc_limit_bc !== "" ? parseFloat(standardForm.acc_limit_bc) : null,
-      acc_limit_cd: standardForm.acc_limit_cd !== "" ? parseFloat(standardForm.acc_limit_cd) : null,
+      limit_ab,
+      limit_bc,
+      limit_cd,
+      acc_limit_ab: acc_ab != null && !isNaN(acc_ab) ? acc_ab : null,
+      acc_limit_bc: acc_bc != null && !isNaN(acc_bc) ? acc_bc : null,
+      acc_limit_cd: acc_cd != null && !isNaN(acc_cd) ? acc_cd : null,
     };
 
     if (editingStandard) {
@@ -471,7 +481,7 @@ export default function AdminVibrations() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowStandardDialog(false)}>Zrušit</Button>
-              <Button onClick={handleSaveStandard} disabled={!standardForm.name}>Uložit</Button>
+              <Button onClick={handleSaveStandard} disabled={!standardForm.name || standardForm.limit_ab === "" || standardForm.limit_bc === "" || standardForm.limit_cd === ""}>Uložit</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
