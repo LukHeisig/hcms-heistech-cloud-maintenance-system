@@ -264,6 +264,21 @@ export default function LineDetail() {
     return machines.some(m => m.monitor_vibration || m.monitor_thermo || m.monitor_tribo);
   }, [machines]);
 
+  const getVibroAlertLevel = (machineId) => {
+    try { return parseInt(localStorage.getItem(`vibro_tab_alert_${machineId}`) || "-1", 10); }
+    catch { return -1; }
+  };
+
+  const VibroStatusDot = ({ machineId }) => {
+    const level = getVibroAlertLevel(machineId);
+    if (level < 0) return null;
+    const colors = ["bg-green-500", "bg-yellow-400", "bg-orange-500", "bg-red-600"];
+    const labels = ["OK", "Varování", "Alarm", "Nebezpečí"];
+    return (
+      <span title={`Vibrace: ${labels[level] || ""}`} className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${colors[level] || "bg-slate-300"}`} />
+    );
+  };
+
   const getMachineStatusStyles = (machineId) => {
     const activeIssues = issues.filter(i => i.machine_id === machineId || 
         (i.control_point_id && controlPoints.find(cp => cp.id === i.control_point_id && cp.machine_id === machineId)));
@@ -552,8 +567,13 @@ export default function LineDetail() {
                           </p>
                         </div>
 
-                        <div className="hidden sm:flex gap-1 flex-wrap justify-end items-center">
-                            {machine.monitor_vibration && <Badge variant="secondary" className="text-[10px]">Vibrace</Badge>}
+                        <div className="hidden sm:flex gap-2 flex-wrap justify-end items-center">
+                            {machine.monitor_vibration && (
+                              <div className="flex items-center gap-1">
+                                <Badge variant="secondary" className="text-[10px]">Vibrace</Badge>
+                                <VibroStatusDot machineId={machine.id} />
+                              </div>
+                            )}
                             {machine.monitor_thermo && <Badge variant="secondary" className="text-[10px]">Termo</Badge>}
                             {machine.monitor_tribo && <Badge variant="secondary" className="text-[10px]">Tribo</Badge>}
                         </div>
@@ -633,13 +653,16 @@ export default function LineDetail() {
                                  </div>
                                  <div>
                                    <p className="font-medium text-slate-900">{machine.name}</p>
-                                   <div className="flex gap-2 text-xs text-slate-500">
+                                   <div className="flex gap-2 text-xs text-slate-500 items-center">
                                       <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
                                       {machine.vibration_standard_id && <span>• Norma nastavena</span>}
                                    </div>
                                  </div>
                                </div>
-                               <ChevronRight className="w-5 h-5 text-slate-400" />
+                               <div className="flex items-center gap-2">
+                                 <VibroStatusDot machineId={machine.id} />
+                                 <ChevronRight className="w-5 h-5 text-slate-400" />
+                               </div>
                              </div>
                            );
                         })}
