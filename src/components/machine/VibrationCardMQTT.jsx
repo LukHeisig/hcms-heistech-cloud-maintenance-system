@@ -478,30 +478,30 @@ export default function VibrationCardMQTT({ machine }) {
     queryKey: ["fallbackFFT", sensorsNeedingFFT.join(",")],
     queryFn: async () => {
       if (sensorsNeedingFFT.length === 0) return [];
-      const results = await Promise.all(
-        sensorsNeedingFFT.map(async (sid) => {
-          const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
-          if (!records[0]) return null;
-          const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: records[0].id });
-          const fft = fftRecs[0];
-          if (!fft) return null;
-          const freqRes = fft.frequency_resolution || 3.259;
-          const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
-          const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
-          const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
-          const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
-          const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
-          return {
-            sensor_id: sid,
-            vel_rms_x_mm_s: calcRMSFromSpectrum(velX, freqRes, 2, 1000),
-            vel_rms_y_mm_s: calcRMSFromSpectrum(velY, freqRes, 2, 1000),
-            vel_rms_z_mm_s: calcRMSFromSpectrum(velZ, freqRes, 2, 1000),
-            oa_acc_z: calcRMSFromSpectrum(accZ, freqRes, 2, 6000),
-            env_rms_z: calcRMSFromSpectrum(envZ, freqRes, 2, 1000),
-          };
-        })
-      );
-      return results.filter(Boolean);
+      // Sequential to avoid rate limiting
+      const results = [];
+      for (const sid of sensorsNeedingFFT) {
+        const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
+        if (!records[0]) continue;
+        const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: records[0].id });
+        const fft = fftRecs[0];
+        if (!fft) continue;
+        const freqRes = fft.frequency_resolution || 3.259;
+        const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
+        const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
+        const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
+        const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
+        const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
+        results.push({
+          sensor_id: sid,
+          vel_rms_x_mm_s: calcRMSFromSpectrum(velX, freqRes, 2, 1000),
+          vel_rms_y_mm_s: calcRMSFromSpectrum(velY, freqRes, 2, 1000),
+          vel_rms_z_mm_s: calcRMSFromSpectrum(velZ, freqRes, 2, 1000),
+          oa_acc_z: calcRMSFromSpectrum(accZ, freqRes, 2, 6000),
+          env_rms_z: calcRMSFromSpectrum(envZ, freqRes, 2, 1000),
+        });
+      }
+      return results;
     },
     enabled: sensorsNeedingFFT.length > 0,
     staleTime: 60000,

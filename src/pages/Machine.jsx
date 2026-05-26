@@ -151,18 +151,17 @@ export default function Machine() {
     queryKey: ["records", machineId],
     queryFn: async () => {
         if (controlPoints.length === 0) return [];
+        // Sequential batches of 3 to avoid rate limiting
         const cpIds = controlPoints.map(p => p.id);
-        // Fetch records for each control point in parallel (max 20 points at once)
-        const chunks = [];
-        for (let i = 0; i < cpIds.length; i += 20) chunks.push(cpIds.slice(i, i + 20));
-        const results = await Promise.all(
-          chunks.map(chunk =>
-            Promise.all(chunk.map(cpId =>
-              base44.entities.ControlRecord.filter({ control_point_id: cpId }, "-performed_at", 50)
-            ))
-          )
-        );
-        return results.flat(2).sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
+        const allRecords = [];
+        for (let i = 0; i < cpIds.length; i += 3) {
+          const batch = cpIds.slice(i, i + 3);
+          const results = await Promise.all(
+            batch.map(cpId => base44.entities.ControlRecord.filter({ control_point_id: cpId }, "-performed_at", 30))
+          );
+          allRecords.push(...results.flat());
+        }
+        return allRecords.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
     },
     enabled: !!machineId && controlPoints.length > 0,
     staleTime: 1000 * 60 * 5,
@@ -171,13 +170,19 @@ export default function Machine() {
   const { data: issues = [] } = useQuery({
     queryKey: ["issues", machineId],
     queryFn: async () => {
-        const [machineIssues, cpIssues] = await Promise.all([
+        // Fetch machine-wide issues + all reported issues, filter client-side to avoid per-CP requests
+        const [machineIssues, allReported] = await Promise.all([
           base44.entities.Issue.filter({ machine_id: machineId, status: "reported" }),
-          controlPoints.length > 0
-            ? Promise.all(controlPoints.map(cp => base44.entities.Issue.filter({ control_point_id: cp.id, status: "reported" })))
-            : Promise.resolve([[]]),
+          base44.entities.Issue.filter({ status: "reported" }, "-created_date", 200),
         ]);
-        return [...machineIssues, ...cpIssues.flat()];
+        const cpIds = new Set(controlPoints.map(p => p.id));
+        const cpIssues = allReported.filter(i => cpIds.has(i.control_point_id));
+        const seen = new Set();
+        return [...machineIssues, ...cpIssues].filter(i => {
+          if (seen.has(i.id)) return false;
+          seen.add(i.id);
+          return true;
+        });
     },
     enabled: !!machineId && controlPoints.length > 0,
     staleTime: 1000 * 60,
