@@ -8,35 +8,36 @@ import {
 import { TrendingUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 
-// Definice dostupných metrik
+// Mapování metrik na SensorFFTData pole
+// oa_x/oa_y/oa_z jsou RMS rychlosti, oa_acc_z je RMS zrychlení Z
 const METRIC_DEFS = {
   vel_xyz: {
     label: "Rychlost X, Y, Z [mm/s]",
     lines: [
-      { key: "vel_rms_x_mm_s", name: "Vel X", color: "#3b82f6" },
-      { key: "vel_rms_y_mm_s", name: "Vel Y", color: "#10b981" },
-      { key: "vel_rms_z_mm_s", name: "Vel Z", color: "#f59e0b" },
+      { key: "vel_rms_x_mm_s", fftKey: "oa_x", name: "Vel X", color: "#3b82f6" },
+      { key: "vel_rms_y_mm_s", fftKey: "oa_y", name: "Vel Y", color: "#10b981" },
+      { key: "vel_rms_z_mm_s", fftKey: "oa_z", name: "Vel Z", color: "#f59e0b" },
     ],
   },
   vel_x: {
     label: "Rychlost X [mm/s]",
-    lines: [{ key: "vel_rms_x_mm_s", name: "Vel X", color: "#3b82f6" }],
+    lines: [{ key: "vel_rms_x_mm_s", fftKey: "oa_x", name: "Vel X", color: "#3b82f6" }],
   },
   vel_y: {
     label: "Rychlost Y [mm/s]",
-    lines: [{ key: "vel_rms_y_mm_s", name: "Vel Y", color: "#10b981" }],
+    lines: [{ key: "vel_rms_y_mm_s", fftKey: "oa_y", name: "Vel Y", color: "#10b981" }],
   },
   vel_z: {
     label: "Rychlost Z [mm/s]",
-    lines: [{ key: "vel_rms_z_mm_s", name: "Vel Z", color: "#f59e0b" }],
+    lines: [{ key: "vel_rms_z_mm_s", fftKey: "oa_z", name: "Vel Z", color: "#f59e0b" }],
   },
   acc_z: {
     label: "Zrychlení Z [g]",
-    lines: [{ key: "oa_acc_z", name: "Acc Z", color: "#10b981" }],
+    lines: [{ key: "oa_acc_z", fftKey: "oa_acc_z", name: "Acc Z", color: "#10b981" }],
   },
   env_z: {
     label: "Obálka Z [g]",
-    lines: [{ key: "env_rms_z", name: "Obálka Z", color: "#f97316" }],
+    lines: [{ key: "env_rms_z", fftKey: "oa_acc_z", name: "Obálka Z", color: "#f97316" }],
   },
 };
 
@@ -59,18 +60,19 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
 
-  // Načteme historická data pro trend (posledních 100 záznamů s alespoň jednou RMS hodnotou)
+  // Načteme historická data přímo ze SensorFFTData (tam jsou OA/RMS hodnoty)
   const { data: historyData = [], isLoading } = useQuery({
     queryKey: ["sensorTrend", sensorId, metricKey],
     queryFn: async () => {
-      const records = await base44.entities.SensorData.filter(
+      // SensorFFTData má sensor_id přímo a obsahuje oa_x, oa_y, oa_z, oa_acc_z
+      const records = await base44.entities.SensorFFTData.filter(
         { sensor_id: sensorId },
-        "created_date",
-        100
+        "timestamp_unix",
+        200
       );
-      // Filtrujeme záznamy, které mají alespoň jednu relevantní hodnotu
-      const keys = metricDef.lines.map(l => l.key);
-      return records.filter(r => keys.some(k => r[k] != null));
+      // Filtrujeme záznamy, kde je alespoň jedna z požadovaných hodnot
+      const fftKeys = metricDef.lines.map(l => l.fftKey);
+      return records.filter(r => fftKeys.some(k => r[k] != null));
     },
     enabled: !!sensorId,
     staleTime: 30000,
@@ -78,9 +80,13 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel }
 
   const chartData = useMemo(() => {
     return historyData.map(r => {
-      const point = { ts: format(new Date(r.created_date), "dd.MM HH:mm") };
+      // Datum z timestamp_unix nebo created_date
+      const ts = r.timestamp_unix
+        ? format(new Date(r.timestamp_unix * 1000), "dd.MM HH:mm")
+        : format(new Date(r.created_date), "dd.MM HH:mm");
+      const point = { ts };
       metricDef.lines.forEach(l => {
-        if (r[l.key] != null) point[l.key] = r[l.key];
+        if (r[l.fftKey] != null) point[l.key] = r[l.fftKey];
       });
       return point;
     });
