@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,14 +89,24 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentSensorId
 
 // DSP grafy — znovupoužitelný, totožný s DSPVisualization
 function SensorDSPPanel({ sensorId, initialRecordId }) {
+  // Načteme záznamy s has_fft (mají spektra) — nezávisle na has_raw
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId],
-    queryFn: () => base44.entities.SensorData.filter({ sensor_id: sensorId, has_raw: true }, "-created_date", 50),
+    queryFn: () => base44.entities.SensorData.filter({ sensor_id: sensorId, has_fft: true }, "-created_date", 50),
     enabled: !!sensorId,
   });
 
-  const [selectedRecordId, setSelectedRecordId] = useState(null);
-  const activeRecordId = selectedRecordId || initialRecordId || records[0]?.id;
+  // Pokud přijde nový initialRecordId z trendu, resetujeme manuální výběr
+  const [manualRecordId, setManualRecordId] = useState(null);
+  const prevInitialRef = useRef(initialRecordId);
+  useEffect(() => {
+    if (initialRecordId && initialRecordId !== prevInitialRef.current) {
+      prevInitialRef.current = initialRecordId;
+      setManualRecordId(null); // nechme initialRecordId převzít
+    }
+  }, [initialRecordId]);
+
+  const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
   const activeRecord = records.find(r => r.id === activeRecordId);
 
   const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
@@ -189,7 +199,7 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
       {/* Výběr záznamu */}
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Záznam:</span>
-        <Select value={activeRecordId || ""} onValueChange={setSelectedRecordId}>
+        <Select value={activeRecordId || ""} onValueChange={setManualRecordId}>
           <SelectTrigger className="max-w-xs h-8 text-xs">
             <SelectValue placeholder="Vyberte záznam..." />
           </SelectTrigger>
