@@ -712,12 +712,26 @@ export default function LineDetail() {
 
                         {/* Module badges */}
                         <div className="hidden sm:flex gap-3 items-center flex-shrink-0">
-                          {/* DEMIP */}
+                          {/* DEMIP - Po termínu */}
                           <div className="flex flex-col items-center gap-1">
-                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">DEMIP</span>
-                            {demipBadge > 0 ? (
+                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Po termínu</span>
+                            {demipOverdue > 0 ? (
                               <span className="min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                                {demipBadge}
+                                {demipOverdue}
+                              </span>
+                            ) : (
+                              <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                <span className="text-white text-[9px] font-bold">✓</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* DEMIP - Závady */}
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Závady</span>
+                            {demipIssues > 0 ? (
+                              <span className="min-w-[20px] h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                {demipIssues}
                               </span>
                             ) : (
                               <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
