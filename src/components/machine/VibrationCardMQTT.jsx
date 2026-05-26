@@ -435,30 +435,26 @@ export default function VibrationCardMQTT({ machine }) {
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return [];
-      // Načteme poslední záznam s has_fft pro každý senzor + odpovídající SensorFFTData
-      const results = await Promise.all(
-        assignedSensorIds.map(async (sid) => {
-          // Najdeme nejnovější záznam s FFT daty
-          const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
-          const sensorDataRecord = records[0];
-          if (!sensorDataRecord) return null;
+      // Sekvenčně, aby nedocházelo k rate limit chybám
+      const results = [];
+      for (const sid of assignedSensorIds) {
+        const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
+        const sensorDataRecord = records[0];
+        if (!sensorDataRecord) continue;
 
-          // Načteme k němu SensorFFTData pro získání oa_x/oa_y/oa_z
-          const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: sensorDataRecord.id });
-          const fft = fftRecs[0];
+        const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: sensorDataRecord.id });
+        const fft = fftRecs[0];
 
-          return {
-            ...sensorDataRecord,
-            // Preferujeme uložené předpočítané hodnoty v SensorData, pak fallback z SensorFFTData
-            vel_rms_x_mm_s: sensorDataRecord.vel_rms_x_mm_s ?? fft?.oa_x ?? null,
-            vel_rms_y_mm_s: sensorDataRecord.vel_rms_y_mm_s ?? fft?.oa_y ?? null,
-            vel_rms_z_mm_s: sensorDataRecord.vel_rms_z_mm_s ?? fft?.oa_z ?? null,
-            oa_acc_z: sensorDataRecord.oa_acc_z ?? fft?.oa_acc_z ?? null,
-            env_rms_z: sensorDataRecord.env_rms_z ?? null,
-          };
-        })
-      );
-      return results.filter(Boolean);
+        results.push({
+          ...sensorDataRecord,
+          vel_rms_x_mm_s: sensorDataRecord.vel_rms_x_mm_s ?? fft?.oa_x ?? null,
+          vel_rms_y_mm_s: sensorDataRecord.vel_rms_y_mm_s ?? fft?.oa_y ?? null,
+          vel_rms_z_mm_s: sensorDataRecord.vel_rms_z_mm_s ?? fft?.oa_z ?? null,
+          oa_acc_z: sensorDataRecord.oa_acc_z ?? fft?.oa_acc_z ?? null,
+          env_rms_z: sensorDataRecord.env_rms_z ?? null,
+        });
+      }
+      return results;
     },
     enabled: assignedSensorIds.length > 0,
     staleTime: 30000,
