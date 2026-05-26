@@ -87,6 +87,8 @@ export default function Dashboard() {
       const { data } = await base44.functions.invoke("getUsers");
       return data;
     },
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000, // 15 minutes
   });
 
   const userMap = React.useMemo(() => {
