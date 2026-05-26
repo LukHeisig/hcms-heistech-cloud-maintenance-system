@@ -8,15 +8,27 @@
     },
     "limit_ab": {
       "type": "number",
-      "description": "Limit pro p\u0159echod z p\u00e1sma A do B"
+      "description": "Limit A/B pro rychlost vibrace [mm/s]"
     },
     "limit_bc": {
       "type": "number",
-      "description": "Limit pro p\u0159echod z p\u00e1sma B do C"
+      "description": "Limit B/C pro rychlost vibrace [mm/s]"
     },
     "limit_cd": {
       "type": "number",
-      "description": "Limit pro p\u0159echod z p\u00e1sma C do D"
+      "description": "Limit C/D pro rychlost vibrace [mm/s]"
+    },
+    "acc_limit_ab": {
+      "type": "number",
+      "description": "Limit A/B pro zrychlen\u00ed vibrace [g]"
+    },
+    "acc_limit_bc": {
+      "type": "number",
+      "description": "Limit B/C pro zrychlen\u00ed vibrace [g]"
+    },
+    "acc_limit_cd": {
+      "type": "number",
+      "description": "Limit C/D pro zrychlen\u00ed vibrace [g]"
     },
     "description": {
       "type": "string"
