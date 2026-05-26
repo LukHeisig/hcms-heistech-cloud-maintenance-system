@@ -601,7 +601,12 @@ export default function VibrationCardMQTT({ machine }) {
               <div key={idx} className="border-b border-slate-100 last:border-0">
                 <div
                   className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-3 text-sm transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
-                  onClick={() => sensorId && setSelectedRow(idx)}
+                  onClick={() => {
+                    if (!sensorId) return;
+                    setSelectedRow(idx);
+                    setTrendConfig({ sensorId, metricKey: "vel_xyz" });
+                    setTrendSelectedSensorDataId(null);
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
