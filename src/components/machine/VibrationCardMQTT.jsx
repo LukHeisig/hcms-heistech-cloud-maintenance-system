@@ -435,13 +435,27 @@ export default function VibrationCardMQTT({ machine }) {
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return [];
-      // Načteme posledních 10 záznamů pro každý senzor a najdeme ten s RMS hodnotami
+      // Načteme poslední záznam s has_fft pro každý senzor + odpovídající SensorFFTData
       const results = await Promise.all(
         assignedSensorIds.map(async (sid) => {
-          const records = await base44.entities.SensorData.filter({ sensor_id: sid }, "-created_date", 10);
-          // Preferujeme záznam, který má předpočítané RMS hodnoty
-          const withRms = records.find(r => r.vel_rms_x_mm_s != null || r.vel_rms_z_mm_s != null || r.oa_acc_z != null);
-          return withRms || records[0] || null;
+          // Najdeme nejnovější záznam s FFT daty
+          const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
+          const sensorDataRecord = records[0];
+          if (!sensorDataRecord) return null;
+
+          // Načteme k němu SensorFFTData pro získání oa_x/oa_y/oa_z
+          const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: sensorDataRecord.id });
+          const fft = fftRecs[0];
+
+          return {
+            ...sensorDataRecord,
+            // Preferujeme uložené předpočítané hodnoty v SensorData, pak fallback z SensorFFTData
+            vel_rms_x_mm_s: sensorDataRecord.vel_rms_x_mm_s ?? fft?.oa_x ?? null,
+            vel_rms_y_mm_s: sensorDataRecord.vel_rms_y_mm_s ?? fft?.oa_y ?? null,
+            vel_rms_z_mm_s: sensorDataRecord.vel_rms_z_mm_s ?? fft?.oa_z ?? null,
+            oa_acc_z: sensorDataRecord.oa_acc_z ?? fft?.oa_acc_z ?? null,
+            env_rms_z: sensorDataRecord.env_rms_z ?? null,
+          };
         })
       );
       return results.filter(Boolean);
@@ -451,79 +465,8 @@ export default function VibrationCardMQTT({ machine }) {
     refetchInterval: 60000,
   });
 
-  const getLatestData = (sensorId) => latestSensorData.find(d => d.sensor_id === sensorId);
   const getSensorById = (sensorId) => sensors.find(s => s.sensor_id === sensorId);
-
-  // Pomocná funkce pro calcRMS ze spektra (stejná jako v SensorDSPPanel)
-  const calcRMSFromSpectrum = (amps, freqRes, minF, maxF) => {
-    if (!amps || !amps.length) return null;
-    let sumSq = 0;
-    for (let i = 0; i < amps.length; i++) {
-      const f = i * freqRes;
-      if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
-    }
-    return Math.sqrt(sumSq / 2);
-  };
-
-  // Načteme FFT data pro senzory, které nemají VŠECHNY předpočítané RMS hodnoty
-  const sensorsNeedingFFT = useMemo(() => {
-    return assignedSensorIds.filter(sid => {
-      const d = latestSensorData.find(r => r.sensor_id === sid);
-      // Potřebujeme FFT pokud chybí alespoň jedna z klíčových hodnot
-      return !d || d.vel_rms_x_mm_s == null || d.vel_rms_z_mm_s == null || d.oa_acc_z == null || d.env_rms_z == null;
-    });
-  }, [assignedSensorIds, latestSensorData]);
-
-  const { data: fallbackFFTData = [] } = useQuery({
-    queryKey: ["fallbackFFT", sensorsNeedingFFT.join(",")],
-    queryFn: async () => {
-      if (sensorsNeedingFFT.length === 0) return [];
-      // Sequential to avoid rate limiting
-      const results = [];
-      for (const sid of sensorsNeedingFFT) {
-        const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
-        if (!records[0]) continue;
-        const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: records[0].id });
-        const fft = fftRecs[0];
-        if (!fft) continue;
-        const freqRes = fft.frequency_resolution || 3.259;
-        const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
-        const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
-        const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
-        const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
-        const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
-        results.push({
-          sensor_id: sid,
-          vel_rms_x_mm_s: calcRMSFromSpectrum(velX, freqRes, 2, 1000),
-          vel_rms_y_mm_s: calcRMSFromSpectrum(velY, freqRes, 2, 1000),
-          vel_rms_z_mm_s: calcRMSFromSpectrum(velZ, freqRes, 2, 1000),
-          oa_acc_z: calcRMSFromSpectrum(accZ, freqRes, 2, 6000),
-          env_rms_z: calcRMSFromSpectrum(envZ, freqRes, 2, 1000),
-        });
-      }
-      return results;
-    },
-    enabled: sensorsNeedingFFT.length > 0,
-    staleTime: 60000,
-  });
-
-  // Sloučíme SensorData hodnoty s FFT fallback hodnotami — doplníme chybějící pole z FFT
-  const getDisplayData = (sensorId) => {
-    const d = latestSensorData.find(r => r.sensor_id === sensorId);
-    const fft = fallbackFFTData.find(r => r.sensor_id === sensorId);
-    if (!d && !fft) return null;
-    if (!fft) return d;
-    if (!d) return fft;
-    // Sloučíme: SensorData má prioritu, FFT doplní chybějící hodnoty
-    return {
-      ...d,
-      vel_rms_x_mm_s: d.vel_rms_x_mm_s ?? fft.vel_rms_x_mm_s,
-      vel_rms_y_mm_s: d.vel_rms_y_mm_s ?? fft.vel_rms_y_mm_s,
-      vel_rms_z_mm_s: d.vel_rms_z_mm_s ?? fft.vel_rms_z_mm_s,
-      oa_acc_z: d.oa_acc_z ?? fft.oa_acc_z,
-      env_rms_z: d.env_rms_z ?? fft.env_rms_z,
-    };
-  };
+  const getDisplayData = (sensorId) => latestSensorData.find(d => d.sensor_id === sensorId) ?? null;
 
   // Pokud není přiřazeno schéma, zobraz informaci
   if (!machine?.vibration_schema_id) {
