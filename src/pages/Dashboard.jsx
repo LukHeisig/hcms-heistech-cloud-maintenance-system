@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -44,6 +45,7 @@ const formatInterval = (hours) => {
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("lubrication");
+  const [expandedCompanies, setExpandedCompanies] = useState({});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { viewMode } = useViewMode();
@@ -60,6 +62,13 @@ export default function Dashboard() {
   useEffect(() => {
     loadUser();
   }, []);
+
+  // Auto-expand if only one company
+  useEffect(() => {
+    if (activeCompanies.length === 1 && !selectedCompany) {
+      setExpandedCompanies({ [activeCompanies[0].id]: true });
+    }
+  }, [activeCompanies, selectedCompany]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
@@ -720,9 +729,17 @@ export default function Dashboard() {
                             companyPoints.some((point) => point.id === issue.control_point_id)
                           ).length;
 
+                          const isExpanded = expandedCompanies[company.id] || false;
+
                           return (
                             <div key={company.id} className="space-y-3">
-                              <div className="flex items-center justify-between">
+                              <div 
+                                className="flex items-center justify-between cursor-pointer"
+                                onClick={() => setExpandedCompanies(prev => ({
+                                  ...prev,
+                                  [company.id]: !prev[company.id]
+                                }))}
+                              >
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
                                     <Building2 className="w-5 h-5 text-white" />
@@ -732,15 +749,26 @@ export default function Dashboard() {
                                     <p className="text-sm text-slate-600">{companyLines.length} linek</p>
                                   </div>
                                 </div>
-                                <Button
-                                  onClick={() => navigate(createPageUrl(`Admin`))}
-                                  size="sm"
-                                  variant="ghost"
-                                >
-                                  Spravovat
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(createPageUrl(`Admin`));
+                                    }}
+                                    size="sm"
+                                    variant="ghost"
+                                  >
+                                    Spravovat
+                                  </Button>
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-5 h-5 text-slate-400" />
+                                  ) : (
+                                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                                  )}
+                                </div>
                               </div>
 
+                              {isExpanded && (
                               <div className="grid gap-3 pl-13">
                                 {companyLines.map((line) => {
                                   const lineMachines = allMachines.filter((m) => m.line_id === line.id);
@@ -805,6 +833,7 @@ export default function Dashboard() {
                                   );
                                 })}
                               </div>
+                              )}
                             </div>
                           );
                         })}
