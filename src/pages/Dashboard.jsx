@@ -337,7 +337,10 @@ export default function Dashboard() {
 
   const activeCompanies = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
-      return companies.filter(c => c.is_active !== false);
+      return companies.filter(c =>
+        c.is_active !== false &&
+        !c.name.toLowerCase().includes('demo')
+      );
     }
     return companies;
   }, [companies, user]);
