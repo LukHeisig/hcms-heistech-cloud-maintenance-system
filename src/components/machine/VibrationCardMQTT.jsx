@@ -688,9 +688,18 @@ export default function VibrationCardMQTT({ machine }) {
             // Baterie: barva dle úrovně (0=prázdná, 4=plná)
             const batteryLevel = sensorInfo?.last_battery_level;
             const batteryColor = batteryLevel == null ? "text-slate-300" : batteryLevel >= 3 ? "text-green-600" : batteryLevel >= 2 ? "text-yellow-600" : "text-red-600";
-            // Signál: barva dle dBm
+            // Signál: barva dle dBm (-50 vynikající, -67 dobrý, -70 slabý, -80+ nepoužitelný)
             const rssi = sensorInfo?.last_signal_strength;
-            const rssiColor = rssi == null ? "text-slate-300" : rssi >= -65 ? "text-green-600" : rssi >= -80 ? "text-yellow-600" : "text-red-600";
+            const rssiColor = rssi == null ? "text-slate-300"
+              : rssi >= -50 ? "text-green-600"
+              : rssi >= -67 ? "text-blue-600"
+              : rssi >= -80 ? "text-yellow-600"
+              : "text-red-600";
+            const rssiTitle = rssi == null ? "Neznámý signál"
+              : rssi >= -50 ? "Vynikající signál"
+              : rssi >= -67 ? "Dobrý signál"
+              : rssi >= -80 ? "Slabý signál"
+              : "Nepoužitelný signál";
             // Teplota
             const temp = sensorInfo?.last_temperature;
 
@@ -783,7 +792,7 @@ export default function VibrationCardMQTT({ machine }) {
 
                    {/* Signál */}
                    <div className="text-center font-mono text-sm font-semibold">
-                     {rssi != null ? <span className={rssiColor}>{rssi}</span> : <span className="text-slate-300">—</span>}
+                     {rssi != null ? <span className={rssiColor} title={rssiTitle}>{rssi}</span> : <span className="text-slate-300">—</span>}
                    </div>
 
                   {/* Tlačítko přiřazení */}
