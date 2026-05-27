@@ -20,6 +20,7 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
   const [selectedSensor, setSelectedSensor] = useState(current.sensorId || "");
   const [selectedVelStandard, setSelectedVelStandard] = useState(current.velStandardId || "");
   const [selectedAccStandard, setSelectedAccStandard] = useState(current.accStandardId || "");
+  const [selectedTempStandard, setSelectedTempStandard] = useState(current.tempStandardId || "");
 
   // Reset při otevření
   useEffect(() => {
@@ -27,6 +28,7 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
       setSelectedSensor(current.sensorId || "");
       setSelectedVelStandard(current.velStandardId || "");
       setSelectedAccStandard(current.accStandardId || "");
+      setSelectedTempStandard(current.tempStandardId || "");
     }
   }, [open]);
 
@@ -56,6 +58,7 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
 
   const velStandards = useMemo(() => allStandards.filter(s => !s.limit_type || s.limit_type === "velocity"), [allStandards]);
   const accStandards = useMemo(() => allStandards.filter(s => s.limit_type === "acceleration"), [allStandards]);
+  const tempStandards = useMemo(() => allStandards.filter(s => s.limit_type === "temperature"), [allStandards]);
 
   const allSensorIds = useMemo(() => {
     const registeredIds = registeredSensors.map(s => s.sensor_id);
@@ -69,6 +72,7 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
       sensorId: selectedSensor || null,
       velStandardId: selectedVelStandard || null,
       accStandardId: selectedAccStandard || null,
+      tempStandardId: selectedTempStandard || null,
     });
     onClose();
   };
@@ -137,6 +141,27 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
                   <SelectItem key={s.id} value={s.id}>
                     <span className="font-medium">{s.name}</span>
                     <span className="text-slate-400 ml-2 text-xs">A/B: {s.acc_limit_ab} · B/C: {s.acc_limit_bc} · C/D: {s.acc_limit_cd} g</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Norma pro teplotu */}
+          <div>
+            <label className="text-xs font-semibold text-purple-600 uppercase tracking-wide block mb-1.5">
+              Norma pro teplotu <span className="normal-case font-normal text-purple-500">[°C]</span>
+            </label>
+            <Select value={selectedTempStandard || "__none__"} onValueChange={v => setSelectedTempStandard(v === "__none__" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="— bez normy —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— bez normy —</SelectItem>
+                {tempStandards.map(s => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-slate-400 ml-2 text-xs">A/B: {s.temp_limit_ab} · B/C: {s.temp_limit_bc} · C/D: {s.temp_limit_cd} °C</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -518,7 +543,7 @@ export default function VibrationCardMQTT({ machine }) {
   };
 
   // Vypočítá nejhorší úroveň ze všech hodnot v řádku (semafor)
-  const getRowAlertLevel = (latest, velStd, accStd) => {
+  const getRowAlertLevel = (latest, velStd, accStd, tempStd, temp) => {
     if (!latest) return -1;
     const levels = [
       getLimitLevel(latest.vel_rms_x_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
@@ -526,6 +551,7 @@ export default function VibrationCardMQTT({ machine }) {
       getLimitLevel(latest.vel_rms_z_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
       getLimitLevel(latest.oa_acc_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd),
       getLimitLevel(latest.env_rms_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd),
+      getLimitLevel(temp, tempStd?.temp_limit_ab, tempStd?.temp_limit_bc, tempStd?.temp_limit_cd),
     ].filter(l => l >= 0);
     if (levels.length === 0) return -1;
     return Math.max(...levels);
@@ -679,6 +705,7 @@ export default function VibrationCardMQTT({ machine }) {
             const sensorId = assignment.sensorId || null;
             const velStd = standardsById[assignment.velStandardId];
             const accStd = standardsById[assignment.accStandardId];
+            const tempStd = standardsById[assignment.tempStandardId];
             const latest = getDisplayData(sensorId);
             const sensorInfo = getSensorById(sensorId);
             const isSelected = activeRowIdx === idx;
@@ -704,12 +731,13 @@ export default function VibrationCardMQTT({ machine }) {
               : "Nepoužitelný signál (< -80 dBm)";
             // Teplota
             const temp = sensorInfo?.last_temperature;
+            const tempClass = getLimitClass(temp, tempStd?.temp_limit_ab, tempStd?.temp_limit_bc, tempStd?.temp_limit_cd);
 
             // Barevné třídy dle normy
             const velClass = (v) => getLimitClass(v, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd);
             const accClass = (v) => getLimitClass(v, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd);
 
-            const alertLevel = getRowAlertLevel(latest, velStd, accStd);
+            const alertLevel = getRowAlertLevel(latest, velStd, accStd, tempStd, temp);
             const alertTitle = alertLevel < 0
               ? (sensorId ? "Bez přiřazené normy" : "Bez senzoru")
               : alertLevel === 0 ? "Stav: OK — všechny hodnoty v pásmu A"
@@ -741,6 +769,7 @@ export default function VibrationCardMQTT({ machine }) {
                       <div className="flex gap-1 mt-0.5 flex-wrap">
                         {velStd && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 rounded px-1">{velStd.name}</span>}
                         {accStd && <span className="text-[9px] bg-green-50 text-green-700 border border-green-200 rounded px-1">{accStd.name}</span>}
+                        {tempStd && <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 rounded px-1">{tempStd.name}</span>}
                       </div>
                     </div>
                   </div>
@@ -784,7 +813,9 @@ export default function VibrationCardMQTT({ machine }) {
 
                   {/* Teplota */}
                    <div className="text-center font-mono text-sm font-semibold">
-                     {temp != null ? <span className="text-purple-700">{temp.toFixed(1)}°</span> : <span className="text-slate-300">—</span>}
+                     {temp != null
+                       ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°</span>
+                       : <span className="text-slate-300">—</span>}
                    </div>
 
                    {/* Baterie */}
