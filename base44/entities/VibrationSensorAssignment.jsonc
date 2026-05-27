@@ -1,0 +1,34 @@
+{
+  "name": "VibrationSensorAssignment",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "schema_row_index": {
+      "type": "number",
+      "description": "Index \u0159\u00e1dku ve vibra\u010dn\u00edm sch\u00e9matu (0-based)"
+    },
+    "sensor_id": {
+      "type": "string",
+      "description": "ID p\u0159i\u0159azen\u00e9ho senzoru (AissensSensor)"
+    },
+    "vel_standard_id": {
+      "type": "string",
+      "description": "ID normy pro rychlost vibrac\u00ed (VibrationStandard, limit_type=velocity)"
+    },
+    "acc_standard_id": {
+      "type": "string",
+      "description": "ID normy pro zrychlen\u00ed (VibrationStandard, limit_type=acceleration)"
+    },
+    "temp_standard_id": {
+      "type": "string",
+      "description": "ID normy pro teplotu (VibrationStandard, limit_type=temperature)"
+    }
+  },
+  "required": [
+    "machine_id",
+    "schema_row_index"
+  ]
+}

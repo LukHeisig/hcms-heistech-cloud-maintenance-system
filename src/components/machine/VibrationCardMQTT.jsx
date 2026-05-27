@@ -486,20 +486,28 @@ export default function VibrationCardMQTT({ machine }) {
     } catch (e) { return []; }
   }, [vibrationSchema]);
 
-  // Lokální stav — přiřazení senzoru + norem k indexu řádku (uloženo v localStorage per machine)
-  // Struktura: { [rowIndex]: { sensorId, velStandardId, accStandardId } }
-  const storageKey = `vibro_row_sensors_v2_${machineId}`;
-  const [rowAssignments, setRowAssignments] = useState(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem(storageKey) || "{}");
-      // Migrace starého formátu (string → objekt)
-      const migrated = {};
-      for (const [k, v] of Object.entries(raw)) {
-        migrated[k] = typeof v === "string" ? { sensorId: v } : v;
-      }
-      return migrated;
-    } catch { return {}; }
+  // Přiřazení senzorů — načítáme z DB (sdílené mezi všemi uživateli)
+  const { data: dbAssignments = [], refetch: refetchAssignments } = useQuery({
+    queryKey: ["vibrationSensorAssignments", machineId],
+    queryFn: () => base44.entities.VibrationSensorAssignment.filter({ machine_id: machineId }, null, 200),
+    enabled: !!machineId,
+    staleTime: 30000,
   });
+
+  // Převod pole DB záznamů na { [rowIndex]: { sensorId, velStandardId, accStandardId, tempStandardId, _dbId } }
+  const rowAssignments = useMemo(() => {
+    const out = {};
+    for (const rec of dbAssignments) {
+      out[rec.schema_row_index] = {
+        sensorId: rec.sensor_id || null,
+        velStandardId: rec.vel_standard_id || null,
+        accStandardId: rec.acc_standard_id || null,
+        tempStandardId: rec.temp_standard_id || null,
+        _dbId: rec.id,
+      };
+    }
+    return out;
+  }, [dbAssignments]);
 
   // Zpětná kompatibilita — rowSensors[idx] = sensorId (string)
   const rowSensors = useMemo(() => {
@@ -510,10 +518,22 @@ export default function VibrationCardMQTT({ machine }) {
     return out;
   }, [rowAssignments]);
 
-  const assignSensor = (rowIndex, assignment) => {
-    const updated = { ...rowAssignments, [rowIndex]: assignment };
-    setRowAssignments(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+  const assignSensor = async (rowIndex, assignment) => {
+    const existing = rowAssignments[rowIndex];
+    const payload = {
+      machine_id: machineId,
+      schema_row_index: rowIndex,
+      sensor_id: assignment.sensorId || null,
+      vel_standard_id: assignment.velStandardId || null,
+      acc_standard_id: assignment.accStandardId || null,
+      temp_standard_id: assignment.tempStandardId || null,
+    };
+    if (existing?._dbId) {
+      await base44.entities.VibrationSensorAssignment.update(existing._dbId, payload);
+    } else {
+      await base44.entities.VibrationSensorAssignment.create(payload);
+    }
+    refetchAssignments();
   };
 
   // Načtení norem pro zobrazení limitů
