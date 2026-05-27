@@ -10,10 +10,11 @@
       "type": "string",
       "enum": [
         "velocity",
-        "acceleration"
+        "acceleration",
+        "temperature"
       ],
       "default": "velocity",
-      "description": "Typ limit\u016f: velocity = rychlost [mm/s], acceleration = zrychlen\u00ed [g]"
+      "description": "Typ limit\u016f: velocity = rychlost [mm/s], acceleration = zrychlen\u00ed [g], temperature = teplota [\u00b0C]"
     },
     "limit_ab": {
       "type": "number",
@@ -38,6 +39,18 @@
     "acc_limit_cd": {
       "type": "number",
       "description": "Limit C/D pro zrychlen\u00ed vibrace [g]"
+    },
+    "temp_limit_ab": {
+      "type": "number",
+      "description": "Limit A/B pro teplotu [\u00b0C]"
+    },
+    "temp_limit_bc": {
+      "type": "number",
+      "description": "Limit B/C pro teplotu [\u00b0C]"
+    },
+    "temp_limit_cd": {
+      "type": "number",
+      "description": "Limit C/D pro teplotu [\u00b0C]"
     },
     "description": {
       "type": "string"
