@@ -688,18 +688,20 @@ export default function VibrationCardMQTT({ machine }) {
             // Baterie: barva dle úrovně (0=prázdná, 4=plná)
             const batteryLevel = sensorInfo?.last_battery_level;
             const batteryColor = batteryLevel == null ? "text-slate-300" : batteryLevel >= 3 ? "text-green-600" : batteryLevel >= 2 ? "text-yellow-600" : "text-red-600";
-            // Signál: barva dle dBm (-50 vynikající, -67 dobrý, -70 slabý, -80+ nepoužitelný)
+            // Signál: barva dle dBm (-50 vynikající, -67 dobrý, -80 slabý, <-80 nepoužitelný)
+            // Signál je uložen jako kladné číslo (75 = -75 dBm), interpretujeme ho jako -rssi
             const rssi = sensorInfo?.last_signal_strength;
-            const rssiColor = rssi == null ? "text-slate-300"
-              : rssi >= -50 ? "text-green-600"
-              : rssi >= -67 ? "text-blue-600"
-              : rssi >= -80 ? "text-yellow-600"
+            const rssiDb = rssi != null ? -Math.abs(rssi) : null;
+            const rssiColor = rssiDb == null ? "text-slate-300"
+              : rssiDb >= -50 ? "text-green-600"
+              : rssiDb >= -67 ? "text-blue-600"
+              : rssiDb >= -80 ? "text-yellow-600"
               : "text-red-600";
-            const rssiTitle = rssi == null ? "Neznámý signál"
-              : rssi >= -50 ? "Vynikající signál"
-              : rssi >= -67 ? "Dobrý signál"
-              : rssi >= -80 ? "Slabý signál"
-              : "Nepoužitelný signál";
+            const rssiTitle = rssiDb == null ? "Neznámý signál"
+              : rssiDb >= -50 ? "Vynikající signál (-30 až -50 dBm)"
+              : rssiDb >= -67 ? "Dobrý signál (-60 až -67 dBm)"
+              : rssiDb >= -80 ? "Slabý signál (-70 až -80 dBm)"
+              : "Nepoužitelný signál (< -80 dBm)";
             // Teplota
             const temp = sensorInfo?.last_temperature;
 
@@ -792,7 +794,7 @@ export default function VibrationCardMQTT({ machine }) {
 
                    {/* Signál */}
                    <div className="text-center font-mono text-sm font-semibold">
-                     {rssi != null ? <span className={rssiColor} title={rssiTitle}>{rssi}</span> : <span className="text-slate-300">—</span>}
+                     {rssiDb != null ? <span className={rssiColor} title={rssiTitle}>{rssiDb}</span> : <span className="text-slate-300">—</span>}
                    </div>
 
                   {/* Tlačítko přiřazení */}
