@@ -446,11 +446,11 @@ export default function VibrationCardMQTT({ machine }) {
     enabled: !!machine?.vibration_schema_id,
   });
 
-  // Načteme senzory přiřazené k tomuto stroji
+  // Načteme všechny registrované senzory (pro teplotu, baterii, signál)
   const { data: sensors = [], refetch: refetchSensors } = useQuery({
-    queryKey: ["aissens-sensors", machineId],
-    queryFn: () => base44.entities.AissensSensor.filter({ machine_id: machineId }),
-    enabled: !!machineId,
+    queryKey: ["aissens_sensors_all"],
+    queryFn: () => base44.entities.AissensSensor.list(null, 500),
+    staleTime: 60000,
   });
 
   // Parsování řádků ze schématu
