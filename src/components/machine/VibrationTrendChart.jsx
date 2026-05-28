@@ -57,7 +57,15 @@ const TIME_RANGES = [
 ];
 
 // Max počet záznamů pro každý rozsah
-const RANGE_LIMIT = { 1: 200, 3: 300, 7: 500, 30: 1000, 365: 2000, null: 500 };
+const RANGE_LIMIT = { 1: 500, 3: 500, 7: 1000, 30: 2000, 365: 5000, null: 2000 };
+
+// Validace timestamp — pokud je v budoucnosti nebo záporný, vrátí null
+const validTimestamp = (ts) => {
+  if (!ts) return null;
+  const nowSec = Date.now() / 1000;
+  if (ts > nowSec + 86400 || ts < 0) return null; // více než 1 den v budoucnosti → ignorovat
+  return ts;
+};
 
 const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -79,7 +87,7 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
   const [yScaleMode, setYScaleMode] = useState("auto");
-  const [rangeDays, setRangeDays] = useState(7); // null = vše
+  const [rangeDays, setRangeDays] = useState(30); // null = vše, default = měsíc
 
   // Zoom state
   const [zoomLeft, setZoomLeft] = useState(null);
@@ -105,8 +113,23 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
   const { data: historyData = [], isLoading } = useQuery({
     queryKey: ["sensorTrend", sensorId, metricKey, rangeDays],
     queryFn: async () => {
-      const limit = RANGE_LIMIT[rangeDays] ?? 500;
-      const cutoff = rangeDays != null ? startOfDay(subDays(new Date(), rangeDays - 1)).getTime() / 1000 : null;
+      const limit = RANGE_LIMIT[rangeDays] ?? 2000;
+      const cutoff = rangeDays != null ? subDays(new Date(), rangeDays).getTime() / 1000 : null;
+
+      const formatTs = (timestamp_unix, created_date) => {
+        const ts = validTimestamp(timestamp_unix);
+        if (ts) {
+          return new Date(ts * 1000).toLocaleString("cs-CZ", {
+            day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague"
+          }).replace(",", "");
+        }
+        return format(new Date(created_date), "dd.MM HH:mm");
+      };
+
+      const getRecordTime = (r) => {
+        const ts = validTimestamp(r.timestamp_unix);
+        return ts ? ts : new Date(r.created_date).getTime() / 1000;
+      };
 
       if (isTemperature) {
         const records = await base44.entities.SensorData.filter(
@@ -117,11 +140,9 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
         records.reverse();
         return records
           .filter(r => r.temperature != null)
-          .filter(r => cutoff == null || (r.timestamp_unix || (new Date(r.created_date).getTime() / 1000)) >= cutoff)
+          .filter(r => cutoff == null || getRecordTime(r) >= cutoff)
           .map(r => ({
-            ts: r.timestamp_unix
-              ? new Date((r.timestamp_unix + 3600) * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).replace(",", "")
-              : format(new Date(r.created_date), "dd.MM HH:mm"),
+            ts: formatTs(r.timestamp_unix, r.created_date),
             sensor_data_id: r.id,
             temperature: r.temperature,
           }));
@@ -134,12 +155,10 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
       );
       records.reverse();
       return records
-        .filter(r => cutoff == null || (r.timestamp_unix || (new Date(r.created_date).getTime() / 1000)) >= cutoff)
+        .filter(r => cutoff == null || getRecordTime(r) >= cutoff)
         .map(r => {
           const freqRes = r.frequency_resolution || 3.259;
-          const ts = r.timestamp_unix
-            ? new Date((r.timestamp_unix + 3600) * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).replace(",", "")
-            : format(new Date(r.created_date), "dd.MM HH:mm");
+          const ts = formatTs(r.timestamp_unix, r.created_date);
           return {
             ts,
             sensor_data_id: r.sensor_data_id,
