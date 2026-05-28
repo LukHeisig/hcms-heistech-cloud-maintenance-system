@@ -186,10 +186,17 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
 
 // DSP grafy — znovupoužitelný, totožný s DSPVisualization
 function SensorDSPPanel({ sensorId, initialRecordId }) {
-  // Načteme záznamy s has_fft (mají spektra) — nezávisle na has_raw
+  // Načteme záznamy — primárně ty s has_fft=true, ale fallback bez filtru
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId],
-    queryFn: () => base44.entities.SensorData.filter({ sensor_id: sensorId, has_fft: true }, "-created_date", 50),
+    queryFn: async () => {
+      // Nejprve zkus záznamy kde has_fft=true
+      const withFft = await base44.entities.SensorData.filter({ sensor_id: sensorId, has_fft: true }, "-created_date", 100);
+      if (withFft.length > 0) return withFft;
+      // Fallback: záznamy kde existuje SensorFFTData — vezmi posledních 100 a vrátí ty které mají FFT
+      const allRecords = await base44.entities.SensorData.filter({ sensor_id: sensorId }, "-created_date", 100);
+      return allRecords;
+    },
     enabled: !!sensorId,
   });
 
@@ -204,15 +211,42 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
   }, [initialRecordId]);
 
   const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
-  const activeRecord = records.find(r => r.id === activeRecordId);
+  // Záznam může být mimo seznam (starší, nebo has_fft=false přesto má FFT v SensorFFTData)
+  const activeRecord = records.find(r => r.id === activeRecordId) ?? null;
 
   // timestamp_unix ze senzoru je lokální čas Praha (senzor nemá UTC) → zobrazujeme jako UTC
   const getRecordTime = (r) => r?.timestamp_unix ? new Date(r.timestamp_unix * 1000) : null;
 
+  // Pokud activeRecord není v seznamu (předán přes initialRecordId), načteme ho přímo
+  const { data: extraRecord } = useQuery({
+    queryKey: ["sensorDataById", activeRecordId],
+    queryFn: async () => {
+      if (!activeRecordId) return null;
+      const inList = records.find(r => r.id === activeRecordId);
+      if (inList) return inList;
+      const found = await base44.entities.SensorData.filter({ id: activeRecordId }, null, 1);
+      return found[0] ?? null;
+    },
+    enabled: !!activeRecordId,
+  });
+  const resolvedRecord = records.find(r => r.id === activeRecordId) ?? extraRecord ?? null;
+
   const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
-    queryKey: ["sensorFFT", activeRecord?.id],
-    queryFn: () => base44.entities.SensorFFTData.filter({ sensor_data_id: activeRecord.id }),
-    enabled: !!activeRecord,
+    queryKey: ["sensorFFT", resolvedRecord?.id],
+    queryFn: async () => {
+      // Zkus přes sensor_data_id
+      const byDataId = await base44.entities.SensorFFTData.filter({ sensor_data_id: resolvedRecord.id });
+      if (byDataId.length > 0) return byDataId;
+      // Fallback: hledej nejbližší FFT záznam dle timestampu nebo sensor_id
+      if (resolvedRecord.timestamp_unix) {
+        const nearby = await base44.entities.SensorFFTData.filter({ sensor_id: sensorId }, "-created_date", 200);
+        // Najdi záznam s nejbližším timestampem
+        const match = nearby.find(f => Math.abs((f.timestamp_unix ?? 0) - resolvedRecord.timestamp_unix) < 5);
+        if (match) return [match];
+      }
+      return [];
+    },
+    enabled: !!resolvedRecord,
   });
   const activeFFT = fftRecords[0];
 
@@ -248,11 +282,11 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
   };
 
   const dsp = useMemo(() => {
-    if (!activeRecord || !activeFFT) return null;
+    if (!resolvedRecord || !activeFFT) return null;
     try {
       let rawChart = [];
-      if (activeRecord.raw_z_json) {
-        const rawZ = JSON.parse(activeRecord.raw_z_json);
+      if (resolvedRecord.raw_z_json) {
+        const rawZ = JSON.parse(resolvedRecord.raw_z_json);
         const fs = 26700, step = Math.max(1, Math.floor(rawZ.length / 500));
         for (let i = 0; i < rawZ.length; i += step)
           rawChart.push({ t: Number((i * (1 / fs) * 1000).toFixed(1)), z: rawZ[i] });
