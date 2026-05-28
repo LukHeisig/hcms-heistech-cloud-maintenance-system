@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 
-// Senzor posílá timestamp_unix v UTC → zobrazujeme přímo jako UTC.
+// Senzor posílá timestamp_unix v UTC, ale je o 1h pozadu → přičteme 1h.
 function formatSensorTs(timestamp_unix, opts = {}) {
   if (!timestamp_unix) return null;
-  return new Date(timestamp_unix * 1000).toLocaleString("cs-CZ", { timeZone: "UTC", ...opts });
+  return new Date((timestamp_unix + 3600) * 1000).toLocaleString("cs-CZ", { timeZone: "UTC", ...opts });
 }
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

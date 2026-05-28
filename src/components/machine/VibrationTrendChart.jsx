@@ -86,9 +86,9 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
       records.reverse(); // nejstarší → nejnovější pro správné zobrazení grafu
       return records.map(r => {
         const freqRes = r.frequency_resolution || 3.259;
-        // timestamp_unix je UTC → zobrazujeme přímo jako UTC
+        // timestamp_unix je UTC, ale je o 1h pozadu → přičteme 1h
         const ts = r.timestamp_unix
-          ? new Date(r.timestamp_unix * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).replace(",", "")
+          ? new Date((r.timestamp_unix + 3600) * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).replace(",", "")
           : format(new Date(r.created_date), "dd.MM HH:mm");
         return {
           ts,
