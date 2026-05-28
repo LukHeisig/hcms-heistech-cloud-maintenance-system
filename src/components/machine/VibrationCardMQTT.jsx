@@ -200,6 +200,9 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
   const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
   const activeRecord = records.find(r => r.id === activeRecordId);
 
+  // Pomocná funkce pro zobrazení správného času záznamu
+  const getRecordTime = (r) => r ? new Date(r.timestamp_unix ? r.timestamp_unix * 1000 : r.created_date) : null;
+
   const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
     queryKey: ["sensorFFT", activeRecord?.id],
     queryFn: () => base44.entities.SensorFFTData.filter({ sensor_data_id: activeRecord.id }),
@@ -297,7 +300,7 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
           <SelectContent>
             {records.map(r => (
               <SelectItem key={r.id} value={r.id} className="text-xs">
-                {format(new Date(r.created_date), "dd.MM.yyyy HH:mm:ss")}
+                {format(getRecordTime(r), "dd.MM.yyyy HH:mm:ss")}
               </SelectItem>
             ))}
           </SelectContent>
@@ -798,9 +801,9 @@ export default function VibrationCardMQTT({ machine }) {
                     {sensorId ? (
                       <>
                         <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
-                        {latest?.created_date && (
+                        {(latest?.timestamp_unix || latest?.created_date) && (
                           <span className="text-[10px] text-slate-400 pl-0.5">
-                            {new Date(latest.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            {new Date(latest.timestamp_unix ? latest.timestamp_unix * 1000 : latest.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                           </span>
                         )}
                       </>
