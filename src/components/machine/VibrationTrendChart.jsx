@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +65,8 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 // limits: { ab, bc, cd } — hodnoty limitů pro zobrazení v grafu (nepovinné)
 export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
+  // "limit" = C/D+20%, "hodnota" = max dat+20%
+  const [yScaleMode, setYScaleMode] = useState("auto"); // "auto" | "limit" | "hodnota"
 
   // Pomocná funkce pro výpočet RMS ze spektra
   const calcRMS = (json, freqRes, minF, maxF) => {
@@ -139,35 +141,65 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     });
   }, [historyData, metricDef]);
 
-  // Výpočet rozsahu osy Y: max(C/D * 1.2, maxValue * 1.1)
+  // Výpočet rozsahu osy Y dle zvoleného módu
   const yDomain = useMemo(() => {
     const allValues = chartData.flatMap(r => metricDef.lines.map(l => r[l.key]).filter(v => v != null));
     const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0;
     const limitCd = limits?.cd;
-    let yMax;
-    let yMaxLabel;
-    if (limitCd != null && limitCd * 1.2 >= maxValue * 1.1) {
-      yMax = limitCd * 1.2;
-      yMaxLabel = "Limit";
-    } else if (maxValue > 0) {
-      yMax = maxValue * 1.1;
-      yMaxLabel = "hodnota";
-    } else {
-      yMax = limitCd ? limitCd * 1.2 : "auto";
-      yMaxLabel = "Limit";
+
+    if (yScaleMode === "limit" && limitCd != null) {
+      return { yMax: limitCd * 1.2, yMaxLabel: "Limit" };
     }
-    return { yMax, yMaxLabel };
-  }, [chartData, metricDef, limits]);
+    if (yScaleMode === "hodnota" && maxValue > 0) {
+      return { yMax: maxValue * 1.2, yMaxLabel: "hodnota" };
+    }
+    // auto: vezme větší z obou
+    if (limitCd != null && maxValue > 0) {
+      const byLimit = limitCd * 1.2;
+      const byValue = maxValue * 1.2;
+      return byLimit >= byValue
+        ? { yMax: byLimit, yMaxLabel: "Limit" }
+        : { yMax: byValue, yMaxLabel: "hodnota" };
+    }
+    if (limitCd != null) return { yMax: limitCd * 1.2, yMaxLabel: "Limit" };
+    if (maxValue > 0) return { yMax: maxValue * 1.2, yMaxLabel: "hodnota" };
+    return { yMax: "auto", yMaxLabel: "" };
+  }, [chartData, metricDef, limits, yScaleMode]);
 
   return (
     <Card className="border-none shadow-lg">
       <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-3 px-4">
-        <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-blue-600" />
-          Trend — <span className="text-blue-700">{sensorLabel}</span>
-          <span className="text-slate-400 font-normal ml-1">· {metricDef.label}</span>
-          {isLoading && <RefreshCw className="w-3 h-3 animate-spin text-slate-400 ml-auto" />}
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-blue-600" />
+            Trend — <span className="text-blue-700">{sensorLabel}</span>
+            <span className="text-slate-400 font-normal ml-1">· {metricDef.label}</span>
+            {isLoading && <RefreshCw className="w-3 h-3 animate-spin text-slate-400 ml-1" />}
+          </CardTitle>
+          {/* Tlačítka škálování osy Y */}
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-slate-400 mr-1">Osa Y:</span>
+            {["auto", "limit", "hodnota"].map(mode => (
+              <button
+                key={mode}
+                onClick={() => setYScaleMode(mode)}
+                className={`px-2 py-0.5 rounded border text-xs font-medium transition-colors ${
+                  yScaleMode === mode
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-slate-500 border-slate-300 hover:border-blue-400 hover:text-blue-600"
+                } ${mode === "limit" && !limits?.cd ? "opacity-40 cursor-not-allowed" : ""}`}
+                disabled={mode === "limit" && !limits?.cd}
+                title={
+                  mode === "auto" ? "Automaticky (větší z Limit/hodnota + 20%)" :
+                  mode === "limit" ? "Škálovat dle limitu C/D + 20%" :
+                  "Škálovat dle max. hodnoty v trendu + 20%"
+                }
+              >
+                {mode === "auto" ? "Auto" : mode === "limit" ? "Limit" : "Hodnota"}
+              </button>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-4">
         {!isLoading && chartData.length === 0 ? (
