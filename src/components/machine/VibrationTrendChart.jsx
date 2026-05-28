@@ -39,6 +39,11 @@ const METRIC_DEFS = {
     label: "Obálka Z [g]",
     lines: [{ key: "env_rms_z", fftKey: "oa_acc_z", name: "Obálka Z", color: "#f97316" }],
   },
+  temperature: {
+    label: "Teplota [°C]",
+    lines: [{ key: "temperature", name: "Teplota", color: "#a855f7" }],
+    source: "SensorData", // čerpá ze SensorData, ne SensorFFTData
+  },
 };
 
 const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
@@ -74,10 +79,30 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     } catch { return null; }
   };
 
-  // Načteme FFT záznamy a přepočítáme RMS ze spekter
+  const isTemperature = metricDef.source === "SensorData";
+
+  // Načteme FFT záznamy a přepočítáme RMS ze spekter (nebo SensorData pro teplotu)
   const { data: historyData = [], isLoading } = useQuery({
     queryKey: ["sensorTrend", sensorId, metricKey],
     queryFn: async () => {
+      if (isTemperature) {
+        const records = await base44.entities.SensorData.filter(
+          { sensor_id: sensorId },
+          "-created_date",
+          100
+        );
+        records.reverse();
+        return records
+          .filter(r => r.temperature != null)
+          .map(r => ({
+            ts: r.timestamp_unix
+              ? new Date((r.timestamp_unix + 3600) * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).replace(",", "")
+              : format(new Date(r.created_date), "dd.MM HH:mm"),
+            sensor_data_id: r.id,
+            temperature: r.temperature,
+          }));
+      }
+
       const records = await base44.entities.SensorFFTData.filter(
         { sensor_id: sensorId },
         "-created_date",
@@ -92,7 +117,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
           : format(new Date(r.created_date), "dd.MM HH:mm");
         return {
           ts,
-          sensor_data_id: r.sensor_data_id, // pro párování se spektrální analýzou
+          sensor_data_id: r.sensor_data_id,
           vel_rms_x_mm_s: r.oa_x ?? calcRMS(r.vel_x_json, freqRes, 2, 1000),
           vel_rms_y_mm_s: r.oa_y ?? calcRMS(r.vel_y_json, freqRes, 2, 1000),
           vel_rms_z_mm_s: r.oa_z ?? calcRMS(r.vel_z_json, freqRes, 2, 1000),

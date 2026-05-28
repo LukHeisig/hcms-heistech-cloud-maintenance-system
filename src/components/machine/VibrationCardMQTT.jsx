@@ -842,8 +842,12 @@ export default function VibrationCardMQTT({ machine }) {
                     );
                   })}
 
-                  {/* Teplota */}
-                   <div className="text-center font-mono text-sm font-semibold">
+                  {/* Teplota — kliknutím zobrazí trend teploty */}
+                   <div
+                     className={`text-center font-mono text-sm font-semibold ${sensorId ? "cursor-pointer hover:bg-purple-50 rounded transition-colors" : ""}`}
+                     onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey: "temperature" }); }}
+                     title={sensorId ? "Zobrazit trend teploty" : ""}
+                   >
                      {temp != null
                        ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°</span>
                        : <span className="text-slate-300">—</span>}
