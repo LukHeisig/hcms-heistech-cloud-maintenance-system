@@ -200,8 +200,8 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
   const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
   const activeRecord = records.find(r => r.id === activeRecordId);
 
-  // Pomocná funkce pro zobrazení správného času záznamu — vždy created_date (serverový čas = správný)
-  const getRecordTime = (r) => r ? new Date(r.created_date) : null;
+  // timestamp_unix ze senzoru je lokální čas Praha (senzor nemá UTC) → zobrazujeme jako UTC
+  const getRecordTime = (r) => r?.timestamp_unix ? new Date(r.timestamp_unix * 1000) : null;
 
   const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
     queryKey: ["sensorFFT", activeRecord?.id],
@@ -300,7 +300,9 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
           <SelectContent>
             {records.map(r => (
               <SelectItem key={r.id} value={r.id} className="text-xs">
-                {format(getRecordTime(r), "dd.MM.yyyy HH:mm:ss")}
+                {r.timestamp_unix
+                  ? new Date(r.timestamp_unix * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "UTC" })
+                  : new Date(r.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -801,9 +803,9 @@ export default function VibrationCardMQTT({ machine }) {
                     {sensorId ? (
                       <>
                         <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
-                        {latest?.created_date && (
+                        {latest?.timestamp_unix && (
                           <span className="text-[10px] text-slate-400 pl-0.5">
-                            {new Date(latest.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            {new Date(latest.timestamp_unix * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
                           </span>
                         )}
                       </>
