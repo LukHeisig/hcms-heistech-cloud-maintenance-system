@@ -29,7 +29,8 @@ import {
   ClipboardList,
   ChevronRight,
   Loader2,
-  Terminal
+  Terminal,
+  Radio,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -469,6 +470,11 @@ function LayoutContent({ children }) {
       url: createPageUrl("WorkOrders"),
       icon: ClipboardList,
       badge: myWorkOrders.length > 0 && user?.user_type === "technician" ? myWorkOrders.length : 0,
+    },
+    {
+      title: "Vibrace online",
+      url: createPageUrl("VibrationOnline"),
+      icon: Radio,
     },
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [

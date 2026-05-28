@@ -77,6 +77,7 @@ import Settings from './pages/Settings';
 import Setup from './pages/Setup';
 import UserMonitoring from './pages/UserMonitoring';
 import Users from './pages/Users';
+import VibrationOnline from './pages/VibrationOnline';
 import WorkOrders from './pages/WorkOrders';
 import __Layout from './Layout.jsx';
 
@@ -112,6 +113,7 @@ export const PAGES = {
     "Setup": Setup,
     "UserMonitoring": UserMonitoring,
     "Users": Users,
+    "VibrationOnline": VibrationOnline,
     "WorkOrders": WorkOrders,
 }
 

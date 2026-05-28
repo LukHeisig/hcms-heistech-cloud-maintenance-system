@@ -1,0 +1,359 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Activity,
+  Building2,
+  Factory,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Wifi,
+  WifiOff,
+  Thermometer,
+  Battery,
+  BatteryLow,
+  BatteryMedium,
+  BatteryFull,
+  Loader2,
+  Signal,
+} from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
+import { cs } from "date-fns/locale";
+
+function StatusBadge({ lastSeen }) {
+  if (!lastSeen) return <Badge variant="outline" className="text-slate-400 text-xs">Neznámý</Badge>;
+  const diffH = (Date.now() - new Date(lastSeen).getTime()) / 3600000;
+  if (diffH < 1) return <Badge className="bg-green-100 text-green-700 border-green-300 text-xs">Online</Badge>;
+  if (diffH < 24) return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 text-xs">Nedávno</Badge>;
+  return <Badge className="bg-red-100 text-red-600 border-red-200 text-xs">Offline</Badge>;
+}
+
+function BatteryIcon({ level, voltage }) {
+  const color = level <= 1 ? "text-red-500" : level <= 2 ? "text-yellow-500" : "text-green-500";
+  const Icon = level <= 1 ? BatteryLow : level <= 2 ? BatteryMedium : BatteryFull;
+  return (
+    <span className={`flex items-center gap-1 text-xs ${color}`}>
+      <Icon className="w-3.5 h-3.5" />
+      {voltage != null ? `${voltage}V` : `L${level}`}
+    </span>
+  );
+}
+
+export default function VibrationOnline() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [search, setSearch] = useState("");
+  const [expandedCompanies, setExpandedCompanies] = useState({});
+
+  useEffect(() => {
+    base44.auth.me().then(setUser);
+  }, []);
+
+  const { data: allCompanies = [] } = useQuery({
+    queryKey: ["companies"],
+    queryFn: () => base44.entities.Company.list("name", 1000),
+    enabled: !!user,
+    staleTime: 300000,
+  });
+
+  const { data: allLines = [] } = useQuery({
+    queryKey: ["allLines"],
+    queryFn: () => base44.entities.Line.list("order_index", 1000),
+    staleTime: 300000,
+  });
+
+  const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
+    queryKey: ["allMachines"],
+    queryFn: () => base44.entities.Machine.list("order_index", 1000),
+    staleTime: 300000,
+  });
+
+  const { data: allSensors = [], isLoading: isLoadingSensors } = useQuery({
+    queryKey: ["aissens_sensors"],
+    queryFn: () => base44.entities.AissensSensor.list("-last_seen", 500),
+    refetchInterval: 30000,
+  });
+
+  const { data: assignments = [] } = useQuery({
+    queryKey: ["vibrationAssignments"],
+    queryFn: () => base44.entities.VibrationSensorAssignment.list(null, 1000),
+    staleTime: 60000,
+  });
+
+  // Určit viditelné společnosti dle role
+  const visibleCompanies = useMemo(() => {
+    if (!user || !allCompanies.length) return [];
+    if (user.user_type === "superAdmin") return allCompanies.filter(c => c.is_active !== false);
+    if (user.user_type === "admin") return allCompanies.filter(c => user.assigned_company_ids?.includes(c.id) && c.is_active !== false);
+    // manager / technician — company_id
+    return allCompanies.filter(c => c.id === user.company_id && c.is_active !== false);
+  }, [user, allCompanies]);
+
+  // Viditelné linky (dle viditelných podniků)
+  const visibleCompanyIds = useMemo(() => visibleCompanies.map(c => c.id), [visibleCompanies]);
+
+  const visibleLines = useMemo(() =>
+    allLines.filter(l => visibleCompanyIds.includes(l.company_id)),
+    [allLines, visibleCompanyIds]
+  );
+
+  const visibleLineIds = useMemo(() => visibleLines.map(l => l.id), [visibleLines]);
+
+  // Viditelné stroje s aktivní vibrací a namapovaným senzorem
+  // Podmínky: monitor_vibration = true, má VibrationSensorAssignment nebo sensor_id
+  const assignedMachineIds = useMemo(() =>
+    new Set(assignments.map(a => a.machine_id)),
+    [assignments]
+  );
+
+  const vibrationMachines = useMemo(() => {
+    return allMachines.filter(m =>
+      visibleLineIds.includes(m.line_id) &&
+      m.monitor_vibration === true &&
+      assignedMachineIds.has(m.id)
+    );
+  }, [allMachines, visibleLineIds, assignedMachineIds]);
+
+  // Najít senzor pro stroj (přes VibrationSensorAssignment)
+  const getSensorForMachine = (machineId) => {
+    const machineAssignments = assignments.filter(a => a.machine_id === machineId && a.sensor_id);
+    if (!machineAssignments.length) return null;
+    // Vrátit první aktivní senzor
+    const sensorId = machineAssignments[0].sensor_id;
+    return allSensors.find(s => s.id === sensorId) || null;
+  };
+
+  // Filtrování dle vyhledávání
+  const filteredMachines = useMemo(() => {
+    if (!search.trim()) return vibrationMachines;
+    const q = search.toLowerCase();
+    return vibrationMachines.filter(m => {
+      const line = allLines.find(l => l.id === m.line_id);
+      const company = allCompanies.find(c => c.id === line?.company_id);
+      return (
+        m.name.toLowerCase().includes(q) ||
+        line?.name.toLowerCase().includes(q) ||
+        company?.name.toLowerCase().includes(q)
+      );
+    });
+  }, [vibrationMachines, search, allLines, allCompanies]);
+
+  // Seskupení: podnik → linka → stroje
+  const grouped = useMemo(() => {
+    const result = [];
+    for (const company of visibleCompanies) {
+      const companyLines = visibleLines
+        .filter(l => l.company_id === company.id)
+        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+      const linesWithMachines = companyLines
+        .map(line => {
+          const lineMachines = filteredMachines
+            .filter(m => m.line_id === line.id)
+            .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+          return { line, machines: lineMachines };
+        })
+        .filter(lw => lw.machines.length > 0);
+
+      if (linesWithMachines.length > 0) {
+        result.push({ company, lines: linesWithMachines });
+      }
+    }
+    return result;
+  }, [visibleCompanies, visibleLines, filteredMachines]);
+
+  // Auto-expand pokud jen jedna firma
+  useEffect(() => {
+    if (grouped.length === 1) {
+      setExpandedCompanies({ [grouped[0].company.id]: true });
+    }
+  }, [grouped.length]);
+
+  const toggleCompany = (id) => {
+    setExpandedCompanies(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const isLoading = isLoadingMachines || isLoadingSensors || !user;
+
+  const isSuperOrAdmin = user?.user_type === "superAdmin" || user?.user_type === "admin";
+
+  return (
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-xl">
+              <Activity className="w-7 h-7 text-blue-600" />
+            </div>
+            Vibrace online
+          </h1>
+          <p className="text-slate-500 mt-1">Stroje s aktivním vibračním monitoringem a přiřazeným senzorem</p>
+        </div>
+
+        {/* Vyhledávání */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            className="pl-9"
+            placeholder="Hledat stroj, linku nebo podnik..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-24 text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin mr-3" />
+            Načítám data...
+          </div>
+        ) : grouped.length === 0 ? (
+          <div className="text-center py-24">
+            <WifiOff className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">
+              {search ? "Žádné výsledky" : "Žádné stroje s vibračním monitoringem"}
+            </h3>
+            <p className="text-slate-500 text-sm">
+              {search
+                ? "Zkuste jiné hledané slovo."
+                : "Aktivujte modul vibrací a přiřaďte senzory ke strojům."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {grouped.map(({ company, lines }) => {
+              const isExpanded = expandedCompanies[company.id] ?? false;
+              const totalMachines = lines.reduce((s, l) => s + l.machines.length, 0);
+              const onlineCount = lines.reduce((s, l) => {
+                return s + l.machines.filter(m => {
+                  const sensor = getSensorForMachine(m.id);
+                  if (!sensor?.last_seen) return false;
+                  return (Date.now() - new Date(sensor.last_seen).getTime()) < 3600000;
+                }).length;
+              }, 0);
+
+              return (
+                <div key={company.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                  {/* Company header — vždy zobrazit, klikací pouze pro admin/superAdmin */}
+                  <div
+                    className={`flex items-center gap-4 p-4 ${isSuperOrAdmin ? "cursor-pointer hover:bg-slate-50" : ""} transition-colors`}
+                    onClick={() => isSuperOrAdmin && toggleCompany(company.id)}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow flex-shrink-0">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="font-bold text-slate-900">{company.name}</h2>
+                      <p className="text-sm text-slate-500">
+                        {totalMachines} strojů · {onlineCount} online
+                      </p>
+                    </div>
+                    {onlineCount > 0 && (
+                      <Badge className="bg-green-100 text-green-700 border-green-300">{onlineCount} online</Badge>
+                    )}
+                    {isSuperOrAdmin && (
+                      isExpanded
+                        ? <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                        : <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                    )}
+                  </div>
+
+                  {/* Lines + Machines — vždy viditelné pro manager/technician, toggle pro admin */}
+                  {(!isSuperOrAdmin || isExpanded) && (
+                    <div className="border-t border-slate-100 divide-y divide-slate-50">
+                      {lines.map(({ line, machines: lineMachines }) => (
+                        <div key={line.id} className="p-4 bg-slate-50/60">
+                          {/* Line label */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <Factory className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-semibold text-slate-600">{line.name}</span>
+                            <Badge variant="outline" className="text-xs ml-1">{lineMachines.length}</Badge>
+                          </div>
+
+                          {/* Machine cards */}
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {lineMachines.map(machine => {
+                              const sensor = getSensorForMachine(machine.id);
+                              const diffH = sensor?.last_seen
+                                ? (Date.now() - new Date(sensor.last_seen).getTime()) / 3600000
+                                : null;
+                              const isOnline = diffH != null && diffH < 1;
+                              const borderColor = isOnline ? "border-green-200" : sensor ? "border-yellow-200" : "border-slate-200";
+
+                              return (
+                                <div
+                                  key={machine.id}
+                                  onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
+                                  className={`bg-white rounded-xl border ${borderColor} p-3 cursor-pointer hover:shadow-md transition-all group`}
+                                >
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-slate-900 text-sm truncate group-hover:text-blue-700 transition-colors">
+                                        {machine.name}
+                                      </p>
+                                      {machine.location && (
+                                        <p className="text-xs text-slate-400 truncate">{machine.location}</p>
+                                      )}
+                                    </div>
+                                    <StatusBadge lastSeen={sensor?.last_seen} />
+                                  </div>
+
+                                  {sensor ? (
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between text-xs text-slate-500">
+                                        <code className="text-blue-600 font-mono">{sensor.sensor_id}</code>
+                                        {sensor.last_seen && (
+                                          <span>{formatDistanceToNow(new Date(sensor.last_seen), { addSuffix: true, locale: cs })}</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        {sensor.last_battery_level != null && (
+                                          <BatteryIcon level={sensor.last_battery_level} voltage={sensor.last_battery_voltage} />
+                                        )}
+                                        {sensor.last_temperature != null && (
+                                          <span className="flex items-center gap-1 text-xs text-orange-500">
+                                            <Thermometer className="w-3.5 h-3.5" />
+                                            {sensor.last_temperature.toFixed(1)}°C
+                                          </span>
+                                        )}
+                                        {sensor.last_signal_strength != null && (
+                                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                                            <Signal className="w-3.5 h-3.5" />
+                                            {sensor.last_signal_strength}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-slate-400">Senzor nepřiřazen</p>
+                                  )}
+
+                                  <div className="flex items-center justify-end mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-xs text-blue-600 flex items-center gap-1">
+                                      Otevřít <ChevronRight className="w-3 h-3" />
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
