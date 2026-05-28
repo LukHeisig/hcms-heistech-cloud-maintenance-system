@@ -121,13 +121,24 @@ export default function VibrationOnline() {
     );
   }, [allMachines, visibleLineIds, assignedMachineIds]);
 
-  // Najít senzor pro stroj (přes VibrationSensorAssignment)
-  const getSensorForMachine = (machineId) => {
+  // Najít senzory pro stroj (přes VibrationSensorAssignment)
+  // assignment.sensor_id je AissensSensor.id (databázové ID záznamu)
+  const getSensorsForMachine = (machineId) => {
     const machineAssignments = assignments.filter(a => a.machine_id === machineId && a.sensor_id);
-    if (!machineAssignments.length) return null;
-    // Vrátit první aktivní senzor
-    const sensorId = machineAssignments[0].sensor_id;
-    return allSensors.find(s => s.id === sensorId) || null;
+    return machineAssignments
+      .map(a => allSensors.find(s => s.id === a.sensor_id || s.sensor_id === a.sensor_id))
+      .filter(Boolean);
+  };
+
+  // Vrátit nejaktivnější senzor (s nejnovějším last_seen) pro zobrazení stavu
+  const getBestSensorForMachine = (machineId) => {
+    const sensors = getSensorsForMachine(machineId);
+    if (!sensors.length) return null;
+    return sensors.sort((a, b) => {
+      const ta = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+      const tb = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+      return tb - ta;
+    })[0];
   };
 
   // Filtrování dle vyhledávání
@@ -233,7 +244,7 @@ export default function VibrationOnline() {
               const totalMachines = lines.reduce((s, l) => s + l.machines.length, 0);
               const onlineCount = lines.reduce((s, l) => {
                 return s + l.machines.filter(m => {
-                  const sensor = getSensorForMachine(m.id);
+                  const sensor = getBestSensorForMachine(m.id);
                   if (!sensor?.last_seen) return false;
                   return (Date.now() - new Date(sensor.last_seen).getTime()) < 3600000;
                 }).length;
@@ -280,7 +291,8 @@ export default function VibrationOnline() {
                           {/* Machine cards */}
                           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                             {lineMachines.map(machine => {
-                              const sensor = getSensorForMachine(machine.id);
+                              const sensor = getBestSensorForMachine(machine.id);
+                              const sensorCount = getSensorsForMachine(machine.id).length;
                               const diffH = sensor?.last_seen
                                 ? (Date.now() - new Date(sensor.last_seen).getTime()) / 3600000
                                 : null;
@@ -290,7 +302,7 @@ export default function VibrationOnline() {
                               return (
                                 <div
                                   key={machine.id}
-                                  onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
+                                  onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#vibration`))}
                                   className={`bg-white rounded-xl border ${borderColor} p-3 cursor-pointer hover:shadow-md transition-all group`}
                                 >
                                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -308,7 +320,10 @@ export default function VibrationOnline() {
                                   {sensor ? (
                                     <div className="space-y-1">
                                       <div className="flex items-center justify-between text-xs text-slate-500">
-                                        <code className="text-blue-600 font-mono">{sensor.sensor_id}</code>
+                                        <span className="flex items-center gap-1">
+                                          <code className="text-blue-600 font-mono">{sensor.sensor_id}</code>
+                                          {sensorCount > 1 && <span className="text-slate-400">+{sensorCount - 1}</span>}
+                                        </span>
                                         {sensor.last_seen && (
                                           <span>{formatDistanceToNow(new Date(sensor.last_seen), { addSuffix: true, locale: cs })}</span>
                                         )}
