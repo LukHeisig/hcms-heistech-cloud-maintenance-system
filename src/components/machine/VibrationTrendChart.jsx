@@ -87,7 +87,7 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
   const [yScaleMode, setYScaleMode] = useState("auto");
-  const [rangeDays, setRangeDays] = useState(30); // null = vše, default = měsíc
+  const [rangeDays, setRangeDays] = useState(3); // null = vše, default = 3 dny
 
   // Zoom state
   const [zoomLeft, setZoomLeft] = useState(null);
