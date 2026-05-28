@@ -1,5 +1,25 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+
+// Senzor ukládá timestamp_unix jako lokální čas Praha (bez UTC info).
+// Aby JS nepřidal timezone offset při zobrazení, odečteme Prague offset od timestampu
+// a zobrazíme jako UTC — výsledek je správný Praha čas včetně letního/zimního času.
+function formatSensorTs(timestamp_unix, opts = {}) {
+  if (!timestamp_unix) return null;
+  const msec = timestamp_unix * 1000;
+  // Zjistíme Prague offset v minutách pro daný timestamp
+  const pragueStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Prague",
+    timeZoneName: "shortOffset",
+    hour: "numeric",
+  }).formatToParts(new Date(msec));
+  const offsetPart = pragueStr.find(p => p.type === "timeZoneName")?.value || "GMT+1";
+  const match = offsetPart.match(/GMT([+-])(\d+)(?::(\d+))?/);
+  const sign = match?.[1] === "+" ? 1 : -1;
+  const offsetMinutes = match ? sign * (parseInt(match[2]) * 60 + parseInt(match[3] || "0")) : 60;
+  const correctedMs = msec - offsetMinutes * 60000;
+  return new Date(correctedMs).toLocaleString("cs-CZ", { timeZone: "UTC", ...opts });
+}
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -301,7 +321,7 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
             {records.map(r => (
               <SelectItem key={r.id} value={r.id} className="text-xs">
                 {r.timestamp_unix
-                  ? new Date(r.timestamp_unix * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "UTC" })
+                  ? formatSensorTs(r.timestamp_unix, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })
                   : new Date(r.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </SelectItem>
             ))}
@@ -805,7 +825,7 @@ export default function VibrationCardMQTT({ machine }) {
                         <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
                         {latest?.timestamp_unix && (
                           <span className="text-[10px] text-slate-400 pl-0.5">
-                            {new Date(latest.timestamp_unix * 1000).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
+                            {formatSensorTs(latest.timestamp_unix, { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                           </span>
                         )}
                       </>

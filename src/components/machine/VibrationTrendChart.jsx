@@ -86,9 +86,21 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
       records.reverse(); // nejstarší → nejnovější pro správné zobrazení grafu
       return records.map(r => {
         const freqRes = r.frequency_resolution || 3.259;
-        // timestamp_unix = lokální čas Praha (senzor bez UTC) → zobrazujeme jako UTC
-        const tsDate = r.timestamp_unix ? new Date(r.timestamp_unix * 1000) : new Date(r.created_date);
-        const ts = tsDate.toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).replace(",", "");
+        // timestamp_unix = lokální čas Praha (senzor bez UTC) → kompenzujeme Prague offset
+        let ts;
+        if (r.timestamp_unix) {
+          const pragueStr = new Intl.DateTimeFormat("en-US", {
+            timeZone: "Europe/Prague", timeZoneName: "shortOffset", hour: "numeric",
+          }).formatToParts(new Date(r.timestamp_unix * 1000));
+          const offsetPart = pragueStr.find(p => p.type === "timeZoneName")?.value || "GMT+1";
+          const match = offsetPart.match(/GMT([+-])(\d+)(?::(\d+))?/);
+          const sign = match?.[1] === "+" ? 1 : -1;
+          const offsetMinutes = match ? sign * (parseInt(match[2]) * 60 + parseInt(match[3] || "0")) : 60;
+          const correctedMs = r.timestamp_unix * 1000 - offsetMinutes * 60000;
+          ts = new Date(correctedMs).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).replace(",", "");
+        } else {
+          ts = format(new Date(r.created_date), "dd.MM HH:mm");
+        }
         return {
           ts,
           sensor_data_id: r.sensor_data_id, // pro párování se spektrální analýzou
