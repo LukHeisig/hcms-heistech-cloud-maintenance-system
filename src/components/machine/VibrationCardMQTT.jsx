@@ -1,24 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 
-// Senzor ukládá timestamp_unix jako lokální čas Praha (bez UTC info).
-// Aby JS nepřidal timezone offset při zobrazení, odečteme Prague offset od timestampu
-// a zobrazíme jako UTC — výsledek je správný Praha čas včetně letního/zimního času.
+// Senzor posílá timestamp_unix v UTC → zobrazujeme přímo jako UTC.
 function formatSensorTs(timestamp_unix, opts = {}) {
   if (!timestamp_unix) return null;
-  const msec = timestamp_unix * 1000;
-  // Zjistíme Prague offset v minutách pro daný timestamp
-  const pragueStr = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Prague",
-    timeZoneName: "shortOffset",
-    hour: "numeric",
-  }).formatToParts(new Date(msec));
-  const offsetPart = pragueStr.find(p => p.type === "timeZoneName")?.value || "GMT+1";
-  const match = offsetPart.match(/GMT([+-])(\d+)(?::(\d+))?/);
-  const sign = match?.[1] === "+" ? 1 : -1;
-  const offsetMinutes = match ? sign * (parseInt(match[2]) * 60 + parseInt(match[3] || "0")) : 60;
-  const correctedMs = msec - offsetMinutes * 60000;
-  return new Date(correctedMs).toLocaleString("cs-CZ", { timeZone: "UTC", ...opts });
+  return new Date(timestamp_unix * 1000).toLocaleString("cs-CZ", { timeZone: "UTC", ...opts });
 }
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
