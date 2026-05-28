@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Vrátí agregovaná trendová data pro senzor — jen číselné hodnoty, bez JSON spekter
+// Vrátí trendová data — z SensorData (malé záznamy, žádná spektra)
+// report_type=1 jsou FFT záznamy s vel_rms hodnotami
 // Payload: { sensor_id, days, limit, is_temperature }
 Deno.serve(async (req) => {
   try {
@@ -8,7 +9,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { sensor_id, days, limit = 2000, is_temperature = false } = await req.json();
+    const { sensor_id, days, limit = 500, is_temperature = false } = await req.json();
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
 
     const cutoffSec = days != null ? (Date.now() / 1000) - (days * 86400) : null;
@@ -22,13 +23,8 @@ Deno.serve(async (req) => {
 
     const formatTs = (timestamp_unix, created_date) => {
       const ts = validTs(timestamp_unix);
-      if (ts) {
-        return new Date(ts * 1000).toLocaleString("cs-CZ", {
-          day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-          timeZone: "Europe/Prague"
-        }).replace(",", "");
-      }
-      return new Date(created_date).toLocaleString("cs-CZ", {
+      const date = ts ? new Date(ts * 1000) : new Date(created_date);
+      return date.toLocaleString("cs-CZ", {
         day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
         timeZone: "Europe/Prague"
       }).replace(",", "");
@@ -39,35 +35,33 @@ Deno.serve(async (req) => {
       return ts ?? (new Date(r.created_date).getTime() / 1000);
     };
 
-    if (is_temperature) {
-      const records = await base44.asServiceRole.entities.SensorData.filter(
-        { sensor_id },
-        "-created_date",
-        limit
-      );
-      const filtered = records
-        .filter(r => r.temperature != null)
-        .filter(r => cutoffSec == null || getRecordTime(r) >= cutoffSec)
-        .reverse()
-        .map(r => ({
-          ts: formatTs(r.timestamp_unix, r.created_date),
-          sensor_data_id: r.id,
-          temperature: r.temperature,
-        }));
-      return Response.json({ data: filtered });
-    }
+    // SensorData záznamy jsou malé (bez spekter) — filtrujeme na report_type=1 (FFT)
+    // report_type=0 jsou Raw záznamy — ty mají vel_rms spočítané ze surových dat
+    const filter = is_temperature ? { sensor_id } : { sensor_id, report_type: 1 };
 
-    // FFT trend — načteme jen OA hodnoty z SensorFFTData (bez JSON spekter — ta jsou velká)
-    // Uděláme to přes SensorData kde has_fft=true, a OA hodnoty jsou tam uloženy přímo
     const records = await base44.asServiceRole.entities.SensorData.filter(
-      { sensor_id, has_fft: true },
+      filter,
       "-created_date",
       limit
     );
 
     const filtered = records
       .filter(r => cutoffSec == null || getRecordTime(r) >= cutoffSec)
-      .reverse()
+      .reverse();
+
+    if (is_temperature) {
+      return Response.json({
+        data: filtered
+          .filter(r => r.temperature != null)
+          .map(r => ({
+            ts: formatTs(r.timestamp_unix, r.created_date),
+            sensor_data_id: r.id,
+            temperature: r.temperature,
+          }))
+      });
+    }
+
+    const data = filtered
       .map(r => ({
         ts: formatTs(r.timestamp_unix, r.created_date),
         sensor_data_id: r.id,
@@ -82,7 +76,7 @@ Deno.serve(async (req) => {
         r.oa_acc_z != null || r.env_rms_z != null
       );
 
-    return Response.json({ data: filtered });
+    return Response.json({ data });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

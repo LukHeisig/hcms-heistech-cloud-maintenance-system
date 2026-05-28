@@ -56,8 +56,8 @@ const TIME_RANGES = [
   { label: "Vše", days: null },
 ];
 
-// Max počet záznamů pro každý rozsah
-const RANGE_LIMIT = { 1: 500, 3: 500, 7: 1000, 30: 2000, 365: 5000, null: 2000 };
+// SensorData jsou malé záznamy → velkorysé limity jsou OK
+const RANGE_LIMIT = { 1: 200, 3: 500, 7: 1000, 30: 2000, 365: 5000, null: 5000 };
 
 // Validace timestamp — pokud je v budoucnosti nebo záporný, vrátí null
 const validTimestamp = (ts) => {
