@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from "recharts";
 import { TrendingUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
@@ -62,7 +62,8 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
   );
 };
 
-export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId }) {
+// limits: { ab, bc, cd } — hodnoty limitů pro zobrazení v grafu (nepovinné)
+export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
 
   // Pomocná funkce pro výpočet RMS ze spektra
@@ -138,6 +139,26 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     });
   }, [historyData, metricDef]);
 
+  // Výpočet rozsahu osy Y: max(C/D * 1.2, maxValue * 1.1)
+  const yDomain = useMemo(() => {
+    const allValues = chartData.flatMap(r => metricDef.lines.map(l => r[l.key]).filter(v => v != null));
+    const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0;
+    const limitCd = limits?.cd;
+    let yMax;
+    let yMaxLabel;
+    if (limitCd != null && limitCd * 1.2 >= maxValue * 1.1) {
+      yMax = limitCd * 1.2;
+      yMaxLabel = "Limit";
+    } else if (maxValue > 0) {
+      yMax = maxValue * 1.1;
+      yMaxLabel = "hodnota";
+    } else {
+      yMax = limitCd ? limitCd * 1.2 : "auto";
+      yMaxLabel = "Limit";
+    }
+    return { yMax, yMaxLabel };
+  }, [chartData, metricDef, limits]);
+
   return (
     <Card className="border-none shadow-lg">
       <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-3 px-4">
@@ -157,7 +178,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
           <ResponsiveContainer width="100%" height={220}>
             <LineChart
               data={chartData}
-              margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+              margin={{ top: 4, right: 60, left: 0, bottom: 4 }}
               onClick={(e) => {
                 if (e?.activePayload?.[0]?.payload?.sensor_data_id && onSelectRecord) {
                   onSelectRecord(e.activePayload[0].payload.sensor_data_id);
@@ -174,9 +195,29 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
                 textAnchor="end"
                 height={40}
               />
-              <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} width={50} />
+              <YAxis
+                domain={[0, yDomain.yMax === "auto" ? "auto" : yDomain.yMax]}
+                tick={{ fontSize: 10 }}
+                width={50}
+                label={yDomain.yMax !== "auto" ? { value: yDomain.yMaxLabel, angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 9, fill: "#94a3b8" } } : undefined}
+              />
               <Tooltip content={<CUSTOM_TOOLTIP />} />
               {metricDef.lines.length > 1 && <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />}
+
+              {/* Limity dle normy */}
+              {limits?.ab != null && (
+                <ReferenceLine y={limits.ab} stroke="#22c55e" strokeDasharray="5 3" strokeWidth={1.5}
+                  label={{ value: "A/B", position: "right", fontSize: 10, fill: "#22c55e" }} />
+              )}
+              {limits?.bc != null && (
+                <ReferenceLine y={limits.bc} stroke="#f59e0b" strokeDasharray="5 3" strokeWidth={1.5}
+                  label={{ value: "B/C", position: "right", fontSize: 10, fill: "#f59e0b" }} />
+              )}
+              {limits?.cd != null && (
+                <ReferenceLine y={limits.cd} stroke="#ef4444" strokeDasharray="5 3" strokeWidth={1.5}
+                  label={{ value: "C/D", position: "right", fontSize: 10, fill: "#ef4444" }} />
+              )}
+
               {metricDef.lines.map(l => (
                 <Line
                   key={l.key}

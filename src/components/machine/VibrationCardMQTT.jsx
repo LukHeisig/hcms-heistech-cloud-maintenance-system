@@ -886,14 +886,34 @@ export default function VibrationCardMQTT({ machine }) {
         const trendRowIdx = Object.entries(rowSensors).find(([, sid]) => sid === activeTrendSensorId)?.[0];
         const trendRow = trendRowIdx != null ? schemaRows[trendRowIdx] : null;
         const trendLabel = trendRow?.label || trendRow?.name || activeTrendSensorId;
+        const trendAssignment = trendRowIdx != null ? rowAssignments[trendRowIdx] : null;
+        const trendVelStd = standardsById[trendAssignment?.velStandardId];
+        const trendAccStd = standardsById[trendAssignment?.accStandardId];
+        const trendTempStd = standardsById[trendAssignment?.tempStandardId];
+
+        // Vyber správné limity dle metriky
+        const trendLimits = (() => {
+          const m = activeTrendMetric;
+          if (m === "vel_x" || m === "vel_y" || m === "vel_z" || m === "vel_xyz") {
+            return trendVelStd ? { ab: trendVelStd.limit_ab, bc: trendVelStd.limit_bc, cd: trendVelStd.limit_cd } : null;
+          }
+          if (m === "acc_z" || m === "env_z") {
+            return trendAccStd ? { ab: trendAccStd.acc_limit_ab, bc: trendAccStd.acc_limit_bc, cd: trendAccStd.acc_limit_cd } : null;
+          }
+          if (m === "temperature") {
+            return trendTempStd ? { ab: trendTempStd.temp_limit_ab, bc: trendTempStd.temp_limit_bc, cd: trendTempStd.temp_limit_cd } : null;
+          }
+          return null;
+        })();
+
         return (
           <VibrationTrendChart
             sensorId={activeTrendSensorId}
             metricKey={activeTrendMetric}
             sensorLabel={trendLabel}
+            limits={trendLimits}
             onSelectRecord={(sensorDataId) => {
               setTrendSelectedSensorDataId(sensorDataId);
-              // Přepne DSP panel na řádek odpovídající aktivnímu trend senzoru
               const rowIdx = Object.entries(rowSensors).find(([, sid]) => sid === activeTrendSensorId)?.[0];
               if (rowIdx != null) setSelectedRow(Number(rowIdx));
             }}
