@@ -200,8 +200,8 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
   const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
   const activeRecord = records.find(r => r.id === activeRecordId);
 
-  // Pomocná funkce pro zobrazení správného času záznamu
-  const getRecordTime = (r) => r ? new Date(r.timestamp_unix ? r.timestamp_unix * 1000 : r.created_date) : null;
+  // Pomocná funkce pro zobrazení správného času záznamu — vždy created_date (serverový čas = správný)
+  const getRecordTime = (r) => r ? new Date(r.created_date) : null;
 
   const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
     queryKey: ["sensorFFT", activeRecord?.id],
@@ -801,9 +801,9 @@ export default function VibrationCardMQTT({ machine }) {
                     {sensorId ? (
                       <>
                         <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
-                        {(latest?.timestamp_unix || latest?.created_date) && (
+                        {latest?.created_date && (
                           <span className="text-[10px] text-slate-400 pl-0.5">
-                            {new Date(latest.timestamp_unix ? latest.timestamp_unix * 1000 : latest.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            {new Date(latest.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                           </span>
                         )}
                       </>

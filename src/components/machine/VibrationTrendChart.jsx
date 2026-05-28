@@ -86,9 +86,8 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
       records.reverse(); // nejstarší → nejnovější pro správné zobrazení grafu
       return records.map(r => {
         const freqRes = r.frequency_resolution || 3.259;
-        const ts = r.timestamp_unix
-          ? format(new Date(r.timestamp_unix * 1000), "dd.MM HH:mm")
-          : format(new Date(r.created_date), "dd.MM HH:mm");
+        // Vždy používáme created_date (serverový čas příjmu = správný lokální čas)
+        const ts = format(new Date(r.created_date), "dd.MM HH:mm");
         return {
           ts,
           sensor_data_id: r.sensor_data_id, // pro párování se spektrální analýzou
