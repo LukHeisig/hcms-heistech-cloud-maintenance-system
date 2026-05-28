@@ -37,13 +37,19 @@ Deno.serve(async (req) => {
 
     // SensorData záznamy jsou malé (bez spekter) — filtrujeme na report_type=1 (FFT)
     // report_type=0 jsou Raw záznamy — ty mají vel_rms spočítané ze surových dat
-    const filter = is_temperature ? { sensor_id } : { sensor_id, report_type: 1 };
-
-    const records = await base44.asServiceRole.entities.SensorData.filter(
-      filter,
+    const allRecords = await base44.asServiceRole.entities.SensorData.filter(
+      { sensor_id },
       "-created_date",
       limit
     );
+    
+    // SDK compound filter může být nespolehlivý — filtrujeme v kódu
+    // report_type 0=Raw (má vel_rms), 1=FFT (má vel_rms), has_fft=true
+    const records = allRecords.filter(r => 
+      r.sensor_id === sensor_id && (r.report_type === 0 || r.report_type === 1 || r.has_fft)
+    );
+
+
 
     const filtered = records
       .filter(r => cutoffSec == null || getRecordTime(r) >= cutoffSec)
