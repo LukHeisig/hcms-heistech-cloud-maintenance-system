@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, ReferenceLine, ReferenceArea
 } from "recharts";
 import { TrendingUp, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
-import { format, subDays, subMonths, subYears, startOfDay } from "date-fns";
+import { format } from "date-fns";
 
 // Mapování metrik na SensorFFTData pole
 const METRIC_DEFS = {
@@ -95,80 +95,19 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
   const [zoomDragging, setZoomDragging] = useState(null); // index při drag start
   const [zoomedRange, setZoomedRange] = useState(null); // { left, right } indexy
 
-  const calcRMS = (json, freqRes, minF, maxF) => {
-    if (!json) return null;
-    try {
-      const amps = JSON.parse(json);
-      let sumSq = 0;
-      for (let i = 0; i < amps.length; i++) {
-        const f = i * freqRes;
-        if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
-      }
-      return Math.sqrt(sumSq / 2);
-    } catch { return null; }
-  };
-
   const isTemperature = metricDef.source === "SensorData";
 
   const { data: historyData = [], isLoading } = useQuery({
     queryKey: ["sensorTrend", sensorId, metricKey, rangeDays],
     queryFn: async () => {
       const limit = RANGE_LIMIT[rangeDays] ?? 2000;
-      const cutoff = rangeDays != null ? subDays(new Date(), rangeDays).getTime() / 1000 : null;
-
-      const formatTs = (timestamp_unix, created_date) => {
-        const ts = validTimestamp(timestamp_unix);
-        if (ts) {
-          return new Date(ts * 1000).toLocaleString("cs-CZ", {
-            day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague"
-          }).replace(",", "");
-        }
-        return format(new Date(created_date), "dd.MM HH:mm");
-      };
-
-      const getRecordTime = (r) => {
-        const ts = validTimestamp(r.timestamp_unix);
-        return ts ? ts : new Date(r.created_date).getTime() / 1000;
-      };
-
-      if (isTemperature) {
-        const records = await base44.entities.SensorData.filter(
-          { sensor_id: sensorId },
-          "-created_date",
-          limit
-        );
-        records.reverse();
-        return records
-          .filter(r => r.temperature != null)
-          .filter(r => cutoff == null || getRecordTime(r) >= cutoff)
-          .map(r => ({
-            ts: formatTs(r.timestamp_unix, r.created_date),
-            sensor_data_id: r.id,
-            temperature: r.temperature,
-          }));
-      }
-
-      const records = await base44.entities.SensorFFTData.filter(
-        { sensor_id: sensorId },
-        "-created_date",
-        limit
-      );
-      records.reverse();
-      return records
-        .filter(r => cutoff == null || getRecordTime(r) >= cutoff)
-        .map(r => {
-          const freqRes = r.frequency_resolution || 3.259;
-          const ts = formatTs(r.timestamp_unix, r.created_date);
-          return {
-            ts,
-            sensor_data_id: r.sensor_data_id,
-            vel_rms_x_mm_s: r.oa_x ?? calcRMS(r.vel_x_json, freqRes, 2, 1000),
-            vel_rms_y_mm_s: r.oa_y ?? calcRMS(r.vel_y_json, freqRes, 2, 1000),
-            vel_rms_z_mm_s: r.oa_z ?? calcRMS(r.vel_z_json, freqRes, 2, 1000),
-            oa_acc_z:       r.oa_acc_z ?? calcRMS(r.acc_z_json, freqRes, 2, 6000),
-            env_rms_z:      calcRMS(r.env_z_json, freqRes, 2, 1000),
-          };
-        }).filter(r => metricDef.lines.some(l => r[l.key] != null));
+      const res = await base44.functions.invoke('getSensorTrend', {
+        sensor_id: sensorId,
+        days: rangeDays,
+        limit,
+        is_temperature: isTemperature,
+      });
+      return (res.data?.data ?? []).filter(r => metricDef.lines.some(l => r[l.key] != null));
     },
     enabled: !!sensorId,
     staleTime: 30000,
