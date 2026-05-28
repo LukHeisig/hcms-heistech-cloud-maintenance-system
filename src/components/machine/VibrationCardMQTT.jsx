@@ -186,18 +186,12 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
 
 // DSP grafy — znovupoužitelný, totožný s DSPVisualization
 function SensorDSPPanel({ sensorId, initialRecordId }) {
-  // Načteme záznamy — primárně ty s has_fft=true, ale fallback bez filtru
+  // Načteme záznamy s has_fft=true pro dropdown
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId],
-    queryFn: async () => {
-      // Nejprve zkus záznamy kde has_fft=true
-      const withFft = await base44.entities.SensorData.filter({ sensor_id: sensorId, has_fft: true }, "-created_date", 100);
-      if (withFft.length > 0) return withFft;
-      // Fallback: záznamy kde existuje SensorFFTData — vezmi posledních 100 a vrátí ty které mají FFT
-      const allRecords = await base44.entities.SensorData.filter({ sensor_id: sensorId }, "-created_date", 100);
-      return allRecords;
-    },
+    queryFn: () => base44.entities.SensorData.filter({ sensor_id: sensorId, has_fft: true }, "-created_date", 50),
     enabled: !!sensorId,
+    staleTime: 60000,
   });
 
   // Pokud přijde nový initialRecordId z trendu, resetujeme manuální výběr
@@ -206,47 +200,22 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
   useEffect(() => {
     if (initialRecordId && initialRecordId !== prevInitialRef.current) {
       prevInitialRef.current = initialRecordId;
-      setManualRecordId(null); // nechme initialRecordId převzít
+      setManualRecordId(null);
     }
   }, [initialRecordId]);
 
   const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
-  // Záznam může být mimo seznam (starší, nebo has_fft=false přesto má FFT v SensorFFTData)
+  // Záznam může být mimo seznam (starší záznam předaný z trendu bez has_fft=true)
   const activeRecord = records.find(r => r.id === activeRecordId) ?? null;
 
   // timestamp_unix ze senzoru je lokální čas Praha (senzor nemá UTC) → zobrazujeme jako UTC
   const getRecordTime = (r) => r?.timestamp_unix ? new Date(r.timestamp_unix * 1000) : null;
 
-  // Pokud activeRecord není v seznamu (předán přes initialRecordId), načteme ho přímo
-  const { data: extraRecord } = useQuery({
-    queryKey: ["sensorDataById", activeRecordId],
-    queryFn: async () => {
-      if (!activeRecordId) return null;
-      const inList = records.find(r => r.id === activeRecordId);
-      if (inList) return inList;
-      const found = await base44.entities.SensorData.filter({ id: activeRecordId }, null, 1);
-      return found[0] ?? null;
-    },
-    enabled: !!activeRecordId,
-  });
-  const resolvedRecord = records.find(r => r.id === activeRecordId) ?? extraRecord ?? null;
-
   const { data: fftRecords = [], isLoading: isLoadingFFT } = useQuery({
-    queryKey: ["sensorFFT", resolvedRecord?.id],
-    queryFn: async () => {
-      // Zkus přes sensor_data_id
-      const byDataId = await base44.entities.SensorFFTData.filter({ sensor_data_id: resolvedRecord.id });
-      if (byDataId.length > 0) return byDataId;
-      // Fallback: hledej nejbližší FFT záznam dle timestampu nebo sensor_id
-      if (resolvedRecord.timestamp_unix) {
-        const nearby = await base44.entities.SensorFFTData.filter({ sensor_id: sensorId }, "-created_date", 200);
-        // Najdi záznam s nejbližším timestampem
-        const match = nearby.find(f => Math.abs((f.timestamp_unix ?? 0) - resolvedRecord.timestamp_unix) < 5);
-        if (match) return [match];
-      }
-      return [];
-    },
-    enabled: !!resolvedRecord,
+    queryKey: ["sensorFFT", activeRecordId],
+    queryFn: () => base44.entities.SensorFFTData.filter({ sensor_data_id: activeRecordId }),
+    enabled: !!activeRecordId,
+    staleTime: 60000,
   });
   const activeFFT = fftRecords[0];
 
@@ -282,11 +251,11 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
   };
 
   const dsp = useMemo(() => {
-    if (!resolvedRecord || !activeFFT) return null;
+    if (!activeFFT) return null;
     try {
       let rawChart = [];
-      if (resolvedRecord.raw_z_json) {
-        const rawZ = JSON.parse(resolvedRecord.raw_z_json);
+      if (activeRecord?.raw_z_json) {
+        const rawZ = JSON.parse(activeRecord.raw_z_json);
         const fs = 26700, step = Math.max(1, Math.floor(rawZ.length / 500));
         for (let i = 0; i < rawZ.length; i += step)
           rawChart.push({ t: Number((i * (1 / fs) * 1000).toFixed(1)), z: rawZ[i] });
@@ -313,7 +282,7 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
         rawChart, specAccZ, specVel, specEnvZ
       };
     } catch (e) { return null; }
-  }, [activeRecord, activeFFT]);
+  }, [activeRecord, activeFFT, activeRecordId]);
 
   if (isLoading) return (
     <div className="flex items-center gap-2 p-6 text-slate-500">
