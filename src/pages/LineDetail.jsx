@@ -583,76 +583,49 @@ export default function LineDetail() {
             <span className="font-semibold">{line.name}</span>
           </div>
 
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">{line.name}</h1>
               {line.description && (
                 <p className="text-blue-100 text-lg">{line.description}</p>
               )}
             </div>
+            {/* Mini statistiky v headeru */}
+            <div className="flex gap-3 flex-wrap">
+              <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
+                <Factory className="w-4 h-4 text-blue-200" />
+                <div>
+                  <p className="text-[10px] text-blue-200 leading-none">Stroje</p>
+                  <p className="text-xl font-bold leading-tight">{stats.machinesCount}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
+                <Droplet className="w-4 h-4 text-blue-200" />
+                <div>
+                  <p className="text-[10px] text-blue-200 leading-none">Kontrolní body</p>
+                  <p className="text-xl font-bold leading-tight">{stats.pointsCount}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
+                <Clock className="w-4 h-4 text-red-300" />
+                <div>
+                  <p className="text-[10px] text-blue-200 leading-none">Po termínu</p>
+                  <p className={`text-xl font-bold leading-tight ${stats.overdueCount > 0 ? 'text-red-300' : ''}`}>{stats.overdueCount}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
+                <AlertTriangle className="w-4 h-4 text-orange-300" />
+                <div>
+                  <p className="text-[10px] text-blue-200 leading-none">Aktivní závady</p>
+                  <p className={`text-xl font-bold leading-tight ${stats.issuesCount > 0 ? 'text-orange-300' : ''}`}>{stats.issuesCount}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Stroje</p>
-                  <p className="text-3xl font-bold text-slate-900">{stats.machinesCount}</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Factory className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Kontrolní body</p>
-                  <p className="text-3xl font-bold text-slate-900">{stats.pointsCount}</p>
-                </div>
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Droplet className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Po termínu</p>
-                  <p className="text-3xl font-bold text-red-600">{stats.overdueCount}</p>
-                </div>
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <Clock className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">Aktivní závady</p>
-                  <p className="text-3xl font-bold text-orange-600">{stats.issuesCount}</p>
-                </div>
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <AlertTriangle className="w-6 h-6 text-orange-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white shadow-sm flex flex-wrap gap-1 p-2">
             <TabsTrigger value="overview">Přehled</TabsTrigger>
