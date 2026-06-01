@@ -712,7 +712,7 @@ export default function Machine() {
           window.location.hash === "#maintenance" ? "maintenance" :
           urlParams.get("tab") || "overview"
         } className="space-y-6">
-          <TabsList className="flex flex-wrap w-full bg-white shadow-md p-2 h-auto gap-2">
+          <TabsList className="flex flex-wrap w-full bg-white shadow-md p-1 h-auto gap-1">
             <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden md:inline">Přehled</span>
