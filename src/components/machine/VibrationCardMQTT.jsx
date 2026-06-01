@@ -808,8 +808,8 @@ export default function VibrationCardMQTT({ machine }) {
 
         {/* Tabulka */}
         <CardContent className="p-0">
-          {/* Hlavička tabulky */}
-           <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 uppercase tracking-wide">
+          {/* Hlavička tabulky — pouze desktop */}
+           <div className="hidden lg:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 uppercase tracking-wide">
              <div>Místo</div>
              <div>ID senzoru / čas měření</div>
              <div className="text-center">Vel X<br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
@@ -835,11 +835,8 @@ export default function VibrationCardMQTT({ machine }) {
             const label = row.label || row.name || `Bod ${idx + 1}`;
             const name = row.name || "";
 
-            // Baterie: barva dle úrovně (0=prázdná, 4=plná)
             const batteryLevel = sensorInfo?.last_battery_level;
             const batteryColor = batteryLevel == null ? "text-slate-300" : batteryLevel >= 3 ? "text-green-600" : batteryLevel >= 2 ? "text-yellow-600" : "text-red-600";
-            // Signál: barva dle dBm (-50 vynikající, -67 dobrý, -80 slabý, <-80 nepoužitelný)
-            // Signál je uložen jako kladné číslo (75 = -75 dBm), interpretujeme ho jako -rssi
             const rssi = sensorInfo?.last_signal_strength;
             const rssiDb = rssi != null ? -Math.abs(rssi) : null;
             const rssiColor = rssiDb == null ? "text-slate-300"
@@ -852,14 +849,10 @@ export default function VibrationCardMQTT({ machine }) {
               : rssiDb >= -67 ? "Dobrý signál (-60 až -67 dBm)"
               : rssiDb >= -80 ? "Slabý signál (-70 až -80 dBm)"
               : "Nepoužitelný signál (< -80 dBm)";
-            // Teplota
             const temp = sensorInfo?.last_temperature;
             const tempClass = getLimitClass(temp, tempStd?.temp_limit_ab, tempStd?.temp_limit_bc, tempStd?.temp_limit_cd);
-
-            // Barevné třídy dle normy
             const velClass = (v) => getLimitClass(v, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd);
             const accClass = (v) => getLimitClass(v, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd);
-
             const alertLevel = getRowAlertLevel(latest, velStd, accStd, tempStd, temp);
             const alertTitle = alertLevel < 0
               ? (sensorId ? "Bez přiřazené normy" : "Bez senzoru")
@@ -868,27 +861,33 @@ export default function VibrationCardMQTT({ machine }) {
               : alertLevel === 2 ? "Stav: Alarm — překročeno pásmo B/C"
               : "Stav: KRITICKÝ — překročeno pásmo C/D";
 
+            const handleRowClick = () => {
+              if (!sensorId) return;
+              setSelectedRow(idx);
+              setTrendConfig({ sensorId, metricKey: "vel_xyz" });
+              setTrendSelectedSensorDataId(null);
+            };
+
+            const rmsMetrics = [
+              { metricKey: "vel_x", label: "Vel X", unit: "mm/s", value: latest?.vel_rms_x_mm_s, colorClass: velClass(latest?.vel_rms_x_mm_s), fallbackColor: "text-blue-700" },
+              { metricKey: "vel_y", label: "Vel Y", unit: "mm/s", value: latest?.vel_rms_y_mm_s, colorClass: velClass(latest?.vel_rms_y_mm_s), fallbackColor: "text-blue-700" },
+              { metricKey: "vel_z", label: "Vel Z", unit: "mm/s", value: latest?.vel_rms_z_mm_s, colorClass: velClass(latest?.vel_rms_z_mm_s), fallbackColor: "text-blue-700" },
+              { metricKey: "acc_z", label: "Acc Z", unit: "g", value: latest?.oa_acc_z, colorClass: accClass(latest?.oa_acc_z), fallbackColor: "text-green-700" },
+              { metricKey: "env_z", label: "Obálka Z", unit: "g", value: latest?.env_rms_z, colorClass: accClass(latest?.env_rms_z), fallbackColor: "text-orange-600" },
+            ];
+
             return (
               <div key={idx} className="border-b border-slate-100 last:border-0">
+                {/* === DESKTOP ROW === */}
                 <div
-                  className={`grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-4 text-base transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
-                  onClick={() => {
-                    if (!sensorId) return;
-                    setSelectedRow(idx);
-                    setTrendConfig({ sensorId, metricKey: "vel_xyz" });
-                    setTrendSelectedSensorDataId(null);
-                  }}
+                  className={`hidden lg:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 px-4 py-4 text-base transition-colors items-center ${sensorId ? "cursor-pointer hover:bg-blue-50/50" : ""} ${isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""}`}
+                  onClick={handleRowClick}
                 >
                   <div className="flex items-center gap-2">
-                    {/* Semafor puntík */}
-                    <div
-                      className={`w-4 h-4 rounded-full flex-shrink-0 ${alertDotStyle(sensorId ? alertLevel : -1)}`}
-                      title={alertTitle}
-                    />
+                    <div className={`w-4 h-4 rounded-full flex-shrink-0 ${alertDotStyle(sensorId ? alertLevel : -1)}`} title={alertTitle} />
                     <div>
                       <span className={`font-semibold ${isSelected && sensorId ? "text-blue-700" : "text-slate-900"}`}>{label}</span>
                       {name && name !== label && <span className="text-slate-500 ml-1 text-xs">{name}</span>}
-                      {/* Badge norem */}
                       <div className="flex gap-1 mt-0.5 flex-wrap">
                         {velStd && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 rounded px-1">{velStd.name}</span>}
                         {accStd && <span className="text-[9px] bg-green-50 text-green-700 border border-green-200 rounded px-1">{accStd.name}</span>}
@@ -896,7 +895,6 @@ export default function VibrationCardMQTT({ machine }) {
                       </div>
                     </div>
                   </div>
-
                   <div className="flex flex-col gap-0.5">
                     {sensorId ? (
                       <>
@@ -911,61 +909,124 @@ export default function VibrationCardMQTT({ machine }) {
                       <span className="text-slate-400 text-xs italic">— nepřiřazen —</span>
                     )}
                   </div>
-
-                  {/* RMS hodnoty — kliknutím nastaví trend, barevně dle normy */}
-                  {[
-                    { metricKey: "vel_x", value: latest?.vel_rms_x_mm_s, colorClass: velClass(latest?.vel_rms_x_mm_s), fallbackColor: "text-blue-700" },
-                    { metricKey: "vel_y", value: latest?.vel_rms_y_mm_s, colorClass: velClass(latest?.vel_rms_y_mm_s), fallbackColor: "text-blue-700" },
-                    { metricKey: "vel_z", value: latest?.vel_rms_z_mm_s, colorClass: velClass(latest?.vel_rms_z_mm_s), fallbackColor: "text-blue-700" },
-                    { metricKey: "acc_z", value: latest?.oa_acc_z, colorClass: accClass(latest?.oa_acc_z), fallbackColor: "text-green-700" },
-                    { metricKey: "env_z", value: latest?.env_rms_z, colorClass: accClass(latest?.env_rms_z), fallbackColor: "text-orange-600" },
-                  ].map(({ metricKey, value, colorClass, fallbackColor }) => {
+                  {rmsMetrics.map(({ metricKey, value, colorClass, fallbackColor }) => {
                     const isActiveTrend = sensorId && activeTrendSensorId === sensorId && activeTrendMetric === metricKey;
-                    const displayClass = colorClass || fallbackColor;
                     return (
-                      <div
-                        key={metricKey}
+                      <div key={metricKey}
                         className={`text-center font-mono text-sm rounded transition-colors ${sensorId ? "cursor-pointer hover:bg-blue-100" : ""} ${isActiveTrend ? "bg-blue-100 ring-1 ring-blue-400" : ""}`}
                         onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey }); }}
                         title={sensorId ? `Zobrazit trend: ${METRIC_DEFS[metricKey]?.label}` : ""}
                       >
-                        {value != null ? <span className={displayClass}>{value.toFixed(2)}</span> : <span className="text-slate-300">—</span>}
+                        {value != null ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}</span> : <span className="text-slate-300">—</span>}
                       </div>
                     );
                   })}
-
-                  {/* Teplota — kliknutím zobrazí trend teploty */}
-                   <div
-                     className={`text-center font-mono text-sm font-semibold ${sensorId ? "cursor-pointer hover:bg-purple-50 rounded transition-colors" : ""}`}
-                     onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey: "temperature" }); }}
-                     title={sensorId ? "Zobrazit trend teploty" : ""}
-                   >
-                     {temp != null
-                       ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°</span>
-                       : <span className="text-slate-300">—</span>}
-                   </div>
-
-                   {/* Baterie */}
-                   <div className="text-center font-mono text-sm font-semibold">
-                     {batteryLevel != null ? <span className={batteryColor}>{batteryLevel}/4</span> : <span className="text-slate-300">—</span>}
-                   </div>
-
-                   {/* Signál */}
-                   <div className="text-center font-mono text-sm font-semibold">
-                     {rssiDb != null ? <span className={rssiColor} title={rssiTitle}>{rssiDb}</span> : <span className="text-slate-300">—</span>}
-                   </div>
-
-                  {/* Tlačítko přiřazení */}
+                  <div className={`text-center font-mono text-sm font-semibold ${sensorId ? "cursor-pointer hover:bg-purple-50 rounded transition-colors" : ""}`}
+                    onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey: "temperature" }); }}
+                    title={sensorId ? "Zobrazit trend teploty" : ""}>
+                    {temp != null ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°</span> : <span className="text-slate-300">—</span>}
+                  </div>
+                  <div className="text-center font-mono text-sm font-semibold">
+                    {batteryLevel != null ? <span className={batteryColor}>{batteryLevel}/4</span> : <span className="text-slate-300">—</span>}
+                  </div>
+                  <div className="text-center font-mono text-sm font-semibold">
+                    {rssiDb != null ? <span className={rssiColor} title={rssiTitle}>{rssiDb}</span> : <span className="text-slate-300">—</span>}
+                  </div>
                   <div className="flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-slate-500 hover:text-blue-600"
-                      onClick={(e) => { e.stopPropagation(); setAssignDialog({ rowIndex: idx, rowLabel: `${label}${name && name !== label ? ' — ' + name : ''}`, currentAssignment: rowAssignments[idx] }); }}
-                    >
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-slate-500 hover:text-blue-600"
+                      onClick={(e) => { e.stopPropagation(); setAssignDialog({ rowIndex: idx, rowLabel: `${label}${name && name !== label ? ' — ' + name : ''}`, currentAssignment: rowAssignments[idx] }); }}>
                       <Settings2 className="w-3 h-3" />
                     </Button>
                   </div>
+                </div>
+
+                {/* === MOBILE CARD === */}
+                <div
+                  className={`lg:hidden p-3 transition-colors ${sensorId ? "cursor-pointer active:bg-blue-50" : ""} ${isSelected ? "bg-blue-50 border-l-4 border-l-blue-500" : ""}`}
+                  onClick={handleRowClick}
+                >
+                  {/* Hlavička karty */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${alertDotStyle(sensorId ? alertLevel : -1)}`} title={alertTitle} />
+                      <span className={`font-semibold text-sm ${isSelected && sensorId ? "text-blue-700" : "text-slate-900"}`}>{label}</span>
+                      {name && name !== label && <span className="text-slate-500 text-xs">{name}</span>}
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-blue-600"
+                      onClick={(e) => { e.stopPropagation(); setAssignDialog({ rowIndex: idx, rowLabel: `${label}${name && name !== label ? ' — ' + name : ''}`, currentAssignment: rowAssignments[idx] }); }}>
+                      <Settings2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+
+                  {/* ID senzoru */}
+                  {sensorId ? (
+                    <div className="mb-2">
+                      <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{sensorId}</span>
+                      {latest?.timestamp_unix && (
+                        <span className="text-[10px] text-slate-400 ml-2">
+                          {formatSensorTs(latest.timestamp_unix, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-400 italic mb-2">Senzor nepřiřazen</div>
+                  )}
+
+                  {/* Hodnoty — grid 3 sloupce */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {rmsMetrics.map(({ metricKey, label: mLabel, unit, value, colorClass, fallbackColor }) => {
+                      const isActiveTrend = sensorId && activeTrendSensorId === sensorId && activeTrendMetric === metricKey;
+                      return (
+                        <div key={metricKey}
+                          className={`bg-slate-50 rounded p-1.5 text-center border ${isActiveTrend ? "border-blue-400 bg-blue-50" : "border-slate-200"} ${sensorId ? "cursor-pointer active:bg-blue-100" : ""}`}
+                          onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey }); }}
+                        >
+                          <div className="text-[9px] text-slate-400 font-semibold uppercase">{mLabel}</div>
+                          <div className="text-[10px] text-slate-300 mb-0.5">[{unit}]</div>
+                          <div className="font-mono text-sm font-bold">
+                            {value != null ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}</span> : <span className="text-slate-300">—</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Teplota */}
+                    <div className={`bg-slate-50 rounded p-1.5 text-center border border-slate-200 ${sensorId ? "cursor-pointer active:bg-purple-50" : ""}`}
+                      onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey: "temperature" }); }}>
+                      <div className="text-[9px] text-slate-400 font-semibold uppercase">Teplota</div>
+                      <div className="text-[10px] text-slate-300 mb-0.5">[°C]</div>
+                      <div className="font-mono text-sm font-bold">
+                        {temp != null ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°</span> : <span className="text-slate-300">—</span>}
+                      </div>
+                    </div>
+
+                    {/* Baterie */}
+                    <div className="bg-slate-50 rounded p-1.5 text-center border border-slate-200">
+                      <div className="text-[9px] text-slate-400 font-semibold uppercase">Baterie</div>
+                      <div className="text-[10px] text-slate-300 mb-0.5">[0-4]</div>
+                      <div className="font-mono text-sm font-bold">
+                        {batteryLevel != null ? <span className={batteryColor}>{batteryLevel}/4</span> : <span className="text-slate-300">—</span>}
+                      </div>
+                    </div>
+
+                    {/* Signál */}
+                    <div className="bg-slate-50 rounded p-1.5 text-center border border-slate-200">
+                      <div className="text-[9px] text-slate-400 font-semibold uppercase">Signál</div>
+                      <div className="text-[10px] text-slate-300 mb-0.5">[dBm]</div>
+                      <div className="font-mono text-sm font-bold">
+                        {rssiDb != null ? <span className={rssiColor} title={rssiTitle}>{rssiDb}</span> : <span className="text-slate-300">—</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Badge norem */}
+                  {(velStd || accStd || tempStd) && (
+                    <div className="flex gap-1 mt-2 flex-wrap">
+                      {velStd && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 rounded px-1">{velStd.name}</span>}
+                      {accStd && <span className="text-[9px] bg-green-50 text-green-700 border border-green-200 rounded px-1">{accStd.name}</span>}
+                      {tempStd && <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 rounded px-1">{tempStd.name}</span>}
+                    </div>
+                  )}
                 </div>
               </div>
             );
