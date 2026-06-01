@@ -846,39 +846,39 @@ export default function VibrationCardMQTT({ machine }) {
       {/* Hlavička */}
       <Card className="border-none shadow-lg">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Activity className="w-5 h-5 text-blue-600" />
-              Vibrační karta — {machine?.name}
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <CardTitle className="flex items-center gap-1.5 text-sm min-w-0 truncate">
+              <Activity className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <span className="truncate">Vibrační karta — {machine?.name}</span>
               {overallLevel >= 0 && (() => {
                 const band = OVERALL_BAND[overallLevel];
                 return (
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium border ${band.bg} ${band.text} ${band.border}`}>
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${band.bg} ${band.text} ${band.border}`}>
                     {band.desc}
                   </span>
                 );
               })()}
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Button
                 variant={showTrend ? "default" : "outline"}
                 size="sm"
-                className={`gap-1.5 text-xs h-8 ${showTrend ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-600 hover:text-blue-600"}`}
+                className={`gap-1 text-xs h-7 px-2 ${showTrend ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-600 hover:text-blue-600"}`}
                 onClick={() => setShowTrend(v => !v)}
               >
-                <TrendingUp className="w-3.5 h-3.5" />
-                Trend
+                <TrendingUp className="w-3 h-3" />
+                <span className="hidden sm:inline">Trend</span>
               </Button>
               <Button
                 variant={showDSP ? "default" : "outline"}
                 size="sm"
-                className={`gap-1.5 text-xs h-8 ${showDSP ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-600 hover:text-blue-600"}`}
+                className={`gap-1 text-xs h-7 px-2 ${showDSP ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-600 hover:text-blue-600"}`}
                 onClick={() => setShowDSP(v => !v)}
               >
-                <BarChart2 className="w-3.5 h-3.5" />
-                Spektrum
+                <BarChart2 className="w-3 h-3" />
+                <span className="hidden sm:inline">Spektrum</span>
               </Button>
-              <Badge variant="outline" className="text-xs">{schemaRows.length} měřicích míst</Badge>
+              <Badge variant="outline" className="text-xs hidden sm:inline-flex">{schemaRows.length} míst</Badge>
             </div>
           </div>
         </CardHeader>
