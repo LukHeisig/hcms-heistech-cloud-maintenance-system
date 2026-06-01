@@ -749,6 +749,30 @@ export default function VibrationCardMQTT({ machine }) {
   const getSensorById = (sensorId) => sensors.find(s => s.sensor_id === sensorId);
   const getDisplayData = (sensorId) => latestSensorData.find(d => d.sensor_id === sensorId) ?? null;
 
+  const OVERALL_BAND = [
+    { label: "A", desc: "OK", bg: "bg-green-100", text: "text-green-700", border: "border-green-300" },
+    { label: "B", desc: "Upozornění", bg: "bg-yellow-100", text: "text-yellow-700", border: "border-yellow-300" },
+    { label: "C", desc: "Výstraha", bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300" },
+    { label: "D", desc: "Varování", bg: "bg-red-100", text: "text-red-700", border: "border-red-300" },
+  ];
+
+  // Celkový stav stroje — nejhorší level ze všech senzorů
+  const overallLevel = useMemo(() => {
+    const levels = schemaRows.map((_, idx) => {
+      const assignment = rowAssignments[idx] || {};
+      const sensorId = assignment.sensorId || null;
+      const velStd = standardsById[assignment.velStandardId];
+      const accStd = standardsById[assignment.accStandardId];
+      const tempStd = standardsById[assignment.tempStandardId];
+      const latest = getDisplayData(sensorId);
+      const sensorInfo = getSensorById(sensorId);
+      const temp = sensorInfo?.last_temperature;
+      return getRowAlertLevel(latest, velStd, accStd, tempStd, temp);
+    }).filter(l => l >= 0);
+    if (levels.length === 0) return -1;
+    return Math.max(...levels);
+  }, [schemaRows, rowAssignments, standardsById, latestSensorData, sensors]);
+
   // Pokud není přiřazeno schéma, zobraz informaci
   if (!machine?.vibration_schema_id) {
     return (
@@ -794,6 +818,15 @@ export default function VibrationCardMQTT({ machine }) {
             <CardTitle className="flex items-center gap-2 text-base">
               <Activity className="w-5 h-5 text-blue-600" />
               Vibrační karta — {vibrationSchema?.name}
+              {overallLevel >= 0 && (() => {
+                const band = OVERALL_BAND[overallLevel];
+                return (
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-sm font-bold border ${band.bg} ${band.text} ${band.border}`}>
+                    <span className="text-base leading-none">{band.label}</span>
+                    <span className="font-medium text-xs">{band.desc}</span>
+                  </span>
+                );
+              })()}
             </CardTitle>
             <Badge variant="outline" className="text-xs">{schemaRows.length} měřicích míst</Badge>
           </div>
