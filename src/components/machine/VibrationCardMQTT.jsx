@@ -986,7 +986,8 @@ export default function VibrationCardMQTT({ machine }) {
 
                   {/* Hodnoty — grid 3 sloupce */}
                   <div className="grid grid-cols-3 gap-1.5">
-                    {rmsMetrics.map(({ metricKey, label: mLabel, unit, value, colorClass, fallbackColor, level }) => {
+                    {rmsMetrics.map((metric) => {
+                      const { metricKey, label: mLabel, unit, value, colorClass, fallbackColor, level: bandLevel } = metric;
                       const isActiveTrend = sensorId && activeTrendSensorId === sensorId && activeTrendMetric === metricKey;
                       return (
                         <div key={metricKey}
@@ -998,7 +999,7 @@ export default function VibrationCardMQTT({ machine }) {
                           <div className="font-mono text-sm font-bold">
                             {value != null ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}</span> : <span className="text-slate-300">—</span>}
                           </div>
-                          {value != null && <div className="flex justify-center mt-0.5">{getBandPill(level)}</div>}
+                          {value != null && <div className="flex justify-center mt-0.5">{getBandPill(bandLevel)}</div>}
                         </div>
                       );
                     })}
