@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +45,8 @@ import {
   Info,
   Link as LinkIcon,
   LayoutDashboard,
+  Settings2,
+  TrendingUp,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -194,6 +196,95 @@ function AllSensorIds({ sensors }) {
   );
 }
 
+function MqttSettingsPanel() {
+  const queryClient = useQueryClient();
+  const [threshold, setThreshold] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const { data: settingsList = [], isLoading } = useQuery({
+    queryKey: ["mqttSettings"],
+    queryFn: () => base44.entities.MqttSettings.list(null, 1),
+    staleTime: 60000,
+  });
+
+  const settings = settingsList[0] || null;
+
+  // Sync do inputu po načtení
+  React.useEffect(() => {
+    if (settings && threshold === "") {
+      setThreshold(String(settings.trend_threshold_percent ?? 20));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
+
+  const handleSave = async () => {
+    const val = parseFloat(threshold);
+    if (isNaN(val) || val <= 0 || val > 100) return;
+    if (settings?.id) {
+      await base44.entities.MqttSettings.update(settings.id, { trend_threshold_percent: val });
+    } else {
+      await base44.entities.MqttSettings.create({ trend_threshold_percent: val });
+    }
+    queryClient.invalidateQueries({ queryKey: ["mqttSettings"] });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const currentValue = settings?.trend_threshold_percent ?? 20;
+
+  return (
+    <Card className="max-w-lg">
+      <CardHeader className="border-b border-slate-100">
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-blue-600" />
+          Nastavení trendu vibrací
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6 space-y-5">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+          <p className="font-semibold mb-1">Jak funguje šipka trendu?</p>
+          <p>
+            Směr šipky se určuje lineární regresí z posledních 10 měření. Pokud je sklon regresní přímky větší než <strong>{currentValue} %</strong> průměrné hodnoty, šipka ukáže <strong>↑ nahoru</strong> nebo <strong>↓ dolů</strong>. Jinak zobrazí <strong>→ rovnou</strong>.
+          </p>
+        </div>
+
+        <div>
+          <Label className="text-sm font-semibold text-slate-700">
+            Práh pro šipku trendu (% průměru)
+          </Label>
+          <p className="text-xs text-slate-400 mb-2">
+            Výchozí hodnota: 20 %. Nižší hodnota = citlivější šipky, vyšší = stabilnější.
+          </p>
+          <div className="flex items-center gap-3">
+            <Input
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              value={threshold === "" ? (isLoading ? "" : String(currentValue)) : threshold}
+              onChange={e => setThreshold(e.target.value)}
+              className="w-28"
+              placeholder="20"
+            />
+            <span className="text-slate-500 text-sm">%</span>
+            <Button
+              onClick={handleSave}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isLoading}
+            >
+              {saved ? "Uloženo ✓" : "Uložit"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="text-xs text-slate-400 border-t border-slate-100 pt-4">
+          Aktuálně uložená hodnota: <strong className="text-slate-600">{currentValue} %</strong>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function MqttSensors() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -289,6 +380,7 @@ export default function MqttSensors() {
             <TabsTrigger value="sensors">Seznam senzorů a Statistiky</TabsTrigger>
             <TabsTrigger value="dsp">DSP Vizualizace a Analýza</TabsTrigger>
             <TabsTrigger value="all-ids">Všechna ID senzorů</TabsTrigger>
+            <TabsTrigger value="settings">Nastavení</TabsTrigger>
           </TabsList>
           
           <TabsContent value="sensors">
@@ -471,6 +563,10 @@ export default function MqttSensors() {
 
           <TabsContent value="all-ids">
             <AllSensorIds sensors={sensors} />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <MqttSettingsPanel />
           </TabsContent>
         </Tabs>
       </div>

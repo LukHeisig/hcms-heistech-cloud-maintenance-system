@@ -15,10 +15,10 @@ function linearRegressionSlope(values) {
 }
 
 // Převede sklon na směr trendu
-// threshold = 1% průměrné hodnoty / krok
-function slopeToDirection(slope, values) {
+// thresholdPct = procentuální práh průměrné hodnoty (default 20%)
+function slopeToDirection(slope, values, thresholdPct = 20) {
   const avg = values.reduce((a, b) => a + b, 0) / values.length || 1;
-  const threshold = avg * 0.01; // 1% průměru
+  const threshold = avg * (thresholdPct / 100);
   if (slope > threshold) return "up";
   if (slope < -threshold) return "down";
   return "stable";
@@ -36,6 +36,15 @@ Deno.serve(async (req) => {
 
     const { sensor_id, days, limit = 500, is_temperature = false, trend_only = false } = await req.json();
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
+
+    // Načteme práh trendu z nastavení (default 20%)
+    let thresholdPct = 20;
+    try {
+      const mqttSettings = await base44.asServiceRole.entities.MqttSettings.list(null, 1);
+      if (mqttSettings[0]?.trend_threshold_percent != null) {
+        thresholdPct = mqttSettings[0].trend_threshold_percent;
+      }
+    } catch (_) { /* použijeme default */ }
 
     const cutoffSec = days != null ? (Date.now() / 1000) - (days * 86400) : null;
 
@@ -87,14 +96,14 @@ Deno.serve(async (req) => {
       if (is_temperature) {
         const temps = last10.map(r => r.temperature).filter(v => v != null && v !== 28.0);
         return Response.json({
-          trends: { temperature: temps.length >= 2 ? slopeToDirection(linearRegressionSlope(temps), temps) : "stable" }
+          trends: { temperature: temps.length >= 2 ? slopeToDirection(linearRegressionSlope(temps), temps, thresholdPct) : "stable" }
         });
       }
 
       const extract = (key) => last10.map(r => r[key]).filter(v => v != null);
       const trend = (key) => {
         const vals = extract(key);
-        return vals.length >= 2 ? slopeToDirection(linearRegressionSlope(vals), vals) : "stable";
+        return vals.length >= 2 ? slopeToDirection(linearRegressionSlope(vals), vals, thresholdPct) : "stable";
       };
 
       return Response.json({
