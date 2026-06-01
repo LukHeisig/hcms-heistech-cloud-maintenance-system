@@ -210,26 +210,39 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     </div>
   );
 
+  const MOBILE_RANGES = [1, 3, 7, 30];
+
   return (
     <Card className="border-none shadow-lg">
       <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-3 px-4">
         <div className="flex items-start justify-between gap-2 flex-wrap">
-          <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-blue-600" />
-            Trend — <span className="text-blue-700">{sensorLabel}</span>
-            <span className="text-slate-400 font-normal ml-1">· {metricDef.label}</span>
-            {isLoading && <RefreshCw className="w-3 h-3 animate-spin text-slate-400 ml-1" />}
+          <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2 min-w-0">
+            <TrendingUp className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            <span className="truncate">Trend — <span className="text-blue-700">{sensorLabel}</span></span>
+            <span className="text-slate-400 font-normal hidden sm:inline">· {metricDef.label}</span>
+            {isLoading && <RefreshCw className="w-3 h-3 animate-spin text-slate-400 ml-1 flex-shrink-0" />}
           </CardTitle>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {/* Časový rozsah */}
-            <ButtonGroup
-              label="Historie:"
-              options={TIME_RANGES.map(r => r.days)}
-              value={rangeDays}
-              onChange={(v) => { setRangeDays(v); resetZoom(); }}
-              getLabel={(v) => TIME_RANGES.find(r => r.days === v)?.label ?? "Vše"}
-            />
-            {/* Škálování Y */}
+        </div>
+        {/* Ovládací prvky — zabalené do vlastního řádku */}
+        <div className="flex flex-wrap items-center gap-2 text-xs mt-2">
+          {/* Časový rozsah — na mobilu jen 4 možnosti */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-slate-400 mr-1 whitespace-nowrap">Historie:</span>
+            {TIME_RANGES.filter(r => window.innerWidth >= 1024 || MOBILE_RANGES.includes(r.days)).map(r => (
+              <button
+                key={r.days ?? "all"}
+                onClick={() => { setRangeDays(r.days); resetZoom(); }}
+                className={`px-2 py-0.5 rounded border text-xs font-medium transition-colors whitespace-nowrap ${
+                  rangeDays === r.days ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-slate-500 border-slate-300 hover:border-blue-400 hover:text-blue-600"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          {/* Škálování Y — skryto na mobilu */}
+          <div className="hidden sm:flex items-center gap-1">
             <ButtonGroup
               label="Osa Y:"
               options={["auto", "limit", "hodnota"]}
@@ -238,24 +251,24 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
               getLabel={(v) => v === "auto" ? "Auto" : v === "limit" ? "Limit" : "Hodnota"}
               isDisabled={(v) => v === "limit" && !limits?.cd}
             />
-            {/* Zoom reset */}
-            {zoomedRange && (
-              <button
-                onClick={resetZoom}
-                className="flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium bg-orange-50 text-orange-600 border-orange-300 hover:bg-orange-100"
-                title="Resetovat zoom"
-              >
-                <ZoomOut className="w-3 h-3" />
-                Reset zoom
-              </button>
-            )}
-            {!zoomedRange && (
-              <span className="text-slate-300 text-xs flex items-center gap-1">
-                <ZoomIn className="w-3 h-3" />
-                Táhni pro zoom
-              </span>
-            )}
           </div>
+          {/* Zoom reset */}
+          {zoomedRange && (
+            <button
+              onClick={resetZoom}
+              className="flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium bg-orange-50 text-orange-600 border-orange-300 hover:bg-orange-100"
+              title="Resetovat zoom"
+            >
+              <ZoomOut className="w-3 h-3" />
+              Reset zoom
+            </button>
+          )}
+          {!zoomedRange && (
+            <span className="text-slate-300 text-xs hidden sm:flex items-center gap-1">
+              <ZoomIn className="w-3 h-3" />
+              Táhni pro zoom
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-4">
