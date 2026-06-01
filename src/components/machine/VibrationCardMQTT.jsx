@@ -28,23 +28,7 @@ function TrendArrow({ direction }) {
   return <ArrowDown className="w-3 h-3 text-green-500 inline ml-0.5" />;
 }
 
-// Hook pro načtení trendů senzoru (posledních 10 vzorků, regrese)
-function useSensorTrends(sensorId) {
-  return useQuery({
-    queryKey: ["sensorTrends", sensorId],
-    queryFn: async () => {
-      const res = await base44.functions.invoke("getSensorTrend", {
-        sensor_id: sensorId,
-        limit: 10,
-        trend_only: true,
-      });
-      return res.data?.trends || {};
-    },
-    enabled: !!sensorId,
-    staleTime: 120000,
-    refetchInterval: 300000,
-  });
-}
+
 
 // Dialog pro přiřazení senzoru + normy k řádku
 function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignment, onAssign }) {
