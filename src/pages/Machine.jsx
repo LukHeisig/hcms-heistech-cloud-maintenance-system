@@ -377,7 +377,7 @@ export default function Machine() {
   const lubricatorPoints = controlPoints.filter(p => p.type === "auto_lubricator").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   const preventionPoints = controlPoints.filter(p => p.type === "prevention").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
-  const overduePoints = controlPoints.filter(p => getPointStatus(p) === "overdue");
+  const overduePoints = controlPoints.filter(p => ["warning", "critical"].includes(getPointStatus(p)));
   const okPoints = controlPoints.filter(p => getPointStatus(p) === "ok");
 
   const getGroupStatus = (points) => {
