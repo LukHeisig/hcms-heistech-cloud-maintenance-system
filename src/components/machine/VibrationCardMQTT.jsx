@@ -475,7 +475,7 @@ export default function VibrationCardMQTT({ machine }) {
   const machineId = machine?.id;
 
   // Načteme schéma přiřazené ke stroji
-  const { data: vibrationSchema } = useQuery({
+  const { data: vibrationSchema, isLoading: isLoadingSchema } = useQuery({
     queryKey: ["vibrationSchema", machine?.vibration_schema_id],
     queryFn: async () => {
       if (!machine?.vibration_schema_id) return null;
@@ -483,6 +483,9 @@ export default function VibrationCardMQTT({ machine }) {
       return schemas[0] || null;
     },
     enabled: !!machine?.vibration_schema_id,
+    staleTime: 300000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
   // Načteme všechny registrované senzory (pro teplotu, baterii, signál)
@@ -506,6 +509,8 @@ export default function VibrationCardMQTT({ machine }) {
     queryFn: () => base44.entities.VibrationSensorAssignment.filter({ machine_id: machineId }, null, 200),
     enabled: !!machineId,
     staleTime: 30000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
   // Převod pole DB záznamů na { [rowIndex]: { sensorId, velStandardId, accStandardId, tempStandardId, _dbId } }
@@ -692,12 +697,24 @@ export default function VibrationCardMQTT({ machine }) {
     );
   }
 
-  if (schemaRows.length === 0) {
+  if (isLoadingSchema) {
+    return (
+      <Card className="border-none shadow-lg">
+        <CardContent className="p-12 text-center">
+          <RefreshCw className="w-10 h-10 text-slate-300 mx-auto mb-4 animate-spin" />
+          <p className="text-slate-500">Načítám vibrační schéma...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (schemaRows.length === 0 && !isLoadingSchema) {
     return (
       <Card className="border-none shadow-lg">
         <CardContent className="p-12 text-center">
           <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Schéma neobsahuje žádné řádky.</p>
+          <p className="text-xs text-slate-400 mt-2">ID schématu: {machine?.vibration_schema_id}</p>
         </CardContent>
       </Card>
     );
