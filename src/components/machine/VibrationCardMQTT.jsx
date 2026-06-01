@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 
-// Senzor posílá timestamp_unix jako lokální čas Praha (není UTC) — zobrazujeme přímo.
+// Zobrazujeme timestamp_unix v lokálním čase prohlížeče (stejně jako last_seen na MQTT stránce).
 function formatSensorTs(timestamp_unix, opts = {}) {
   if (!timestamp_unix) return null;
-  // timestamp_unix je lokální čas Praha → přičteme offset Praha (UTC+2 v létě, UTC+1 v zimě)
-  // Nejjednodušší: zobrazit jako UTC, protože senzor posílá čas bez timezone info
-  return new Date(timestamp_unix * 1000).toLocaleString("cs-CZ", { timeZone: "UTC", ...opts });
+  return new Date(timestamp_unix * 1000).toLocaleString("cs-CZ", opts);
 }
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
