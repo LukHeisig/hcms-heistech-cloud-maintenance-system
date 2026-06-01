@@ -591,7 +591,7 @@ export default function LineDetail() {
               )}
             </div>
             {/* Mini statistiky v headeru */}
-            <div className="flex gap-3 flex-wrap">
+            <div className="hidden sm:flex gap-3 flex-wrap">
               <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
                 <Factory className="w-4 h-4 text-blue-200" />
                 <div>
