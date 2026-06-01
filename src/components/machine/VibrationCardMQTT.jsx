@@ -16,7 +16,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2 } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2 } from "lucide-react";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
@@ -687,6 +687,8 @@ export default function VibrationCardMQTT({ machine }) {
   const [trendSelectedSensorDataId, setTrendSelectedSensorDataId] = useState(null);
 
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
+  const [showTrend, setShowTrend] = useState(false);
+  const [showDSP, setShowDSP] = useState(false);
 
   // Načteme poslední data pro každý přiřazený senzor (pro RMS hodnoty v tabulce)
   const assignedSensorIds = useMemo(() => {
@@ -827,7 +829,27 @@ export default function VibrationCardMQTT({ machine }) {
                 );
               })()}
             </CardTitle>
-            <Badge variant="outline" className="text-xs">{schemaRows.length} měřicích míst</Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showTrend ? "default" : "outline"}
+                size="sm"
+                className={`gap-1.5 text-xs h-8 ${showTrend ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-600 hover:text-blue-600"}`}
+                onClick={() => setShowTrend(v => !v)}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                Trend
+              </Button>
+              <Button
+                variant={showDSP ? "default" : "outline"}
+                size="sm"
+                className={`gap-1.5 text-xs h-8 ${showDSP ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-600 hover:text-blue-600"}`}
+                onClick={() => setShowDSP(v => !v)}
+              >
+                <BarChart2 className="w-3.5 h-3.5" />
+                Spektrum
+              </Button>
+              <Badge variant="outline" className="text-xs">{schemaRows.length} měřicích míst</Badge>
+            </div>
           </div>
         </CardHeader>
 
@@ -1082,7 +1104,7 @@ export default function VibrationCardMQTT({ machine }) {
       </Card>
 
       {/* Trend panel */}
-      {activeTrendSensorId && (() => {
+      {showTrend && activeTrendSensorId && (() => {
         const trendRowIdx = Object.entries(rowSensors).find(([, sid]) => sid === activeTrendSensorId)?.[0];
         const trendRow = trendRowIdx != null ? schemaRows[trendRowIdx] : null;
         const trendLabel = trendRow?.label || trendRow?.name || activeTrendSensorId;
@@ -1123,7 +1145,7 @@ export default function VibrationCardMQTT({ machine }) {
       })()}
 
       {/* DSP panel pod tabulkou */}
-      {activeRowIdx >= 0 && rowSensors[activeRowIdx] && (() => {
+      {showDSP && activeRowIdx >= 0 && rowSensors[activeRowIdx] && (() => {
         const activeSensorId = rowSensors[activeRowIdx];
         const activeLatest = getDisplayData(activeSensorId);
         const activeRow = schemaRows[activeRowIdx];
