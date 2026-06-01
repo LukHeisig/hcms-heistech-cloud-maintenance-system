@@ -255,7 +255,8 @@ function parseAissensData(bytes) {
     const lastAdc = (data[12] << 8) | data[13];
     result.battery_voltage = adcToVoltage(lastAdc);
     const tempRaw = readInt16BE(data, 14);
-    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
+    // tempRaw=0 znamená, že senzor teplotu neposkytl (výsledek by byl přesně 28.0°C) — ignorujeme
+    result.temperature = tempRaw !== 0 ? Math.round((tempRaw / 256.0 + 28) * 100) / 100 : null;
 
     // OA X,Y,Z at offset 16 (3 * float32 LE)
     result.oa_x = Math.round(readFloat32LE(data, 16) * 10000) / 10000;
@@ -321,8 +322,9 @@ function parseAissensData(bytes) {
     result.battery_level = (data[9] >> 4) & 0x0F;
     const lastAdc = (data[12] << 8) | data[13];
     result.battery_voltage = adcToVoltage(lastAdc);
-    const tempRaw = readInt16BE(data, 14);
-    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
+    const tempRaw9 = readInt16BE(data, 14);
+    // tempRaw=0 znamená, že senzor teplotu neposkytl (výsledek by byl přesně 28.0°C) — ignorujeme
+    result.temperature = tempRaw9 !== 0 ? Math.round((tempRaw9 / 256.0 + 28) * 100) / 100 : null;
     result.oa_x = Math.round(readFloat32LE(data, 16) * 10000) / 10000;
     result.oa_y = Math.round(readFloat32LE(data, 20) * 10000) / 10000;
     result.oa_z = Math.round(readFloat32LE(data, 24) * 10000) / 10000;
@@ -409,8 +411,9 @@ function parseAissensData(bytes) {
     result.timestamp_unix = readUint64BE(data, 0);
 
     // Temp: Int16BE at [11-12]
-    const tempRaw = readInt16BE(data, 11);
-    result.temperature = Math.round((tempRaw / 256.0 + 28) * 100) / 100;
+    const tempRaw0 = readInt16BE(data, 11);
+    // tempRaw=0 znamená, že senzor teplotu neposkytl (výsledek by byl přesně 28.0°C) — ignorujeme
+    result.temperature = tempRaw0 !== 0 ? Math.round((tempRaw0 / 256.0 + 28) * 100) / 100 : null;
 
     // Battery level: [15]
     result.battery_level = data[15] & 0x0F;

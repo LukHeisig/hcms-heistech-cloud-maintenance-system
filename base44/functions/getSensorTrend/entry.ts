@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     if (is_temperature) {
       return Response.json({
         data: filtered
-          .filter(r => r.temperature != null)
+          .filter(r => r.temperature != null && r.temperature !== 28.0)
           .map(r => ({
             ts: formatTs(r.timestamp_unix, r.created_date),
             sensor_data_id: r.id,
