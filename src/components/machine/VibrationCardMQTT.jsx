@@ -16,10 +16,35 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2 } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
+
+// Šipka trendu
+function TrendArrow({ direction }) {
+  if (!direction || direction === "stable") return <Minus className="w-3 h-3 text-slate-400 inline ml-0.5" />;
+  if (direction === "up") return <ArrowUp className="w-3 h-3 text-red-500 inline ml-0.5" />;
+  return <ArrowDown className="w-3 h-3 text-green-500 inline ml-0.5" />;
+}
+
+// Hook pro načtení trendů senzoru (posledních 10 vzorků, regrese)
+function useSensorTrends(sensorId) {
+  return useQuery({
+    queryKey: ["sensorTrends", sensorId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("getSensorTrend", {
+        sensor_id: sensorId,
+        limit: 10,
+        trend_only: true,
+      });
+      return res.data?.trends || {};
+    },
+    enabled: !!sensorId,
+    staleTime: 120000,
+    refetchInterval: 300000,
+  });
+}
 
 // Dialog pro přiřazení senzoru + normy k řádku
 function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignment, onAssign }) {
@@ -873,6 +898,8 @@ export default function VibrationCardMQTT({ machine }) {
           {schemaRows.map((row, idx) => {
             const assignment = rowAssignments[idx] || {};
             const sensorId = assignment.sensorId || null;
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const { data: sensorTrends = {} } = useSensorTrends(sensorId);
             const velStd = standardsById[assignment.velStandardId];
             const accStd = standardsById[assignment.accStandardId];
             const tempStd = standardsById[assignment.tempStandardId];
@@ -933,11 +960,11 @@ export default function VibrationCardMQTT({ machine }) {
             };
 
             const rmsMetrics = [
-              { metricKey: "vel_x", label: "Vel X", unit: "mm/s", value: latest?.vel_rms_x_mm_s, colorClass: velClass(latest?.vel_rms_x_mm_s), fallbackColor: "text-blue-700", level: getLimitLevel(latest?.vel_rms_x_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd) },
-              { metricKey: "vel_y", label: "Vel Y", unit: "mm/s", value: latest?.vel_rms_y_mm_s, colorClass: velClass(latest?.vel_rms_y_mm_s), fallbackColor: "text-blue-700", level: getLimitLevel(latest?.vel_rms_y_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd) },
-              { metricKey: "vel_z", label: "Vel Z", unit: "mm/s", value: latest?.vel_rms_z_mm_s, colorClass: velClass(latest?.vel_rms_z_mm_s), fallbackColor: "text-blue-700", level: getLimitLevel(latest?.vel_rms_z_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd) },
-              { metricKey: "acc_z", label: "Acc Z", unit: "g", value: latest?.oa_acc_z, colorClass: accClass(latest?.oa_acc_z), fallbackColor: "text-green-700", level: getLimitLevel(latest?.oa_acc_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd) },
-              { metricKey: "env_z", label: "Obálka Z", unit: "g", value: latest?.env_rms_z, colorClass: accClass(latest?.env_rms_z), fallbackColor: "text-orange-600", level: getLimitLevel(latest?.env_rms_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd) },
+              { metricKey: "vel_x", label: "Vel X", unit: "mm/s", value: latest?.vel_rms_x_mm_s, colorClass: velClass(latest?.vel_rms_x_mm_s), fallbackColor: "text-blue-700", level: getLimitLevel(latest?.vel_rms_x_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd), trendKey: "vel_rms_x_mm_s" },
+              { metricKey: "vel_y", label: "Vel Y", unit: "mm/s", value: latest?.vel_rms_y_mm_s, colorClass: velClass(latest?.vel_rms_y_mm_s), fallbackColor: "text-blue-700", level: getLimitLevel(latest?.vel_rms_y_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd), trendKey: "vel_rms_y_mm_s" },
+              { metricKey: "vel_z", label: "Vel Z", unit: "mm/s", value: latest?.vel_rms_z_mm_s, colorClass: velClass(latest?.vel_rms_z_mm_s), fallbackColor: "text-blue-700", level: getLimitLevel(latest?.vel_rms_z_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd), trendKey: "vel_rms_z_mm_s" },
+              { metricKey: "acc_z", label: "Acc Z", unit: "g", value: latest?.oa_acc_z, colorClass: accClass(latest?.oa_acc_z), fallbackColor: "text-green-700", level: getLimitLevel(latest?.oa_acc_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd), trendKey: "oa_acc_z" },
+              { metricKey: "env_z", label: "Obálka Z", unit: "g", value: latest?.env_rms_z, colorClass: accClass(latest?.env_rms_z), fallbackColor: "text-orange-600", level: getLimitLevel(latest?.env_rms_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd), trendKey: "env_rms_z" },
             ];
 
             return (
@@ -981,7 +1008,9 @@ export default function VibrationCardMQTT({ machine }) {
                         onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey }); }}
                         title={sensorId ? `Zobrazit trend: ${METRIC_DEFS[metricKey]?.label}` : ""}
                       >
-                        {value != null ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}</span> : <span className="text-slate-300">—</span>}
+                        {value != null
+                          ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}<TrendArrow direction={sensorTrends[metric.trendKey]} /></span>
+                          : <span className="text-slate-300">—</span>}
                         {value != null && getBandPill(level)}
                       </div>
                     );
@@ -989,7 +1018,7 @@ export default function VibrationCardMQTT({ machine }) {
                   <div className={`text-center font-mono text-sm font-semibold flex flex-col items-center justify-center gap-0.5 ${sensorId ? "cursor-pointer hover:bg-purple-50 rounded transition-colors" : ""}`}
                     onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey: "temperature" }); }}
                     title={sensorId ? "Zobrazit trend teploty" : ""}>
-                    {temp != null ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°</span> : <span className="text-slate-300">—</span>}
+                    {temp != null ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°<TrendArrow direction={sensorTrends["temperature"]} /></span> : <span className="text-slate-300">—</span>}
                     {temp != null && getBandPill(getLimitLevel(temp, tempStd?.temp_limit_ab, tempStd?.temp_limit_bc, tempStd?.temp_limit_cd))}
                   </div>
                   <div className="text-center font-mono text-sm font-semibold">
@@ -1051,7 +1080,7 @@ export default function VibrationCardMQTT({ machine }) {
                           <div className="text-[9px] text-slate-400 font-semibold uppercase">{mLabel}</div>
                           <div className="text-[10px] text-slate-300 mb-0.5">[{unit}]</div>
                           <div className="font-mono text-sm font-bold">
-                            {value != null ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}</span> : <span className="text-slate-300">—</span>}
+                            {value != null ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}<TrendArrow direction={sensorTrends[metric.trendKey]} /></span> : <span className="text-slate-300">—</span>}
                           </div>
                           {value != null && <div className="flex justify-center mt-0.5">{getBandPill(bandLevel)}</div>}
                         </div>
@@ -1064,7 +1093,7 @@ export default function VibrationCardMQTT({ machine }) {
                       <div className="text-[9px] text-slate-400 font-semibold uppercase">Teplota</div>
                       <div className="text-[10px] text-slate-300 mb-0.5">[°C]</div>
                       <div className="font-mono text-sm font-bold">
-                        {temp != null ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°</span> : <span className="text-slate-300">—</span>}
+                        {temp != null ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°<TrendArrow direction={sensorTrends["temperature"]} /></span> : <span className="text-slate-300">—</span>}
                       </div>
                       {temp != null && <div className="flex justify-center mt-0.5">{getBandPill(getLimitLevel(temp, tempStd?.temp_limit_ab, tempStd?.temp_limit_bc, tempStd?.temp_limit_cd))}</div>}
                     </div>
