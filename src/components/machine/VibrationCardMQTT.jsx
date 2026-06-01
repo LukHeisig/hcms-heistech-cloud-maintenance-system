@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 
 // Senzor posílá timestamp_unix v UTC, ale je o 1h pozadu → přičteme 1h.
@@ -16,7 +16,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut, Settings2 } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 
@@ -27,6 +27,42 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
   const [selectedVelStandard, setSelectedVelStandard] = useState(current.velStandardId || "");
   const [selectedAccStandard, setSelectedAccStandard] = useState(current.accStandardId || "");
   const [selectedTempStandard, setSelectedTempStandard] = useState(current.tempStandardId || "");
+  const [scanningPhoto, setScanningPhoto] = useState(false);
+  const [scanError, setScanError] = useState(null);
+  const cameraInputRef = useRef(null);
+
+  const handleCameraScan = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanningPhoto(true);
+    setScanError(null);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Na tomto obrázku je štítek nebo potisk vibračního senzoru Aissens. 
+Najdi ID senzoru — typicky vypadá takto: začíná "S9IMP" nebo "S9" a následují čísla a písmena, celkem cca 15-20 znaků (např. S9IMP600001265H).
+Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajdeš, vrať prázdný řetězec.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: { sensor_id: { type: "string" } }
+        }
+      });
+      const detectedId = result?.sensor_id?.trim();
+      if (detectedId) {
+        setSelectedSensor(detectedId);
+        setScanError(null);
+      } else {
+        setScanError("ID senzoru nebylo nalezeno. Zkuste přiblížit štítek senzoru.");
+      }
+    } catch (err) {
+      setScanError("Chyba při rozpoznávání. Zkuste to znovu.");
+    } finally {
+      setScanningPhoto(false);
+      // Reset input pro opakované skenování
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+    }
+  };
 
   // Reset při otevření
   useEffect(() => {
@@ -93,22 +129,58 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
           {/* Senzor */}
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">ID senzoru</label>
-            <Select value={selectedSensor || "__none__"} onValueChange={v => setSelectedSensor(v === "__none__" ? "" : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="— bez senzoru —" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— bez senzoru —</SelectItem>
-                {isLoading ? (
-                  <SelectItem value="__loading__" disabled>Načítám...</SelectItem>
-                ) : allSensorIds.map(sid => (
-                  <SelectItem key={sid} value={sid}>
-                    <span className="font-mono text-blue-700">{sid}</span>
-                    {getSensorName(sid) && <span className="text-slate-500 ml-2 text-xs">— {getSensorName(sid)}</span>}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 items-center">
+              <div className="flex-1">
+                <Select value={selectedSensor || "__none__"} onValueChange={v => setSelectedSensor(v === "__none__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="— bez senzoru —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— bez senzoru —</SelectItem>
+                    {isLoading ? (
+                      <SelectItem value="__loading__" disabled>Načítám...</SelectItem>
+                    ) : allSensorIds.map(sid => (
+                      <SelectItem key={sid} value={sid}>
+                        <span className="font-mono text-blue-700">{sid}</span>
+                        {getSensorName(sid) && <span className="text-slate-500 ml-2 text-xs">— {getSensorName(sid)}</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 flex-shrink-0 border-blue-300 text-blue-600 hover:bg-blue-50"
+                title="Vyfotit štítek senzoru a automaticky přečíst ID"
+                disabled={scanningPhoto}
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                {scanningPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+              </Button>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleCameraScan}
+              />
+            </div>
+            {scanningPhoto && (
+              <p className="text-xs text-blue-600 mt-1.5 flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> Rozpoznávám ID senzoru z fotografie...
+              </p>
+            )}
+            {scanError && (
+              <p className="text-xs text-red-500 mt-1.5">{scanError}</p>
+            )}
+            {selectedSensor && !scanningPhoto && (
+              <p className="text-xs text-slate-400 mt-1">
+                Aktuálně: <span className="font-mono text-blue-600">{selectedSensor}</span>
+              </p>
+            )}
           </div>
 
           {/* Norma pro rychlost */}
