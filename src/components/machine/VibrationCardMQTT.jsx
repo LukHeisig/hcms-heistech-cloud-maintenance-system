@@ -821,9 +821,8 @@ export default function VibrationCardMQTT({ machine }) {
               {overallLevel >= 0 && (() => {
                 const band = OVERALL_BAND[overallLevel];
                 return (
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-sm font-bold border ${band.bg} ${band.text} ${band.border}`}>
-                    <span className="text-base leading-none">{band.label}</span>
-                    <span className="font-medium text-xs">{band.desc}</span>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium border ${band.bg} ${band.text} ${band.border}`}>
+                    {band.desc}
                   </span>
                 );
               })()}
