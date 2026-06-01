@@ -704,6 +704,27 @@ export default function VibrationCardMQTT({ machine }) {
     return [...new Set(Object.values(rowSensors).filter(Boolean))];
   }, [rowSensors]);
 
+  // Trendy všech přiřazených senzorů — jedno query mimo map (Rules of Hooks)
+  const { data: allSensorTrends = {} } = useQuery({
+    queryKey: ["allSensorTrends", assignedSensorIds.join(",")],
+    queryFn: async () => {
+      if (assignedSensorIds.length === 0) return {};
+      const result = {};
+      await Promise.all(assignedSensorIds.map(async (sid) => {
+        const res = await base44.functions.invoke("getSensorTrend", {
+          sensor_id: sid,
+          limit: 10,
+          trend_only: true,
+        });
+        result[sid] = res.data?.trends || {};
+      }));
+      return result;
+    },
+    enabled: assignedSensorIds.length > 0,
+    staleTime: 120000,
+    refetchInterval: 300000,
+  });
+
   const { data: latestSensorData = [] } = useQuery({
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
@@ -882,8 +903,7 @@ export default function VibrationCardMQTT({ machine }) {
           {schemaRows.map((row, idx) => {
             const assignment = rowAssignments[idx] || {};
             const sensorId = assignment.sensorId || null;
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            const { data: sensorTrends = {} } = useSensorTrends(sensorId);
+            const sensorTrends = sensorId ? (allSensorTrends[sensorId] || {}) : {};
             const velStd = standardsById[assignment.velStandardId];
             const accStd = standardsById[assignment.accStandardId];
             const tempStd = standardsById[assignment.tempStandardId];
@@ -984,7 +1004,7 @@ export default function VibrationCardMQTT({ machine }) {
                       <span className="text-slate-400 text-xs italic">— nepřiřazen —</span>
                     )}
                   </div>
-                  {rmsMetrics.map(({ metricKey, value, colorClass, fallbackColor, level }) => {
+                  {rmsMetrics.map(({ metricKey, value, colorClass, fallbackColor, level, trendKey }) => {
                     const isActiveTrend = sensorId && activeTrendSensorId === sensorId && activeTrendMetric === metricKey;
                     return (
                       <div key={metricKey}
@@ -993,7 +1013,7 @@ export default function VibrationCardMQTT({ machine }) {
                         title={sensorId ? `Zobrazit trend: ${METRIC_DEFS[metricKey]?.label}` : ""}
                       >
                         {value != null
-                          ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}<TrendArrow direction={sensorTrends[metric.trendKey]} /></span>
+                          ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}<TrendArrow direction={sensorTrends[trendKey]} /></span>
                           : <span className="text-slate-300">—</span>}
                         {value != null && getBandPill(level)}
                       </div>
