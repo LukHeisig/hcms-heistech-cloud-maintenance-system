@@ -849,7 +849,7 @@ export default function VibrationCardMQTT({ machine }) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
               <Activity className="w-5 h-5 text-blue-600" />
-              Vibrační karta — {vibrationSchema?.name}
+              Vibrační karta — {machine?.name}
               {overallLevel >= 0 && (() => {
                 const band = OVERALL_BAND[overallLevel];
                 return (
