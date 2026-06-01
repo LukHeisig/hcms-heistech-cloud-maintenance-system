@@ -73,6 +73,9 @@ export default function Dashboard() {
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list("name", 1000),
     enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
+    staleTime: 300000,
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   const { data: userCompany } = useQuery({
@@ -127,6 +130,8 @@ export default function Dashboard() {
     queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list("order_index", 1000),
     staleTime: 300000,
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
@@ -134,6 +139,8 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Machine.list("order_index", 1000),
     enabled: !!user,
     staleTime: 300000,
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   // Filtrovat stroje podle company_id pro non-admin uživatele
@@ -152,6 +159,8 @@ export default function Dashboard() {
     queryFn: () => base44.entities.ControlPoint.list("order_index", 1000),
     enabled: !!user,
     staleTime: 300000,
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   // Filtrovat kontrolní body podle company_id pro non-admin uživatele
