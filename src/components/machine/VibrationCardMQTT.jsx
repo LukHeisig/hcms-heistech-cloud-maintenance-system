@@ -19,6 +19,7 @@ import {
 import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
+import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
 
 // Dialog pro přiřazení senzoru + normy k řádku
 function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignment, onAssign }) {
@@ -257,7 +258,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
 }
 
 // DSP grafy — znovupoužitelný, totožný s DSPVisualization
-function SensorDSPPanel({ sensorId, initialRecordId }) {
+function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, tempStandard, temperature, machineName, measurementPoint }) {
   // Načteme záznamy s has_fft=true pro dropdown
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId],
@@ -396,32 +397,14 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
         <p className="text-sm text-slate-500 p-4">Nelze zpracovat data.</p>
       ) : (
         <>
-          {/* RMS tabulka */}
-          <div className="bg-white border border-slate-200 rounded-lg p-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1">
-              <Activity className="w-3 h-3" /> Tabulka celkových hodnot RMS
-            </p>
-            <div className="flex flex-wrap gap-6">
-              <div>
-                <p className="text-xs text-slate-400">RMS Rychlosti (2-1000 Hz) [mm/s]</p>
-                <div className="flex gap-3 mt-1">
-                  <span className="text-base">X: <span className="font-semibold text-blue-700">{dsp.rmsVelX.toFixed(2)}</span></span>
-                  <span className="text-base">Y: <span className="font-semibold text-blue-700">{dsp.rmsVelY.toFixed(2)}</span></span>
-                  <span className="text-base">Z: <span className="font-bold text-blue-700">{dsp.rmsVelZ.toFixed(2)}</span></span>
-                </div>
-              </div>
-              <div className="w-px bg-slate-200 self-stretch hidden sm:block" />
-              <div>
-                <p className="text-xs text-slate-400">RMS Zrychlení Z (2-6000 Hz) [g]</p>
-                <span className="text-base mt-1">Z: <span className="font-bold text-green-700">{dsp.rmsAccZ.toFixed(2)}</span></span>
-              </div>
-              <div className="w-px bg-slate-200 self-stretch hidden sm:block" />
-              <div>
-                <p className="text-xs text-slate-400">RMS Obálky Z (&gt;500 Hz) [g]</p>
-                <span className="text-base mt-1">Z: <span className="font-bold text-orange-600">{dsp.rmsEnvZ.toFixed(2)}</span></span>
-              </div>
-            </div>
-          </div>
+          {/* Vyhodnocení dle norem */}
+          <LimitEvaluationPanel
+            rmsData={{ vel_x: dsp.rmsVelX, vel_y: dsp.rmsVelY, vel_z: dsp.rmsVelZ, acc_z: dsp.rmsAccZ, env_z: dsp.rmsEnvZ }}
+            velStandard={velStandard}
+            accStandard={accStandard}
+            tempStandard={tempStandard}
+            temperature={temperature}
+          />
 
           {/* Grafy 2x2 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -536,6 +519,16 @@ function SensorDSPPanel({ sensorId, initialRecordId }) {
               </CardContent>
             </Card>
           </div>
+
+          {/* AI Diagnostická analýza */}
+          <VibrationAIAnalysis
+            sensorDataId={activeRecordId}
+            velStandard={velStandard}
+            accStandard={accStandard}
+            tempStandard={tempStandard}
+            machineName={machineName}
+            measurementPoint={measurementPoint}
+          />
         </>
       )}
     </div>
@@ -1092,9 +1085,15 @@ export default function VibrationCardMQTT({ machine }) {
             </CardHeader>
             <CardContent className="p-4">
               <SensorDSPPanel
-            sensorId={activeSensorId}
-            initialRecordId={trendSelectedSensorDataId || activeLatest?.id}
-          />
+                sensorId={activeSensorId}
+                initialRecordId={trendSelectedSensorDataId || activeLatest?.id}
+                velStandard={standardsById[rowAssignments[activeRowIdx]?.velStandardId]}
+                accStandard={standardsById[rowAssignments[activeRowIdx]?.accStandardId]}
+                tempStandard={standardsById[rowAssignments[activeRowIdx]?.tempStandardId]}
+                temperature={getSensorById(activeSensorId)?.last_temperature}
+                machineName={machine?.name}
+                measurementPoint={schemaRows[activeRowIdx]?.label || schemaRows[activeRowIdx]?.name || `Bod ${activeRowIdx + 1}`}
+              />
             </CardContent>
           </Card>
         );
