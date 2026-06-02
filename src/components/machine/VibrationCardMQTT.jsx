@@ -2,11 +2,6 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-// Zobrazujeme created_date (UTC ISO z DB) v pražském čase (CEST/CET).
-function formatSensorTs(created_date, opts = {}) {
-  if (!created_date) return null;
-  return new Date(created_date).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", ...opts });
-}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +15,12 @@ import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, B
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
+
+// Zobrazujeme created_date (UTC ISO z DB) v pražském čase (CEST/CET).
+function formatSensorTs(created_date, opts = {}) {
+  if (!created_date) return null;
+  return new Date(created_date).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", ...opts });
+}
 
 // Šipka trendu
 function TrendArrow({ direction }) {
