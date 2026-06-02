@@ -425,7 +425,7 @@ function parseAissensData(bytes) {
     // Real ODR: Int16BE at [13-14]
     result.real_odr = readInt16BE(data, 13);
 
-    console.log(`[Type0] tempRaw=${tempRaw} temp=${result.temperature} batLevel=${result.battery_level} lastAdc=${lastAdc} voltage=${result.battery_voltage} odr=${result.real_odr} dataLen=${data.length}`);
+    console.log(`[Type0] tempRaw=${tempRaw0} temp=${result.temperature} batLevel=${result.battery_level} lastAdc=${lastAdc} voltage=${result.battery_voltage} odr=${result.real_odr} dataLen=${data.length}`);
 
     // Raw acceleration data starts at offset 20 — little-endian Int16
     const samplesOffset = 20;
