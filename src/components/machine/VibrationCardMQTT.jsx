@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Zobrazujeme timestamp_unix v lokálním čase prohlížeče (stejně jako last_seen na MQTT stránce).
 function formatSensorTs(timestamp_unix, opts = {}) {
   if (!timestamp_unix) return null;
   return new Date(timestamp_unix * 1000).toLocaleString("cs-CZ", opts);
 }
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -547,6 +547,21 @@ function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, t
 // Hlavní komponenta — Vibrační karta MQTT
 export default function VibrationCardMQTT({ machine }) {
   const machineId = machine?.id;
+  const queryClient = useQueryClient();
+
+  // Real-time subscribe — při nových datech ze senzorů okamžitě invalidujeme cache
+  useEffect(() => {
+    const unsubSensorData = base44.entities.SensorData.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ["latestSensorData"] });
+    });
+    const unsubSensors = base44.entities.AissensSensor.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ["aissens_sensors_all"] });
+    });
+    return () => {
+      unsubSensorData();
+      unsubSensors();
+    };
+  }, [queryClient]);
 
   // Načteme schéma přiřazené ke stroji
   const { data: vibrationSchema, isLoading: isLoadingSchema } = useQuery({
@@ -566,7 +581,8 @@ export default function VibrationCardMQTT({ machine }) {
   const { data: sensors = [], refetch: refetchSensors } = useQuery({
     queryKey: ["aissens_sensors_all"],
     queryFn: () => base44.entities.AissensSensor.list(null, 500),
-    staleTime: 60000,
+    staleTime: 0,
+    refetchInterval: 30000,
   });
 
   // Parsování řádků ze schématu
@@ -774,8 +790,8 @@ export default function VibrationCardMQTT({ machine }) {
       return results;
     },
     enabled: assignedSensorIds.length > 0,
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 0,
+    refetchInterval: 30000,
   });
 
   const getSensorById = (sensorId) => sensors.find(s => s.sensor_id === sensorId);
