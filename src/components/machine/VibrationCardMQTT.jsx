@@ -758,11 +758,18 @@ export default function VibrationCardMQTT({ machine }) {
 
       const results = [];
       for (const sid of assignedSensorIds) {
-        const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-timestamp_unix", 1);
-        const sensorDataRecord = records[0];
+        // Nejprve zkus najít nejnovější FFT záznam
+        const fftRecords = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
+        // Pokud neexistuje FFT, vezmi nejnovější jakýkoliv záznam se smysluplnými daty
+        const fallbackRecords = fftRecords.length === 0
+          ? await base44.entities.SensorData.filter({ sensor_id: sid }, "-created_date", 10)
+          : [];
+        const sensorDataRecord = fftRecords[0] ?? fallbackRecords.find(r => r.vel_rms_x_mm_s != null || r.temperature != null) ?? fallbackRecords[0];
         if (!sensorDataRecord) continue;
 
-        const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: sensorDataRecord.id });
+        const fftRecs = sensorDataRecord.has_fft
+          ? await base44.entities.SensorFFTData.filter({ sensor_data_id: sensorDataRecord.id })
+          : [];
         const fft = fftRecs[0];
 
         if (!fft) {
