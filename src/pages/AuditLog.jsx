@@ -32,6 +32,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { UserStatistics } from "@/components/audit/UserStatistics";
+import ControlChecksStats from "@/components/audit/ControlChecksStats";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 
@@ -285,6 +286,7 @@ export default function AuditLog() {
     : null;
 
   const canAccessMonitoring = user && (user.user_type === "admin" || user.user_type === "superAdmin" || user.user_type === "manager");
+  const canAccessChecks = canAccessMonitoring;
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -316,7 +318,7 @@ export default function AuditLog() {
         </Card>
 
         <Tabs defaultValue="history" className="space-y-6">
-          <TabsList className={`bg-white shadow-sm ${canAccessMonitoring ? 'grid w-full grid-cols-3' : ''}`}>
+          <TabsList className={`bg-white shadow-sm ${canAccessMonitoring ? 'grid w-full grid-cols-4' : 'grid w-full grid-cols-1'}`}>
             <TabsTrigger value="history" className="gap-2">
               <Activity className="w-4 h-4" />
               Historie aktivit
@@ -331,6 +333,12 @@ export default function AuditLog() {
               <TabsTrigger value="statistics" className="gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Statistiky uživatelů
+              </TabsTrigger>
+            )}
+            {canAccessChecks && (
+              <TabsTrigger value="checks" className="gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Statistiky kontrol
               </TabsTrigger>
             )}
           </TabsList>
@@ -815,6 +823,12 @@ export default function AuditLog() {
           {canAccessMonitoring && (
             <TabsContent value="statistics">
                 <UserStatistics users={visibleUsers} allLogs={allLogs} companies={companies} />
+            </TabsContent>
+          )}
+
+          {canAccessChecks && (
+            <TabsContent value="checks">
+              <ControlChecksStats visibleUsers={visibleUsers} getUserDisplayName={getUserDisplayName} />
             </TabsContent>
           )}
         </Tabs>
