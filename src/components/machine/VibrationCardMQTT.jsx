@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-// Zobrazujeme timestamp_unix v lokálním čase prohlížeče (stejně jako last_seen na MQTT stránce).
-function formatSensorTs(timestamp_unix, opts = {}) {
-  if (!timestamp_unix) return null;
-  return new Date(timestamp_unix * 1000).toLocaleString("cs-CZ", opts);
+// Zobrazujeme created_date (UTC ISO z DB) v lokálním čase prohlížeče — shoduje se s last_seen na MQTT stránce.
+function formatSensorTs(created_date, opts = {}) {
+  if (!created_date) return null;
+  return new Date(created_date).toLocaleString("cs-CZ", opts);
 }
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -390,11 +390,9 @@ function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, t
           </SelectTrigger>
           <SelectContent>
             {records.map(r => (
-              <SelectItem key={r.id} value={r.id} className="text-xs">
-                {r.timestamp_unix
-                  ? formatSensorTs(r.timestamp_unix, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })
-                  : new Date(r.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </SelectItem>
+            <SelectItem key={r.id} value={r.id} className="text-xs">
+              {new Date(r.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -1017,9 +1015,9 @@ export default function VibrationCardMQTT({ machine }) {
                     {sensorId ? (
                       <>
                         <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
-                        {latest?.timestamp_unix && (
+                        {latest?.created_date && (
                           <span className="text-[10px] text-slate-400 pl-0.5">
-                            {formatSensorTs(latest.timestamp_unix, { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            {formatSensorTs(latest.created_date, { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                           </span>
                         )}
                       </>
@@ -1084,9 +1082,9 @@ export default function VibrationCardMQTT({ machine }) {
                   {sensorId ? (
                     <div className="mb-2">
                       <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{sensorId}</span>
-                      {latest?.timestamp_unix && (
+                      {latest?.created_date && (
                         <span className="text-[10px] text-slate-400 ml-2">
-                          {formatSensorTs(latest.timestamp_unix, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                          {formatSensorTs(latest.created_date, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                       )}
                     </div>
