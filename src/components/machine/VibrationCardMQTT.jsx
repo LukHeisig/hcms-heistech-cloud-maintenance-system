@@ -758,7 +758,7 @@ export default function VibrationCardMQTT({ machine }) {
 
       const results = [];
       for (const sid of assignedSensorIds) {
-        const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
+        const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-timestamp_unix", 1);
         const sensorDataRecord = records[0];
         if (!sensorDataRecord) continue;
 
