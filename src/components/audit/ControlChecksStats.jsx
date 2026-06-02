@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle, Search, Filter, Calendar, User as UserIcon, Loader2, FileText, X } from "lucide-react";
+import { CheckCircle, Search, Filter, Calendar, User as UserIcon, Loader2, FileText, X, Download } from "lucide-react";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
 
@@ -136,6 +136,37 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName })
 
   const hasFilters = lineFilter !== "all" || machineFilter !== "all" || userFilter !== "all" || dateRangeFilter !== "last30Days" || searchQuery;
 
+  const handleExport = () => {
+    const BOM = "\uFEFF";
+    const headers = ["Datum", "Typ kontroly", "Kontrolní bod", "Stroj", "Linka", "Uživatel", "Poznámka"];
+    const rows = filteredRecords.map(record => {
+      const cp = cpMap[record.control_point_id];
+      const machineId = cp ? cpToMachine[cp.id] : null;
+      const machine = machineId ? machineMap[machineId] : null;
+      const line = machine ? lineMap[machineToLine[machine.id]] : null;
+      const typeInfo = RECORD_TYPE_LABELS[record.record_type] || { label: record.record_type };
+      const safe = (val) => `"${String(val || "").replace(/"/g, '""')}"`;
+      return [
+        safe(format(new Date(record.performed_at), "d. M. yyyy HH:mm", { locale: cs })),
+        safe(typeInfo.label),
+        safe(cp?.name || ""),
+        safe(machine?.name || ""),
+        safe(line?.name || ""),
+        safe(getUserName(record)),
+        safe(record.note || ""),
+      ].join(";");
+    });
+    const csvContent = BOM + [headers.join(";"), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `statistiky_kontrol_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const clearFilters = () => {
     setLineFilter("all");
     setMachineFilter("all");
@@ -256,7 +287,12 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName })
               <CheckCircle className="w-5 h-5 text-green-600" />
               Potvrzené kontroly
             </CardTitle>
-            <Badge variant="outline" className="text-base">{filteredRecords.length} záznamů</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-base">{filteredRecords.length} záznamů</Badge>
+              <Button variant="outline" size="icon" onClick={handleExport} title="Exportovat do CSV" disabled={filteredRecords.length === 0}>
+                <Download className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
