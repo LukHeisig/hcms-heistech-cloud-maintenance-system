@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
     };
 
     const formatTs = (timestamp_unix, created_date) => {
-      const ts = validTs(timestamp_unix);
-      const date = ts ? new Date(ts * 1000) : new Date(created_date);
+      // Vždy používáme created_date (UTC ISO z DB) — timestamp_unix ze senzoru není spolehlivý
+      const date = new Date(created_date);
       return date.toLocaleString("cs-CZ", {
         day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
         timeZone: "Europe/Prague"
@@ -65,8 +65,7 @@ Deno.serve(async (req) => {
     };
 
     const getRecordTime = (r) => {
-      const ts = validTs(r.timestamp_unix);
-      return ts ?? (new Date(r.created_date).getTime() / 1000);
+      return new Date(r.created_date).getTime() / 1000;
     };
 
     // SensorData záznamy jsou malé (bez spekter) — filtrujeme na report_type=1 (FFT)
