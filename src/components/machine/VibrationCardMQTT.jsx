@@ -392,7 +392,7 @@ function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, t
           <SelectContent>
             {records.map(r => (
             <SelectItem key={r.id} value={r.id} className="text-xs">
-              {new Date(r.created_date).toLocaleString("cs-CZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            {new Date(r.created_date).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </SelectItem>
             ))}
           </SelectContent>
