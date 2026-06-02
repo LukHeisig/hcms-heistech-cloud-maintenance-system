@@ -192,7 +192,7 @@ export default function DSPVisualization() {
             <SelectContent>
               {records.map(r => (
                 <SelectItem key={r.id} value={r.id}>
-                  {r.sensor_id} — {new Date(r.created_date).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  {r.sensor_id} — {(() => { const s = String(r.created_date); const u = /[Zz]$|[+-]\d{2}:\d{2}$/.test(s) ? s : s + "Z"; return new Date(u).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }); })()}
                 </SelectItem>
               ))}
             </SelectContent>

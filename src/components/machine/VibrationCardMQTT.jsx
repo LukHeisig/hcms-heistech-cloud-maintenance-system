@@ -19,7 +19,10 @@ import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/
 // Zobrazujeme created_date (UTC ISO z DB) v pražském čase (CEST/CET).
 function formatSensorTs(created_date, opts = {}) {
   if (!created_date) return null;
-  return new Date(created_date).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", ...opts });
+  // Pokud string neobsahuje timezone info (žádné Z, +, nebo posledních chars), přidáme Z = UTC
+  const s = String(created_date);
+  const utcStr = /[Zz]$|[+-]\d{2}:\d{2}$/.test(s) ? s : s + "Z";
+  return new Date(utcStr).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", ...opts });
 }
 
 // Šipka trendu
@@ -392,7 +395,7 @@ function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, t
           <SelectContent>
             {records.map(r => (
             <SelectItem key={r.id} value={r.id} className="text-xs">
-            {new Date(r.created_date).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            {(() => { const s = String(r.created_date); const u = /[Zz]$|[+-]\d{2}:\d{2}$/.test(s) ? s : s + "Z"; return new Date(u).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }); })()}
             </SelectItem>
             ))}
           </SelectContent>
