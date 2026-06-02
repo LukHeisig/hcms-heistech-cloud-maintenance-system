@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,16 +10,31 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 
 export default function DSPVisualization() {
-  // force vite restart
+  const [selectedSensorId, setSelectedSensorId] = useState(null);
   const [selectedRecordId, setSelectedRecordId] = useState(null);
 
+  // Načteme všechny senzory pro selector
+  const { data: allSensors = [] } = useQuery({
+    queryKey: ["aissens_sensors"],
+    queryFn: () => base44.entities.AissensSensor.list("-last_seen", 500),
+    staleTime: 60000,
+  });
+
+  // Záznamy s FFT pro vybraný senzor (nebo všechny)
   const { data: records = [], isLoading } = useQuery({
-    queryKey: ["sensorDataWithFFT"],
+    queryKey: ["sensorDataWithFFT", selectedSensorId],
     queryFn: async () => {
-      return await base44.entities.SensorData.filter({ has_raw: true }, "-created_date", 200);
+      const filter = selectedSensorId
+        ? { has_fft: true, sensor_id: selectedSensorId }
+        : { has_fft: true };
+      return await base44.entities.SensorData.filter(filter, "-created_date", 100);
     },
+    staleTime: 0,
     refetchInterval: 30000,
   });
+
+  // Reset výběru záznamu při změně senzoru
+  useEffect(() => { setSelectedRecordId(null); }, [selectedSensorId]);
 
   const activeRecordId = selectedRecordId || records[0]?.id;
   const activeRecord = records.find(r => r.id === activeRecordId);
@@ -154,7 +169,21 @@ export default function DSPVisualization() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <Select value={selectedSensorId || "__all__"} onValueChange={v => setSelectedSensorId(v === "__all__" ? null : v)}>
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="Všechny senzory" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">— Všechny senzory —</SelectItem>
+            {allSensors.map(s => (
+              <SelectItem key={s.sensor_id} value={s.sensor_id}>
+                <span className="font-mono text-blue-700">{s.sensor_id}</span>
+                {s.name && s.name !== s.sensor_id && <span className="text-slate-400 ml-2 text-xs">— {s.name}</span>}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex-1 max-w-md">
           <Select value={activeRecordId || ""} onValueChange={setSelectedRecordId}>
             <SelectTrigger>
@@ -163,7 +192,7 @@ export default function DSPVisualization() {
             <SelectContent>
               {records.map(r => (
                 <SelectItem key={r.id} value={r.id}>
-                  {r.sensor_id} - {format(new Date(r.created_date), "dd.MM.yyyy HH:mm:ss")}
+                  {r.sensor_id} — {format(new Date(r.created_date), "dd.MM.yyyy HH:mm:ss")}
                 </SelectItem>
               ))}
             </SelectContent>
