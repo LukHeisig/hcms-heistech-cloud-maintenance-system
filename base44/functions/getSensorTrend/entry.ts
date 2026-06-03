@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { sensor_id, days, limit = 500, is_temperature = false, trend_only = false } = await req.json();
+    const { sensor_id, days, limit = 100, is_temperature = false, trend_only = false } = await req.json();
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
 
     // Načteme práh trendu z nastavení (default 20%)
@@ -85,14 +85,14 @@ Deno.serve(async (req) => {
     }
 
     // === VIBRACE — čteme přímo předpočítané RMS hodnoty z SensorData (uložil backend DSP pipeline) ===
+    // Filtrujeme has_raw: false — FFT záznamy nemají obří raw_x_json/raw_y_json/raw_z_json, jsou datově malé
     const allRecords = await base44.asServiceRole.entities.SensorData.filter(
-      { sensor_id, has_fft: true },
+      { sensor_id, has_fft: true, has_raw: false },
       "-created_date",
       limit
     );
 
     const records = allRecords
-      .filter(r => r.sensor_id === sensor_id)
       .filter(r => r.vel_rms_x_mm_s != null) // pouze záznamy s předpočítanými hodnotami (nový DSP formát)
       .filter(r => cutoffSec == null || new Date(r.created_date).getTime() / 1000 >= cutoffSec)
       .reverse();
