@@ -269,6 +269,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing data.id' }, { status: 400 });
     }
 
+    // Pokud má záznam již předpočítané RMS hodnoty z DSP pipeline (webhook), přeskočíme
+    if (data.vel_rms_x_mm_s != null) {
+      console.log(`[computeSensorMetrics] Skipping ${data.id} — vel_rms_x_mm_s already set by DSP pipeline`);
+      return Response.json({ ok: true, skipped: 'Already computed by DSP pipeline' });
+    }
+
     const sensorDataId = data.id;
     const G_FACTOR = 9.81;
     
