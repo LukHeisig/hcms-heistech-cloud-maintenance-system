@@ -1,0 +1,45 @@
+{
+  "name": "SensorTrendPoint",
+  "type": "object",
+  "properties": {
+    "sensor_id": {
+      "type": "string",
+      "description": "ID senzoru"
+    },
+    "sensor_data_id": {
+      "type": "string",
+      "description": "ID z\u00e1znamu SensorData (reference)"
+    },
+    "timestamp_unix": {
+      "type": "number",
+      "description": "UNIX timestamp m\u011b\u0159en\u00ed"
+    },
+    "vel_rms_x_mm_s": {
+      "type": "number",
+      "description": "Velocity RMS X [mm/s]"
+    },
+    "vel_rms_y_mm_s": {
+      "type": "number",
+      "description": "Velocity RMS Y [mm/s]"
+    },
+    "vel_rms_z_mm_s": {
+      "type": "number",
+      "description": "Velocity RMS Z [mm/s]"
+    },
+    "rms_z_g": {
+      "type": "number",
+      "description": "Acceleration RMS Z [g]"
+    },
+    "env_rms_z": {
+      "type": "number",
+      "description": "Envelope RMS Z"
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Teplota [\u00b0C]"
+    }
+  },
+  "required": [
+    "sensor_id"
+  ]
+}

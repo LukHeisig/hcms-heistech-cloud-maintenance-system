@@ -723,7 +723,24 @@ Deno.serve(async (req) => {
       mqtt_message_id: msgRecord.id,
     });
 
-    // 3. Save FFT data if present
+    // 3. Save SensorTrendPoint (lightweight trend record)
+    if (parsed.has_fft && sensorDataRecord &&
+        (parsed.vel_rms_x_mm_s > 0 || parsed.vel_rms_y_mm_s > 0 || parsed.vel_rms_z_mm_s > 0)) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      await base44.asServiceRole.entities.SensorTrendPoint.create({
+        sensor_id,
+        sensor_data_id: sensorDataRecord.id,
+        timestamp_unix: nowSec,
+        vel_rms_x_mm_s: parsed.vel_rms_x_mm_s ?? null,
+        vel_rms_y_mm_s: parsed.vel_rms_y_mm_s ?? null,
+        vel_rms_z_mm_s: parsed.vel_rms_z_mm_s ?? null,
+        rms_z_g: parsed.rms_z_g ?? null,
+        env_rms_z: parsed.env_rms_z ?? null,
+        temperature: parsed.temperature ?? null,
+      });
+    }
+
+    // 3b. Save FFT data if present
     if (parsed.has_fft && sensorDataRecord) {
       await base44.asServiceRole.entities.SensorFFTData.create({
         sensor_id,

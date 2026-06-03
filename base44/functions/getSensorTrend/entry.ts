@@ -23,9 +23,8 @@ function slopeToDirection(slope, values, thresholdPct = 20) {
   return "stable";
 }
 
-
-function formatTs(created_date) {
-  const date = new Date(created_date);
+function formatTs(timestamp_unix) {
+  const date = new Date(timestamp_unix * 1000);
   return date.toLocaleString("cs-CZ", {
     day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
     timeZone: "Europe/Prague"
@@ -39,7 +38,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { sensor_id, days, limit = 100, is_temperature = false, trend_only = false } = await req.json();
+    const { sensor_id, days, limit = 200, is_temperature = false, trend_only = false } = await req.json();
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
 
     // Načteme práh trendu z nastavení (default 20%)
@@ -53,54 +52,56 @@ Deno.serve(async (req) => {
 
     const cutoffSec = days != null ? (Date.now() / 1000) - (days * 86400) : null;
 
-    // === TEPLOTA — čteme přímo ze SensorData ===
+    // === TEPLOTA — čteme ze SensorTrendPoint ===
     if (is_temperature) {
-      const allRecords = await base44.asServiceRole.entities.SensorData.filter(
+      const allRecords = await base44.asServiceRole.entities.SensorTrendPoint.filter(
         { sensor_id },
-        "-created_date",
+        "-timestamp_unix",
         limit
       );
+
       const records = allRecords
-        .filter(r => r.sensor_id === sensor_id)
-        .filter(r => cutoffSec == null || new Date(r.created_date).getTime() / 1000 >= cutoffSec)
+        .filter(r => r.temperature != null && r.temperature !== 28.0 && r.temperature > 0)
+        .filter(r => cutoffSec == null || (r.timestamp_unix != null && r.timestamp_unix >= cutoffSec))
         .reverse();
 
       if (trend_only) {
         const last10 = records.slice(-10);
-        const temps = last10.map(r => r.temperature).filter(v => v != null && v !== 28.0);
+        const temps = last10.map(r => r.temperature).filter(v => v != null);
         return Response.json({
           trends: { temperature: temps.length >= 2 ? slopeToDirection(linearRegressionSlope(temps), temps, thresholdPct) : "stable" }
         });
       }
 
       return Response.json({
-        data: records
-          .filter(r => r.temperature != null && r.temperature !== 28.0)
-          .map(r => ({
-            ts: formatTs(r.created_date),
-            sensor_data_id: r.id,
-            temperature: r.temperature,
-          }))
+        data: records.map(r => ({
+          ts: formatTs(r.timestamp_unix),
+          sensor_data_id: r.sensor_data_id,
+          temperature: r.temperature,
+        }))
       });
     }
 
-    // === VIBRACE — čteme přímo předpočítané RMS hodnoty z SensorData (uložil backend DSP pipeline) ===
-    // Type 0 záznamy mají has_raw: true ALE obsahují i předpočítané vel_rms_x_mm_s, rms_z_g, env_rms_z
-    // Filtrujeme pouze has_fft: true (= DSP proběhlo) a vel_rms_x_mm_s != null (= hodnoty jsou platné)
-    const allRecords = await base44.asServiceRole.entities.SensorData.filter(
-      { sensor_id, has_fft: true },
-      "-created_date",
+    // === VIBRACE — čteme ze SensorTrendPoint ===
+    const allRecords = await base44.asServiceRole.entities.SensorTrendPoint.filter(
+      { sensor_id },
+      "-timestamp_unix",
       limit
     );
 
     const records = allRecords
-      .filter(r => r.vel_rms_x_mm_s != null) // pouze záznamy s předpočítanými hodnotami (nový DSP formát)
-      .filter(r => cutoffSec == null || new Date(r.created_date).getTime() / 1000 >= cutoffSec)
+      // Filtrujeme záznamy kde alespoň jedna RMS hodnota je platná a nenulová
+      .filter(r =>
+        (r.vel_rms_x_mm_s != null && r.vel_rms_x_mm_s > 0) ||
+        (r.vel_rms_y_mm_s != null && r.vel_rms_y_mm_s > 0) ||
+        (r.vel_rms_z_mm_s != null && r.vel_rms_z_mm_s > 0)
+      )
+      .filter(r => cutoffSec == null || (r.timestamp_unix != null && r.timestamp_unix >= cutoffSec))
       .reverse();
 
     const data = records.map(r => ({
-      ts: formatTs(r.created_date),
-      sensor_data_id: r.id,
+      ts: formatTs(r.timestamp_unix),
+      sensor_data_id: r.sensor_data_id,
       vel_rms_x_mm_s: r.vel_rms_x_mm_s,
       vel_rms_y_mm_s: r.vel_rms_y_mm_s,
       vel_rms_z_mm_s: r.vel_rms_z_mm_s,
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
 
     if (trend_only) {
       const last10 = data.slice(-10);
-      const extract = (key) => last10.map(r => r[key]).filter(v => v != null);
+      const extract = (key) => last10.map(r => r[key]).filter(v => v != null && v > 0);
       const trend = (key) => {
         const vals = extract(key);
         return vals.length >= 2 ? slopeToDirection(linearRegressionSlope(vals), vals, thresholdPct) : "stable";
