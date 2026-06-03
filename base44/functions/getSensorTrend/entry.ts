@@ -85,9 +85,10 @@ Deno.serve(async (req) => {
     }
 
     // === VIBRACE — čteme přímo předpočítané RMS hodnoty z SensorData (uložil backend DSP pipeline) ===
-    // Filtrujeme has_raw: false — FFT záznamy nemají obří raw_x_json/raw_y_json/raw_z_json, jsou datově malé
+    // Type 0 záznamy mají has_raw: true ALE obsahují i předpočítané vel_rms_x_mm_s, rms_z_g, env_rms_z
+    // Filtrujeme pouze has_fft: true (= DSP proběhlo) a vel_rms_x_mm_s != null (= hodnoty jsou platné)
     const allRecords = await base44.asServiceRole.entities.SensorData.filter(
-      { sensor_id, has_fft: true, has_raw: false },
+      { sensor_id, has_fft: true },
       "-created_date",
       limit
     );
