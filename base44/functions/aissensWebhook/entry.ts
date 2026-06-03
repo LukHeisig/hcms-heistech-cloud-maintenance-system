@@ -480,70 +480,97 @@ function parseAissensData(bytes) {
       result.num_samples = numSamples;
       result.has_raw = true;
 
-      // ─── Backend DSP Výpočty ───
-      const fs = 26700;
-      
-      const winZ = applyHanning(rawZ);
-      const fftZ = computeRFFT(winZ, fs);
-      result.rms_z_g = Math.round(calculateRMSFromSpectrum(fftZ.amplitudes, fftZ.frequencies, 0, fs/2) * 1000) / 1000;
+      // ─── DSP Pipeline: 4× 0,5s segmentace → FFT → průměrování → RMS ───────────
+      const fs = result.real_odr > 0 ? result.real_odr : 26700;
+      const NUM_SEGMENTS = 4;
+      const segLen = Math.floor(fs * 0.5); // 0,5s okno
 
-      const winX = applyHanning(rawX);
-      const fftX = computeRFFT(winX, fs);
-      const velXAmps = getVelocitySpectrum(fftX.amplitudes, fftX.frequencies);
-      result.vel_rms_x_mm_s = Math.round(calculateRMSFromSpectrum(velXAmps, fftX.frequencies, 2, 1000) * 1000) / 1000;
+      if (rawZ.length < segLen) {
+        // Příliš krátký signál pro segmentaci — odmítnout
+        console.log(`[Type0] DSP SKIP: signal too short for segmentation (${rawZ.length} < ${segLen})`);
+        result.has_fft = false;
+        return result;
+      }
 
-      const winY = applyHanning(rawY);
-      const fftY = computeRFFT(winY, fs);
-      const velYAmps = getVelocitySpectrum(fftY.amplitudes, fftY.frequencies);
-      result.vel_rms_y_mm_s = Math.round(calculateRMSFromSpectrum(velYAmps, fftY.frequencies, 2, 1000) * 1000) / 1000;
+      // Pomocná funkce: průměr N FFT spekter pro jednu osu
+      // Vrací { avgAmps: Float64Array, frequencies: Float64Array }
+      function computeAveragedFFT(signal, axisName) {
+        const numSeg = Math.min(NUM_SEGMENTS, Math.floor(signal.length / segLen));
+        let sumAmps = null;
+        let freqs = null;
+        for (let s = 0; s < numSeg; s++) {
+          const seg = signal.slice(s * segLen, (s + 1) * segLen);
+          const windowed = applyHanning(seg);
+          const fft = computeRFFT(windowed, fs);
+          if (!sumAmps) {
+            sumAmps = new Float64Array(fft.amplitudes.length);
+            freqs = fft.frequencies;
+          }
+          for (let i = 0; i < fft.amplitudes.length; i++) sumAmps[i] += fft.amplitudes[i];
+        }
+        const avgAmps = new Float64Array(sumAmps.length);
+        for (let i = 0; i < sumAmps.length; i++) avgAmps[i] = sumAmps[i] / numSeg;
+        console.log(`[DSP] ${axisName}: ${Math.min(NUM_SEGMENTS, Math.floor(signal.length / segLen))} segments averaged, bins=${avgAmps.length}, freqRes=${freqs[1]?.toFixed(4)} Hz`);
+        return { avgAmps, frequencies: freqs };
+      }
 
-      const velZAmps = getVelocitySpectrum(fftZ.amplitudes, fftZ.frequencies);
-      result.vel_rms_z_mm_s = Math.round(calculateRMSFromSpectrum(velZAmps, fftZ.frequencies, 2, 1000) * 1000) / 1000;
+      // Průměrovaná FFT spekter pro každou osu
+      const fftX = computeAveragedFFT(rawX, 'X');
+      const fftY = computeAveragedFFT(rawY, 'Y');
+      const fftZ = computeAveragedFFT(rawZ, 'Z');
 
-      const filteredZ = filtfiltButterworthHPF(rawZ, 500, fs);
-      const envelopeZ = computeHilbertEnvelope(filteredZ);
-      const meanEnv = envelopeZ.reduce((a,b)=>a+b,0)/envelopeZ.length;
+      // Rychlostní spektra (integrace zrychlení → rychlost ve frekvenční oblasti)
+      const velXAmps = getVelocitySpectrum(fftX.avgAmps, fftX.frequencies);
+      const velYAmps = getVelocitySpectrum(fftY.avgAmps, fftY.frequencies);
+      const velZAmps = getVelocitySpectrum(fftZ.avgAmps, fftZ.frequencies);
+
+      // Obálka: HP filtr 500 Hz na celý signál, Hilbertova obálka, de-mean, pak průměrované FFT
+      const filteredZHP = filtfiltButterworthHPF(rawZ, 500, fs);
+      const envelopeZ = computeHilbertEnvelope(filteredZHP);
+      const meanEnv = envelopeZ.reduce((a, b) => a + b, 0) / envelopeZ.length;
       const demeanedEnv = new Float64Array(envelopeZ.length);
-      for(let i=0;i<envelopeZ.length;i++) demeanedEnv[i] = envelopeZ[i] - meanEnv;
-      
-      const winEnvZ = applyHanning(demeanedEnv);
-      const fftEnvZ = computeRFFT(winEnvZ, fs);
-      result.env_rms_z = Math.round(calculateRMSFromSpectrum(fftEnvZ.amplitudes, fftEnvZ.frequencies, 0, fs/2) * 1000) / 1000;
+      for (let i = 0; i < envelopeZ.length; i++) demeanedEnv[i] = envelopeZ[i] - meanEnv;
+      const fftEnvZ = computeAveragedFFT(Array.from(demeanedEnv), 'EnvZ');
 
-      // Prepare FFT data for storage
+      // ─── Celkové hodnoty (RMS) z průměrných spekter ───────────────────────────
+      // Rychlost XYZ: 2–1000 Hz
+      result.vel_rms_x_mm_s = Math.round(calculateRMSFromSpectrum(velXAmps, fftX.frequencies, 2, 1000) * 1000) / 1000;
+      result.vel_rms_y_mm_s = Math.round(calculateRMSFromSpectrum(velYAmps, fftY.frequencies, 2, 1000) * 1000) / 1000;
+      result.vel_rms_z_mm_s = Math.round(calculateRMSFromSpectrum(velZAmps, fftZ.frequencies, 2, 1000) * 1000) / 1000;
+      // Zrychlení Z: 2–6000 Hz (jako RMS v g, tedy v m/s² / 9.81)
+      const accZRms_ms2 = calculateRMSFromSpectrum(fftZ.avgAmps, fftZ.frequencies, 2, 6000);
+      result.rms_z_g = Math.round((accZRms_ms2 / 9.80665) * 1000) / 1000;
+      // Obálka Z: 2–1000 Hz
+      result.env_rms_z = Math.round(calculateRMSFromSpectrum(fftEnvZ.avgAmps, fftEnvZ.frequencies, 2, 1000) * 1000) / 1000;
+
+      console.log(`[DSP] vel_rms x=${result.vel_rms_x_mm_s} y=${result.vel_rms_y_mm_s} z=${result.vel_rms_z_mm_s} mm/s | acc_z=${result.rms_z_g} g | env_z=${result.env_rms_z}`);
+
+      // ─── Příprava FFT dat pro uložení do DB ───────────────────────────────────
       result.has_fft = true;
       const freqRes = fftZ.frequencies[1] || 1;
       result.frequency_resolution = freqRes;
-      
-      // Vynulování frekvencí pod 2 Hz (odstranění DC a velmi nízkých frekvencí pro požadovaný rozsah 2+ Hz)
+
+      // Vynulování frekvencí pod 2 Hz (DC + velmi nízké frekvence)
       for (let i = 0; i < fftZ.frequencies.length; i++) {
         if (fftZ.frequencies[i] < 2) {
-          fftX.amplitudes[i] = 0;
-          fftY.amplitudes[i] = 0;
-          fftZ.amplitudes[i] = 0;
-          velXAmps[i] = 0;
-          velYAmps[i] = 0;
-          velZAmps[i] = 0;
-          fftEnvZ.amplitudes[i] = 0;
-        } else {
-          break;
-        }
+          fftX.avgAmps[i] = 0; fftY.avgAmps[i] = 0; fftZ.avgAmps[i] = 0;
+          velXAmps[i] = 0; velYAmps[i] = 0; velZAmps[i] = 0;
+          fftEnvZ.avgAmps[i] = 0;
+        } else { break; }
       }
 
-      // Výpočet adekvátního počtu čar (bodů) pro požadované maximální frekvence
-      const maxVelPoints = Math.ceil(1000 / freqRes) + 1; // Rychlost: rozsah do 1000 Hz
-      const maxAccPoints = Math.ceil(6000 / freqRes) + 1; // Zrychlení: rozsah do 6000 Hz
-      const maxEnvPoints = Math.ceil(1000 / freqRes) + 1; // Obálka zrychlení: rozsah do 1000 Hz
+      // Počet čar pro každý rozsah
+      const maxVelPoints = Math.ceil(1000 / freqRes) + 1;  // vel: 2–1000 Hz
+      const maxAccPoints = Math.ceil(6000 / freqRes) + 1;  // acc: 2–6000 Hz
+      const maxEnvPoints = Math.ceil(1000 / freqRes) + 1;  // env: 2–1000 Hz
 
-      result.acc_x = Array.from(fftX.amplitudes.slice(0, maxAccPoints)).map(v => Math.round(v * 100000)/100000);
-      result.acc_y = Array.from(fftY.amplitudes.slice(0, maxAccPoints)).map(v => Math.round(v * 100000)/100000);
-      result.acc_z = Array.from(fftZ.amplitudes.slice(0, maxAccPoints)).map(v => Math.round(v * 100000)/100000);
-      
-      result.vel_x = Array.from(velXAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000)/100000);
-      result.vel_y = Array.from(velYAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000)/100000);
-      result.vel_z = Array.from(velZAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000)/100000);
-      
-      result.env_z = Array.from(fftEnvZ.amplitudes.slice(0, maxEnvPoints)).map(v => Math.round(v * 100000)/100000);
+      result.acc_x = Array.from(fftX.avgAmps.slice(0, maxAccPoints)).map(v => Math.round(v * 100000) / 100000);
+      result.acc_y = Array.from(fftY.avgAmps.slice(0, maxAccPoints)).map(v => Math.round(v * 100000) / 100000);
+      result.acc_z = Array.from(fftZ.avgAmps.slice(0, maxAccPoints)).map(v => Math.round(v * 100000) / 100000);
+      result.vel_x = Array.from(velXAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000) / 100000);
+      result.vel_y = Array.from(velYAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000) / 100000);
+      result.vel_z = Array.from(velZAmps.slice(0, maxVelPoints)).map(v => Math.round(v * 100000) / 100000);
+      result.env_z = Array.from(fftEnvZ.avgAmps.slice(0, maxEnvPoints)).map(v => Math.round(v * 100000) / 100000);
       result.report_len = result.acc_z.length;
     }
   }
@@ -704,10 +731,10 @@ Deno.serve(async (req) => {
         timestamp_unix: parsed.timestamp_unix ?? null,
         frequency_resolution: parsed.frequency_resolution ?? null,
         report_len: parsed.report_len ?? null,
-        oa_x: parsed.oa_x ?? parsed.vel_rms_x_mm_s ?? null,
-        oa_y: parsed.oa_y ?? parsed.vel_rms_y_mm_s ?? null,
-        oa_z: parsed.oa_z ?? parsed.vel_rms_z_mm_s ?? null,
-        oa_acc_z: parsed.oa_acc_z ?? null,
+        oa_x: parsed.vel_rms_x_mm_s ?? null,
+        oa_y: parsed.vel_rms_y_mm_s ?? null,
+        oa_z: parsed.vel_rms_z_mm_s ?? null,
+        oa_acc_z: parsed.rms_z_g ?? null,
         acc_x_json: JSON.stringify(parsed.acc_x ?? []),
         acc_y_json: JSON.stringify(parsed.acc_y ?? []),
         acc_z_json: JSON.stringify(parsed.acc_z ?? []),
