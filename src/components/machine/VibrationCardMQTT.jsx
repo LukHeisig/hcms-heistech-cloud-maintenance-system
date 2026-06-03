@@ -327,15 +327,7 @@ function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, t
     setZoomStates(prev => ({ ...prev, [chartId]: { ...prev[chartId], refAreaLeft: '', refAreaRight: '', left, right } }));
   };
 
-  const calcRMS = (amps, freqRes, minF, maxF) => {
-    let sumSq = 0;
-    for (let i = 0; i < amps.length; i++) {
-      const f = i * freqRes;
-      if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
-    }
-    return Math.sqrt(sumSq / 2);
-  };
-
+  // Sestavení grafových dat ze spekter — RMS hodnoty čteme přímo z DB (předpočítal backend)
   const dsp = useMemo(() => {
     if (!activeFFT) return null;
     try {
@@ -359,12 +351,13 @@ function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, t
       for (let i = 0; i < Math.max(velX.length, velY.length, velZ.length); i++)
         specVel.push({ f: +(i * freqRes).toFixed(1), x: velX[i] || 0, y: velY[i] || 0, z: velZ[i] || 0 });
 
+      // RMS hodnoty čteme z předpočítaných polí SensorData záznamu
       return {
-        rmsVelX: calcRMS(velX, freqRes, 2, 1000),
-        rmsVelY: calcRMS(velY, freqRes, 2, 1000),
-        rmsVelZ: calcRMS(velZ, freqRes, 2, 1000),
-        rmsAccZ: calcRMS(accZ, freqRes, 2, 6000),
-        rmsEnvZ: calcRMS(envZ, freqRes, 2, 1000),
+        rmsVelX: activeRecord?.vel_rms_x_mm_s ?? null,
+        rmsVelY: activeRecord?.vel_rms_y_mm_s ?? null,
+        rmsVelZ: activeRecord?.vel_rms_z_mm_s ?? null,
+        rmsAccZ: activeRecord?.rms_z_g ?? null,
+        rmsEnvZ: activeRecord?.env_rms_z ?? null,
         rawChart, specAccZ, specVel, specEnvZ
       };
     } catch (e) { return null; }
@@ -743,60 +736,16 @@ export default function VibrationCardMQTT({ machine }) {
     refetchInterval: 300000,
   });
 
+  // Načteme poslední SensorData záznam pro každý senzor — RMS hodnoty jsou předpočítány backendem
   const { data: latestSensorData = [] } = useQuery({
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return [];
-
-      const calcRMS = (amps, freqRes, minF, maxF) => {
-        if (!amps || !amps.length) return null;
-        let sumSq = 0;
-        for (let i = 0; i < amps.length; i++) {
-          const f = i * freqRes;
-          if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
-        }
-        return Math.sqrt(sumSq / 2);
-      };
-
-      const results = [];
-      for (const sid of assignedSensorIds) {
-        // Nejprve zkus najít nejnovější FFT záznam
-        const fftRecords = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
-        // Pokud neexistuje FFT, vezmi nejnovější jakýkoliv záznam se smysluplnými daty
-        const fallbackRecords = fftRecords.length === 0
-          ? await base44.entities.SensorData.filter({ sensor_id: sid }, "-created_date", 10)
-          : [];
-        const sensorDataRecord = fftRecords[0] ?? fallbackRecords.find(r => r.vel_rms_x_mm_s != null || r.temperature != null) ?? fallbackRecords[0];
-        if (!sensorDataRecord) continue;
-
-        const fftRecs = sensorDataRecord.has_fft
-          ? await base44.entities.SensorFFTData.filter({ sensor_data_id: sensorDataRecord.id })
-          : [];
-        const fft = fftRecs[0];
-
-        if (!fft) {
-          results.push(sensorDataRecord);
-          continue;
-        }
-
-        const freqRes = fft.frequency_resolution || 3.259;
-        const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
-        const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
-        const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
-        const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
-        const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
-
-        results.push({
-          ...sensorDataRecord,
-          // Vždy přepočítáme ze spekter — stejná logika jako v DSP panelu
-          vel_rms_x_mm_s: calcRMS(velX, freqRes, 2, 1000),
-          vel_rms_y_mm_s: calcRMS(velY, freqRes, 2, 1000),
-          vel_rms_z_mm_s: calcRMS(velZ, freqRes, 2, 1000),
-          oa_acc_z: calcRMS(accZ, freqRes, 2, 6000),
-          env_rms_z: calcRMS(envZ, freqRes, 2, 1000),
-        });
-      }
-      return results;
+      const results = await Promise.all(assignedSensorIds.map(sid =>
+        base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1)
+          .then(recs => recs[0] ?? null)
+      ));
+      return results.filter(Boolean);
     },
     enabled: assignedSensorIds.length > 0,
     staleTime: 0,
