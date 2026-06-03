@@ -608,6 +608,48 @@ Deno.serve(async (req) => {
   const now = new Date().toISOString();
   const report_type = parsed?.report_type ?? -1;
 
+  // ─── FILTRACE ZPRÁV ──────────────────────────────────────────────────────────
+  // Akceptujeme POUZE Type 0 (RAW data) pro plné zpracování.
+  // Type 4 (Hibernate/Wakeup) zpracujeme částečně — jen metadata senzoru (baterie, teplota, rssi).
+  // Vše ostatní (Type 1 FFT, 2 Feature, 3 Battery, 9 OA, 12 HeartBeat) zahodíme.
+
+  if (report_type !== 0 && report_type !== 4) {
+    console.log(`[Filter] Discarding report_type=${report_type} for sensor ${sensor_id}`);
+    // Aktualizujeme jen čítač zpráv a last_seen, ale jinak ignorujeme
+    const existingSensor = await base44.asServiceRole.entities.AissensSensor.filter({ sensor_id });
+    if (existingSensor.length > 0) {
+      await base44.asServiceRole.entities.AissensSensor.update(existingSensor[0].id, {
+        last_seen: now,
+        messages_total: (existingSensor[0].messages_total || 0) + 1,
+      });
+    }
+    return Response.json({ ok: true, sensor_id, report_type, action: "discarded" });
+  }
+
+  // Type 4: jen metadata, bez SensorData záznamu
+  if (report_type === 4) {
+    console.log(`[Filter] Type 4 — metadata only for sensor ${sensor_id}`);
+    const existing4 = await base44.asServiceRole.entities.AissensSensor.filter({ sensor_id });
+    const metaUpdate = {
+      last_seen: now,
+      last_report_type: report_type,
+      messages_total: (existing4[0]?.messages_total || 0) + 1,
+    };
+    if (parsed?.battery_level != null) metaUpdate.last_battery_level = parsed.battery_level;
+    if (parsed?.battery_voltage != null) metaUpdate.last_battery_voltage = parsed.battery_voltage;
+    if (parsed?.temperature != null) metaUpdate.last_temperature = parsed.temperature;
+    if (parsed?.rssi != null) metaUpdate.last_signal_strength = parsed.rssi;
+
+    if (existing4.length > 0) {
+      await base44.asServiceRole.entities.AissensSensor.update(existing4[0].id, metaUpdate);
+    } else {
+      await base44.asServiceRole.entities.AissensSensor.create({ sensor_id, name: sensor_id, is_active: true, ...metaUpdate });
+    }
+    return Response.json({ ok: true, sensor_id, report_type, action: "metadata_only" });
+  }
+
+  // ─── Od zde zpracováváme POUZE Type 0 (RAW) ─────────────────────────────────
+
   // 1. Save raw message
   const msgRecord = await base44.asServiceRole.entities.MqttMessage.create({
     topic,
