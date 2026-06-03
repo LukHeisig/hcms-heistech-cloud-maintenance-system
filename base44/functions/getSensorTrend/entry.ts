@@ -23,16 +23,6 @@ function slopeToDirection(slope, values, thresholdPct = 20) {
   return "stable";
 }
 
-// RMS ze spektrálních dat ve frekvenčním rozsahu — stejná logika jako VibrationCardMQTT
-function calcRMS(amps, freqRes, minF, maxF) {
-  if (!amps || !amps.length) return null;
-  let sumSq = 0;
-  for (let i = 0; i < amps.length; i++) {
-    const f = i * freqRes;
-    if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
-  }
-  return Math.sqrt(sumSq / 2);
-}
 
 function formatTs(created_date) {
   const date = new Date(created_date);
@@ -94,8 +84,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // === VIBRACE — načítáme SensorData se has_fft=true a přepočítáváme ze spekter ===
-    // (stejná logika jako VibrationCardMQTT / latestSensorData)
+    // === VIBRACE — čteme přímo předpočítané RMS hodnoty z SensorData (uložil backend DSP pipeline) ===
     const allRecords = await base44.asServiceRole.entities.SensorData.filter(
       { sensor_id, has_fft: true },
       "-created_date",
@@ -104,53 +93,19 @@ Deno.serve(async (req) => {
 
     const records = allRecords
       .filter(r => r.sensor_id === sensor_id)
+      .filter(r => r.vel_rms_x_mm_s != null) // pouze záznamy s předpočítanými hodnotami (nový DSP formát)
       .filter(r => cutoffSec == null || new Date(r.created_date).getTime() / 1000 >= cutoffSec)
       .reverse();
 
-    // Pro každý SensorData záznam načti FFT a přepočítej RMS
-    const computed = await Promise.all(records.map(async (r) => {
-      try {
-        const fftRecs = await base44.asServiceRole.entities.SensorFFTData.filter({ sensor_data_id: r.id });
-        const fft = fftRecs[0];
-        if (!fft) {
-          // Fallback: použij uložené hodnoty pokud nejsou FFT data
-          return {
-            ts: formatTs(r.created_date),
-            sensor_data_id: r.id,
-            vel_rms_x_mm_s: r.vel_rms_x_mm_s ?? null,
-            vel_rms_y_mm_s: r.vel_rms_y_mm_s ?? null,
-            vel_rms_z_mm_s: r.vel_rms_z_mm_s ?? null,
-            oa_acc_z: r.oa_acc_z ?? null,
-            env_rms_z: r.env_rms_z ?? null,
-          };
-        }
-        const freqRes = fft.frequency_resolution || 3.259;
-        const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
-        const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
-        const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
-        const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
-        const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
-
-        return {
-          ts: formatTs(r.created_date),
-          sensor_data_id: r.id,
-          vel_rms_x_mm_s: calcRMS(velX, freqRes, 2, 1000),
-          vel_rms_y_mm_s: calcRMS(velY, freqRes, 2, 1000),
-          vel_rms_z_mm_s: calcRMS(velZ, freqRes, 2, 1000),
-          oa_acc_z: calcRMS(accZ, freqRes, 2, 6000),
-          env_rms_z: calcRMS(envZ, freqRes, 2, 1000),
-        };
-      } catch (_) {
-        return null;
-      }
+    const data = records.map(r => ({
+      ts: formatTs(r.created_date),
+      sensor_data_id: r.id,
+      vel_rms_x_mm_s: r.vel_rms_x_mm_s,
+      vel_rms_y_mm_s: r.vel_rms_y_mm_s,
+      vel_rms_z_mm_s: r.vel_rms_z_mm_s,
+      oa_acc_z: r.rms_z_g,
+      env_rms_z: r.env_rms_z,
     }));
-
-    const data = computed.filter(r =>
-      r != null && (
-        r.vel_rms_x_mm_s != null || r.vel_rms_y_mm_s != null || r.vel_rms_z_mm_s != null ||
-        r.oa_acc_z != null || r.env_rms_z != null
-      )
-    );
 
     if (trend_only) {
       const last10 = data.slice(-10);
