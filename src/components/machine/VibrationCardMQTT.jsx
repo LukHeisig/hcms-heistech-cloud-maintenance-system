@@ -737,14 +737,16 @@ export default function VibrationCardMQTT({ machine }) {
   });
 
   // Načteme poslední SensorData záznam pro každý senzor — RMS hodnoty jsou předpočítány backendem
+  // Bereme pouze záznamy, které mají has_fft=true A vyplněné pole vel_rms_x_mm_s (= nové DSP záznamy)
   const { data: latestSensorData = [] } = useQuery({
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return [];
-      const results = await Promise.all(assignedSensorIds.map(sid =>
-        base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1)
-          .then(recs => recs[0] ?? null)
-      ));
+      const results = await Promise.all(assignedSensorIds.map(async (sid) => {
+        // Vezmi posledních 20 záznamů s FFT a najdi první, který má vyplněné RMS (nový DSP formát)
+        const recs = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 20);
+        return recs.find(r => r.vel_rms_x_mm_s != null) ?? null;
+      }));
       return results.filter(Boolean);
     },
     enabled: assignedSensorIds.length > 0,
