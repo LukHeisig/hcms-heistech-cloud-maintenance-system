@@ -310,8 +310,26 @@ function parseAissensData(bytes) {
       result.vel_y = velY;
       result.vel_z = velZ;
       result.oa_acc_z = Math.round(calcRMS(accZ) * 10000) / 10000;
-      
-      // Hodnoty se nyní počítají novým klientským DSP modulem.
+
+      // Výpočet RMS ze spekter — stejná logika jako frontend VibrationCardMQTT
+      // freqRes je frequency_resolution ze záhlaví paketu
+      const freqRes1 = result.frequency_resolution || 3.259;
+      const freqs1 = accX.map((_, i) => i * freqRes1);
+
+      const rmsFromSpec = (amps, freqs, minF, maxF) => {
+        let sumSq = 0;
+        for (let i = 0; i < amps.length; i++) {
+          const f = freqs[i];
+          if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
+        }
+        return Math.sqrt(sumSq / 2);
+      };
+
+      result.vel_rms_x_mm_s = Math.round(rmsFromSpec(velX, freqs1, 2, 1000) * 1000) / 1000;
+      result.vel_rms_y_mm_s = Math.round(rmsFromSpec(velY, freqs1, 2, 1000) * 1000) / 1000;
+      result.vel_rms_z_mm_s = Math.round(rmsFromSpec(velZ, freqs1, 2, 1000) * 1000) / 1000;
+      result.oa_acc_z       = Math.round(rmsFromSpec(accZ, freqs1, 2, 6000) * 1000) / 1000;
+      result.env_rms_z      = null; // Obálka není v Type1 paketu (chybí raw data)
     }
   }
 
