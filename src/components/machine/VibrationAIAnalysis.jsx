@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, AlertTriangle, CheckCircle, Info, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Loader2, AlertTriangle, CheckCircle, Info, XCircle, ChevronDown, ChevronUp, Gauge, Zap, Activity } from "lucide-react";
 
 const STATUS_CONFIG = {
   OK:       { color: "bg-green-100 text-green-800 border-green-300",  icon: CheckCircle,    dot: "bg-green-500" },
@@ -149,6 +149,65 @@ export function LimitEvaluationPanel({ rmsData, velStandard, accStandard, tempSt
   );
 }
 
+// Panel detekovaných provozních parametrů
+function OperatingSpeedBox({ operatingSpeed }) {
+  if (!operatingSpeed) return null;
+  return (
+    <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+      <Gauge className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+      <div>
+        <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide">Detekované provozní otáčky (1X)</p>
+        <p className="text-sm font-bold text-indigo-800">
+          {operatingSpeed.freq} Hz = <span className="text-indigo-600">{operatingSpeed.rpm} RPM</span>
+          <span className="text-xs font-normal text-indigo-400 ml-2">amplituda: {operatingSpeed.amp} mm/s</span>
+        </p>
+        <p className="text-[10px] text-indigo-400 mt-0.5">
+          Harmonické: 2X = {(operatingSpeed.freq * 2).toFixed(1)} Hz · 3X = {(operatingSpeed.freq * 3).toFixed(1)} Hz · 4X = {(operatingSpeed.freq * 4).toFixed(1)} Hz
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Panel třídoménových výsledků
+const DOMAIN_CONFIG = {
+  velocity:     { label: "Spektrum rychlosti", sub: "Rotor / mechanická integrita", icon: Activity, color: "blue" },
+  acceleration: { label: "Spektrum zrychlení", sub: "Ložiska / mazání (2–5 kHz)",   icon: Zap,      color: "green" },
+  envelope:     { label: "Obálka zrychlení",   sub: "Ložiskové defekty / dráhy",    icon: Gauge,    color: "orange" },
+};
+
+const DOMAIN_STATUS_COLORS = {
+  OK:                { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-800",  dot: "bg-green-500" },
+  Pozor:             { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-800", dot: "bg-yellow-500" },
+  Alarm:             { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-800", dot: "bg-orange-500" },
+  Kritický:          { bg: "bg-red-50",    border: "border-red-200",    text: "text-red-800",    dot: "bg-red-600 animate-pulse" },
+  "Nedostatečná data": { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-500",  dot: "bg-slate-300" },
+};
+
+function DomainPanel({ domainKey, data }) {
+  const cfg = DOMAIN_CONFIG[domainKey];
+  if (!cfg || !data) return null;
+  const Icon = cfg.icon;
+  const statusCfg = DOMAIN_STATUS_COLORS[data.status] || DOMAIN_STATUS_COLORS["Nedostatečná data"];
+
+  return (
+    <div className={`rounded-lg border p-3 ${statusCfg.bg} ${statusCfg.border}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <Icon className={`w-3.5 h-3.5 text-${cfg.color}-600`} />
+          <span className="text-xs font-semibold text-slate-700">{cfg.label}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className={`w-2 h-2 rounded-full ${statusCfg.dot}`} />
+          <span className={`text-[10px] font-semibold ${statusCfg.text}`}>{data.status}</span>
+        </div>
+      </div>
+      <p className="text-[10px] text-slate-400 mb-1">{cfg.sub}</p>
+      {data.finding && <p className="text-xs text-slate-600 leading-relaxed">{data.finding}</p>}
+    </div>
+  );
+}
+
 // Hlavní AI analýza panel
 export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint }) {
   const [analysis, setAnalysis] = useState(null);
@@ -170,6 +229,7 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
       });
       setAnalysis(res.data);
       setExpanded(true);
+      console.log("[AI] operatingSpeed:", res.data?.operatingSpeed);
     } catch (e) {
       setError(e.message || "Chyba při analýze");
     } finally {
@@ -232,6 +292,10 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
 
       {analysis && expanded && (
         <CardContent className="p-4 space-y-4">
+
+          {/* Detekované provozní otáčky */}
+          <OperatingSpeedBox operatingSpeed={analysis.operatingSpeed} />
+
           {/* Celkové shrnutí */}
           <div className={`p-3 rounded-lg border ${statusCfg?.color || "bg-slate-50 border-slate-200"}`}>
             <div className="flex items-start gap-2">
@@ -239,6 +303,18 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
               <p className="text-sm font-medium">{analysis.analysis.overall_summary}</p>
             </div>
           </div>
+
+          {/* Třídoménová analýza */}
+          {(analysis.analysis.domain_velocity || analysis.analysis.domain_acceleration || analysis.analysis.domain_envelope) && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Analýza po doménách</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <DomainPanel domainKey="velocity"     data={analysis.analysis.domain_velocity} />
+                <DomainPanel domainKey="acceleration" data={analysis.analysis.domain_acceleration} />
+                <DomainPanel domainKey="envelope"     data={analysis.analysis.domain_envelope} />
+              </div>
+            </div>
+          )}
 
           {/* Zjištění */}
           {analysis.analysis.findings?.length > 0 && (
