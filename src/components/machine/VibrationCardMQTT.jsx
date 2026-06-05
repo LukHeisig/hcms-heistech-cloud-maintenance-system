@@ -711,13 +711,6 @@ export default function VibrationCardMQTT({ machine }) {
   const [showDSP, setShowDSP] = useState(false);
   const [showAI, setShowAI] = useState(false);
 
-  // ID záznamu pro AI analýzu — první senzor s daty
-  const aiSensorDataId = useMemo(() => latestSensorData[0]?.id ?? null, [latestSensorData]);
-  const aiRowIdx = useMemo(() => {
-    const idx = Object.entries(rowAssignments).find(([, a]) => latestSensorData.find(d => d.sensor_id === a.sensorId));
-    return idx ? Number(idx[0]) : activeRowIdx;
-  }, [rowAssignments, latestSensorData, activeRowIdx]);
-
   // Načteme poslední data pro každý přiřazený senzor (pro RMS hodnoty v tabulce)
   const assignedSensorIds = useMemo(() => {
     return [...new Set(Object.values(rowSensors).filter(Boolean))];
@@ -764,6 +757,13 @@ export default function VibrationCardMQTT({ machine }) {
 
   const getSensorById = (sensorId) => sensors.find(s => s.sensor_id === sensorId);
   const getDisplayData = (sensorId) => latestSensorData.find(d => d.sensor_id === sensorId) ?? null;
+
+  // ID záznamu pro AI analýzu — první senzor s daty
+  const aiSensorDataId = useMemo(() => latestSensorData[0]?.id ?? null, [latestSensorData]);
+  const aiRowIdx = useMemo(() => {
+    const entry = Object.entries(rowAssignments).find(([, a]) => latestSensorData.find(d => d.sensor_id === a.sensorId));
+    return entry ? Number(entry[0]) : activeRowIdx;
+  }, [rowAssignments, latestSensorData, activeRowIdx]);
 
   const OVERALL_BAND = [
     { label: "A", desc: "OK", bg: "bg-green-100", text: "text-green-700", border: "border-green-300" },
