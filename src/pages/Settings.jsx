@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, FileText, Cpu } from "lucide-react";
+import { Activity, FileText, Cpu, Gauge } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -14,25 +14,42 @@ export default function Settings() {
         <p className="text-slate-500 mb-8">Konfigurace systému a číselníků</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Vibrodiagnostika */}
-          <Card 
-            className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-purple-500"
-            onClick={() => navigate(createPageUrl("AdminVibrations"))}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-slate-800">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Activity className="w-6 h-6 text-purple-600" />
-                </div>
-                Vibrodiagnostika
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600">
-                Definice norem vibrací (ČSN), limitů (A-D) a schémat měřících bodů pro stroje.
-              </p>
-            </CardContent>
-          </Card>
+           {/* Vibrodiagnostika */}
+           <div className="group">
+             <Card 
+               className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-purple-500 h-full"
+               onClick={() => navigate(createPageUrl("AdminVibrations"))}
+             >
+               <CardHeader>
+                 <CardTitle className="flex items-center gap-3 text-slate-800">
+                   <div className="p-2 bg-purple-100 rounded-lg">
+                     <Activity className="w-6 h-6 text-purple-600" />
+                   </div>
+                   Vibrodiagnostika
+                 </CardTitle>
+               </CardHeader>
+               <CardContent>
+                 <p className="text-sm text-slate-600">
+                   Definice norem vibrací (ČSN), limitů (A-D) a schémat měřících bodů pro stroje.
+                 </p>
+               </CardContent>
+             </Card>
+             {/* Podložka: Typy ložisek */}
+             <Card 
+               className="mt-3 hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-purple-400 bg-slate-50"
+               onClick={() => navigate(createPageUrl("AdminBearings"))}
+             >
+               <CardContent className="p-4 flex items-center gap-3">
+                 <div className="p-2 bg-purple-50 rounded-lg">
+                   <Gauge className="w-4 h-4 text-purple-500" />
+                 </div>
+                 <div>
+                   <p className="text-sm font-semibold text-slate-700">Typy ložisek</p>
+                   <p className="text-xs text-slate-500">Katalog a parametry ložisek</p>
+                 </div>
+               </CardContent>
+             </Card>
+           </div>
 
           {/* Termodiagnostika */}
           <Card 

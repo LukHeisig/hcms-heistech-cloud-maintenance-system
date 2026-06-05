@@ -476,15 +476,6 @@ function LayoutContent({ children }) {
       url: createPageUrl("VibrationOnline"),
       icon: Radio,
     },
-    ...(user?.user_type === "superAdmin" || user?.user_type === "admin"
-      ? [
-          {
-            title: "Typy ložisek",
-            url: createPageUrl("AdminBearings"),
-            icon: Settings,
-          },
-        ]
-      : []),
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [
           {
