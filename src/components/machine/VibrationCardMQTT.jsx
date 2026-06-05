@@ -822,27 +822,13 @@ export default function VibrationCardMQTT({ machine }) {
       {/* Hlavička */}
       <Card className="border-none shadow-lg">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center justify-between gap-2 min-w-0">
+          {/* Horní řádek: název + tlačítka */}
+          <div className="flex items-center justify-between gap-2 min-w-0 mb-2">
             <CardTitle className="flex items-center gap-1.5 text-sm min-w-0 truncate">
               <Activity className="w-4 h-4 text-blue-600 flex-shrink-0" />
               <span className="truncate">Vibrační karta — {machine?.name}</span>
-              {overallLevel >= 0 && (() => {
-                const band = OVERALL_BAND[overallLevel];
-                return (
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${band.bg} ${band.text} ${band.border}`}>
-                    {band.desc}
-                  </span>
-                );
-              })()}
             </CardTitle>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {machine?.photo_url && (
-                <img
-                  src={machine.photo_url}
-                  alt={machine.name}
-                  className="hidden md:block h-10 w-16 object-cover rounded border border-slate-200 shadow-sm flex-shrink-0"
-                />
-              )}
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Button
                 variant={showTrend ? "default" : "outline"}
                 size="sm"
@@ -864,6 +850,65 @@ export default function VibrationCardMQTT({ machine }) {
               <Badge variant="outline" className="text-xs hidden sm:inline-flex">{schemaRows.length} míst</Badge>
             </div>
           </div>
+
+          {/* Dolní řádek: foto + hodnocení — pouze md+ */}
+          {(machine?.photo_url || overallLevel >= -1) && (
+            <div className="hidden md:flex items-stretch gap-3">
+              {/* Foto stroje */}
+              {machine?.photo_url && (
+                <img
+                  src={machine.photo_url}
+                  alt={machine.name}
+                  className="h-20 w-32 object-cover rounded-lg border border-slate-200 shadow-sm flex-shrink-0"
+                />
+              )}
+              {/* Hodnocení stavu */}
+              {(() => {
+                const OVERALL_STATUS = [
+                  {
+                    label: "Pásmo A — Provozuschopné",
+                    detail: "Vibrace jsou v normě. Stroj pracuje bez omezení.",
+                    bg: "bg-green-50", border: "border-green-300", text: "text-green-800", dot: "bg-green-500",
+                    badge: "bg-green-100 text-green-700",
+                  },
+                  {
+                    label: "Pásmo B — Pozor",
+                    detail: "Vibrace překračují doporučenou úroveň. Zvýšená kontrola.",
+                    bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-800", dot: "bg-yellow-400",
+                    badge: "bg-yellow-100 text-yellow-700",
+                  },
+                  {
+                    label: "Pásmo C — Výstraha",
+                    detail: "Výrazné vibrace. Doporučuje se brzy provést údržbu.",
+                    bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-800", dot: "bg-orange-500",
+                    badge: "bg-orange-100 text-orange-700",
+                  },
+                  {
+                    label: "Pásmo D — Kritický stav",
+                    detail: "Nebezpečné vibrace. Ihned odstavit a provést opravu.",
+                    bg: "bg-red-50", border: "border-red-300", text: "text-red-800", dot: "bg-red-600",
+                    badge: "bg-red-100 text-red-700",
+                  },
+                ];
+                const noData = {
+                  label: "Stav neznámý",
+                  detail: "Zatím nejsou k dispozici data pro hodnocení stavu stroje.",
+                  bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", dot: "bg-slate-300",
+                  badge: "bg-slate-100 text-slate-500",
+                };
+                const status = overallLevel >= 0 ? OVERALL_STATUS[overallLevel] : noData;
+                return (
+                  <div className={`flex-1 flex flex-col justify-center gap-1 rounded-lg border px-4 py-2 ${status.bg} ${status.border}`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${status.dot}`} />
+                      <span className={`font-semibold text-sm ${status.text}`}>{status.label}</span>
+                    </div>
+                    <p className={`text-xs ${status.text} opacity-80`}>{status.detail}</p>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </CardHeader>
 
         {/* Tabulka */}
