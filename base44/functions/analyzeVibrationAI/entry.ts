@@ -44,7 +44,9 @@ Deno.serve(async (req) => {
     const rmsVelX = calcRMS(velX, 2, 1000);
     const rmsVelY = calcRMS(velY, 2, 1000);
     const rmsVelZ = calcRMS(velZ, 2, 1000);
-    const rmsAccZ = calcRMS(accZ, 2, 6000);
+    // acc_z_json je uložen v m/s² — převedeme na g dělením 9.80665
+    const rmsAccZ_ms2 = calcRMS(accZ, 2, 6000);
+    const rmsAccZ = rmsAccZ_ms2 != null ? rmsAccZ_ms2 / 9.80665 : null;
     const rmsEnvZ = calcRMS(envZ, 2, 1000);
 
     // =====================================================================
