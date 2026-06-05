@@ -227,9 +227,9 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
         machineName,
         measurementPoint,
       });
+      console.log("[AI] full response:", JSON.stringify(res.data));
       setAnalysis(res.data);
       setExpanded(true);
-      console.log("[AI] operatingSpeed:", res.data?.operatingSpeed);
     } catch (e) {
       setError(e.message || "Chyba při analýze");
     } finally {
@@ -237,7 +237,9 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
     }
   };
 
-  const statusCfg = analysis?.analysis?.overall_status ? STATUS_CONFIG[analysis.analysis.overall_status] : null;
+  // InvokeLLM vrací { response: { ... } } — normalizujeme na přímý objekt
+  const aiResult = analysis?.analysis?.response ?? analysis?.analysis ?? null;
+  const statusCfg = aiResult?.overall_status ? STATUS_CONFIG[aiResult.overall_status] : null;
   const StatusIcon = statusCfg?.icon;
 
   return (
@@ -247,10 +249,10 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
           <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-600" />
             AI Diagnostická analýza
-            {analysis?.analysis?.overall_status && statusCfg && (
+            {aiResult?.overall_status && statusCfg && (
               <span className={`flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-xs font-semibold border ${statusCfg.color}`}>
                 <div className={`w-2 h-2 rounded-full ${statusCfg.dot}`} />
-                {analysis.analysis.overall_status}
+                {aiResult.overall_status}
               </span>
             )}
           </CardTitle>
@@ -300,28 +302,28 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
           <div className={`p-3 rounded-lg border ${statusCfg?.color || "bg-slate-50 border-slate-200"}`}>
             <div className="flex items-start gap-2">
               {StatusIcon && <StatusIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />}
-              <p className="text-sm font-medium">{analysis.analysis.overall_summary}</p>
+              <p className="text-sm font-medium">{aiResult?.overall_summary}</p>
             </div>
           </div>
 
           {/* Třídoménová analýza */}
-          {(analysis.analysis.domain_velocity || analysis.analysis.domain_acceleration || analysis.analysis.domain_envelope) && (
+          {(aiResult?.domain_velocity || aiResult?.domain_acceleration || aiResult?.domain_envelope) && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Analýza po doménách</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <DomainPanel domainKey="velocity"     data={analysis.analysis.domain_velocity} />
-                <DomainPanel domainKey="acceleration" data={analysis.analysis.domain_acceleration} />
-                <DomainPanel domainKey="envelope"     data={analysis.analysis.domain_envelope} />
+                <DomainPanel domainKey="velocity"     data={aiResult.domain_velocity} />
+                <DomainPanel domainKey="acceleration" data={aiResult.domain_acceleration} />
+                <DomainPanel domainKey="envelope"     data={aiResult.domain_envelope} />
               </div>
             </div>
           )}
 
           {/* Zjištění */}
-          {analysis.analysis.findings?.length > 0 && (
+          {aiResult?.findings?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Zjištění</p>
               <div className="space-y-2">
-                {analysis.analysis.findings.map((f, i) => {
+                {aiResult.findings.map((f, i) => {
                   const sevCfg = SEVERITY_CONFIG[f.severity] || SEVERITY_CONFIG.info;
                   const SevIcon = sevCfg.icon;
                   return (
@@ -339,21 +341,21 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
           )}
 
           {/* Analýza frekvencí */}
-          {analysis.analysis.frequency_analysis && (
+          {aiResult?.frequency_analysis && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Analýza dominantních frekvencí</p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
-                {analysis.analysis.frequency_analysis}
+                {aiResult.frequency_analysis}
               </div>
             </div>
           )}
 
           {/* Doporučení */}
-          {analysis.analysis.recommendations?.length > 0 && (
+          {aiResult?.recommendations?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Doporučená opatření</p>
               <ul className="space-y-1.5">
-                {analysis.analysis.recommendations.map((r, i) => (
+                {aiResult.recommendations.map((r, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
                     <span className="mt-0.5 w-4 h-4 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[9px] flex-shrink-0">{i + 1}</span>
                     {r}
@@ -364,12 +366,12 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
           )}
 
           {/* Doporučení příštího měření */}
-          {analysis.analysis.next_inspection_recommendation && (
+          {aiResult?.next_inspection_recommendation && (
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-start gap-2">
               <Info className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-[10px] font-semibold text-slate-400 uppercase mb-0.5">Příští měření</p>
-                <p className="text-xs text-slate-600">{analysis.analysis.next_inspection_recommendation}</p>
+                <p className="text-xs text-slate-600">{aiResult.next_inspection_recommendation}</p>
               </div>
             </div>
           )}
