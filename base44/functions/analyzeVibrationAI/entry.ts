@@ -11,6 +11,13 @@ Deno.serve(async (req) => {
 
     if (!sensorDataId) return Response.json({ error: 'Missing sensorDataId' }, { status: 400 });
 
+    // Načteme fftLowCutHz z MqttSettings (stejné jako webhook)
+    let fftLowCutHz = 2;
+    try {
+      const mqttSettings = await base44.asServiceRole.entities.MqttSettings.list(null, 1);
+      if (mqttSettings[0]?.fft_low_cut_hz != null) fftLowCutHz = mqttSettings[0].fft_low_cut_hz;
+    } catch (_) {}
+
     // Načteme SensorData
     const sensorRecords = await base44.asServiceRole.entities.SensorData.filter({ id: sensorDataId });
     const sd = sensorRecords[0];
@@ -41,13 +48,13 @@ Deno.serve(async (req) => {
       return Math.sqrt(sumSq / 2);
     };
 
-    const rmsVelX = calcRMS(velX, 2, 1000);
-    const rmsVelY = calcRMS(velY, 2, 1000);
-    const rmsVelZ = calcRMS(velZ, 2, 1000);
+    const rmsVelX = calcRMS(velX, fftLowCutHz, 1000);
+    const rmsVelY = calcRMS(velY, fftLowCutHz, 1000);
+    const rmsVelZ = calcRMS(velZ, fftLowCutHz, 1000);
     // acc_z_json je uložen v m/s² — převedeme na g dělením 9.80665
-    const rmsAccZ_ms2 = calcRMS(accZ, 2, 6000);
+    const rmsAccZ_ms2 = calcRMS(accZ, fftLowCutHz, 6000);
     const rmsAccZ = rmsAccZ_ms2 != null ? rmsAccZ_ms2 / 9.80665 : null;
-    const rmsEnvZ = calcRMS(envZ, 2, 1000);
+    const rmsEnvZ = calcRMS(envZ, fftLowCutHz, 1000);
 
     // =====================================================================
     // DETEKCE PROVOZNÍCH OTÁČEK (1X) z FFT rychlosti
