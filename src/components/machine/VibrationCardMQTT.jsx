@@ -557,7 +557,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
                       ))}
                     </tbody>
                   </table>
-                  <p className="text-[9px] text-slate-400 mt-1">Např. při 1500 RPM: BPFO = {(coefs.bpfo * 1500 / 60).toFixed(1)} Hz</p>
+                  <p className="text-[9px] text-slate-400 mt-1">Koeficienty platí při 1 Hz (= 60 RPM). Při 1500 RPM násobte ×25.</p>
                 </div>
               );
             })()}
@@ -702,7 +702,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
                         ))}
                       </tbody>
                     </table>
-                    <p className="text-[9px] text-slate-400 mt-1">Např. při 1500 RPM: BPFO = {(bearingSearchResult.bpfo * 1500 / 60).toFixed(1)} Hz</p>
+                    <p className="text-[9px] text-slate-400 mt-1">Koeficienty platí při 1 Hz (= 60 RPM). Při 1500 RPM násobte ×25.</p>
                   </div>
                 </div>
               )}
@@ -734,10 +734,7 @@ function calcBearingDefectCoefs(nb, bd, pd, alpha_deg) {
 // Badge + rozbalovací panel s defektními frekvencemi pro řádek tabulky
 function BearingFreqBadge({ bearing }) {
   const [open, setOpen] = useState(false);
-  const [rpm, setRpm] = useState("1500");
   const coefs = calcBearingDefectCoefs(bearing.nb, bearing.bd, bearing.pd, bearing.contact_angle_deg || 0);
-  const rpmNum = parseFloat(rpm) || 0;
-  const fr = rpmNum / 60;
 
   return (
     <span className="relative inline-block">
@@ -771,23 +768,11 @@ function BearingFreqBadge({ bearing }) {
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-1 mb-2">
-            <label className="text-[10px] text-slate-500 font-semibold whitespace-nowrap">Otáčky (RPM):</label>
-            <input
-              type="number"
-              value={rpm}
-              onChange={e => setRpm(e.target.value)}
-              className="h-6 px-1 text-xs border border-slate-300 rounded w-20 font-mono"
-              min={1}
-              onClick={e => e.stopPropagation()}
-            />
-          </div>
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-orange-100">
                 <th className="border border-orange-200 px-1.5 py-0.5 text-left font-semibold text-orange-700 text-[10px]">Frekvence</th>
-                <th className="border border-orange-200 px-1.5 py-0.5 text-center font-semibold text-orange-700 text-[10px]">Koef.</th>
-                <th className="border border-orange-200 px-1.5 py-0.5 text-center font-semibold text-orange-700 text-[10px]">Hz</th>
+                <th className="border border-orange-200 px-1.5 py-0.5 text-center font-semibold text-orange-700 text-[10px]">Koef. (při 1 Hz / 60 RPM)</th>
               </tr>
             </thead>
             <tbody>
@@ -799,15 +784,12 @@ function BearingFreqBadge({ bearing }) {
               ].map(row => (
                 <tr key={row.name} className="hover:bg-orange-50">
                   <td className="border border-orange-200 px-1.5 py-0.5 font-bold text-slate-700 text-[10px]">{row.name}<span className="text-[8px] text-slate-400 ml-1">({row.desc})</span></td>
-                  <td className="border border-orange-200 px-1.5 py-0.5 text-center font-mono text-orange-700 text-[10px]">{row.coef}×</td>
-                  <td className="border border-orange-200 px-1.5 py-0.5 text-center font-mono font-bold text-slate-800 text-[10px]">
-                    {rpmNum > 0 ? (row.coef * fr).toFixed(1) : "—"}
-                  </td>
+                  <td className="border border-orange-200 px-1.5 py-0.5 text-center font-mono font-bold text-orange-800 text-[10px]">{row.coef} Hz</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="text-[9px] text-slate-400 mt-1.5 text-center">Klikněte mimo pro zavření</p>
+          <p className="text-[9px] text-slate-400 mt-1.5 text-center">Pro jiné otáčky: Hz = koef × (RPM / 60)</p>
         </div>
       )}
     </span>
