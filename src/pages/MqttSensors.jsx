@@ -199,7 +199,9 @@ function AllSensorIds({ sensors }) {
 function MqttSettingsPanel() {
   const queryClient = useQueryClient();
   const [threshold, setThreshold] = useState("");
+  const [fftLowCut, setFftLowCut] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [savedFft, setSavedFft] = useState(false);
 
   const { data: settingsList = [], isLoading } = useQuery({
     queryKey: ["mqttSettings"],
@@ -209,79 +211,127 @@ function MqttSettingsPanel() {
 
   const settings = settingsList[0] || null;
 
-  // Sync do inputu po načtení
   React.useEffect(() => {
-    if (settings && threshold === "") {
-      setThreshold(String(settings.trend_threshold_percent ?? 20));
+    if (settings) {
+      if (threshold === "") setThreshold(String(settings.trend_threshold_percent ?? 20));
+      if (fftLowCut === null) setFftLowCut(settings.fft_low_cut_hz ?? 2);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
-  const handleSave = async () => {
+  const handleSaveThreshold = async () => {
     const val = parseFloat(threshold);
     if (isNaN(val) || val <= 0 || val > 100) return;
     if (settings?.id) {
       await base44.entities.MqttSettings.update(settings.id, { trend_threshold_percent: val });
     } else {
-      await base44.entities.MqttSettings.create({ trend_threshold_percent: val });
+      await base44.entities.MqttSettings.create({ trend_threshold_percent: val, fft_low_cut_hz: fftLowCut ?? 2 });
     }
     queryClient.invalidateQueries({ queryKey: ["mqttSettings"] });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const handleSaveFftLowCut = async (val) => {
+    const numVal = Number(val);
+    setFftLowCut(numVal);
+    if (settings?.id) {
+      await base44.entities.MqttSettings.update(settings.id, { fft_low_cut_hz: numVal });
+    } else {
+      await base44.entities.MqttSettings.create({ trend_threshold_percent: parseFloat(threshold) || 20, fft_low_cut_hz: numVal });
+    }
+    queryClient.invalidateQueries({ queryKey: ["mqttSettings"] });
+    setSavedFft(true);
+    setTimeout(() => setSavedFft(false), 2500);
+  };
+
   const currentValue = settings?.trend_threshold_percent ?? 20;
+  const currentFftLowCut = settings?.fft_low_cut_hz ?? 2;
 
   return (
-    <Card className="max-w-lg">
-      <CardHeader className="border-b border-slate-100">
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-600" />
-          Nastavení trendu vibrací
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-6 space-y-5">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-          <p className="font-semibold mb-1">Jak funguje šipka trendu?</p>
-          <p>
-            Směr šipky se určuje lineární regresí z posledních 10 měření. Pokud je sklon regresní přímky větší než <strong>{currentValue} %</strong> průměrné hodnoty, šipka ukáže <strong>↑ nahoru</strong> nebo <strong>↓ dolů</strong>. Jinak zobrazí <strong>→ rovnou</strong>.
-          </p>
-        </div>
-
-        <div>
-          <Label className="text-sm font-semibold text-slate-700">
-            Práh pro šipku trendu (% průměru)
-          </Label>
-          <p className="text-xs text-slate-400 mb-2">
-            Výchozí hodnota: 20 %. Nižší hodnota = citlivější šipky, vyšší = stabilnější.
-          </p>
-          <div className="flex items-center gap-3">
-            <Input
-              type="number"
-              min={1}
-              max={100}
-              step={1}
-              value={threshold === "" ? (isLoading ? "" : String(currentValue)) : threshold}
-              onChange={e => setThreshold(e.target.value)}
-              className="w-28"
-              placeholder="20"
-            />
-            <span className="text-slate-500 text-sm">%</span>
-            <Button
-              onClick={handleSave}
-              className="bg-blue-600 hover:bg-blue-700"
-              disabled={isLoading}
-            >
-              {saved ? "Uloženo ✓" : "Uložit"}
-            </Button>
+    <div className="space-y-4 max-w-lg">
+      <Card>
+        <CardHeader className="border-b border-slate-100">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-blue-600" />
+            Nastavení trendu vibrací
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-5">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+            <p className="font-semibold mb-1">Jak funguje šipka trendu?</p>
+            <p>
+              Směr šipky se určuje lineární regresí z posledních 10 měření. Pokud je sklon regresní přímky větší než <strong>{currentValue} %</strong> průměrné hodnoty, šipka ukáže <strong>↑ nahoru</strong> nebo <strong>↓ dolů</strong>. Jinak zobrazí <strong>→ rovnou</strong>.
+            </p>
           </div>
-        </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">Práh pro šipku trendu (% průměru)</Label>
+            <p className="text-xs text-slate-400 mb-2">Výchozí hodnota: 20 %. Nižší hodnota = citlivější šipky, vyšší = stabilnější.</p>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                step={1}
+                value={threshold === "" ? (isLoading ? "" : String(currentValue)) : threshold}
+                onChange={e => setThreshold(e.target.value)}
+                className="w-28"
+                placeholder="20"
+              />
+              <span className="text-slate-500 text-sm">%</span>
+              <Button onClick={handleSaveThreshold} className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+                {saved ? "Uloženo ✓" : "Uložit"}
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-slate-400 border-t border-slate-100 pt-4">
+            Aktuálně uložená hodnota: <strong className="text-slate-600">{currentValue} %</strong>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="text-xs text-slate-400 border-t border-slate-100 pt-4">
-          Aktuálně uložená hodnota: <strong className="text-slate-600">{currentValue} %</strong>
-        </div>
-      </CardContent>
-    </Card>
+      <Card>
+        <CardHeader className="border-b border-slate-100">
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-blue-600" />
+            FFT analýza — spodní ořez frekvence
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-5">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+            <p className="font-semibold mb-1">Co je spodní ořez frekvence?</p>
+            <p>
+              Při výpočtu RMS rychlosti vibrací z FFT se integrace provádí pouze nad touto frekvencí.<br />
+              <strong>2 Hz</strong> — vhodné pro pomaloběžné stroje, zachycuje více energie z nízkých frekvencí.<br />
+              <strong>10 Hz</strong> — standardní průmyslová hodnota dle ISO 20816, filtruje rázy a drift.
+            </p>
+          </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">Spodní ořez pro výpočet RMS z FFT</Label>
+            <p className="text-xs text-slate-400 mb-3">Platí pro nově příchozí data. Změna se projeví až u dalšího měření.</p>
+            <div className="flex items-center gap-3">
+              <Select
+                value={String(fftLowCut ?? currentFftLowCut)}
+                onValueChange={handleSaveFftLowCut}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 Hz</SelectItem>
+                  <SelectItem value="10">10 Hz</SelectItem>
+                </SelectContent>
+              </Select>
+              {savedFft && <span className="text-green-600 text-sm font-medium">Uloženo ✓</span>}
+            </div>
+          </div>
+          <div className="text-xs text-slate-400 border-t border-slate-100 pt-4">
+            Aktuálně uložená hodnota: <strong className="text-slate-600">{currentFftLowCut} Hz</strong>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
