@@ -123,17 +123,47 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
     setBearingSaved(false);
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Jsi expert na valivá ložiska. Uživatel zadal označení ložiska: "${query}".
-Dohledej geometrické parametry tohoto ložiska z veřejně dostupných katalogů (SKF, FAG, NSK, NTN, atd.).
-Vrať parametry:
-- nb: počet valivých elementů (celé číslo)
-- bd: průměr valivého elementu v mm (desetinné číslo)
-- pd: roztečný průměr v mm (desetinné číslo)
-- contact_angle_deg: kontaktní úhel ve stupních (pro kuličková ložiska obvykle 0, pro kosoúhlá 15-40)
-- designation: standardizované označení ložiska (např. "6220")
-- manufacturer: doporučený výrobce (SKF, FAG, NSK, ...)
-- note: krátká poznámka o typu ložiska (1 věta)
-Pokud ložisko nenajdeš, vrať nb=0.`,
+        prompt: `You are a rolling bearing geometry database. The user is looking up bearing: "${query}".
+
+TASK: Return the EXACT, REAL catalog geometry for this bearing from SKF, FAG, NSK, NTN, or INA bearing catalogs.
+Do NOT estimate or calculate — use only real published catalog values.
+
+CRITICAL RULES:
+- nb (number of rolling elements): must be an INTEGER from the real bearing catalog (e.g. 6205 has 9 balls, 6220 has 10 balls, 22312 has 14 rollers). Do NOT guess.
+- bd (ball/roller diameter in mm): exact value from catalog in mm (e.g. 6205: 7.938 mm, 6220: 19.05 mm)
+- pd (pitch circle diameter in mm): exact value from catalog in mm (e.g. 6205: 38.5 mm, 6220: 125 mm)  
+- contact_angle_deg: 0 for deep groove ball bearings, 15 for angular contact 7200 series, 25 for angular contact 7300 series, actual value for other types
+- designation: the standard bearing designation (just the number/code, e.g. "6220")
+- manufacturer: primary manufacturer (SKF, FAG, NSK, NTN, INA, or "General")
+- note: one sentence describing the bearing type (e.g. "Deep groove ball bearing, single row, bore 100mm")
+
+KNOWN EXACT VALUES (use these if matching):
+- 6205: nb=9, bd=7.938, pd=38.5, angle=0
+- 6206: nb=9, bd=9.525, pd=46.0, angle=0
+- 6208: nb=9, bd=11.112, pd=52.0, angle=0
+- 6210: nb=10, bd=12.7, pd=65.0, angle=0
+- 6212: nb=10, bd=14.288, pd=76.5, angle=0
+- 6215: nb=10, bd=17.463, pd=95.25, angle=0
+- 6220: nb=10, bd=19.05, pd=125.0, angle=0
+- 6222: nb=10, bd=20.638, pd=137.0, angle=0
+- 6305: nb=7, bd=10.319, pd=42.0, angle=0
+- 6306: nb=8, bd=11.112, pd=47.0, angle=0
+- 6308: nb=8, bd=14.288, pd=57.5, angle=0
+- 6310: nb=8, bd=17.463, pd=72.0, angle=0
+- 6312: nb=8, bd=19.05, pd=82.5, angle=0
+- 22205: nb=16, bd=6.5, pd=34.5, angle=12
+- 22210: nb=16, bd=11.0, pd=60.0, angle=12
+- 22212: nb=16, bd=13.0, pd=72.0, angle=12
+- 22312: nb=14, bd=19.0, pd=95.0, angle=12
+- 22315: nb=14, bd=23.0, pd=115.0, angle=12
+- 7205: nb=11, bd=7.144, pd=38.0, angle=15
+- 7210: nb=14, bd=10.319, pd=65.0, angle=15
+- NU205: nb=14, bd=8.0, pd=42.0, angle=0
+- NU210: nb=14, bd=11.0, pd=65.0, angle=0
+
+If the bearing is NOT in this list, search your training data for the EXACT catalog values. 
+If you truly cannot find exact values, return nb=0.`,
+        add_context_from_internet: true,
         response_json_schema: {
           type: "object",
           properties: {
@@ -148,7 +178,7 @@ Pokud ložisko nenajdeš, vrať nb=0.`,
         }
       });
       if (!result?.nb || result.nb === 0) {
-        setBearingSearchError(`Ložisko "${query}" nebylo nalezeno. Zkuste upřesnit označení.`);
+        setBearingSearchError(`Ložisko "${query}" nebylo nalezeno v katalogu. Zkuste upřesnit označení (např. 6220, SKF 22312, NU210).`);
       } else {
         const coefs = calcDefectCoefs(result.nb, result.bd, result.pd, result.contact_angle_deg);
         setBearingSearchResult({ ...result, ...coefs });
