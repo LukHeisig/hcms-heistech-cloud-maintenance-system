@@ -781,6 +781,39 @@ export default function VibrationCardMQTT({ machine }) {
     return Math.max(...levels);
   }, [schemaRows, rowAssignments, standardsById, latestSensorData, sensors]);
 
+  // Stav vibrací stroje — nejhorší level rychlosti (vel X/Y/Z) ze všech míst
+  const velLevel = useMemo(() => {
+    const levels = schemaRows.map((_, idx) => {
+      const assignment = rowAssignments[idx] || {};
+      const velStd = standardsById[assignment.velStandardId];
+      const latest = getDisplayData(assignment.sensorId || null);
+      if (!latest || !velStd) return -1;
+      return Math.max(
+        getLimitLevel(latest.vel_rms_x_mm_s, velStd.limit_ab, velStd.limit_bc, velStd.limit_cd),
+        getLimitLevel(latest.vel_rms_y_mm_s, velStd.limit_ab, velStd.limit_bc, velStd.limit_cd),
+        getLimitLevel(latest.vel_rms_z_mm_s, velStd.limit_ab, velStd.limit_bc, velStd.limit_cd),
+      );
+    }).filter(l => l >= 0);
+    if (levels.length === 0) return -1;
+    return Math.max(...levels);
+  }, [schemaRows, rowAssignments, standardsById, latestSensorData]);
+
+  // Stav ložisek — nejhorší level zrychlení + obálky ze všech míst
+  const bearingLevel = useMemo(() => {
+    const levels = schemaRows.map((_, idx) => {
+      const assignment = rowAssignments[idx] || {};
+      const accStd = standardsById[assignment.accStandardId];
+      const latest = getDisplayData(assignment.sensorId || null);
+      if (!latest || !accStd) return -1;
+      return Math.max(
+        getLimitLevel(latest.rms_z_g ?? latest.oa_acc_z, accStd.acc_limit_ab, accStd.acc_limit_bc, accStd.acc_limit_cd),
+        getLimitLevel(latest.env_rms_z, accStd.acc_limit_ab, accStd.acc_limit_bc, accStd.acc_limit_cd),
+      );
+    }).filter(l => l >= 0);
+    if (levels.length === 0) return -1;
+    return Math.max(...levels);
+  }, [schemaRows, rowAssignments, standardsById, latestSensorData]);
+
   // Pokud není přiřazeno schéma, zobraz informaci
   if (!machine?.vibration_schema_id) {
     return (
@@ -862,48 +895,54 @@ export default function VibrationCardMQTT({ machine }) {
                   className="h-20 w-32 object-cover rounded-lg border border-slate-200 shadow-sm flex-shrink-0"
                 />
               )}
-              {/* Hodnocení stavu */}
+              {/* Hodnocení stavu — dvě dlaždice */}
               {(() => {
-                const OVERALL_STATUS = [
-                  {
-                    label: "Pásmo A — Provozuschopné",
-                    detail: "Vibrace jsou v normě. Stroj pracuje bez omezení.",
-                    bg: "bg-green-50", border: "border-green-300", text: "text-green-800", dot: "bg-green-500",
-                    badge: "bg-green-100 text-green-700",
-                  },
-                  {
-                    label: "Pásmo B — Pozor",
-                    detail: "Vibrace překračují doporučenou úroveň. Zvýšená kontrola.",
-                    bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-800", dot: "bg-yellow-400",
-                    badge: "bg-yellow-100 text-yellow-700",
-                  },
-                  {
-                    label: "Pásmo C — Výstraha",
-                    detail: "Výrazné vibrace. Doporučuje se brzy provést údržbu.",
-                    bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-800", dot: "bg-orange-500",
-                    badge: "bg-orange-100 text-orange-700",
-                  },
-                  {
-                    label: "Pásmo D — Kritický stav",
-                    detail: "Nebezpečné vibrace. Ihned odstavit a provést opravu.",
-                    bg: "bg-red-50", border: "border-red-300", text: "text-red-800", dot: "bg-red-600",
-                    badge: "bg-red-100 text-red-700",
-                  },
+                const STATUS_DEFS = [
+                  { dot: "bg-green-500", bg: "bg-green-50", border: "border-green-300", text: "text-green-800" },
+                  { dot: "bg-yellow-400", bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-800" },
+                  { dot: "bg-orange-500", bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-800" },
+                  { dot: "bg-red-600",    bg: "bg-red-50",    border: "border-red-300",    text: "text-red-800" },
                 ];
-                const noData = {
-                  label: "Stav neznámý",
-                  detail: "Zatím nejsou k dispozici data pro hodnocení stavu stroje.",
-                  bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", dot: "bg-slate-300",
-                  badge: "bg-slate-100 text-slate-500",
-                };
-                const status = overallLevel >= 0 ? OVERALL_STATUS[overallLevel] : noData;
+                const noData = { dot: "bg-slate-300", bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-500" };
+
+                const VEL_LABELS  = ["Vibrace v normě", "Vibrace — pozor", "Vibrace — výstraha", "Vibrace — kritické"];
+                const VEL_DETAILS = [
+                  "Rychlost vibrací je v pásmu A. Stroj pracuje bez omezení.",
+                  "Rychlost vibrací překračuje pásmo A/B. Doporučena zvýšená kontrola.",
+                  "Výrazné vibrace (pásmo B/C). Plánujte údržbu co nejdříve.",
+                  "Nebezpečné vibrace (pásmo C/D). Zvažte okamžité odstavení.",
+                ];
+                const BEAR_LABELS  = ["Ložiska v pořádku", "Ložiska — pozor", "Ložiska — výstraha", "Ložiska — kritická"];
+                const BEAR_DETAILS = [
+                  "Zrychlení a obálka jsou v pásmu A. Žádné poškození ložisek.",
+                  "Zrychlení/obálka překračuje pásmo A/B. Sledujte trend ložisek.",
+                  "Zvýšené rázové vibrace (pásmo B/C). Blíží se porucha ložiska.",
+                  "Kritické rázové vibrace (pásmo C/D). Ložisko pravděpodobně poškozeno.",
+                ];
+                const noVel  = { label: "Stav vibrací neznámý",  detail: "Není přiřazena norma pro rychlost nebo zatím nejsou data.", ...noData };
+                const noBear = { label: "Stav ložisek neznámý",  detail: "Není přiřazena norma pro zrychlení nebo zatím nejsou data.", ...noData };
+
+                const velSt  = velLevel  >= 0 ? { label: VEL_LABELS[velLevel],   detail: VEL_DETAILS[velLevel],   ...STATUS_DEFS[velLevel]  } : noVel;
+                const bearSt = bearingLevel >= 0 ? { label: BEAR_LABELS[bearingLevel], detail: BEAR_DETAILS[bearingLevel], ...STATUS_DEFS[bearingLevel] } : noBear;
+
                 return (
-                  <div className={`flex-1 flex flex-col justify-center gap-1 rounded-lg border px-4 py-2 ${status.bg} ${status.border}`}>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${status.dot}`} />
-                      <span className={`font-semibold text-sm ${status.text}`}>{status.label}</span>
+                  <div className="flex-1 flex flex-col gap-2">
+                    {/* Stav vibrací — rychlost */}
+                    <div className={`flex flex-col justify-center gap-0.5 rounded-lg border px-3 py-2 ${velSt.bg} ${velSt.border}`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${velSt.dot}`} />
+                        <span className={`font-semibold text-xs ${velSt.text}`}>{velSt.label}</span>
+                      </div>
+                      <p className={`text-[11px] ${velSt.text} opacity-75 pl-4`}>{velSt.detail}</p>
                     </div>
-                    <p className={`text-xs ${status.text} opacity-80`}>{status.detail}</p>
+                    {/* Stav ložisek — zrychlení + obálka */}
+                    <div className={`flex flex-col justify-center gap-0.5 rounded-lg border px-3 py-2 ${bearSt.bg} ${bearSt.border}`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${bearSt.dot}`} />
+                        <span className={`font-semibold text-xs ${bearSt.text}`}>{bearSt.label}</span>
+                      </div>
+                      <p className={`text-[11px] ${bearSt.text} opacity-75 pl-4`}>{bearSt.detail}</p>
+                    </div>
                   </div>
                 );
               })()}
