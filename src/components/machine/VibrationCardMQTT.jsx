@@ -835,7 +835,14 @@ export default function VibrationCardMQTT({ machine }) {
                 );
               })()}
             </CardTitle>
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {machine?.photo_url && (
+                <img
+                  src={machine.photo_url}
+                  alt={machine.name}
+                  className="hidden md:block h-10 w-16 object-cover rounded border border-slate-200 shadow-sm flex-shrink-0"
+                />
+              )}
               <Button
                 variant={showTrend ? "default" : "outline"}
                 size="sm"
