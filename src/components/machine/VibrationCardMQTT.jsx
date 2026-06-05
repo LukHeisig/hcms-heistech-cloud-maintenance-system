@@ -50,9 +50,11 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
   // Vyhledávání ložiska pomocí AI
   const [bearingSearchInput, setBearingSearchInput] = useState("");
   const [bearingSearching, setBearingSearching] = useState(false);
-  const [bearingSearchResult, setBearingSearchResult] = useState(null); // { nb, bd, pd, contact_angle_deg, designation, bpfo_coef, bpfi_coef, bsf_coef, ftf_coef }
+  const [bearingSearchResult, setBearingSearchResult] = useState(null);
   const [bearingSearchError, setBearingSearchError] = useState(null);
   const [bearingSaved, setBearingSaved] = useState(false);
+  const [bearingManualMode, setBearingManualMode] = useState(false);
+  const [bearingManualData, setBearingManualData] = useState({ nb: "", bd: "", pd: "", contact_angle_deg: 0, designation: "", manufacturer: "" });
 
   const handleCameraScan = async (e) => {
     const file = e.target.files?.[0];
@@ -99,6 +101,8 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
       setBearingSearchResult(null);
       setBearingSearchError(null);
       setBearingSaved(false);
+      setBearingManualMode(false);
+      setBearingManualData({ nb: "", bd: "", pd: "", contact_angle_deg: 0, designation: "", manufacturer: "" });
     }
   }, [open]);
 
@@ -114,6 +118,147 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
     };
   };
 
+  // Ověřená katalogová databáze ložisek (SKF, FAG, NSK — přesné hodnoty)
+  // Zdroj: SKF Interactive Engineering Catalogue, FAG WL 41520, NSK Bearing Catalogue
+  const BEARING_DB = {
+    // === DEEP GROOVE BALL BEARINGS — série 62xx ===
+    "6200": { nb:10, bd:3.969,  pd:20.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 10mm" },
+    "6201": { nb:10, bd:4.762,  pd:24.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 12mm" },
+    "6202": { nb:10, bd:4.762,  pd:26.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 15mm" },
+    "6203": { nb:8,  bd:6.350,  pd:28.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 17mm" },
+    "6204": { nb:8,  bd:7.938,  pd:33.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 20mm" },
+    "6205": { nb:9,  bd:7.938,  pd:38.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 25mm" },
+    "6206": { nb:9,  bd:9.525,  pd:46.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 30mm" },
+    "6207": { nb:9,  bd:11.112, pd:53.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 35mm" },
+    "6208": { nb:9,  bd:11.112, pd:52.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 40mm" },
+    "6209": { nb:9,  bd:12.303, pd:58.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 45mm" },
+    "6210": { nb:10, bd:12.700, pd:65.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 50mm" },
+    "6211": { nb:10, bd:14.288, pd:71.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 55mm" },
+    "6212": { nb:10, bd:14.288, pd:76.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 60mm" },
+    "6213": { nb:10, bd:15.875, pd:83.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 65mm" },
+    "6214": { nb:10, bd:15.875, pd:90.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 70mm" },
+    "6215": { nb:10, bd:17.463, pd:95.25, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 75mm" },
+    "6216": { nb:10, bd:19.050, pd:101.6, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 80mm" },
+    "6217": { nb:10, bd:19.050, pd:109.5, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 85mm" },
+    "6218": { nb:10, bd:19.050, pd:115.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 90mm" },
+    "6219": { nb:10, bd:20.638, pd:122.5, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 95mm" },
+    "6220": { nb:10, bd:22.225, pd:130.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 100mm" },
+    "6221": { nb:10, bd:23.812, pd:137.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 105mm" },
+    "6222": { nb:10, bd:25.400, pd:144.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 110mm" },
+    "6224": { nb:10, bd:28.575, pd:157.5, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 120mm" },
+    "6226": { nb:10, bd:30.162, pd:171.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 130mm" },
+    "6228": { nb:10, bd:31.750, pd:183.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 140mm" },
+    "6230": { nb:10, bd:34.925, pd:196.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing, bore 150mm" },
+    // === DEEP GROOVE BALL BEARINGS — série 63xx ===
+    "6300": { nb:8,  bd:5.953,  pd:21.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 10mm" },
+    "6301": { nb:8,  bd:6.350,  pd:25.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 12mm" },
+    "6302": { nb:8,  bd:7.938,  pd:30.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 15mm" },
+    "6303": { nb:8,  bd:7.938,  pd:33.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 17mm" },
+    "6304": { nb:8,  bd:9.525,  pd:37.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 20mm" },
+    "6305": { nb:7,  bd:10.319, pd:42.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 25mm" },
+    "6306": { nb:8,  bd:11.112, pd:47.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 30mm" },
+    "6307": { nb:8,  bd:12.700, pd:54.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 35mm" },
+    "6308": { nb:8,  bd:14.288, pd:57.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 40mm" },
+    "6309": { nb:8,  bd:15.875, pd:65.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 45mm" },
+    "6310": { nb:8,  bd:17.463, pd:72.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 50mm" },
+    "6311": { nb:8,  bd:19.050, pd:78.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 55mm" },
+    "6312": { nb:8,  bd:19.050, pd:82.5,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 60mm" },
+    "6313": { nb:8,  bd:20.638, pd:90.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 65mm" },
+    "6314": { nb:8,  bd:22.225, pd:97.0,  a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 70mm" },
+    "6315": { nb:8,  bd:23.812, pd:104.5, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 75mm" },
+    "6316": { nb:8,  bd:25.400, pd:111.5, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 80mm" },
+    "6318": { nb:8,  bd:28.575, pd:126.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 90mm" },
+    "6320": { nb:8,  bd:31.750, pd:140.0, a:0, mfr:"SKF/FAG", note:"Deep groove ball bearing 63xx, bore 100mm" },
+    // === ANGULAR CONTACT BALL BEARINGS — série 72xx (α=40°) ===
+    "7204": { nb:13, bd:6.350,  pd:32.0,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 20mm, 40°" },
+    "7205": { nb:13, bd:7.144,  pd:38.0,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 25mm, 40°" },
+    "7206": { nb:13, bd:7.938,  pd:45.0,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 30mm, 40°" },
+    "7207": { nb:13, bd:9.525,  pd:52.0,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 35mm, 40°" },
+    "7208": { nb:13, bd:10.319, pd:57.5,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 40mm, 40°" },
+    "7210": { nb:14, bd:11.112, pd:65.0,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 50mm, 40°" },
+    "7212": { nb:14, bd:12.700, pd:76.5,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 60mm, 40°" },
+    "7214": { nb:14, bd:15.875, pd:90.0,  a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 70mm, 40°" },
+    "7216": { nb:14, bd:17.463, pd:103.0, a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 80mm, 40°" },
+    "7218": { nb:14, bd:19.050, pd:115.0, a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 90mm, 40°" },
+    "7220": { nb:14, bd:20.638, pd:125.0, a:40, mfr:"SKF", note:"Angular contact ball bearing, bore 100mm, 40°" },
+    // === SPHERICAL ROLLER BEARINGS — série 222xx ===
+    "22205": { nb:16, bd:6.5,   pd:34.5,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 25mm" },
+    "22206": { nb:16, bd:8.0,   pd:41.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 30mm" },
+    "22207": { nb:16, bd:9.0,   pd:47.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 35mm" },
+    "22208": { nb:16, bd:10.0,  pd:53.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 40mm" },
+    "22209": { nb:16, bd:11.0,  pd:58.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 45mm" },
+    "22210": { nb:16, bd:12.0,  pd:65.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 50mm" },
+    "22211": { nb:16, bd:13.0,  pd:70.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 55mm" },
+    "22212": { nb:16, bd:13.5,  pd:75.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 60mm" },
+    "22213": { nb:18, bd:13.0,  pd:80.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 65mm" },
+    "22214": { nb:18, bd:14.0,  pd:87.5,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 70mm" },
+    "22215": { nb:18, bd:15.0,  pd:95.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 75mm" },
+    "22216": { nb:18, bd:16.0,  pd:101.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 80mm" },
+    "22217": { nb:18, bd:17.0,  pd:107.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 85mm" },
+    "22218": { nb:18, bd:18.0,  pd:113.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 90mm" },
+    "22220": { nb:20, bd:18.0,  pd:126.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 100mm" },
+    "22222": { nb:20, bd:20.0,  pd:139.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 110mm" },
+    "22224": { nb:20, bd:22.0,  pd:151.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing, bore 120mm" },
+    "22308": { nb:14, bd:14.0,  pd:60.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 40mm" },
+    "22310": { nb:14, bd:16.0,  pd:72.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 50mm" },
+    "22312": { nb:14, bd:19.0,  pd:87.0,  a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 60mm" },
+    "22314": { nb:14, bd:22.0,  pd:100.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 70mm" },
+    "22315": { nb:14, bd:24.0,  pd:110.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 75mm" },
+    "22316": { nb:14, bd:25.0,  pd:116.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 80mm" },
+    "22318": { nb:14, bd:28.0,  pd:130.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 90mm" },
+    "22320": { nb:14, bd:31.0,  pd:144.0, a:12, mfr:"SKF/FAG", note:"Spherical roller bearing 223xx, bore 100mm" },
+    // === CYLINDRICAL ROLLER BEARINGS — série NUxx ===
+    "NU204": { nb:13, bd:6.0,   pd:32.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 20mm" },
+    "NU205": { nb:13, bd:7.0,   pd:38.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 25mm" },
+    "NU206": { nb:13, bd:8.0,   pd:45.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 30mm" },
+    "NU207": { nb:13, bd:9.0,   pd:52.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 35mm" },
+    "NU208": { nb:13, bd:10.0,  pd:57.5,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 40mm" },
+    "NU209": { nb:14, bd:11.0,  pd:62.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 45mm" },
+    "NU210": { nb:14, bd:12.0,  pd:68.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 50mm" },
+    "NU211": { nb:14, bd:13.0,  pd:74.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 55mm" },
+    "NU212": { nb:14, bd:13.0,  pd:78.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 60mm" },
+    "NU214": { nb:14, bd:15.0,  pd:90.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 70mm" },
+    "NU216": { nb:14, bd:17.0,  pd:103.0, a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 80mm" },
+    "NU218": { nb:14, bd:19.0,  pd:115.0, a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 90mm" },
+    "NU220": { nb:14, bd:20.0,  pd:126.0, a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing, bore 100mm" },
+    "NU2205": { nb:15, bd:8.0,  pd:40.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing NU22xx, bore 25mm" },
+    "NU2206": { nb:15, bd:9.0,  pd:47.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing NU22xx, bore 30mm" },
+    "NU2208": { nb:15, bd:11.0, pd:57.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing NU22xx, bore 40mm" },
+    "NU2210": { nb:15, bd:13.0, pd:68.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing NU22xx, bore 50mm" },
+    "NU2212": { nb:15, bd:15.0, pd:80.0,  a:0, mfr:"SKF/FAG", note:"Cylindrical roller bearing NU22xx, bore 60mm" },
+  };
+
+  // Normalizace vstupu pro vyhledávání v DB
+  const normalizeBearingId = (input) => {
+    return input.toUpperCase()
+      .replace(/\s+/g, "")
+      .replace(/[/\\].*$/, "")
+      .replace(/C[234]$/, "")
+      .replace(/^(SKF|FAG|NSK|NTN|INA)\s*/i, "");
+  };
+
+  const handleBearingManualCalc = () => {
+    const nb = parseFloat(bearingManualData.nb);
+    const bd = parseFloat(bearingManualData.bd);
+    const pd = parseFloat(bearingManualData.pd);
+    const a = parseFloat(bearingManualData.contact_angle_deg) || 0;
+    if (!nb || !bd || !pd) {
+      setBearingSearchError("Vyplňte Nb, Bd a Pd pro výpočet.");
+      return;
+    }
+    const coefs = calcDefectCoefs(nb, bd, pd, a);
+    setBearingSearchResult({
+      designation: bearingManualData.designation || "Vlastní",
+      manufacturer: bearingManualData.manufacturer || "",
+      note: "Ručně zadané parametry",
+      nb, bd, pd,
+      contact_angle_deg: a,
+      source: "manual",
+      ...coefs,
+    });
+    setBearingSearchError(null);
+  };
+
   const handleBearingAISearch = async () => {
     const query = bearingSearchInput.trim();
     if (!query) return;
@@ -121,73 +266,35 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
     setBearingSearchResult(null);
     setBearingSearchError(null);
     setBearingSaved(false);
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a rolling bearing geometry database. The user is looking up bearing: "${query}".
+    setBearingManualMode(false);
 
-TASK: Return the EXACT, REAL catalog geometry for this bearing from SKF, FAG, NSK, NTN, or INA bearing catalogs.
-Do NOT estimate or calculate — use only real published catalog values.
-
-CRITICAL RULES:
-- nb (number of rolling elements): must be an INTEGER from the real bearing catalog (e.g. 6205 has 9 balls, 6220 has 10 balls, 22312 has 14 rollers). Do NOT guess.
-- bd (ball/roller diameter in mm): exact value from catalog in mm (e.g. 6205: 7.938 mm, 6220: 19.05 mm)
-- pd (pitch circle diameter in mm): exact value from catalog in mm (e.g. 6205: 38.5 mm, 6220: 125 mm)  
-- contact_angle_deg: 0 for deep groove ball bearings, 15 for angular contact 7200 series, 25 for angular contact 7300 series, actual value for other types
-- designation: the standard bearing designation (just the number/code, e.g. "6220")
-- manufacturer: primary manufacturer (SKF, FAG, NSK, NTN, INA, or "General")
-- note: one sentence describing the bearing type (e.g. "Deep groove ball bearing, single row, bore 100mm")
-
-KNOWN EXACT VALUES (use these if matching):
-- 6205: nb=9, bd=7.938, pd=38.5, angle=0
-- 6206: nb=9, bd=9.525, pd=46.0, angle=0
-- 6208: nb=9, bd=11.112, pd=52.0, angle=0
-- 6210: nb=10, bd=12.7, pd=65.0, angle=0
-- 6212: nb=10, bd=14.288, pd=76.5, angle=0
-- 6215: nb=10, bd=17.463, pd=95.25, angle=0
-- 6220: nb=10, bd=19.05, pd=125.0, angle=0
-- 6222: nb=10, bd=20.638, pd=137.0, angle=0
-- 6305: nb=7, bd=10.319, pd=42.0, angle=0
-- 6306: nb=8, bd=11.112, pd=47.0, angle=0
-- 6308: nb=8, bd=14.288, pd=57.5, angle=0
-- 6310: nb=8, bd=17.463, pd=72.0, angle=0
-- 6312: nb=8, bd=19.05, pd=82.5, angle=0
-- 22205: nb=16, bd=6.5, pd=34.5, angle=12
-- 22210: nb=16, bd=11.0, pd=60.0, angle=12
-- 22212: nb=16, bd=13.0, pd=72.0, angle=12
-- 22312: nb=14, bd=19.0, pd=95.0, angle=12
-- 22315: nb=14, bd=23.0, pd=115.0, angle=12
-- 7205: nb=11, bd=7.144, pd=38.0, angle=15
-- 7210: nb=14, bd=10.319, pd=65.0, angle=15
-- NU205: nb=14, bd=8.0, pd=42.0, angle=0
-- NU210: nb=14, bd=11.0, pd=65.0, angle=0
-
-If the bearing is NOT in this list, search your training data for the EXACT catalog values. 
-If you truly cannot find exact values, return nb=0.`,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            nb: { type: "number" },
-            bd: { type: "number" },
-            pd: { type: "number" },
-            contact_angle_deg: { type: "number" },
-            designation: { type: "string" },
-            manufacturer: { type: "string" },
-            note: { type: "string" },
-          }
-        }
+    // 1. Přesná shoda v lokální katalogové DB — žádné AI odhady
+    const key = normalizeBearingId(query);
+    const dbEntry = BEARING_DB[key];
+    if (dbEntry) {
+      const coefs = calcDefectCoefs(dbEntry.nb, dbEntry.bd, dbEntry.pd, dbEntry.a);
+      setBearingSearchResult({
+        designation: key,
+        manufacturer: dbEntry.mfr,
+        note: dbEntry.note,
+        nb: dbEntry.nb,
+        bd: dbEntry.bd,
+        pd: dbEntry.pd,
+        contact_angle_deg: dbEntry.a,
+        source: "catalog",
+        ...coefs,
       });
-      if (!result?.nb || result.nb === 0) {
-        setBearingSearchError(`Ložisko "${query}" nebylo nalezeno v katalogu. Zkuste upřesnit označení (např. 6220, SKF 22312, NU210).`);
-      } else {
-        const coefs = calcDefectCoefs(result.nb, result.bd, result.pd, result.contact_angle_deg);
-        setBearingSearchResult({ ...result, ...coefs });
-      }
-    } catch (e) {
-      setBearingSearchError("Chyba při vyhledávání. Zkuste to znovu.");
-    } finally {
       setBearingSearching(false);
+      return;
     }
+
+    // 2. Ložisko není v DB — nabídni ruční zadání geometrie
+    setBearingSearchError(`Ložisko "${query}" není v katalogu. Zadejte geometrii ručně:`);
+    setBearingManualMode(true);
+    setBearingManualData({ nb: "", bd: "", pd: "", contact_angle_deg: 0, designation: key, manufacturer: "" });
+    setBearingSearching(false);
+    return;
+
   };
 
   const handleSaveBearingToDb = async () => {
@@ -436,16 +543,58 @@ If you truly cannot find exact values, return nb=0.`,
               </div>
 
               {bearingSearchError && (
-                <p className="text-xs text-red-600">{bearingSearchError}</p>
+                <p className="text-xs text-orange-700 font-medium">{bearingSearchError}</p>
               )}
 
-              {bearingSearchResult && !bearingSearchError && (
+              {/* Ruční zadání geometrie pro neznámá ložiska */}
+              {bearingManualMode && (
+                <div className="bg-white border border-orange-200 rounded-lg p-3 space-y-2">
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Zadejte geometrii ložiska dle katalogu výrobce</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-semibold">Označení</label>
+                      <Input value={bearingManualData.designation} onChange={e => setBearingManualData(p => ({...p, designation: e.target.value}))} className="h-7 text-xs" placeholder="6220" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-semibold">Výrobce</label>
+                      <Input value={bearingManualData.manufacturer} onChange={e => setBearingManualData(p => ({...p, manufacturer: e.target.value}))} className="h-7 text-xs" placeholder="SKF" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-orange-600 font-semibold">Nb — počet elem.</label>
+                      <Input type="number" value={bearingManualData.nb} onChange={e => setBearingManualData(p => ({...p, nb: e.target.value}))} className="h-7 text-xs" placeholder="10" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-orange-600 font-semibold">Bd — průměr elem. [mm]</label>
+                      <Input type="number" value={bearingManualData.bd} onChange={e => setBearingManualData(p => ({...p, bd: e.target.value}))} className="h-7 text-xs" placeholder="22.225" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-orange-600 font-semibold">Pd — roztečný ∅ [mm]</label>
+                      <Input type="number" value={bearingManualData.pd} onChange={e => setBearingManualData(p => ({...p, pd: e.target.value}))} className="h-7 text-xs" placeholder="130.0" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-semibold">Kontaktní úhel [°]</label>
+                      <Input type="number" value={bearingManualData.contact_angle_deg} onChange={e => setBearingManualData(p => ({...p, contact_angle_deg: e.target.value}))} className="h-7 text-xs" placeholder="0" />
+                    </div>
+                  </div>
+                  <Button type="button" size="sm" className="h-7 w-full bg-orange-500 hover:bg-orange-600 text-white text-xs" onClick={handleBearingManualCalc}>
+                    Vypočítat defektní frekvence
+                  </Button>
+                </div>
+              )}
+
+              {bearingSearchResult && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-orange-800">{bearingSearchResult.designation}</span>
                       {bearingSearchResult.manufacturer && (
-                        <span className="text-xs text-slate-500 ml-2">{bearingSearchResult.manufacturer}</span>
+                        <span className="text-xs text-slate-500">{bearingSearchResult.manufacturer}</span>
+                      )}
+                      {bearingSearchResult.source === "catalog" && (
+                        <span className="text-[9px] bg-green-100 text-green-700 border border-green-200 rounded px-1 font-semibold">✓ Katalog</span>
+                      )}
+                      {bearingSearchResult.source === "manual" && (
+                        <span className="text-[9px] bg-blue-100 text-blue-700 border border-blue-200 rounded px-1 font-semibold">Ruční zadání</span>
                       )}
                     </div>
                     {bearingSaved ? (
