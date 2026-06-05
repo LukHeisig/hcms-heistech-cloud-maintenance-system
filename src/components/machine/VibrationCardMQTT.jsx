@@ -106,17 +106,8 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
     }
   }, [open]);
 
-  // Výpočet koeficientů defektních frekvencí z geometrie
-  const calcDefectCoefs = (nb, bd, pd, alpha_deg) => {
-    const alpha = (alpha_deg || 0) * Math.PI / 180;
-    const ratio = (bd / pd) * Math.cos(alpha);
-    return {
-      bpfo: +(0.5 * nb * (1 - ratio)).toFixed(4),
-      bpfi: +(0.5 * nb * (1 + ratio)).toFixed(4),
-      bsf:  +(0.5 * (pd / bd) * (1 - ratio * ratio)).toFixed(4),
-      ftf:  +(0.5 * (1 - ratio)).toFixed(4),
-    };
-  };
+  // Výpočet koeficientů defektních frekvencí z geometrie (deleguje na sdílenou funkci)
+  const calcDefectCoefs = (nb, bd, pd, alpha_deg) => calcBearingDefectCoefs(nb, bd, pd, alpha_deg);
 
   // Ověřená katalogová databáze ložisek (SKF, FAG, NSK — přesné hodnoty)
   // Zdroj: SKF Interactive Engineering Catalogue, FAG WL 41520, NSK Bearing Catalogue
@@ -519,6 +510,58 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
               </SelectContent>
             </Select>
 
+            {/* Defektní frekvence pro vybrané ložisko z dropdownu */}
+            {(() => {
+              const selBearing = selectedBearing && selectedBearing !== "__none__" ? bearingTypes.find(b => b.id === selectedBearing) : null;
+              if (!selBearing || bearingSearchResult) return null;
+              const coefs = calcDefectCoefs(selBearing.nb, selBearing.bd, selBearing.pd, selBearing.contact_angle_deg || 0);
+              return (
+                <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-orange-600 uppercase tracking-wide mb-2">
+                    Defektní frekvence — {selBearing.designation}
+                    {selBearing.manufacturer && <span className="text-slate-400 ml-1">({selBearing.manufacturer})</span>}
+                  </p>
+                  <div className="grid grid-cols-4 gap-1 text-center mb-2">
+                    {[
+                      { label: "Nb", value: selBearing.nb, unit: "elem." },
+                      { label: "Bd", value: `${selBearing.bd} mm` },
+                      { label: "Pd", value: `${selBearing.pd} mm` },
+                      { label: "α", value: `${selBearing.contact_angle_deg ?? 0}°` },
+                    ].map(item => (
+                      <div key={item.label} className="bg-white border border-orange-200 rounded p-1">
+                        <div className="text-[9px] text-orange-500 font-bold">{item.label}</div>
+                        <div className="text-xs font-mono font-semibold text-slate-700">{item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-orange-100">
+                        <th className="border border-orange-200 px-2 py-1 text-left font-semibold text-orange-700">Frekvence</th>
+                        <th className="border border-orange-200 px-2 py-1 text-center font-semibold text-orange-700">Koef.</th>
+                        <th className="border border-orange-200 px-2 py-1 text-left text-[10px] font-normal text-orange-600">Popis</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { name: "BPFO", coef: coefs.bpfo, desc: "Vnější kroužek" },
+                        { name: "BPFI", coef: coefs.bpfi, desc: "Vnitřní kroužek" },
+                        { name: "BSF",  coef: coefs.bsf,  desc: "Valivý element" },
+                        { name: "FTF",  coef: coefs.ftf,  desc: "Klec (FTF)" },
+                      ].map(row => (
+                        <tr key={row.name} className="hover:bg-orange-50">
+                          <td className="border border-orange-200 px-2 py-1 font-bold text-slate-700">{row.name}</td>
+                          <td className="border border-orange-200 px-2 py-1 text-center font-mono font-semibold text-orange-800">{row.coef}×</td>
+                          <td className="border border-orange-200 px-2 py-1 text-slate-500 text-[10px]">{row.desc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="text-[9px] text-slate-400 mt-1">Např. při 1500 RPM: BPFO = {(coefs.bpfo * 1500 / 60).toFixed(1)} Hz</p>
+                </div>
+              );
+            })()}
+
             {/* AI vyhledávání ložiska */}
             <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
               <p className="text-xs font-semibold text-orange-700">Vyhledat ložisko pomocí AI</p>
@@ -673,6 +716,101 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Výpočet koeficientů defektních frekvencí (sdílená utilita)
+function calcBearingDefectCoefs(nb, bd, pd, alpha_deg) {
+  const alpha = (alpha_deg || 0) * Math.PI / 180;
+  const ratio = (bd / pd) * Math.cos(alpha);
+  return {
+    bpfo: +(0.5 * nb * (1 - ratio)).toFixed(4),
+    bpfi: +(0.5 * nb * (1 + ratio)).toFixed(4),
+    bsf:  +(0.5 * (pd / bd) * (1 - ratio * ratio)).toFixed(4),
+    ftf:  +(0.5 * (1 - ratio)).toFixed(4),
+  };
+}
+
+// Badge + rozbalovací panel s defektními frekvencemi pro řádek tabulky
+function BearingFreqBadge({ bearing }) {
+  const [open, setOpen] = useState(false);
+  const [rpm, setRpm] = useState("1500");
+  const coefs = calcBearingDefectCoefs(bearing.nb, bearing.bd, bearing.pd, bearing.contact_angle_deg || 0);
+  const rpmNum = parseFloat(rpm) || 0;
+  const fr = rpmNum / 60;
+
+  return (
+    <span className="relative inline-block">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+        className="text-[9px] bg-orange-50 text-orange-700 border border-orange-300 rounded px-1 hover:bg-orange-100 font-semibold"
+        title="Zobrazit defektní frekvence ložiska"
+      >
+        ⚙ {bearing.designation}
+      </button>
+      {open && (
+        <div
+          className="absolute z-50 top-5 left-0 w-64 bg-white border border-orange-200 rounded-lg shadow-xl p-3 text-xs"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-bold text-orange-700">{bearing.designation}</span>
+            {bearing.manufacturer && <span className="text-slate-400 text-[10px]">{bearing.manufacturer}</span>}
+          </div>
+          <div className="grid grid-cols-4 gap-1 text-center mb-2">
+            {[
+              { label: "Nb", value: bearing.nb },
+              { label: "Bd", value: `${bearing.bd}` },
+              { label: "Pd", value: `${bearing.pd}` },
+              { label: "α", value: `${bearing.contact_angle_deg ?? 0}°` },
+            ].map(item => (
+              <div key={item.label} className="bg-orange-50 border border-orange-100 rounded p-1">
+                <div className="text-[8px] text-orange-500 font-bold">{item.label}</div>
+                <div className="text-[10px] font-mono font-semibold text-slate-700">{item.value}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 mb-2">
+            <label className="text-[10px] text-slate-500 font-semibold whitespace-nowrap">Otáčky (RPM):</label>
+            <input
+              type="number"
+              value={rpm}
+              onChange={e => setRpm(e.target.value)}
+              className="h-6 px-1 text-xs border border-slate-300 rounded w-20 font-mono"
+              min={1}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-orange-100">
+                <th className="border border-orange-200 px-1.5 py-0.5 text-left font-semibold text-orange-700 text-[10px]">Frekvence</th>
+                <th className="border border-orange-200 px-1.5 py-0.5 text-center font-semibold text-orange-700 text-[10px]">Koef.</th>
+                <th className="border border-orange-200 px-1.5 py-0.5 text-center font-semibold text-orange-700 text-[10px]">Hz</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: "BPFO", coef: coefs.bpfo, desc: "Vnější kroužek" },
+                { name: "BPFI", coef: coefs.bpfi, desc: "Vnitřní kroužek" },
+                { name: "BSF",  coef: coefs.bsf,  desc: "Valivý element" },
+                { name: "FTF",  coef: coefs.ftf,  desc: "Klec" },
+              ].map(row => (
+                <tr key={row.name} className="hover:bg-orange-50">
+                  <td className="border border-orange-200 px-1.5 py-0.5 font-bold text-slate-700 text-[10px]">{row.name}<span className="text-[8px] text-slate-400 ml-1">({row.desc})</span></td>
+                  <td className="border border-orange-200 px-1.5 py-0.5 text-center font-mono text-orange-700 text-[10px]">{row.coef}×</td>
+                  <td className="border border-orange-200 px-1.5 py-0.5 text-center font-mono font-bold text-slate-800 text-[10px]">
+                    {rpmNum > 0 ? (row.coef * fr).toFixed(1) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-[9px] text-slate-400 mt-1.5 text-center">Klikněte mimo pro zavření</p>
+        </div>
+      )}
+    </span>
   );
 }
 
@@ -1485,13 +1623,16 @@ export default function VibrationCardMQTT({ machine }) {
                   <div className="flex items-center gap-2">
                     <div className={`w-4 h-4 rounded-full flex-shrink-0 ${alertDotStyle(sensorId ? alertLevel : -1)}`} title={alertTitle} />
                     <div>
-                      <span className={`font-semibold ${isSelected && sensorId ? "text-blue-700" : "text-slate-900"}`}>{label}</span>
-                      {name && name !== label && <span className="text-slate-500 ml-1 text-xs">{name}</span>}
-                      <div className="flex gap-1 mt-0.5 flex-wrap">
-                        {velStd && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 rounded px-1">{velStd.name}</span>}
-                        {accStd && <span className="text-[9px] bg-green-50 text-green-700 border border-green-200 rounded px-1">{accStd.name}</span>}
-                        {tempStd && <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 rounded px-1">{tempStd.name}</span>}
-                      </div>
+                    <span className={`font-semibold ${isSelected && sensorId ? "text-blue-700" : "text-slate-900"}`}>{label}</span>
+                    {name && name !== label && <span className="text-slate-500 ml-1 text-xs">{name}</span>}
+                    <div className="flex gap-1 mt-0.5 flex-wrap">
+                     {velStd && <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-200 rounded px-1">{velStd.name}</span>}
+                     {accStd && <span className="text-[9px] bg-green-50 text-green-700 border border-green-200 rounded px-1">{accStd.name}</span>}
+                     {tempStd && <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 rounded px-1">{tempStd.name}</span>}
+                     {assignment.bearingId && bearingsById[assignment.bearingId] && (
+                       <BearingFreqBadge bearing={bearingsById[assignment.bearingId]} />
+                     )}
+                    </div>
                     </div>
                   </div>
                   <div className="flex flex-col gap-0.5">
