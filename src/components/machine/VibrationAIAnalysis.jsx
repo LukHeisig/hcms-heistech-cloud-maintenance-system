@@ -33,7 +33,7 @@ const DOMAIN_STATUS_DOT = {
   Kritický: "bg-red-600 animate-pulse", "Nedostatečná data": "bg-slate-300",
 };
 
-export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint }) {
+export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -45,7 +45,7 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
     setShowDetail(false);
     try {
       const res = await base44.functions.invoke("analyzeVibrationAI", {
-        sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint,
+        sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing,
       });
       setAnalysis(res.data);
     } catch (e) {

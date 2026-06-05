@@ -1,0 +1,41 @@
+{
+  "name": "BearingType",
+  "type": "object",
+  "properties": {
+    "designation": {
+      "type": "string",
+      "description": "Ozna\u010den\u00ed lo\u017eiska (nap\u0159. 6205, SKF 22312)"
+    },
+    "manufacturer": {
+      "type": "string",
+      "description": "V\u00fdrobce (SKF, FAG, NSK, ...)"
+    },
+    "nb": {
+      "type": "number",
+      "description": "Po\u010det valiv\u00fdch element\u016f (Nb)"
+    },
+    "bd": {
+      "type": "number",
+      "description": "Pr\u016fm\u011br valiv\u00e9ho elementu v mm (Bd)"
+    },
+    "pd": {
+      "type": "number",
+      "description": "Rozte\u010dn\u00fd pr\u016fm\u011br v mm (Pd)"
+    },
+    "contact_angle_deg": {
+      "type": "number",
+      "description": "Kontaktn\u00ed \u00fahel ve stupn\u00edch (\u03b1) \u2014 pro kuli\u010dkov\u00e1 lo\u017eiska typicky 0\u00b0",
+      "default": 0
+    },
+    "notes": {
+      "type": "string",
+      "description": "Pozn\u00e1mky"
+    }
+  },
+  "required": [
+    "designation",
+    "nb",
+    "bd",
+    "pd"
+  ]
+}

@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint } = body;
+    const { sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing } = body;
 
     if (!sensorDataId) return Response.json({ error: 'Missing sensorDataId' }, { status: 400 });
 
@@ -75,6 +75,23 @@ Deno.serve(async (req) => {
     const accZZone = getLimitZone(rmsAccZ, accStandard, 'acc');
     const envZZone = getLimitZone(rmsEnvZ, accStandard, 'acc');
 
+    // =====================================================================
+    // DEFEKTNÍ FREKVENCE LOŽISKA (BPFO, BPFI, BSF, FTF)
+    // Vypočítáme jako násobky otáčkové frekvence — aplikujeme po detekci 1X
+    // =====================================================================
+    const calcBearingDefectFreqs = (b, rpm1x_hz) => {
+      if (!b?.nb || !b?.bd || !b?.pd || !rpm1x_hz) return null;
+      const ratio = (b.bd / b.pd) * Math.cos((b.contact_angle_deg || 0) * Math.PI / 180);
+      return {
+        bpfo: +(0.5 * b.nb * rpm1x_hz * (1 - ratio)).toFixed(3),
+        bpfi: +(0.5 * b.nb * rpm1x_hz * (1 + ratio)).toFixed(3),
+        bsf:  +(0.5 * (b.pd / b.bd) * rpm1x_hz * (1 - ratio * ratio)).toFixed(3),
+        ftf:  +(0.5 * rpm1x_hz * (1 - ratio)).toFixed(3),
+        designation: b.designation,
+        manufacturer: b.manufacturer || null,
+      };
+    };
+
     // Určíme, které domény mají překročené limity (pásmo B nebo horší)
     const velExceeded = [velXZone, velYZone, velZZone].some(z => z && z !== "A");
     const accExceeded = accZZone && accZZone !== "A";
@@ -136,19 +153,53 @@ Deno.serve(async (req) => {
 
     if (envExceeded) {
       const peaksEnv = findTopPeaks(envZ, 6, Math.floor(fftLowCutHz / freqRes));
-      const classifiedEnv = operatingSpeed
-        ? peaksEnv.map(p => {
-            const ratio = p.freq / operatingSpeed.freq;
-            const nearestInt = Math.round(ratio);
-            const dev = Math.abs(ratio - nearestInt);
-            const cls = (dev < 0.1 && nearestInt > 0) ? `${nearestInt}X RPM` : `inter(${ratio.toFixed(2)}X)—možný defekt ložiska`;
-            return `${p.freq}Hz/${p.amp} [${cls}]`;
-          })
-        : peaksEnv.map(p => `${p.freq}Hz/${p.amp}`);
+      const bearingFreqs = operatingSpeed ? calcBearingDefectFreqs(bearing, operatingSpeed.freq) : null;
+      const TOLERANCE_HZ = freqRes * 1.5; // toleranční pásmo ±1.5 bins
+
+      const classifiedEnv = peaksEnv.map(p => {
+        const labels = [];
+
+        // Klasifikace podle defektních frekvencí ložiska (pokud je ložisko zadáno)
+        if (bearingFreqs) {
+          const checks = [
+            { name: "BPFO", freq: bearingFreqs.bpfo },
+            { name: "BPFI", freq: bearingFreqs.bpfi },
+            { name: "BSF",  freq: bearingFreqs.bsf },
+            { name: "FTF",  freq: bearingFreqs.ftf },
+          ];
+          for (const { name, freq } of checks) {
+            // Zkontroluj základní frekvenci i harmonické (1×, 2×, 3×)
+            for (let harmonic = 1; harmonic <= 3; harmonic++) {
+              if (Math.abs(p.freq - freq * harmonic) <= TOLERANCE_HZ) {
+                labels.push(harmonic === 1 ? name : `${harmonic}×${name}`);
+                break;
+              }
+            }
+          }
+        }
+
+        // Klasifikace dle RPM harmonik (pokud jsou otáčky known)
+        if (operatingSpeed && labels.length === 0) {
+          const ratio = p.freq / operatingSpeed.freq;
+          const nearestInt = Math.round(ratio);
+          const dev = Math.abs(ratio - nearestInt);
+          if (dev < 0.1 && nearestInt > 0) labels.push(`${nearestInt}X RPM`);
+        }
+
+        const cls = labels.length > 0 ? labels.join('+') : 'neidentifikováno';
+        return `${p.freq}Hz/${p.amp}g [${cls}]`;
+      });
+
+      let bearingInfo = '';
+      if (bearingFreqs) {
+        bearingInfo = `\n  Ložisko: ${bearingFreqs.designation}${bearingFreqs.manufacturer ? ` (${bearingFreqs.manufacturer})` : ''}
+  Defektní frekvence: BPFO=${bearingFreqs.bpfo}Hz, BPFI=${bearingFreqs.bpfi}Hz, BSF=${bearingFreqs.bsf}Hz, FTF=${bearingFreqs.ftf}Hz`;
+      }
+
       sections.push(`OBÁLKA Z (překročen limit):
   RMS: ${rmsEnvZ?.toFixed(3)} g [pásmo ${envZZone}]
   Peaky: ${classifiedEnv.join(', ') || 'žádné'}
-  Otáčky: ${operatingSpeed ? `${operatingSpeed.freq} Hz = ${operatingSpeed.rpm} RPM` : 'neznámé'}
+  Otáčky: ${operatingSpeed ? `${operatingSpeed.freq} Hz = ${operatingSpeed.rpm} RPM` : 'neznámé'}${bearingInfo}
   Limity normy: A/B=${accStandard?.acc_limit_ab} B/C=${accStandard?.acc_limit_bc} C/D=${accStandard?.acc_limit_cd} g`);
     }
 

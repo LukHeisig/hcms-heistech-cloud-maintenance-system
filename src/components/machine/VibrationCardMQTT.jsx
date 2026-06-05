@@ -41,6 +41,7 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
   const [selectedVelStandard, setSelectedVelStandard] = useState(current.velStandardId || "");
   const [selectedAccStandard, setSelectedAccStandard] = useState(current.accStandardId || "");
   const [selectedTempStandard, setSelectedTempStandard] = useState(current.tempStandardId || "");
+  const [selectedBearing, setSelectedBearing] = useState(current.bearingId || "");
   const [scanningPhoto, setScanningPhoto] = useState(false);
   const [scanError, setScanError] = useState(null);
   const cameraInputRef = useRef(null);
@@ -85,6 +86,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
       setSelectedVelStandard(current.velStandardId || "");
       setSelectedAccStandard(current.accStandardId || "");
       setSelectedTempStandard(current.tempStandardId || "");
+      setSelectedBearing(current.bearingId || "");
     }
   }, [open]);
 
@@ -116,6 +118,13 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
   const accStandards = useMemo(() => allStandards.filter(s => s.limit_type === "acceleration"), [allStandards]);
   const tempStandards = useMemo(() => allStandards.filter(s => s.limit_type === "temperature"), [allStandards]);
 
+  const { data: bearingTypes = [] } = useQuery({
+    queryKey: ["bearingTypes"],
+    queryFn: () => base44.entities.BearingType.list(null, 500),
+    enabled: open,
+    staleTime: 60000,
+  });
+
   const allSensorIds = useMemo(() => {
     const registeredIds = registeredSensors.map(s => s.sensor_id);
     return [...new Set([...registeredIds, ...recentSensorData])].sort();
@@ -129,6 +138,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
       velStandardId: selectedVelStandard || null,
       accStandardId: selectedAccStandard || null,
       tempStandardId: selectedTempStandard || null,
+      bearingId: selectedBearing || null,
     });
     onClose();
   };
@@ -260,6 +270,37 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
             </Select>
           </div>
 
+          {/* Typ ložiska */}
+          <div>
+            <label className="text-xs font-semibold text-orange-600 uppercase tracking-wide block mb-1.5">
+              Typ ložiska <span className="normal-case font-normal text-slate-500">(pro výpočet BPFO/BPFI/BSF/FTF)</span>
+            </label>
+            <Select value={selectedBearing || "__none__"} onValueChange={v => setSelectedBearing(v === "__none__" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="— bez ložiska —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— bez ložiska —</SelectItem>
+                {bearingTypes.map(b => (
+                  <SelectItem key={b.id} value={b.id}>
+                    <span className="font-medium">{b.designation}</span>
+                    {b.manufacturer && <span className="text-slate-400 ml-2 text-xs">{b.manufacturer}</span>}
+                    <span className="text-slate-400 ml-2 text-xs">Nb={b.nb} Bd={b.bd}mm Pd={b.pd}mm</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedBearing && (() => {
+              const b = bearingTypes.find(bt => bt.id === selectedBearing);
+              if (!b) return null;
+              return (
+                <p className="text-xs text-orange-600 mt-1">
+                  Ložisko: <strong>{b.designation}</strong> — Nb={b.nb}, Bd={b.bd}mm, Pd={b.pd}mm, α={b.contact_angle_deg ?? 0}°
+                </p>
+              );
+            })()}
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose}>Zrušit</Button>
             <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">Uložit</Button>
@@ -271,7 +312,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
 }
 
 // DSP grafy — znovupoužitelný, totožný s DSPVisualization
-function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, tempStandard, temperature, machineName, measurementPoint }) {
+function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, tempStandard, temperature, machineName, measurementPoint, bearing }) {
   // Načteme záznamy s has_fft=true pro dropdown
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId],
@@ -532,6 +573,7 @@ function SensorDSPPanel({ sensorId, initialRecordId, velStandard, accStandard, t
             tempStandard={tempStandard}
             machineName={machineName}
             measurementPoint={measurementPoint}
+            bearing={bearing}
           />
         </>
       )}
@@ -607,6 +649,7 @@ export default function VibrationCardMQTT({ machine }) {
         velStandardId: rec.vel_standard_id || null,
         accStandardId: rec.acc_standard_id || null,
         tempStandardId: rec.temp_standard_id || null,
+        bearingId: rec.bearing_id || null,
         _dbId: rec.id,
       };
     }
@@ -631,6 +674,7 @@ export default function VibrationCardMQTT({ machine }) {
       vel_standard_id: assignment.velStandardId || null,
       acc_standard_id: assignment.accStandardId || null,
       temp_standard_id: assignment.tempStandardId || null,
+      bearing_id: assignment.bearingId || null,
     };
     if (existing?._dbId) {
       await base44.entities.VibrationSensorAssignment.update(existing._dbId, payload);
@@ -647,6 +691,13 @@ export default function VibrationCardMQTT({ machine }) {
     staleTime: 120000,
   });
   const standardsById = useMemo(() => Object.fromEntries(allStandards.map(s => [s.id, s])), [allStandards]);
+
+  const { data: allBearingTypes = [] } = useQuery({
+    queryKey: ["bearingTypes"],
+    queryFn: () => base44.entities.BearingType.list(null, 500),
+    staleTime: 300000,
+  });
+  const bearingsById = useMemo(() => Object.fromEntries(allBearingTypes.map(b => [b.id, b])), [allBearingTypes]);
 
   // Helper: vrátí CSS třídu pro barevné pásmo limitu
   const getLimitClass = (value, limitA, limitB, limitC) => {
@@ -1233,6 +1284,7 @@ export default function VibrationCardMQTT({ machine }) {
               velStandard={standardsById[rowAssignments[aiRowIdx]?.velStandardId]}
               accStandard={standardsById[rowAssignments[aiRowIdx]?.accStandardId]}
               tempStandard={standardsById[rowAssignments[aiRowIdx]?.tempStandardId]}
+              bearing={bearingsById[rowAssignments[aiRowIdx]?.bearingId]}
               machineName={machine?.name}
               measurementPoint={schemaRows[aiRowIdx]?.label || schemaRows[aiRowIdx]?.name || `Bod ${aiRowIdx + 1}`}
             />
@@ -1303,6 +1355,7 @@ export default function VibrationCardMQTT({ machine }) {
                 velStandard={standardsById[rowAssignments[activeRowIdx]?.velStandardId]}
                 accStandard={standardsById[rowAssignments[activeRowIdx]?.accStandardId]}
                 tempStandard={standardsById[rowAssignments[activeRowIdx]?.tempStandardId]}
+                bearing={bearingsById[rowAssignments[activeRowIdx]?.bearingId]}
                 temperature={getSensorById(activeSensorId)?.last_temperature}
                 machineName={machine?.name}
                 measurementPoint={schemaRows[activeRowIdx]?.label || schemaRows[activeRowIdx]?.name || `Bod ${activeRowIdx + 1}`}

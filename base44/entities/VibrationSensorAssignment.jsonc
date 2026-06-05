@@ -25,6 +25,10 @@
     "temp_standard_id": {
       "type": "string",
       "description": "ID normy pro teplotu (VibrationStandard, limit_type=temperature)"
+    },
+    "bearing_id": {
+      "type": "string",
+      "description": "ID typu lo\u017eiska (BearingType) pro v\u00fdpo\u010det defektn\u00edch frekvenc\u00ed"
     }
   },
   "required": [
