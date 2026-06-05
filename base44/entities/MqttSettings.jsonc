@@ -6,6 +6,15 @@
       "type": "number",
       "description": "Procentu\u00e1ln\u00ed pr\u00e1h pro sm\u011br trendu \u0161ipky (v\u00fdchoz\u00ed 20%). Pokud sklon regresn\u00ed p\u0159\u00edmky p\u0159es\u00e1hne toto % pr\u016fm\u011bru, \u0161ipka uk\u00e1\u017ee nahoru/dol\u016f, jinak rovn\u011b.",
       "default": 20
+    },
+    "fft_low_cut_hz": {
+      "type": "number",
+      "enum": [
+        2,
+        10
+      ],
+      "description": "Spodn\u00ed o\u0159ez frekvence pro v\u00fdpo\u010det RMS z FFT spektra (Hz). 2 Hz = citliv\u011bj\u0161\u00ed pro pomalob\u011b\u017en\u00e9 stroje, 10 Hz = standardn\u00ed pr\u016fmyslov\u00e1 hodnota dle ISO. V\u00fdchoz\u00ed: 2.",
+      "default": 2
     }
   },
   "required": []

@@ -138,8 +138,8 @@ function computeRFFT(signal, fs) {
   amplitudes[0] = Math.sqrt(real[0]*real[0] + imag[0]*imag[0]) / N;
   frequencies[0] = 0;
   for (let i = 1; i < numBins; i++) {
-    // *2 pro jednostranné spektrum (správná peak amplituda)
-    amplitudes[i] = (Math.sqrt(real[i]*real[i] + imag[i]*imag[i]) / N) * 2;
+    // *4 = *2 (jednostranné spektrum) * *2 (kompenzace útlumu Hanningova okna - Amplitude Correction Factor)
+    amplitudes[i] = (Math.sqrt(real[i]*real[i] + imag[i]*imag[i]) / N) * 4;
     frequencies[i] = (i * fs) / N;
   }
   return { amplitudes, frequencies };
@@ -235,7 +235,7 @@ function filtfiltButterworthHPF(signal, fc, fs) {
 
 // ─── AISSENS binary parser ───────────────────────────────────────────────────
 
-function parseAissensData(bytes) {
+function parseAissensData(bytes, fftLowCutHz = 2) {
   if (!bytes || bytes.length < 5) return null;
 
   const type = bytes[0];
@@ -533,26 +533,26 @@ function parseAissensData(bytes) {
       const fftEnvZ = computeAveragedFFT(Array.from(demeanedEnv), 'EnvZ');
 
       // ─── Celkové hodnoty (RMS) z průměrných spekter ───────────────────────────
-      // Rychlost XYZ: 2–1000 Hz
-      result.vel_rms_x_mm_s = Math.round(calculateRMSFromSpectrum(velXAmps, fftX.frequencies, 2, 1000) * 1000) / 1000;
-      result.vel_rms_y_mm_s = Math.round(calculateRMSFromSpectrum(velYAmps, fftY.frequencies, 2, 1000) * 1000) / 1000;
-      result.vel_rms_z_mm_s = Math.round(calculateRMSFromSpectrum(velZAmps, fftZ.frequencies, 2, 1000) * 1000) / 1000;
-      // Zrychlení Z: 2–6000 Hz (jako RMS v g, tedy v m/s² / 9.81)
-      const accZRms_ms2 = calculateRMSFromSpectrum(fftZ.avgAmps, fftZ.frequencies, 2, 6000);
+      // Rychlost XYZ: fftLowCutHz–1000 Hz
+      result.vel_rms_x_mm_s = Math.round(calculateRMSFromSpectrum(velXAmps, fftX.frequencies, fftLowCutHz, 1000) * 1000) / 1000;
+      result.vel_rms_y_mm_s = Math.round(calculateRMSFromSpectrum(velYAmps, fftY.frequencies, fftLowCutHz, 1000) * 1000) / 1000;
+      result.vel_rms_z_mm_s = Math.round(calculateRMSFromSpectrum(velZAmps, fftZ.frequencies, fftLowCutHz, 1000) * 1000) / 1000;
+      // Zrychlení Z: fftLowCutHz–6000 Hz (jako RMS v g, tedy v m/s² / 9.81)
+      const accZRms_ms2 = calculateRMSFromSpectrum(fftZ.avgAmps, fftZ.frequencies, fftLowCutHz, 6000);
       result.rms_z_g = Math.round((accZRms_ms2 / 9.80665) * 1000) / 1000;
-      // Obálka Z: 2–1000 Hz
-      result.env_rms_z = Math.round(calculateRMSFromSpectrum(fftEnvZ.avgAmps, fftEnvZ.frequencies, 2, 1000) * 1000) / 1000;
+      // Obálka Z: fftLowCutHz–1000 Hz
+      result.env_rms_z = Math.round(calculateRMSFromSpectrum(fftEnvZ.avgAmps, fftEnvZ.frequencies, fftLowCutHz, 1000) * 1000) / 1000;
 
-      console.log(`[DSP] vel_rms x=${result.vel_rms_x_mm_s} y=${result.vel_rms_y_mm_s} z=${result.vel_rms_z_mm_s} mm/s | acc_z=${result.rms_z_g} g | env_z=${result.env_rms_z}`);
+      console.log(`[DSP] low_cut=${fftLowCutHz}Hz | vel_rms x=${result.vel_rms_x_mm_s} y=${result.vel_rms_y_mm_s} z=${result.vel_rms_z_mm_s} mm/s | acc_z=${result.rms_z_g} g | env_z=${result.env_rms_z}`);
 
       // ─── Příprava FFT dat pro uložení do DB ───────────────────────────────────
       result.has_fft = true;
       const freqRes = fftZ.frequencies[1] || 1;
       result.frequency_resolution = freqRes;
 
-      // Vynulování frekvencí pod 2 Hz (DC + velmi nízké frekvence)
+      // Vynulování frekvencí pod fftLowCutHz (DC + velmi nízké frekvence)
       for (let i = 0; i < fftZ.frequencies.length; i++) {
-        if (fftZ.frequencies[i] < 2) {
+        if (fftZ.frequencies[i] < fftLowCutHz) {
           fftX.avgAmps[i] = 0; fftY.avgAmps[i] = 0; fftZ.avgAmps[i] = 0;
           velXAmps[i] = 0; velYAmps[i] = 0; velZAmps[i] = 0;
           fftEnvZ.avgAmps[i] = 0;
@@ -622,12 +622,21 @@ Deno.serve(async (req) => {
     hexStr = hexStr.slice(4);
   }
 
+  // Načtení nastavení (fft_low_cut_hz) z MqttSettings
+  let fftLowCutHz = 2;
+  try {
+    const mqttSettings = await base44.asServiceRole.entities.MqttSettings.list(null, 1);
+    if (mqttSettings[0]?.fft_low_cut_hz != null) {
+      fftLowCutHz = mqttSettings[0].fft_low_cut_hz;
+    }
+  } catch (_) { /* použijeme default 2 Hz */ }
+
   // Parse binary data
   let parsed = null;
   let bytes = null;
   try {
     bytes = hexToBytes(hexStr);
-    parsed = parseAissensData(bytes);
+    parsed = parseAissensData(bytes, fftLowCutHz);
   } catch (e) {
     console.error("Parse error:", e.message);
   }
