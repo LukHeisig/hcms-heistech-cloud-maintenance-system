@@ -11,7 +11,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
@@ -709,6 +709,14 @@ export default function VibrationCardMQTT({ machine }) {
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
   const [showTrend, setShowTrend] = useState(false);
   const [showDSP, setShowDSP] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+
+  // ID záznamu pro AI analýzu — první senzor s daty
+  const aiSensorDataId = useMemo(() => latestSensorData[0]?.id ?? null, [latestSensorData]);
+  const aiRowIdx = useMemo(() => {
+    const idx = Object.entries(rowAssignments).find(([, a]) => latestSensorData.find(d => d.sensor_id === a.sensorId));
+    return idx ? Number(idx[0]) : activeRowIdx;
+  }, [rowAssignments, latestSensorData, activeRowIdx]);
 
   // Načteme poslední data pro každý přiřazený senzor (pro RMS hodnoty v tabulce)
   const assignedSensorIds = useMemo(() => {
@@ -925,6 +933,7 @@ export default function VibrationCardMQTT({ machine }) {
                 const velSt  = velLevel  >= 0 ? { label: VEL_LABELS[velLevel],   detail: VEL_DETAILS[velLevel],   ...STATUS_DEFS[velLevel]  } : noVel;
                 const bearSt = bearingLevel >= 0 ? { label: BEAR_LABELS[bearingLevel], detail: BEAR_DETAILS[bearingLevel], ...STATUS_DEFS[bearingLevel] } : noBear;
 
+                const showAIBtn = velLevel >= 2 || bearingLevel >= 2;
                 return (
                   <div className="flex-1 flex flex-col gap-2">
                     {/* Stav vibrací — rychlost */}
@@ -943,6 +952,18 @@ export default function VibrationCardMQTT({ machine }) {
                       </div>
                       <p className={`text-[11px] ${bearSt.text} opacity-75 pl-4`}>{bearSt.detail}</p>
                     </div>
+                    {/* AI tlačítko — jen při stavu C nebo D */}
+                    {showAIBtn && (
+                      <Button
+                        size="sm"
+                        variant={showAI ? "default" : "outline"}
+                        className={`gap-1.5 text-xs h-7 self-start ${showAI ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600" : "border-purple-400 text-purple-700 hover:bg-purple-50"}`}
+                        onClick={() => setShowAI(v => !v)}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        AI Diagnostická analýza
+                      </Button>
+                    )}
                   </div>
                 );
               })()}
@@ -1202,6 +1223,22 @@ export default function VibrationCardMQTT({ machine }) {
           })}
         </CardContent>
       </Card>
+
+      {/* AI Diagnostická analýza — zobrazí se jen při stavu C/D a po kliknutí na tlačítko */}
+      {showAI && aiSensorDataId && (
+        <Card className="border-none shadow-lg">
+          <CardContent className="p-4">
+            <VibrationAIAnalysis
+              sensorDataId={aiSensorDataId}
+              velStandard={standardsById[rowAssignments[aiRowIdx]?.velStandardId]}
+              accStandard={standardsById[rowAssignments[aiRowIdx]?.accStandardId]}
+              tempStandard={standardsById[rowAssignments[aiRowIdx]?.tempStandardId]}
+              machineName={machine?.name}
+              measurementPoint={schemaRows[aiRowIdx]?.label || schemaRows[aiRowIdx]?.name || `Bod ${aiRowIdx + 1}`}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Trend panel */}
       {showTrend && activeTrendSensorId && (() => {
