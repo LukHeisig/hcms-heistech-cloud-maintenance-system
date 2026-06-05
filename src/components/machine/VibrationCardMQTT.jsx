@@ -11,7 +11,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus, Sparkles } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus, Sparkles, Search, Plus, CheckCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
@@ -45,6 +46,13 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
   const [scanningPhoto, setScanningPhoto] = useState(false);
   const [scanError, setScanError] = useState(null);
   const cameraInputRef = useRef(null);
+
+  // Vyhledávání ložiska pomocí AI
+  const [bearingSearchInput, setBearingSearchInput] = useState("");
+  const [bearingSearching, setBearingSearching] = useState(false);
+  const [bearingSearchResult, setBearingSearchResult] = useState(null); // { nb, bd, pd, contact_angle_deg, designation, bpfo_coef, bpfi_coef, bsf_coef, ftf_coef }
+  const [bearingSearchError, setBearingSearchError] = useState(null);
+  const [bearingSaved, setBearingSaved] = useState(false);
 
   const handleCameraScan = async (e) => {
     const file = e.target.files?.[0];
@@ -87,8 +95,89 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
       setSelectedAccStandard(current.accStandardId || "");
       setSelectedTempStandard(current.tempStandardId || "");
       setSelectedBearing(current.bearingId || "");
+      setBearingSearchInput("");
+      setBearingSearchResult(null);
+      setBearingSearchError(null);
+      setBearingSaved(false);
     }
   }, [open]);
+
+  // Výpočet koeficientů defektních frekvencí z geometrie
+  const calcDefectCoefs = (nb, bd, pd, alpha_deg) => {
+    const alpha = (alpha_deg || 0) * Math.PI / 180;
+    const ratio = (bd / pd) * Math.cos(alpha);
+    return {
+      bpfo: +(0.5 * nb * (1 - ratio)).toFixed(4),
+      bpfi: +(0.5 * nb * (1 + ratio)).toFixed(4),
+      bsf:  +(0.5 * (pd / bd) * (1 - ratio * ratio)).toFixed(4),
+      ftf:  +(0.5 * (1 - ratio)).toFixed(4),
+    };
+  };
+
+  const handleBearingAISearch = async () => {
+    const query = bearingSearchInput.trim();
+    if (!query) return;
+    setBearingSearching(true);
+    setBearingSearchResult(null);
+    setBearingSearchError(null);
+    setBearingSaved(false);
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Jsi expert na valivá ložiska. Uživatel zadal označení ložiska: "${query}".
+Dohledej geometrické parametry tohoto ložiska z veřejně dostupných katalogů (SKF, FAG, NSK, NTN, atd.).
+Vrať parametry:
+- nb: počet valivých elementů (celé číslo)
+- bd: průměr valivého elementu v mm (desetinné číslo)
+- pd: roztečný průměr v mm (desetinné číslo)
+- contact_angle_deg: kontaktní úhel ve stupních (pro kuličková ložiska obvykle 0, pro kosoúhlá 15-40)
+- designation: standardizované označení ložiska (např. "6220")
+- manufacturer: doporučený výrobce (SKF, FAG, NSK, ...)
+- note: krátká poznámka o typu ložiska (1 věta)
+Pokud ložisko nenajdeš, vrať nb=0.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            nb: { type: "number" },
+            bd: { type: "number" },
+            pd: { type: "number" },
+            contact_angle_deg: { type: "number" },
+            designation: { type: "string" },
+            manufacturer: { type: "string" },
+            note: { type: "string" },
+          }
+        }
+      });
+      if (!result?.nb || result.nb === 0) {
+        setBearingSearchError(`Ložisko "${query}" nebylo nalezeno. Zkuste upřesnit označení.`);
+      } else {
+        const coefs = calcDefectCoefs(result.nb, result.bd, result.pd, result.contact_angle_deg);
+        setBearingSearchResult({ ...result, ...coefs });
+      }
+    } catch (e) {
+      setBearingSearchError("Chyba při vyhledávání. Zkuste to znovu.");
+    } finally {
+      setBearingSearching(false);
+    }
+  };
+
+  const handleSaveBearingToDb = async () => {
+    if (!bearingSearchResult) return;
+    try {
+      const newBearing = await base44.entities.BearingType.create({
+        designation: bearingSearchResult.designation,
+        manufacturer: bearingSearchResult.manufacturer || null,
+        nb: bearingSearchResult.nb,
+        bd: bearingSearchResult.bd,
+        pd: bearingSearchResult.pd,
+        contact_angle_deg: bearingSearchResult.contact_angle_deg || 0,
+        notes: bearingSearchResult.note || null,
+      });
+      setSelectedBearing(newBearing.id);
+      setBearingSaved(true);
+    } catch (e) {
+      setBearingSearchError("Chyba při ukládání ložiska.");
+    }
+  };
 
   const { data: registeredSensors = [], isLoading } = useQuery({
     queryKey: ["aissens_sensors"],
@@ -275,6 +364,8 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
             <label className="text-xs font-semibold text-orange-600 uppercase tracking-wide block mb-1.5">
               Typ ložiska <span className="normal-case font-normal text-slate-500">(pro výpočet BPFO/BPFI/BSF/FTF)</span>
             </label>
+
+            {/* Výběr z existujících */}
             <Select value={selectedBearing || "__none__"} onValueChange={v => setSelectedBearing(v === "__none__" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="— bez ložiska —" />
@@ -290,15 +381,110 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
                 ))}
               </SelectContent>
             </Select>
-            {selectedBearing && (() => {
-              const b = bearingTypes.find(bt => bt.id === selectedBearing);
-              if (!b) return null;
-              return (
-                <p className="text-xs text-orange-600 mt-1">
-                  Ložisko: <strong>{b.designation}</strong> — Nb={b.nb}, Bd={b.bd}mm, Pd={b.pd}mm, α={b.contact_angle_deg ?? 0}°
-                </p>
-              );
-            })()}
+
+            {/* AI vyhledávání ložiska */}
+            <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-orange-700">Vyhledat ložisko pomocí AI</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Např. 6220, SKF 22312, 7205..."
+                  value={bearingSearchInput}
+                  onChange={e => setBearingSearchInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleBearingAISearch()}
+                  className="h-8 text-sm"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 px-3 bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0 gap-1"
+                  onClick={handleBearingAISearch}
+                  disabled={bearingSearching || !bearingSearchInput.trim()}
+                >
+                  {bearingSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  {bearingSearching ? "Hledám..." : "Najít"}
+                </Button>
+              </div>
+
+              {bearingSearchError && (
+                <p className="text-xs text-red-600">{bearingSearchError}</p>
+              )}
+
+              {bearingSearchResult && !bearingSearchError && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-bold text-orange-800">{bearingSearchResult.designation}</span>
+                      {bearingSearchResult.manufacturer && (
+                        <span className="text-xs text-slate-500 ml-2">{bearingSearchResult.manufacturer}</span>
+                      )}
+                    </div>
+                    {bearingSaved ? (
+                      <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                        <CheckCircle className="w-3.5 h-3.5" /> Uloženo a vybráno
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs border-orange-400 text-orange-700 hover:bg-orange-100 gap-1"
+                        onClick={handleSaveBearingToDb}
+                      >
+                        <Plus className="w-3 h-3" /> Přidat do seznamu
+                      </Button>
+                    )}
+                  </div>
+
+                  {bearingSearchResult.note && (
+                    <p className="text-[11px] text-slate-500 italic">{bearingSearchResult.note}</p>
+                  )}
+
+                  {/* Geometrie */}
+                  <div className="grid grid-cols-4 gap-1 text-center">
+                    {[
+                      { label: "Nb", value: bearingSearchResult.nb, unit: "elem." },
+                      { label: "Bd", value: `${bearingSearchResult.bd} mm`, unit: "" },
+                      { label: "Pd", value: `${bearingSearchResult.pd} mm`, unit: "" },
+                      { label: "α", value: `${bearingSearchResult.contact_angle_deg ?? 0}°`, unit: "" },
+                    ].map(item => (
+                      <div key={item.label} className="bg-white border border-orange-200 rounded p-1.5">
+                        <div className="text-[9px] text-orange-500 font-bold uppercase">{item.label}</div>
+                        <div className="text-xs font-mono font-semibold text-slate-700">{item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Defektní frekvence — koeficienty */}
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">Koeficienty defektních frekvencí (× RPM/60)</p>
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-orange-100">
+                          <th className="border border-orange-200 px-2 py-1 text-left font-semibold text-orange-700">Frekvence</th>
+                          <th className="border border-orange-200 px-2 py-1 text-center font-semibold text-orange-700">Koef.</th>
+                          <th className="border border-orange-200 px-2 py-1 text-left font-normal text-orange-600 text-[10px]">Popis</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { name: "BPFO", coef: bearingSearchResult.bpfo, desc: "Vnější kroužek" },
+                          { name: "BPFI", coef: bearingSearchResult.bpfi, desc: "Vnitřní kroužek" },
+                          { name: "BSF",  coef: bearingSearchResult.bsf,  desc: "Valivý element" },
+                          { name: "FTF",  coef: bearingSearchResult.ftf,  desc: "Klec (FTF)" },
+                        ].map(row => (
+                          <tr key={row.name} className="hover:bg-orange-50">
+                            <td className="border border-orange-200 px-2 py-1 font-bold text-slate-700">{row.name}</td>
+                            <td className="border border-orange-200 px-2 py-1 text-center font-mono font-semibold text-orange-800">{row.coef}×</td>
+                            <td className="border border-orange-200 px-2 py-1 text-slate-500 text-[10px]">{row.desc}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p className="text-[9px] text-slate-400 mt-1">Např. při 1500 RPM: BPFO = {(bearingSearchResult.bpfo * 1500 / 60).toFixed(1)} Hz</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
