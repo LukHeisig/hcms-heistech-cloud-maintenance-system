@@ -627,18 +627,18 @@ export default function LineDetail() {
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white shadow-sm flex w-full p-1 h-auto gap-1 overflow-x-auto flex-nowrap">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-1 flex-shrink-0">Přehled</TabsTrigger>
-            {hasDiagnostics && <TabsTrigger value="diagnostics" className="text-xs sm:text-sm py-2 px-1 leading-tight flex-shrink-0">
+          <TabsList className="flex flex-wrap w-full bg-white shadow-md p-1 h-auto gap-1">
+            <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">Přehled</TabsTrigger>
+            {hasDiagnostics && <TabsTrigger value="diagnostics" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <span className="hidden sm:inline">Technická diagnostika</span>
               <span className="sm:hidden">Tech. diag.</span>
             </TabsTrigger>}
-            <TabsTrigger value="lubrication" className="text-xs sm:text-sm py-2 px-1 flex-shrink-0">Mazání</TabsTrigger>
-            <TabsTrigger value="prevention" className="text-xs sm:text-sm py-2 px-1 leading-tight flex-shrink-0">
+            <TabsTrigger value="lubrication" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">Mazání</TabsTrigger>
+            <TabsTrigger value="prevention" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <span className="hidden sm:inline">Plán preventivní údržby</span>
               <span className="sm:hidden">Prevence</span>
             </TabsTrigger>
-            <TabsTrigger value="checklist" className="text-xs sm:text-sm py-2 px-1 leading-tight flex-shrink-0">
+            <TabsTrigger value="checklist" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <span className="hidden sm:inline">Seznam závad</span>
               <span className="sm:hidden">Závady</span>
             </TabsTrigger>
