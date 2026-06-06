@@ -56,6 +56,7 @@ export default function AdminCompanies() {
     enable_vibration: true,
     enable_thermo: true,
     enable_tribo: true,
+    enable_predictive: false,
     allow_manual_confirmation: true,
     force_technician_demip_mobile: false,
     overdue_visualization_type: "two_colors",
@@ -154,6 +155,7 @@ export default function AdminCompanies() {
         enable_vibration: company.enable_vibration !== false,
         enable_thermo: company.enable_thermo !== false,
         enable_tribo: company.enable_tribo !== false,
+        enable_predictive: company.enable_predictive === true,
         allow_manual_confirmation: company.allow_manual_confirmation !== false,
         force_technician_demip_mobile: company.force_technician_demip_mobile === true,
         overdue_visualization_type: company.overdue_visualization_type || "two_colors",
@@ -433,6 +435,14 @@ export default function AdminCompanies() {
                             onCheckedChange={(checked) => setFormData({...formData, enable_tribo: checked})}
                         />
                         <Label htmlFor="enable_tribo" className="cursor-pointer">Tribodiagnostika</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_predictive" 
+                            checked={!!formData.enable_predictive}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_predictive: checked})}
+                        />
+                        <Label htmlFor="enable_predictive" className="cursor-pointer">AI Prediktivní analýza</Label>
                     </div>
                 </div>
               </div>

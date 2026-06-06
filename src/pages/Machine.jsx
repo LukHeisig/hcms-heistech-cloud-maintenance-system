@@ -405,6 +405,7 @@ export default function Machine() {
   const showVibration = company?.enable_vibration !== false && (machine?.monitor_vibration || vibrationMeasurements.length > 0 || vibrationJobs.length > 0);
   const showThermo = company?.enable_thermo !== false && (machine?.monitor_thermo || thermoJobs.length > 0);
   const showTribo = company?.enable_tribo !== false && machine?.monitor_tribo;
+  const showPredictive = company?.enable_predictive === true;
 
   const maintenanceTypeData = [
     { name: "Preventivní", value: maintenanceRecords.filter(r => r.maintenance_type === "preventive").length, color: "#10b981" },
@@ -790,10 +791,12 @@ export default function Machine() {
               <BarChart2 className="w-4 h-4" />
               <span className="hidden md:inline">Statistiky</span>
             </TabsTrigger>
-            <TabsTrigger value="predictive" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-cyan-700 data-[state=active]:text-white">
-              <Brain className="w-4 h-4" />
-              <span className="hidden md:inline">AI Predikce</span>
-            </TabsTrigger>
+            {showPredictive && (
+              <TabsTrigger value="predictive" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-cyan-700 data-[state=active]:text-white">
+                <Brain className="w-4 h-4" />
+                <span className="hidden md:inline">AI Predikce</span>
+              </TabsTrigger>
+            )}
             {machine?.monitor_vibration && (
               <TabsTrigger value="alerts-history" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4" />

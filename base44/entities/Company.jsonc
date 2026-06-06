@@ -51,6 +51,11 @@
       "default": true,
       "description": "Povolit modul Tribodiagnostika"
     },
+    "enable_predictive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Povolit modul AI Prediktivn\u00ed anal\u00fdza"
+    },
     "allow_manual_confirmation": {
       "type": "boolean",
       "default": true,
