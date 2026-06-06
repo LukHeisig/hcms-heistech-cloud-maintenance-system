@@ -29,6 +29,7 @@ import LineSelection from "../components/dashboard/LineSelection";
 import MachineSelection from "../components/dashboard/MachineSelection";
 import PointsList from "../components/dashboard/PointsList";
 import ControlPointDetail from "../components/dashboard/ControlPointDetail";
+import VibrationAlarmFrequencyChart from "../components/dashboard/VibrationAlarmFrequencyChart";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -677,6 +678,15 @@ export default function Dashboard() {
               </Card>
             </div>
 
+            <div className="mb-6">
+              <VibrationAlarmFrequencyChart
+                user={user}
+                machines={allMachines}
+                lines={allLines}
+                companies={allCompanies}
+              />
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <Card className="border-none shadow-lg">
@@ -1003,6 +1013,15 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="mb-6">
+            <VibrationAlarmFrequencyChart
+              user={user}
+              machines={machines}
+              lines={lines}
+              companies={userCompany ? [userCompany] : []}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
