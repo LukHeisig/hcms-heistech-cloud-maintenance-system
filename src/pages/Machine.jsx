@@ -768,6 +768,13 @@ export default function Machine() {
               </TabsTrigger>
             )}
 
+            {machine?.monitor_vibration && (
+              <TabsTrigger value="alerts-history" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
+                <Bell className="w-4 h-4" />
+                <span className="hidden md:inline">Alarmy</span>
+              </TabsTrigger>
+            )}
+
             {showThermo && (
               <TabsTrigger value="thermo" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-600 data-[state=active]:to-amber-700 data-[state=active]:text-white">
                 <Activity className="w-4 h-4" />
@@ -782,11 +789,6 @@ export default function Machine() {
               </TabsTrigger>
             )}
             
-            <TabsTrigger value="responsibility" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-teal-700 data-[state=active]:text-white">
-              <Users className="w-4 h-4" />
-              <span className="hidden md:inline">Odpovědnost</span>
-            </TabsTrigger>
-            
             <TabsTrigger value="statistics" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-pink-700 data-[state=active]:text-white">
               <BarChart2 className="w-4 h-4" />
               <span className="hidden md:inline">Statistiky</span>
@@ -795,12 +797,6 @@ export default function Machine() {
               <TabsTrigger value="predictive" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-cyan-700 data-[state=active]:text-white">
                 <Brain className="w-4 h-4" />
                 <span className="hidden md:inline">AI Predikce</span>
-              </TabsTrigger>
-            )}
-            {machine?.monitor_vibration && (
-              <TabsTrigger value="alerts-history" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
-                <Bell className="w-4 h-4" />
-                <span className="hidden md:inline">Alarmy</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -1332,56 +1328,6 @@ export default function Machine() {
           {/* Vibrodiagnostika */}
           <TabsContent value="vibro-diag" className="space-y-6">
             <VibrationCardMQTT machine={machine} />
-          </TabsContent>
-
-          {/* Odpovědnost */}
-          <TabsContent value="responsibility">
-            <Card className="border-none shadow-lg">
-              <CardHeader className="border-b border-slate-100">
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-teal-600" />
-                  Odpovědné osoby
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {responsibilities.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 mb-2">Zatím nejsou přiřazeny odpovědné osoby</p>
-                    <p className="text-sm text-slate-400">První odpovědnost můžete přidat v administraci</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {responsibilities.map((resp) => (
-                      <Card key={resp.id} className="border border-slate-200">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                              {getUserDisplayName(resp.user_email)?.[0] || "?"}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-slate-900 mb-1">{getUserDisplayName(resp.user_email)}</h3>
-                              <p className="text-sm text-slate-600 mb-2">{resp.user_email}</p>
-                              <Badge variant="outline">
-                                {resp.responsibility_type === "primary" ? "Primární odpovědnost" :
-                                 resp.responsibility_type === "maintenance" ? "Údržba" :
-                                 resp.responsibility_type === "lubrication" ? "Mazání" :
-                                 resp.responsibility_type === "inspection" ? "Inspekce" :
-                                 resp.responsibility_type === "vibration_analysis" ? "Vibrodiagnostika" :
-                                 "Náhradní díly"}
-                              </Badge>
-                              {resp.notes && (
-                                <p className="text-xs text-slate-500 mt-2 italic">{resp.notes}</p>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Termodiagnostika */}
