@@ -36,9 +36,10 @@ import {
   FileIcon,
   FileImage,
   Send,
-  FileSpreadsheet, Brain, Sparkles, Cpu
+  FileSpreadsheet, Brain, Sparkles, Cpu, Bell
 } from "lucide-react";
 import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
+import MachineAlertsHistory from "@/components/machine/MachineAlertsHistory";
 import VibrationCard from "@/components/machine/VibrationCard";
 import VibrationCardMQTT from "@/components/machine/VibrationCardMQTT";
 import ThermoJobDialog from "@/components/machine/ThermoJobDialog";
@@ -792,6 +793,10 @@ export default function Machine() {
             <TabsTrigger value="predictive" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-cyan-700 data-[state=active]:text-white">
               <Brain className="w-4 h-4" />
               <span className="hidden md:inline">AI Predikce</span>
+            </TabsTrigger>
+            <TabsTrigger value="alerts-history" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
+              <Bell className="w-4 h-4" />
+              <span className="hidden md:inline">Alarmy</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1641,6 +1646,11 @@ export default function Machine() {
                     </CardContent>
                 </Card>
             )}
+          </TabsContent>
+
+          {/* Historie alarmů */}
+          <TabsContent value="alerts-history" className="space-y-4">
+            <MachineAlertsHistory machineId={machineId} />
           </TabsContent>
 
           {/* Statistiky */}
