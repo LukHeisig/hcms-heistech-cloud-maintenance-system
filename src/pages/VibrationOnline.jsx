@@ -51,7 +51,8 @@ function BatteryIcon({ level, voltage }) {
 export default function VibrationOnline() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("sensors"); // "sensors" | "alerts"
+  const urlParams = new URLSearchParams(window.location.search);
+  const [activeTab, setActiveTab] = useState(urlParams.get("tab") === "alerts" ? "alerts" : "sensors");
   const [search, setSearch] = useState("");
   const [expandedCompanies, setExpandedCompanies] = useState({});
 
