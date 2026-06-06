@@ -206,6 +206,16 @@ export default function VibrationOnline() {
     refetchInterval: 60000,
   });
 
+  const alertBadge = useMemo(() => {
+    const dCount = activeAlerts.filter(a => a.severity === "D").length;
+    const cCount = activeAlerts.filter(a => a.severity === "C").length;
+    const bCount = activeAlerts.filter(a => a.severity === "B").length;
+    if (dCount > 0) return { count: dCount, label: "D", bg: "bg-red-600", text: "text-white", tabBg: "bg-red-50", tabText: "text-red-700" };
+    if (cCount > 0) return { count: cCount, label: "C", bg: "bg-orange-500", text: "text-white", tabBg: "bg-orange-50", tabText: "text-orange-700" };
+    if (bCount > 0) return { count: bCount, label: "B", bg: "bg-yellow-400", text: "text-slate-900", tabBg: "bg-yellow-50", tabText: "text-yellow-700" };
+    return null;
+  }, [activeAlerts]);
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-5xl mx-auto">
@@ -233,17 +243,18 @@ export default function VibrationOnline() {
           </button>
           <button
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              activeTab === "alerts" ? "bg-red-600 text-white shadow" : "text-slate-600 hover:bg-slate-50"
+              activeTab === "alerts"
+                ? (alertBadge ? `${alertBadge.tabBg} ${alertBadge.tabText} shadow` : "bg-slate-100 text-slate-700 shadow")
+                : "text-slate-600 hover:bg-slate-50"
             }`}
             onClick={() => setActiveTab("alerts")}
           >
             <Bell className="w-4 h-4" />
             Alarmy
-            {activeAlerts.length > 0 && (
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                activeTab === "alerts" ? "bg-white text-red-600" : "bg-red-600 text-white"
-              }`}>
-                {activeAlerts.length}
+            {alertBadge && (
+              <span className={`flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-full ${alertBadge.bg} ${alertBadge.text}`}>
+                <span>Pásmo {alertBadge.label}</span>
+                <span className="border-l border-white/40 pl-1">{alertBadge.count}</span>
               </span>
             )}
           </button>
