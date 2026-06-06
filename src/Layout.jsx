@@ -624,18 +624,18 @@ function LayoutContent({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {vibrationAlertsCount > 0 && (
-              <button
-                className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
-                title="Vibrační alarmy"
-              >
-                <Activity className="w-5 h-5 text-red-600" />
+            <button
+              className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
+              title="Vibrační alarmy"
+            >
+              <Bell className={`w-5 h-5 ${vibrationAlertsCount > 0 ? 'text-red-600' : 'text-slate-600'}`} />
+              {vibrationAlertsCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center bg-red-600">
                   {vibrationAlertsCount}
                 </span>
-              </button>
-            )}
+              )}
+            </button>
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -857,18 +857,18 @@ function LayoutContent({ children }) {
       <div className="lg:pl-72">
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
-           {vibrationAlertsCount > 0 && (
-              <button
-                className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors mr-1"
-                onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
-                title="Vibrační alarmy"
-              >
-                <Activity className="w-5 h-5 text-red-600" />
+           <button
+              className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors mr-1"
+              onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
+              title="Vibrační alarmy"
+            >
+              <Bell className={`w-5 h-5 ${vibrationAlertsCount > 0 ? 'text-red-600' : 'text-slate-600'}`} />
+              {vibrationAlertsCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm bg-red-600">
                   {vibrationAlertsCount}
                 </span>
-              </button>
-            )}
+              )}
+            </button>
            {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
