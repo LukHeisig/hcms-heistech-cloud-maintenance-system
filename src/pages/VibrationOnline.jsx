@@ -23,9 +23,11 @@ import {
   BatteryFull,
   Loader2,
   Signal,
+  Bell,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { cs } from "date-fns/locale";
+import VibrationAlertsPanel from "@/components/vibration/VibrationAlertsPanel";
 
 function StatusBadge({ lastSeen }) {
   if (!lastSeen) return <Badge variant="outline" className="text-slate-400 text-xs">Neznámý</Badge>;
@@ -49,6 +51,7 @@ function BatteryIcon({ level, voltage }) {
 export default function VibrationOnline() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("sensors"); // "sensors" | "alerts"
   const [search, setSearch] = useState("");
   const [expandedCompanies, setExpandedCompanies] = useState({});
 
@@ -195,6 +198,14 @@ export default function VibrationOnline() {
 
   const isSuperOrAdmin = user?.user_type === "superAdmin" || user?.user_type === "admin";
 
+  // Počet aktivních alarmů pro badge
+  const { data: activeAlerts = [] } = useQuery({
+    queryKey: ["vibrationAlerts", "active"],
+    queryFn: () => base44.entities.VibrationAlert.filter({ status: "active" }, null, 500),
+    enabled: !!user,
+    refetchInterval: 60000,
+  });
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-5xl mx-auto">
@@ -209,6 +220,46 @@ export default function VibrationOnline() {
           <p className="text-slate-500 mt-1">Stroje s aktivním vibračním monitoringem a přiřazeným senzorem</p>
         </div>
 
+        {/* Záložky */}
+        <div className="flex gap-1 mb-6 bg-white rounded-xl border border-slate-200 p-1 w-fit">
+          <button
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "sensors" ? "bg-blue-600 text-white shadow" : "text-slate-600 hover:bg-slate-50"
+            }`}
+            onClick={() => setActiveTab("sensors")}
+          >
+            <Activity className="w-4 h-4" />
+            Senzory
+          </button>
+          <button
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "alerts" ? "bg-red-600 text-white shadow" : "text-slate-600 hover:bg-slate-50"
+            }`}
+            onClick={() => setActiveTab("alerts")}
+          >
+            <Bell className="w-4 h-4" />
+            Alarmy
+            {activeAlerts.length > 0 && (
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                activeTab === "alerts" ? "bg-white text-red-600" : "bg-red-600 text-white"
+              }`}>
+                {activeAlerts.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Panel alarmů */}
+        {activeTab === "alerts" && (
+          <Card className="border-none shadow-sm">
+            <CardContent className="p-6">
+              <VibrationAlertsPanel user={user} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Panel senzorů */}
+        {activeTab === "sensors" && <>
         {/* Vyhledávání */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -368,6 +419,7 @@ export default function VibrationOnline() {
             })}
           </div>
         )}
+        </>}
       </div>
     </div>
   );

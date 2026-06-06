@@ -1,0 +1,105 @@
+{
+  "name": "VibrationAlert",
+  "type": "object",
+  "properties": {
+    "sensor_id": {
+      "type": "string",
+      "description": "ID senzoru"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "machine_name": {
+      "type": "string",
+      "description": "N\u00e1zev stroje (cache)"
+    },
+    "measurement_point": {
+      "type": "string",
+      "description": "N\u00e1zev m\u011b\u0159ic\u00edho m\u00edsta (label z sch\u00e9matu)"
+    },
+    "alert_type": {
+      "type": "string",
+      "enum": [
+        "velocity",
+        "acceleration",
+        "envelope",
+        "temperature",
+        "battery"
+      ],
+      "description": "Typ p\u0159ekro\u010den\u00e9ho limitu"
+    },
+    "metric_key": {
+      "type": "string",
+      "description": "Kl\u00ed\u010d metriky (vel_rms_x_mm_s, vel_rms_y_mm_s, vel_rms_z_mm_s, rms_z_g, env_rms_z, temperature, battery_level)"
+    },
+    "metric_label": {
+      "type": "string",
+      "description": "\u010citeln\u00fd popis metriky (Vel X, Vel Y, Vel Z, Acc Z, Ob\u00e1lka Z, Teplota, Baterie)"
+    },
+    "metric_unit": {
+      "type": "string",
+      "description": "Jednotka metriky (mm/s, g, \u00b0C)"
+    },
+    "value": {
+      "type": "number",
+      "description": "Nam\u011b\u0159en\u00e1 hodnota"
+    },
+    "limit_ab": {
+      "type": "number",
+      "description": "Limit A/B"
+    },
+    "limit_bc": {
+      "type": "number",
+      "description": "Limit B/C"
+    },
+    "limit_cd": {
+      "type": "number",
+      "description": "Limit C/D"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "P\u00e1smo p\u0159ekro\u010den\u00ed: B=varov\u00e1n\u00ed, C=v\u00fdstraha, D=kritick\u00e9"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "acknowledged"
+      ],
+      "default": "active",
+      "description": "Stav alarmu: active=aktivn\u00ed (blokuje nov\u00fd stejn\u00fd alarm), acknowledged=kvitov\u00e1no"
+    },
+    "acknowledged_by": {
+      "type": "string",
+      "description": "Email u\u017eivatele, kter\u00fd alarm kvitoval"
+    },
+    "acknowledged_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Datum a \u010das kvitov\u00e1n\u00ed"
+    },
+    "acknowledge_note": {
+      "type": "string",
+      "description": "Pozn\u00e1mka k kvitov\u00e1n\u00ed"
+    },
+    "sensor_data_id": {
+      "type": "string",
+      "description": "ID z\u00e1znamu SensorData, kter\u00fd alarm vyvolal"
+    }
+  },
+  "required": [
+    "sensor_id",
+    "machine_id",
+    "alert_type",
+    "metric_key",
+    "value",
+    "severity",
+    "status"
+  ]
+}
