@@ -369,6 +369,30 @@ function LayoutContent({ children }) {
     enabled: myWorkOrders.length > 0,
   });
 
+  const { data: activeVibrationAlerts = [] } = useQuery({
+    queryKey: ["activeVibrationAlerts"],
+    queryFn: () => base44.entities.VibrationAlert.filter({ status: "active" }),
+    enabled: !!user,
+    refetchInterval: 60000,
+  });
+
+  const vibrationAlertsCount = useMemo(() => {
+    if (!user) return 0;
+    return activeVibrationAlerts.filter(alert => {
+      if (user.user_type === "superAdmin") return true;
+      if (user.user_type === "admin") return user.assigned_company_ids?.some(cid => {
+        const m = machines.find(mac => mac.id === alert.machine_id);
+        if (!m) return false;
+        const l = lines.find(lin => lin.id === m.line_id);
+        return l?.company_id === cid;
+      });
+      const m = machines.find(mac => mac.id === alert.machine_id);
+      if (!m) return false;
+      const l = lines.find(lin => lin.id === m.line_id);
+      return l?.company_id === user.company_id;
+    }).length;
+  }, [activeVibrationAlerts, user, machines, lines]);
+
   const { data: userCompany } = useQuery({
     queryKey: ["userCompany", user?.company_id],
     queryFn: async () => {
@@ -600,6 +624,18 @@ function LayoutContent({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {vibrationAlertsCount > 0 && (
+              <button
+                className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
+                title="Vibrační alarmy"
+              >
+                <Activity className="w-5 h-5 text-red-600" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center bg-red-600">
+                  {vibrationAlertsCount}
+                </span>
+              </button>
+            )}
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -821,6 +857,18 @@ function LayoutContent({ children }) {
       <div className="lg:pl-72">
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
+           {vibrationAlertsCount > 0 && (
+              <button
+                className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors mr-1"
+                onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
+                title="Vibrační alarmy"
+              >
+                <Activity className="w-5 h-5 text-red-600" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm bg-red-600">
+                  {vibrationAlertsCount}
+                </span>
+              </button>
+            )}
            {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
