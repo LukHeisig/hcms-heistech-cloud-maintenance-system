@@ -627,18 +627,18 @@ export default function LineDetail() {
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white shadow-sm grid w-full p-1 h-auto gap-1" style={{ gridTemplateColumns: `repeat(${2 + (hasDiagnostics ? 1 : 0)}, 1fr)` }}>
-            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-1">Přehled</TabsTrigger>
-            {hasDiagnostics && <TabsTrigger value="diagnostics" className="text-xs sm:text-sm py-2 px-1 leading-tight">
+          <TabsList className="bg-white shadow-sm flex w-full p-1 h-auto gap-1 overflow-x-auto flex-nowrap">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2 px-1 flex-shrink-0">Přehled</TabsTrigger>
+            {hasDiagnostics && <TabsTrigger value="diagnostics" className="text-xs sm:text-sm py-2 px-1 leading-tight flex-shrink-0">
               <span className="hidden sm:inline">Technická diagnostika</span>
               <span className="sm:hidden">Tech. diag.</span>
             </TabsTrigger>}
-            <TabsTrigger value="lubrication" className="text-xs sm:text-sm py-2 px-1">Mazání</TabsTrigger>
-            <TabsTrigger value="prevention" className="text-xs sm:text-sm py-2 px-1 leading-tight">
+            <TabsTrigger value="lubrication" className="text-xs sm:text-sm py-2 px-1 flex-shrink-0">Mazání</TabsTrigger>
+            <TabsTrigger value="prevention" className="text-xs sm:text-sm py-2 px-1 leading-tight flex-shrink-0">
               <span className="hidden sm:inline">Plán preventivní údržby</span>
               <span className="sm:hidden">Prevence</span>
             </TabsTrigger>
-            <TabsTrigger value="checklist" className="text-xs sm:text-sm py-2 px-1 leading-tight">
+            <TabsTrigger value="checklist" className="text-xs sm:text-sm py-2 px-1 leading-tight flex-shrink-0">
               <span className="hidden sm:inline">Seznam závad</span>
               <span className="sm:hidden">Závady</span>
             </TabsTrigger>
