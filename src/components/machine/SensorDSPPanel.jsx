@@ -295,6 +295,34 @@ export default function SensorDSPPanel({
 
   // Fullscreen dialog
   const [fullscreenChart, setFullscreenChart] = useState(null); // null | 'raw' | 'acc' | 'vel' | 'env'
+  const [fsZoom, setFsZoom] = useState({ refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax' });
+  const [fsRpm, setFsRpm] = useState(null); // null = auto
+  const [fsManualMode, setFsManualMode] = useState(false);
+  const [fsRpmInput, setFsRpmInput] = useState('');
+  const [fsShowHarmonics, setFsShowHarmonics] = useState(true);
+  const [fsVisibleFreqs, setFsVisibleFreqs] = useState({ BPFO: true, BPFI: true, BSF: true, FTF: true });
+
+  const openFullscreen = (chartId) => {
+    setFullscreenChart(chartId);
+    setFsZoom({ refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax' });
+    setFsManualMode(false);
+    setFsRpmInput('');
+    // inherit current settings
+    setFsRpm(bearingRpm);
+    setFsShowHarmonics(showHarmonics);
+    setFsVisibleFreqs({ ...visibleFreqs });
+  };
+
+  const handleFsZoom = () => {
+    let { refAreaLeft, refAreaRight } = fsZoom;
+    if (refAreaLeft === refAreaRight || refAreaRight === '') {
+      setFsZoom(prev => ({ ...prev, refAreaLeft: '', refAreaRight: '' }));
+      return;
+    }
+    let left = Number(refAreaLeft), right = Number(refAreaRight);
+    if (left > right) [left, right] = [right, left];
+    setFsZoom(prev => ({ ...prev, refAreaLeft: '', refAreaRight: '', left, right }));
+  };
 
   // Ložiskové překryvy
   const [bearingRpm, setBearingRpm] = useState(null);
@@ -452,7 +480,7 @@ export default function SensorDSPPanel({
                       <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('raw')} title="Zvětšit na celou obrazovku">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openFullscreen('raw')} title="Zvětšit na celou obrazovku">
                     <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
                 </div>
@@ -484,7 +512,7 @@ export default function SensorDSPPanel({
                       <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('acc')} title="Zvětšit na celou obrazovku">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openFullscreen('acc')} title="Zvětšit na celou obrazovku">
                     <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
                 </div>
@@ -517,7 +545,7 @@ export default function SensorDSPPanel({
                       <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('vel')} title="Zvětšit na celou obrazovku">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openFullscreen('vel')} title="Zvětšit na celou obrazovku">
                     <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
                 </div>
@@ -558,7 +586,7 @@ export default function SensorDSPPanel({
                       <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('env')} title="Zvětšit na celou obrazovku">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openFullscreen('env')} title="Zvětšit na celou obrazovku">
                     <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
                 </div>
@@ -588,79 +616,219 @@ export default function SensorDSPPanel({
           </div>
 
           {/* Fullscreen dialog */}
-          <Dialog open={!!fullscreenChart} onOpenChange={open => !open && setFullscreenChart(null)}>
-            <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] flex flex-col p-0 gap-0">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 shrink-0">
-                <span className="font-semibold text-slate-800 text-sm">
-                  {fullscreenChart === 'raw' && 'Časová vlna Z (Surová data) [g]'}
-                  {fullscreenChart === 'acc' && 'Spektrum Zrychlení Z (g Peak)'}
-                  {fullscreenChart === 'vel' && 'Spektrum Rychlosti X, Y, Z (mm/s)'}
-                  {fullscreenChart === 'env' && 'Spektrum Obálky Z'}
-                </span>
-                <button onClick={() => setFullscreenChart(null)} className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-700">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="flex-1 p-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  {fullscreenChart === 'raw' ? (
-                    <LineChart data={dsp.rawChart}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="t" type="number" allowDataOverflow label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="z" stroke="#3b82f6" dot={false} isAnimationActive={false} />
-                    </LineChart>
-                  ) : fullscreenChart === 'acc' ? (
-                    <LineChart data={dsp.specAccZ}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="f" type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} />
-                      <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
-                      {rotRefLines.map(({ n, hz }) => (
-                        <ReferenceLine key={`fs-rot-acc-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
-                          strokeDasharray={n === 1 ? "none" : "3 2"}
-                          label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
-                      ))}
-                    </LineChart>
-                  ) : fullscreenChart === 'vel' ? (
-                    <LineChart data={dsp.specVel}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="f" type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Legend iconSize={12} wrapperStyle={{ fontSize: 12 }} />
-                      <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X" />
-                      <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y" />
-                      <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z" />
-                      <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
-                      {rotRefLines.map(({ n, hz }) => (
-                        <ReferenceLine key={`fs-rot-vel-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
-                          strokeDasharray={n === 1 ? "none" : "3 2"}
-                          label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
-                      ))}
-                    </LineChart>
-                  ) : fullscreenChart === 'env' ? (
-                    <LineChart data={dsp.specEnvZ}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="f" type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
-                      <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
-                      {rotRefLines.map(({ n, hz }) => (
-                        <ReferenceLine key={`fs-rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
-                          strokeDasharray={n === 1 ? "none" : "3 2"}
-                          label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
-                      ))}
-                    </LineChart>
-                  ) : <LineChart data={[]}><CartesianGrid /></LineChart>}
-                </ResponsiveContainer>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {!!fullscreenChart && dsp && (() => {
+            const fsAutoRpm = detectRpmFromSpectrum(dsp.specVel, dsp.freqRes);
+            const fsEffectiveRpm = fsRpm ?? fsAutoRpm ?? null;
+            const fsFr = fsEffectiveRpm ? fsEffectiveRpm / 60 : null;
+            const fsRotLines = fsFr ? [
+              { n: 1, hz: +fsFr.toFixed(2) },
+              ...(fsShowHarmonics ? Array.from({ length: 7 }, (_, i) => ({ n: i + 2, hz: +((i + 2) * fsFr).toFixed(2) })) : [])
+            ] : [];
+
+            // Ložiskové frekvence pro fullscreen
+            const fsBearingFreqLines = bearing && fsEffectiveRpm ? (() => {
+              const coefs = calcBearingDefectCoefs(bearing.nb, bearing.bd, bearing.pd, bearing.contact_angle_deg || 0);
+              const fr2 = fsEffectiveRpm / 60;
+              return {
+                BPFO: +(coefs.bpfo * fr2).toFixed(2),
+                BPFI: +(coefs.bpfi * fr2).toFixed(2),
+                BSF:  +(coefs.bsf  * fr2).toFixed(2),
+                FTF:  +(coefs.ftf  * fr2).toFixed(2),
+              };
+            })() : null;
+
+            const isFreqChart = fullscreenChart !== 'raw';
+            const xKey = fullscreenChart === 'raw' ? 't' : 'f';
+            const xLabel = fullscreenChart === 'raw' ? 'čas (ms)' : 'frekvence (Hz)';
+
+            return (
+              <Dialog open={true} onOpenChange={open => !open && setFullscreenChart(null)}>
+                <DialogContent className="max-w-[97vw] w-[97vw] max-h-[97vh] h-[97vh] flex flex-col p-0 gap-0">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 shrink-0 bg-slate-50">
+                    <span className="font-semibold text-slate-800 text-sm">
+                      {fullscreenChart === 'raw' && '📈 Časová vlna Z (Surová data) [g]'}
+                      {fullscreenChart === 'acc' && '📊 Spektrum Zrychlení Z (g Peak)'}
+                      {fullscreenChart === 'vel' && '📊 Spektrum Rychlosti X, Y, Z (mm/s)'}
+                      {fullscreenChart === 'env' && '📊 Spektrum Obálky Z'}
+                    </span>
+                    <button onClick={() => setFullscreenChart(null)} className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Toolbar — jen pro frekvenční spektra */}
+                  {isFreqChart && (
+                    <div className="shrink-0 px-4 py-2 border-b border-slate-100 bg-white flex flex-wrap items-center gap-3">
+                      {/* Otáčková frekvence */}
+                      <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
+                        <span className="text-xs font-bold text-indigo-700 whitespace-nowrap">⟳ Otáčky:</span>
+                        {fsAutoRpm && (
+                          <span className="text-[10px] text-slate-500 bg-white border border-slate-200 rounded px-1.5 py-0.5 whitespace-nowrap">
+                            Auto: <span className="font-mono font-bold text-slate-700">{fsAutoRpm} RPM</span>
+                            {fsRpm == null && <span className="text-green-600 ml-1">(aktivní)</span>}
+                          </span>
+                        )}
+                        {!fsManualMode ? (
+                          <button
+                            className="text-[11px] border border-indigo-300 rounded px-2 py-0.5 bg-white text-indigo-700 hover:bg-indigo-100 font-semibold whitespace-nowrap"
+                            onClick={() => { setFsManualMode(true); setFsRpmInput(String(fsEffectiveRpm || '')); }}
+                          >
+                            {fsRpm != null ? `${fsRpm} RPM ✎` : 'Zadat ručně'}
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={fsRpmInput}
+                              onChange={e => setFsRpmInput(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  const v = parseFloat(fsRpmInput);
+                                  if (v > 0) { setFsRpm(Math.round(v)); setFsManualMode(false); }
+                                }
+                              }}
+                              className="h-6 w-20 px-1.5 text-xs border border-indigo-300 rounded font-mono"
+                              placeholder="RPM"
+                              autoFocus
+                            />
+                            <button
+                              className="text-[11px] bg-indigo-500 text-white rounded px-2 py-0.5 font-semibold"
+                              onClick={() => {
+                                const v = parseFloat(fsRpmInput);
+                                if (v > 0) { setFsRpm(Math.round(v)); setFsManualMode(false); }
+                              }}
+                            >OK</button>
+                            {fsRpm != null && (
+                              <button className="text-[11px] bg-white border border-indigo-300 text-indigo-600 rounded px-2 py-0.5"
+                                onClick={() => { setFsRpm(null); setFsManualMode(false); }}>Auto</button>
+                            )}
+                            <button className="text-[11px] text-slate-400 px-1" onClick={() => setFsManualMode(false)}>✕</button>
+                          </div>
+                        )}
+                        {fsFr && (
+                          <span className="text-[11px] font-mono bg-indigo-100 text-indigo-700 rounded px-2 py-0.5">1X = {fsFr.toFixed(2)} Hz</span>
+                        )}
+                        <button
+                          onClick={() => setFsShowHarmonics(v => !v)}
+                          className={`text-[11px] font-semibold rounded px-2 py-0.5 border whitespace-nowrap ${fsShowHarmonics ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-600 border-indigo-300 hover:bg-indigo-50'}`}
+                        >
+                          {fsShowHarmonics ? 'Harmonické 2X–8X ✓' : 'Zobrazit harmonické'}
+                        </button>
+                      </div>
+
+                      {/* Ložiskové frekvence */}
+                      {bearing && fsBearingFreqLines && (
+                        <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-lg px-3 py-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-orange-700 whitespace-nowrap mr-1">⚙ {bearing.designation}:</span>
+                          {Object.entries(fsBearingFreqLines).map(([name, hz]) => {
+                            const on = fsVisibleFreqs[name] !== false;
+                            return (
+                              <button key={name}
+                                onClick={() => setFsVisibleFreqs(prev => ({ ...prev, [name]: !prev[name] }))}
+                                className={`flex items-center gap-1 text-[11px] font-semibold rounded px-2 py-0.5 border transition-all ${on ? 'text-white border-transparent' : 'border-slate-300 bg-white text-slate-500'}`}
+                                style={on ? { backgroundColor: BEARING_FREQ_COLORS[name] } : {}}
+                              >
+                                <span>{name}</span>
+                                <span className="font-mono font-normal text-[10px]">{hz} Hz</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Zoom info + reset */}
+                      {fsZoom.left !== 'dataMin' && (
+                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1"
+                          onClick={() => setFsZoom({ refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax' })}>
+                          <ZoomOut className="w-3.5 h-3.5" />Zrušit zoom
+                        </Button>
+                      )}
+                      {fsZoom.left === 'dataMin' && (
+                        <span className="text-[10px] text-slate-400 italic">Tažením myší vyberte oblast pro zoom</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Graf */}
+                  <div className="flex-1 p-4 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {fullscreenChart === 'raw' ? (
+                        <LineChart data={dsp.rawChart}
+                          onMouseDown={e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }))}
+                          onMouseMove={e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }))}
+                          onMouseUp={handleFsZoom}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="t" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <Tooltip />
+                          <Line type="monotone" dataKey="z" stroke="#3b82f6" dot={false} isAnimationActive={false} />
+                          {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
+                        </LineChart>
+                      ) : fullscreenChart === 'acc' ? (
+                        <LineChart data={dsp.specAccZ}
+                          onMouseDown={e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }))}
+                          onMouseMove={e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }))}
+                          onMouseUp={handleFsZoom}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
+                          <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} name="Zrychlení Z [g]" />
+                          {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
+                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
+                          {fsRotLines.map(({ n, hz }) => (
+                            <ReferenceLine key={`fs-rot-acc-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                              strokeDasharray={n === 1 ? "none" : "3 2"}
+                              label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
+                          ))}
+                        </LineChart>
+                      ) : fullscreenChart === 'vel' ? (
+                        <LineChart data={dsp.specVel}
+                          onMouseDown={e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }))}
+                          onMouseMove={e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }))}
+                          onMouseUp={handleFsZoom}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
+                          <Legend iconSize={12} wrapperStyle={{ fontSize: 12 }} />
+                          <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X [mm/s]" />
+                          <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y [mm/s]" />
+                          <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z [mm/s]" />
+                          {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
+                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
+                          {fsRotLines.map(({ n, hz }) => (
+                            <ReferenceLine key={`fs-rot-vel-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                              strokeDasharray={n === 1 ? "none" : "3 2"}
+                              label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
+                          ))}
+                        </LineChart>
+                      ) : (
+                        <LineChart data={dsp.specEnvZ}
+                          onMouseDown={e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }))}
+                          onMouseMove={e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }))}
+                          onMouseUp={handleFsZoom}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
+                          <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Obálka Z" />
+                          {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
+                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
+                          {fsRotLines.map(({ n, hz }) => (
+                            <ReferenceLine key={`fs-rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                              strokeDasharray={n === 1 ? "none" : "3 2"}
+                              label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
+                          ))}
+                        </LineChart>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            );
+          })()}
 
           {/* AI Diagnostická analýza */}
           <VibrationAIAnalysis
