@@ -301,16 +301,23 @@ export default function SensorDSPPanel({
   const [fsRpmInput, setFsRpmInput] = useState('');
   const [fsShowHarmonics, setFsShowHarmonics] = useState(true);
   const [fsVisibleFreqs, setFsVisibleFreqs] = useState({ BPFO: true, BPFI: true, BSF: true, FTF: true });
+  // Harmonic cursor
+  const [hcMode, setHcMode] = useState(false); // harmonic cursor enabled
+  const [hcFreq, setHcFreq] = useState(null);  // pinned base frequency (null = follow mouse)
+  const [hcHoverFreq, setHcHoverFreq] = useState(null); // current mouse freq
+  const [hcHarmonics, setHcHarmonics] = useState(8); // number of harmonics to show
 
   const openFullscreen = (chartId) => {
     setFullscreenChart(chartId);
     setFsZoom({ refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax' });
     setFsManualMode(false);
     setFsRpmInput('');
-    // inherit current settings
     setFsRpm(bearingRpm);
     setFsShowHarmonics(showHarmonics);
     setFsVisibleFreqs({ ...visibleFreqs });
+    setHcMode(false);
+    setHcFreq(null);
+    setHcHoverFreq(null);
   };
 
   const handleFsZoom = () => {
@@ -737,6 +744,38 @@ export default function SensorDSPPanel({
                         </div>
                       )}
 
+                      {/* Harmonic cursor */}
+                      <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+                        <button
+                          onClick={() => { setHcMode(v => !v); setHcFreq(null); }}
+                          className={`text-[11px] font-semibold rounded px-2 py-0.5 border whitespace-nowrap transition-all ${hcMode ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50'}`}
+                        >
+                          🎯 {hcMode ? 'Kurzor harmonických ✓' : 'Kurzor harmonických'}
+                        </button>
+                        {hcMode && (
+                          <>
+                            <span className="text-[10px] text-slate-500">Harmonické:</span>
+                            <select
+                              value={hcHarmonics}
+                              onChange={e => setHcHarmonics(Number(e.target.value))}
+                              className="h-6 text-xs border border-emerald-300 rounded px-1 bg-white"
+                            >
+                              {[4,6,8,10,12].map(n => <option key={n} value={n}>{n}X</option>)}
+                            </select>
+                            {hcFreq != null ? (
+                              <>
+                                <span className="text-[11px] font-mono bg-emerald-100 text-emerald-800 rounded px-2 py-0.5 font-bold">
+                                  Base: {hcFreq.toFixed(2)} Hz
+                                </span>
+                                <button onClick={() => setHcFreq(null)} className="text-[10px] text-slate-400 hover:text-slate-700 px-1">✕ Uvolnit</button>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">Pohybujte myší · Klik = zamknout</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+
                       {/* Zoom info + reset */}
                       {fsZoom.left !== 'dataMin' && (
                         <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1"
@@ -744,14 +783,71 @@ export default function SensorDSPPanel({
                           <ZoomOut className="w-3.5 h-3.5" />Zrušit zoom
                         </Button>
                       )}
-                      {fsZoom.left === 'dataMin' && (
+                      {fsZoom.left === 'dataMin' && !hcMode && (
                         <span className="text-[10px] text-slate-400 italic">Tažením myší vyberte oblast pro zoom</span>
                       )}
                     </div>
                   )}
 
+                  {/* Harmonic cursor panel — zobrazí tabulku harmonických */}
+                  {hcMode && (hcFreq != null || hcHoverFreq != null) && (() => {
+                    const baseHz = hcFreq ?? hcHoverFreq;
+                    return (
+                      <div className="shrink-0 mx-4 mb-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] font-bold text-emerald-800 mr-1">
+                            🎯 Harmonické od {baseHz.toFixed(2)} Hz {hcFreq != null ? '(zamčeno)' : '(pohyb myši)'}:
+                          </span>
+                          {Array.from({ length: hcHarmonics }, (_, i) => i + 1).map(n => (
+                            <span key={n} className={`text-[11px] font-mono rounded px-1.5 py-0.5 border ${n === 1 ? 'bg-emerald-600 text-white border-transparent font-bold' : 'bg-white text-emerald-700 border-emerald-300'}`}>
+                              {n}X = {(n * baseHz).toFixed(2)} Hz
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Graf */}
                   <div className="flex-1 p-4 min-h-0">
+                    {/* Compute harmonic cursor lines */}
+                    {(() => {
+                      const hcBase = hcFreq ?? hcHoverFreq;
+                      const hcLines = hcMode && hcBase
+                        ? Array.from({ length: hcHarmonics }, (_, i) => ({ n: i + 1, hz: +((i + 1) * hcBase).toFixed(2) }))
+                        : [];
+
+                      const hcRefLines = hcLines.map(({ n, hz }) => (
+                        <ReferenceLine key={`hc-${n}`} x={hz} stroke="#059669" strokeWidth={n === 1 ? 2 : 1}
+                          strokeDasharray={n === 1 ? "none" : "4 2"}
+                          label={{ value: `${n}X`, position: n % 2 === 0 ? "insideTopRight" : "insideTopLeft", fontSize: 9, fill: "#059669", fontWeight: "bold" }}
+                        />
+                      ));
+
+                      const commonMouseHandlers = hcMode ? {
+                        onMouseMove: e => {
+                          if (e && e.activeLabel != null) setHcHoverFreq(Number(e.activeLabel));
+                          if (fsZoom.refAreaLeft && e) setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }));
+                        },
+                        onMouseDown: e => {
+                          if (!e) return;
+                          if (hcMode) {
+                            // click to pin/unpin
+                            if (hcFreq != null) { setHcFreq(null); }
+                            else { setHcFreq(Number(e.activeLabel)); }
+                          } else {
+                            setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }));
+                          }
+                        },
+                        onMouseUp: hcMode ? undefined : handleFsZoom,
+                        onMouseLeave: () => setHcHoverFreq(null),
+                      } : {
+                        onMouseDown: e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel })),
+                        onMouseMove: e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel })),
+                        onMouseUp: handleFsZoom,
+                      };
+
+                      return (
                     <ResponsiveContainer width="100%" height="100%">
                       {fullscreenChart === 'raw' ? (
                         <LineChart data={dsp.rawChart}
@@ -766,28 +862,23 @@ export default function SensorDSPPanel({
                           {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
                         </LineChart>
                       ) : fullscreenChart === 'acc' ? (
-                        <LineChart data={dsp.specAccZ}
-                          onMouseDown={e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }))}
-                          onMouseMove={e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }))}
-                          onMouseUp={handleFsZoom}>
+                        <LineChart data={dsp.specAccZ} {...commonMouseHandlers}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
                           <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} name="Zrychlení Z [g]" />
-                          {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
+                          {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
                           <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-acc-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
                               label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
                           ))}
+                          {hcRefLines}
                         </LineChart>
                       ) : fullscreenChart === 'vel' ? (
-                        <LineChart data={dsp.specVel}
-                          onMouseDown={e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }))}
-                          onMouseMove={e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }))}
-                          onMouseUp={handleFsZoom}>
+                        <LineChart data={dsp.specVel} {...commonMouseHandlers}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
                           <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
@@ -796,34 +887,35 @@ export default function SensorDSPPanel({
                           <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X [mm/s]" />
                           <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y [mm/s]" />
                           <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z [mm/s]" />
-                          {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
+                          {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
                           <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-vel-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
                               label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
                           ))}
+                          {hcRefLines}
                         </LineChart>
                       ) : (
-                        <LineChart data={dsp.specEnvZ}
-                          onMouseDown={e => e && setFsZoom(prev => ({ ...prev, refAreaLeft: e.activeLabel }))}
-                          onMouseMove={e => fsZoom.refAreaLeft && e && setFsZoom(prev => ({ ...prev, refAreaRight: e.activeLabel }))}
-                          onMouseUp={handleFsZoom}>
+                        <LineChart data={dsp.specEnvZ} {...commonMouseHandlers}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
                           <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Obálka Z" />
-                          {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
+                          {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
                           <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
                               label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
                           ))}
+                          {hcRefLines}
                         </LineChart>
                       )}
                     </ResponsiveContainer>
+                      );
+                    })()}
                   </div>
                 </DialogContent>
               </Dialog>
