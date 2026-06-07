@@ -8,7 +8,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea, ReferenceLine
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Maximize2, X } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
 
 // Barvy ložiskových frekvencí
@@ -292,6 +293,9 @@ export default function SensorDSPPanel({
     setZoomStates(prev => ({ ...prev, [chartId]: { ...prev[chartId], refAreaLeft: '', refAreaRight: '', left, right } }));
   };
 
+  // Fullscreen dialog
+  const [fullscreenChart, setFullscreenChart] = useState(null); // null | 'raw' | 'acc' | 'vel' | 'env'
+
   // Ložiskové překryvy
   const [bearingRpm, setBearingRpm] = useState(null);
   const [visibleFreqs, setVisibleFreqs] = useState({ BPFO: true, BPFI: true, BSF: true, FTF: true });
@@ -442,11 +446,16 @@ export default function SensorDSPPanel({
             <Card>
               <CardHeader className="pb-1 flex flex-row items-center justify-between py-3 px-4">
                 <CardTitle className="text-xs font-semibold">Časová vlna Z (Surová data) [g]</CardTitle>
-                {zoomStates.raw.left !== 'dataMin' && (
-                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('raw')}>
-                    <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                <div className="flex items-center gap-1">
+                  {zoomStates.raw.left !== 'dataMin' && (
+                    <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('raw')}>
+                      <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('raw')} title="Zvětšit na celou obrazovku">
+                    <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
-                )}
+                </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <ResponsiveContainer width="100%" height={220}>
@@ -469,11 +478,16 @@ export default function SensorDSPPanel({
             <Card>
               <CardHeader className="pb-1 flex flex-row items-center justify-between py-3 px-4">
                 <CardTitle className="text-xs font-semibold">Spektrum Zrychlení Z (g Peak)</CardTitle>
-                {zoomStates.acc.left !== 'dataMin' && (
-                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('acc')}>
-                    <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                <div className="flex items-center gap-1">
+                  {zoomStates.acc.left !== 'dataMin' && (
+                    <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('acc')}>
+                      <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('acc')} title="Zvětšit na celou obrazovku">
+                    <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
-                )}
+                </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <ResponsiveContainer width="100%" height={220}>
@@ -497,11 +511,16 @@ export default function SensorDSPPanel({
             <Card>
               <CardHeader className="pb-1 flex flex-row items-center justify-between py-3 px-4">
                 <CardTitle className="text-xs font-semibold">Spektrum Rychlosti X, Y, Z (mm/s) [0-1000 Hz]</CardTitle>
-                {zoomStates.vel.left !== 'dataMin' && (
-                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('vel')}>
-                    <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                <div className="flex items-center gap-1">
+                  {zoomStates.vel.left !== 'dataMin' && (
+                    <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('vel')}>
+                      <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('vel')} title="Zvětšit na celou obrazovku">
+                    <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
-                )}
+                </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <ResponsiveContainer width="100%" height={220}>
@@ -533,11 +552,16 @@ export default function SensorDSPPanel({
             <Card>
               <CardHeader className="pb-1 flex flex-row items-center justify-between py-3 px-4">
                 <CardTitle className="text-xs font-semibold">Spektrum Obálky Z</CardTitle>
-                {zoomStates.env.left !== 'dataMin' && (
-                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('env')}>
-                    <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                <div className="flex items-center gap-1">
+                  {zoomStates.env.left !== 'dataMin' && (
+                    <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('env')}>
+                      <ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFullscreenChart('env')} title="Zvětšit na celou obrazovku">
+                    <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
                   </Button>
-                )}
+                </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <ResponsiveContainer width="100%" height={220}>
@@ -562,6 +586,81 @@ export default function SensorDSPPanel({
               </CardContent>
             </Card>
           </div>
+
+          {/* Fullscreen dialog */}
+          <Dialog open={!!fullscreenChart} onOpenChange={open => !open && setFullscreenChart(null)}>
+            <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] flex flex-col p-0 gap-0">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 shrink-0">
+                <span className="font-semibold text-slate-800 text-sm">
+                  {fullscreenChart === 'raw' && 'Časová vlna Z (Surová data) [g]'}
+                  {fullscreenChart === 'acc' && 'Spektrum Zrychlení Z (g Peak)'}
+                  {fullscreenChart === 'vel' && 'Spektrum Rychlosti X, Y, Z (mm/s)'}
+                  {fullscreenChart === 'env' && 'Spektrum Obálky Z'}
+                </span>
+                <button onClick={() => setFullscreenChart(null)} className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-700">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 p-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  {fullscreenChart === 'raw' ? (
+                    <LineChart data={dsp.rawChart}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="t" type="number" allowDataOverflow label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="z" stroke="#3b82f6" dot={false} isAnimationActive={false} />
+                    </LineChart>
+                  ) : fullscreenChart === 'acc' ? (
+                    <LineChart data={dsp.specAccZ}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="f" type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} />
+                      <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                      {rotRefLines.map(({ n, hz }) => (
+                        <ReferenceLine key={`fs-rot-acc-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                          strokeDasharray={n === 1 ? "none" : "3 2"}
+                          label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
+                      ))}
+                    </LineChart>
+                  ) : fullscreenChart === 'vel' ? (
+                    <LineChart data={dsp.specVel}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="f" type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Legend iconSize={12} wrapperStyle={{ fontSize: 12 }} />
+                      <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X" />
+                      <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y" />
+                      <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z" />
+                      <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                      {rotRefLines.map(({ n, hz }) => (
+                        <ReferenceLine key={`fs-rot-vel-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                          strokeDasharray={n === 1 ? "none" : "3 2"}
+                          label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
+                      ))}
+                    </LineChart>
+                  ) : fullscreenChart === 'env' ? (
+                    <LineChart data={dsp.specEnvZ}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="f" type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
+                      <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
+                      <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                      {rotRefLines.map(({ n, hz }) => (
+                        <ReferenceLine key={`fs-rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                          strokeDasharray={n === 1 ? "none" : "3 2"}
+                          label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 10, fill: "#6366f1", fontWeight: "bold" }} />
+                      ))}
+                    </LineChart>
+                  ) : <LineChart data={[]}><CartesianGrid /></LineChart>}
+                </ResponsiveContainer>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* AI Diagnostická analýza */}
           <VibrationAIAnalysis
