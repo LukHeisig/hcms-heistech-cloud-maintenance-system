@@ -552,6 +552,11 @@ export default function SensorDSPPanel({
                     <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
                     {zoomStates.env.refAreaLeft && zoomStates.env.refAreaRight && <ReferenceArea x1={zoomStates.env.refAreaLeft} x2={zoomStates.env.refAreaRight} strokeOpacity={0.3} />}
                     <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                    {rotRefLines.map(({ n, hz }) => (
+                      <ReferenceLine key={`rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                        strokeDasharray={n === 1 ? "none" : "3 2"}
+                        label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 9, fill: "#6366f1", fontWeight: "bold" }} />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
