@@ -44,7 +44,7 @@ function detectRpmFromSpectrum(specVel, freqRes) {
 }
 
 // Panel pro nastavení ložiskových překryvů
-function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visibleFreqs, onToggleFreq }) {
+function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visibleFreqs, onToggleFreq, showHarmonics, onToggleHarmonics }) {
   const autoRpm = useMemo(() => detectRpmFromSpectrum(specVel, freqRes), [specVel, freqRes]);
   const [manualMode, setManualMode] = useState(false);
   const [inputVal, setInputVal] = useState("");
@@ -130,9 +130,93 @@ function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visi
           );
         })}
       </div>
+      {/* Harmonické otáčkové frekvence */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-[11px] text-orange-700 font-mono bg-orange-100 rounded px-2 py-0.5">
+          1X = {fr.toFixed(2)} Hz
+        </span>
+        <button
+          onClick={onToggleHarmonics}
+          className={`text-[11px] font-semibold rounded px-2 py-0.5 border transition-all ${
+            showHarmonics ? "bg-orange-600 text-white border-transparent" : "bg-white text-orange-700 border-orange-300 hover:bg-orange-100"
+          }`}
+        >
+          {showHarmonics ? "Skrýt harmonické (2X–8X)" : "Zobrazit harmonické 2X–8X"}
+        </button>
+      </div>
       <p className="text-[9px] text-slate-400">
         Svislé čáry jsou vykresleny ve spektrech Zrychlení Z, Rychlosti a Obálky Z.
       </p>
+    </div>
+  );
+}
+
+// Standalone panel pro otáčkovou frekvenci (bez ložiska)
+function RotationalFreqPanel({ specVel, freqRes, rpm, onRpmChange, showHarmonics, onToggleHarmonics }) {
+  const autoRpm = useMemo(() => detectRpmFromSpectrum(specVel, freqRes), [specVel, freqRes]);
+  const [manualMode, setManualMode] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+
+  const displayRpm = rpm ?? autoRpm ?? null;
+  const fr = displayRpm ? (displayRpm / 60).toFixed(2) : null;
+
+  const handleApply = () => {
+    const v = parseFloat(inputVal);
+    if (v > 0) { onRpmChange(Math.round(v)); setManualMode(false); }
+  };
+
+  if (!displayRpm && !autoRpm) return null;
+
+  return (
+    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <span className="text-xs font-bold text-indigo-700">⟳ Otáčková frekvence</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {autoRpm && !manualMode && (
+            <span className="text-[10px] text-slate-500 bg-white border border-slate-200 rounded px-1.5 py-0.5">
+              Auto-detekce: <span className="font-mono font-bold text-slate-700">{autoRpm} RPM</span>
+              {rpm == null && <span className="text-green-600 ml-1">(aktivní)</span>}
+            </span>
+          )}
+          {!manualMode ? (
+            <button
+              className="text-[10px] border border-indigo-300 rounded px-2 py-0.5 bg-white text-indigo-700 hover:bg-indigo-100 font-semibold"
+              onClick={() => { setManualMode(true); setInputVal(String(displayRpm || "")); }}
+            >
+              {rpm != null ? `${rpm} RPM ✎` : "Zadat otáčky ručně"}
+            </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <input type="number" value={inputVal} onChange={e => setInputVal(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleApply()}
+                className="h-6 w-20 px-1.5 text-xs border border-indigo-300 rounded font-mono"
+                placeholder="RPM" autoFocus />
+              <button className="text-[10px] bg-indigo-500 text-white rounded px-2 py-0.5 font-semibold" onClick={handleApply}>OK</button>
+              {rpm != null && (
+                <button className="text-[10px] bg-white border border-indigo-300 text-indigo-600 rounded px-2 py-0.5"
+                  onClick={() => { onRpmChange(null); setManualMode(false); }}>Auto</button>
+              )}
+              <button className="text-[10px] text-slate-400 px-1" onClick={() => setManualMode(false)}>✕</button>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        {fr && (
+          <span className="text-[11px] text-indigo-700 font-mono bg-indigo-100 rounded px-2 py-0.5">
+            1X = {fr} Hz ({displayRpm} RPM)
+          </span>
+        )}
+        <button
+          onClick={onToggleHarmonics}
+          className={`text-[11px] font-semibold rounded px-2 py-0.5 border transition-all ${
+            showHarmonics ? "bg-indigo-600 text-white border-transparent" : "bg-white text-indigo-600 border-indigo-300 hover:bg-indigo-50"
+          }`}
+        >
+          {showHarmonics ? "Skrýt harmonické (2X–8X)" : "Zobrazit harmonické 2X–8X"}
+        </button>
+      </div>
+      <p className="text-[9px] text-slate-400">Otáčková frekvence (1X) je zobrazena ve spektru rychlosti vibrací.</p>
     </div>
   );
 }
@@ -211,6 +295,7 @@ export default function SensorDSPPanel({
   // Ložiskové překryvy
   const [bearingRpm, setBearingRpm] = useState(null);
   const [visibleFreqs, setVisibleFreqs] = useState({ BPFO: true, BPFI: true, BSF: true, FTF: true });
+  const [showHarmonics, setShowHarmonics] = useState(false);
   const handleToggleFreq = (name) => setVisibleFreqs(prev => ({ ...prev, [name]: !prev[name] }));
 
   const dsp = useMemo(() => {
@@ -262,6 +347,22 @@ export default function SensorDSPPanel({
       FTF:  +(coefs.ftf  * fr).toFixed(2),
     };
   }, [bearing, dsp, bearingRpm]);
+
+  // Otáčková frekvence a harmonické
+  const autoRpmFromSpec = useMemo(() => {
+    if (!dsp) return null;
+    return detectRpmFromSpectrum(dsp.specVel, dsp.freqRes);
+  }, [dsp]);
+  const effectiveRpm = bearingRpm ?? autoRpmFromSpec ?? null;
+  const fr = effectiveRpm ? effectiveRpm / 60 : null;
+  const rotRefLines = useMemo(() => {
+    if (!fr) return [];
+    const lines = [{ n: 1, hz: +fr.toFixed(2) }];
+    if (showHarmonics) {
+      for (let n = 2; n <= 8; n++) lines.push({ n, hz: +(n * fr).toFixed(2) });
+    }
+    return lines;
+  }, [fr, showHarmonics]);
 
   if (isLoading) return (
     <div className="flex items-center gap-2 p-6 text-slate-500">
@@ -320,6 +421,18 @@ export default function SensorDSPPanel({
               onRpmChange={setBearingRpm}
               visibleFreqs={visibleFreqs}
               onToggleFreq={handleToggleFreq}
+              showHarmonics={showHarmonics}
+              onToggleHarmonics={() => setShowHarmonics(v => !v)}
+            />
+          )}
+          {!bearing && (
+            <RotationalFreqPanel
+              specVel={dsp.specVel}
+              freqRes={dsp.freqRes}
+              rpm={bearingRpm}
+              onRpmChange={setBearingRpm}
+              showHarmonics={showHarmonics}
+              onToggleHarmonics={() => setShowHarmonics(v => !v)}
             />
           )}
 
@@ -406,6 +519,11 @@ export default function SensorDSPPanel({
                     <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z" />
                     {zoomStates.vel.refAreaLeft && zoomStates.vel.refAreaRight && <ReferenceArea x1={zoomStates.vel.refAreaLeft} x2={zoomStates.vel.refAreaRight} strokeOpacity={0.3} />}
                     <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                    {rotRefLines.map(({ n, hz }) => (
+                      <ReferenceLine key={`rot-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
+                        strokeDasharray={n === 1 ? "none" : "3 2"}
+                        label={{ value: `${n}X`, position: "insideTopLeft", fontSize: 9, fill: "#6366f1", fontWeight: "bold" }} />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
