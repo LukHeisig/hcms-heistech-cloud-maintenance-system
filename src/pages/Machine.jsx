@@ -863,6 +863,17 @@ export default function Machine() {
                                     Další kontrola:{" "}
                                     {format(task.date, "d. M. yyyy HH:mm", { locale: cs })}
                                   </p>
+                                  {(() => {
+                                    const diffMs = task.date - new Date();
+                                    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+                                    if (diffDays > 0) return (
+                                      <p className="text-xs font-medium text-green-700 mt-0.5">Proběhne za {diffDays} {diffDays === 1 ? 'den' : diffDays < 5 ? 'dny' : 'dní'}</p>
+                                    );
+                                    if (diffDays < 0) return (
+                                      <p className="text-xs font-medium text-red-700 mt-0.5">Mělo proběhnout před {Math.abs(diffDays)} {Math.abs(diffDays) === 1 ? 'dnem' : Math.abs(diffDays) < 5 ? 'dny' : 'dny'}</p>
+                                    );
+                                    return <p className="text-xs font-medium text-orange-700 mt-0.5">Dnes</p>;
+                                  })()}
                                 </div>
                                 <Button
                                   size="sm"
@@ -934,6 +945,17 @@ export default function Machine() {
                                     Plánováno na:{" "}
                                     {format(task.date, "d. M. yyyy", { locale: cs })}
                                   </p>
+                                  {(() => {
+                                    const diffMs = task.date - new Date();
+                                    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+                                    if (diffDays > 0) return (
+                                      <p className="text-xs font-medium text-green-700 mt-0.5">Proběhne za {diffDays} {diffDays === 1 ? 'den' : diffDays < 5 ? 'dny' : 'dní'}</p>
+                                    );
+                                    if (diffDays < 0) return (
+                                      <p className="text-xs font-medium text-red-700 mt-0.5">Mělo proběhnout před {Math.abs(diffDays)} {Math.abs(diffDays) === 1 ? 'dnem' : Math.abs(diffDays) < 5 ? 'dny' : 'dny'}</p>
+                                    );
+                                    return <p className="text-xs font-medium text-orange-700 mt-0.5">Dnes</p>;
+                                  })()}
                                 </div>
                               </div>
                             </div>
