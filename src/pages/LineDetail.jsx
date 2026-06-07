@@ -792,6 +792,7 @@ export default function LineDetail() {
                         Vibrační diagnostika
                       </div>
                     </TabsTrigger>
+                    {machines.some(m => m.monitor_thermo) && (
                     <TabsTrigger 
                       value="thermo"
                       className="data-[state=active]:border-b-2 data-[state=active]:border-orange-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
@@ -801,6 +802,8 @@ export default function LineDetail() {
                         Termodiagnostika
                       </div>
                     </TabsTrigger>
+                    )}
+                    {machines.some(m => m.monitor_tribo) && (
                     <TabsTrigger 
                       value="tribo"
                       className="data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
@@ -810,6 +813,7 @@ export default function LineDetail() {
                         Tribodiagnostika
                       </div>
                     </TabsTrigger>
+                    )}
                   </TabsList>
 
                   <TabsContent value="vibration" className="mt-0">
