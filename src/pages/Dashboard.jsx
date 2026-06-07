@@ -763,8 +763,8 @@ export default function Dashboard() {
                                 }))}
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
-                                    <Building2 className="w-5 h-5 text-white" />
+                                  <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <Building2 className="w-5 h-5 text-slate-500" />
                                   </div>
                                   <div>
                                     <h3 className="text-lg font-bold text-slate-900">{company.name}</h3>
