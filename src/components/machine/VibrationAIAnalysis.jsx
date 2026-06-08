@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,16 +33,44 @@ const DOMAIN_STATUS_DOT = {
   Kritický: "bg-red-600 animate-pulse", "Nedostatečná data": "bg-slate-300",
 };
 
+const ANALYSIS_STEPS = [
+  { label: "Načítám data senzoru a FFT spektra…",      duration: 3000 },
+  { label: "Vypočítávám RMS hodnoty a pásma…",         duration: 4000 },
+  { label: "Identifikuji defektní frekvence ložisek…", duration: 5000 },
+  { label: "Volám AI model pro diagnostiku…",          duration: 99999 }, // čeká na odpověď
+];
+
 export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+  const stepTimersRef = useRef([]);
+
+  const startStepProgress = () => {
+    stepTimersRef.current.forEach(clearTimeout);
+    stepTimersRef.current = [];
+    setStepIndex(0);
+    let elapsed = 0;
+    ANALYSIS_STEPS.forEach((step, i) => {
+      if (i === 0) return;
+      elapsed += ANALYSIS_STEPS[i - 1].duration;
+      const t = setTimeout(() => setStepIndex(i), elapsed);
+      stepTimersRef.current.push(t);
+    });
+  };
+
+  const stopStepProgress = () => {
+    stepTimersRef.current.forEach(clearTimeout);
+    stepTimersRef.current = [];
+  };
 
   const runAnalysis = async () => {
     setLoading(true);
     setError(null);
     setShowDetail(false);
+    startStepProgress();
     try {
       const res = await base44.functions.invoke("analyzeVibrationAI", {
         sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing,
@@ -51,6 +79,7 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
     } catch (e) {
       setError(e.message || "Chyba při analýze");
     } finally {
+      stopStepProgress();
       setLoading(false);
     }
   };
@@ -87,6 +116,39 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
           </p>
         )}
       </CardHeader>
+
+      {loading && (
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-purple-700 font-medium">
+              <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+              <span>Probíhá AI diagnostická analýza…</span>
+            </div>
+            <div className="space-y-2">
+              {ANALYSIS_STEPS.map((step, i) => {
+                const isDone = i < stepIndex;
+                const isActive = i === stepIndex;
+                return (
+                  <div key={i} className={`flex items-center gap-2.5 text-xs px-3 py-2 rounded-lg transition-all duration-300 ${
+                    isDone ? "bg-green-50 text-green-700 border border-green-200" :
+                    isActive ? "bg-purple-50 text-purple-700 border border-purple-200" :
+                    "bg-slate-50 text-slate-400 border border-slate-100"
+                  }`}>
+                    {isDone ? (
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 text-green-600" />
+                    ) : isActive ? (
+                      <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin text-purple-500" />
+                    ) : (
+                      <div className="w-3.5 h-3.5 flex-shrink-0 rounded-full border-2 border-slate-300" />
+                    )}
+                    <span>{step.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      )}
 
       {error && (
         <CardContent className="p-4">
