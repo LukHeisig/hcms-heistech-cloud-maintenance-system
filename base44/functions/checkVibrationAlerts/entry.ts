@@ -91,11 +91,11 @@ Deno.serve(async (req) => {
         createdCount++;
       };
 
+      // Alarm se generuje pouze při překročení pásma C (val >= limit_bc) nebo D (val >= limit_cd)
       const getSeverity = (val, ab, bc, cd) => {
-        if (val == null || ab == null) return null;
+        if (val == null || bc == null) return null;
         if (val >= cd && cd != null) return "D";
-        if (val >= bc && bc != null) return "C";
-        if (val >= ab) return "B";
+        if (val >= bc) return "C";
         return null;
       };
 
