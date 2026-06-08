@@ -2,20 +2,20 @@ import React from "react";
 import { CheckCircle } from "lucide-react";
 
 const STATUS_CONFIG = {
-  OK:       { color: "bg-green-100 text-green-800 border-green-300",  dot: "bg-green-500" },
-  Pozor:    { color: "bg-yellow-100 text-yellow-800 border-yellow-300", dot: "bg-yellow-500" },
-  Alarm:    { color: "bg-orange-100 text-orange-800 border-orange-300", dot: "bg-orange-500" },
-  Kritický: { color: "bg-red-100 text-red-800 border-red-300",         dot: "bg-red-600 animate-pulse" },
+  "A — OK":           { color: "bg-green-100 text-green-800 border-green-300",   dot: "bg-green-500" },
+  "B — OK":           { color: "bg-green-100 text-green-900 border-green-400",   dot: "bg-green-700" },
+  "C — Upozornění":   { color: "bg-yellow-100 text-yellow-800 border-yellow-300", dot: "bg-yellow-500" },
+  "D — Výstraha":     { color: "bg-red-100 text-red-800 border-red-300",          dot: "bg-red-600 animate-pulse" },
 };
 
-const LEVEL_LABELS = ["A — OK", "B — Pozor", "C — Alarm", "D — Kritické"];
+const LEVEL_LABELS = ["A — OK", "B — OK", "C — Upozornění", "D — Výstraha"];
 const LEVEL_COLORS = [
   "bg-green-100 text-green-800 border border-green-300",
+  "bg-green-100 text-green-900 border border-green-400",
   "bg-yellow-100 text-yellow-800 border border-yellow-300",
-  "bg-orange-100 text-orange-800 border border-orange-300",
   "bg-red-100 text-red-800 border border-red-300",
 ];
-const LEVEL_BAR_COLORS = ["bg-green-500", "bg-yellow-500", "bg-orange-500", "bg-red-600"];
+const LEVEL_BAR_COLORS = ["bg-green-500", "bg-green-700", "bg-yellow-500", "bg-red-600"];
 
 const getLimitLevel = (value, a, b, c) => {
   if (value == null || a == null) return null;
@@ -86,7 +86,7 @@ export function LimitEvaluationPanel({ rmsData, velStandard, accStandard, tempSt
   }, -1);
 
   const overallStatus = worstLevel < 0 ? null
-    : worstLevel === 0 ? "OK" : worstLevel === 1 ? "Pozor" : worstLevel === 2 ? "Alarm" : "Kritický";
+    : worstLevel === 0 ? "A — OK" : worstLevel === 1 ? "B — OK" : worstLevel === 2 ? "C — Upozornění" : "D — Výstraha";
   const cfg = overallStatus ? STATUS_CONFIG[overallStatus] : null;
 
   return (

@@ -17,9 +17,9 @@ import { formatDistanceToNow, format } from "date-fns";
 import { cs } from "date-fns/locale";
 
 const SEVERITY_CONFIG = {
-  B: { label: "Pásmo B", bg: "bg-yellow-100", text: "text-yellow-700", border: "border-yellow-300", dot: "bg-yellow-400" },
-  C: { label: "Pásmo C", bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300", dot: "bg-orange-500" },
-  D: { label: "Pásmo D — KRITICKÉ", bg: "bg-red-100", text: "text-red-700", border: "border-red-300", dot: "bg-red-600 animate-pulse" },
+  B: { label: "Pásmo B — OK", bg: "bg-green-50", text: "text-green-800", border: "border-green-300", dot: "bg-green-700" },
+  C: { label: "Pásmo C — Upozornění", bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300", dot: "bg-yellow-500" },
+  D: { label: "Pásmo D — Výstraha", bg: "bg-red-100", text: "text-red-700", border: "border-red-300", dot: "bg-red-600 animate-pulse" },
 };
 
 const ALERT_TYPE_CONFIG = {

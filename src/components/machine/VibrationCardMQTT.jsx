@@ -918,9 +918,9 @@ export default function VibrationCardMQTT({ machine }) {
   // Helper: vrátí CSS třídu pro barevné pásmo limitu
   const getLimitClass = (value, limitA, limitB, limitC) => {
     if (value == null || limitA == null) return "";
-    if (value < limitA) return "text-green-700 font-semibold";
-    if (value < limitB) return "text-yellow-600 font-semibold";
-    if (value < limitC) return "text-orange-600 font-semibold";
+    if (value < limitA) return "text-green-600 font-semibold";
+    if (value < limitB) return "text-green-800 font-semibold";
+    if (value < limitC) return "text-yellow-600 font-semibold";
     return "text-red-600 font-bold";
   };
 
@@ -951,8 +951,8 @@ export default function VibrationCardMQTT({ machine }) {
   const alertDotStyle = (level) => {
     if (level < 0) return "bg-slate-300"; // bez dat / bez normy
     if (level === 0) return "bg-green-500 shadow-[0_0_6px_2px_rgba(34,197,94,0.4)]";
-    if (level === 1) return "bg-yellow-400 shadow-[0_0_6px_2px_rgba(234,179,8,0.5)]";
-    if (level === 2) return "bg-orange-500 shadow-[0_0_6px_2px_rgba(249,115,22,0.5)]";
+    if (level === 1) return "bg-green-700 shadow-[0_0_6px_2px_rgba(21,128,61,0.4)]";
+    if (level === 2) return "bg-yellow-500 shadow-[0_0_6px_2px_rgba(234,179,8,0.5)]";
     return "bg-red-600 shadow-[0_0_8px_3px_rgba(220,38,38,0.6)] animate-pulse";
   };
 
@@ -1034,9 +1034,9 @@ export default function VibrationCardMQTT({ machine }) {
 
   const OVERALL_BAND = [
     { label: "A", desc: "OK", bg: "bg-green-100", text: "text-green-700", border: "border-green-300" },
-    { label: "B", desc: "Upozornění", bg: "bg-yellow-100", text: "text-yellow-700", border: "border-yellow-300" },
-    { label: "C", desc: "Výstraha", bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300" },
-    { label: "D", desc: "Varování", bg: "bg-red-100", text: "text-red-700", border: "border-red-300" },
+    { label: "B", desc: "OK", bg: "bg-green-100", text: "text-green-900", border: "border-green-400" },
+    { label: "C", desc: "Upozornění", bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300" },
+    { label: "D", desc: "Výstraha", bg: "bg-red-100", text: "text-red-700", border: "border-red-300" },
   ];
 
   // Celkový stav stroje — nejhorší level ze všech senzorů
@@ -1173,26 +1173,26 @@ export default function VibrationCardMQTT({ machine }) {
               {/* Hodnocení stavu — dvě dlaždice */}
               {(() => {
                 const STATUS_DEFS = [
-                  { dot: "bg-green-500", bg: "bg-green-50", border: "border-green-300", text: "text-green-800" },
-                  { dot: "bg-yellow-400", bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-800" },
-                  { dot: "bg-orange-500", bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-800" },
+                  { dot: "bg-green-500", bg: "bg-green-50",  border: "border-green-300",  text: "text-green-800" },
+                  { dot: "bg-green-700", bg: "bg-green-50",  border: "border-green-400",  text: "text-green-900" },
+                  { dot: "bg-yellow-500", bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-800" },
                   { dot: "bg-red-600",    bg: "bg-red-50",    border: "border-red-300",    text: "text-red-800" },
                 ];
                 const noData = { dot: "bg-slate-300", bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-500" };
 
-                const VEL_LABELS  = ["Vibrace v normě", "Vibrace — pozor", "Vibrace — výstraha", "Vibrace — kritické"];
+                const VEL_LABELS  = ["Vibrace — A OK", "Vibrace — B OK", "Vibrace — C Upozornění", "Vibrace — D Výstraha"];
                 const VEL_DETAILS = [
                   "Rychlost vibrací je v pásmu A. Stroj pracuje bez omezení.",
-                  "Rychlost vibrací překračuje pásmo A/B. Doporučena zvýšená kontrola.",
-                  "Výrazné vibrace (pásmo B/C). Plánujte údržbu co nejdříve.",
-                  "Nebezpečné vibrace (pásmo C/D). Zvažte okamžité odstavení.",
+                  "Rychlost vibrací je v pásmu B. Zvýšená kontrola doporučena.",
+                  "Výrazné vibrace (pásmo C). Plánujte údržbu co nejdříve.",
+                  "Nebezpečné vibrace (pásmo D). Zvažte okamžité odstavení.",
                 ];
-                const BEAR_LABELS  = ["Ložiska v pořádku", "Ložiska — pozor", "Ložiska — výstraha", "Ložiska — kritická"];
+                const BEAR_LABELS  = ["Ložiska — A OK", "Ložiska — B OK", "Ložiska — C Upozornění", "Ložiska — D Výstraha"];
                 const BEAR_DETAILS = [
                   "Zrychlení a obálka jsou v pásmu A. Žádné poškození ložisek.",
-                  "Zrychlení/obálka překračuje pásmo A/B. Sledujte trend ložisek.",
-                  "Zvýšené rázové vibrace (pásmo B/C). Blíží se porucha ložiska.",
-                  "Kritické rázové vibrace (pásmo C/D). Ložisko pravděpodobně poškozeno.",
+                  "Zrychlení/obálka je v pásmu B. Sledujte trend ložisek.",
+                  "Zvýšené rázové vibrace (pásmo C). Blíží se porucha ložiska.",
+                  "Kritické rázové vibrace (pásmo D). Ložisko pravděpodobně poškozeno.",
                 ];
                 const noVel  = { label: "Stav vibrací neznámý",  detail: "Není přiřazena norma pro rychlost nebo zatím nejsou data.", ...noData };
                 const noBear = { label: "Stav ložisek neznámý",  detail: "Není přiřazena norma pro zrychlení nebo zatím nejsou data.", ...noData };
@@ -1272,8 +1272,8 @@ export default function VibrationCardMQTT({ machine }) {
             const BAND_LABELS = ["A", "B", "C", "D"];
             const BAND_PILL = [
               "bg-green-100 text-green-700",
-              "bg-yellow-100 text-yellow-700",
-              "bg-orange-100 text-orange-700",
+              "bg-green-100 text-green-900",
+              "bg-yellow-100 text-yellow-800",
               "bg-red-100 text-red-700",
             ];
             const getBandPill = (level) => {
@@ -1306,10 +1306,10 @@ export default function VibrationCardMQTT({ machine }) {
             const alertLevel = getRowAlertLevel(latest, velStd, accStd, tempStd, temp);
             const alertTitle = alertLevel < 0
               ? (sensorId ? "Bez přiřazené normy" : "Bez senzoru")
-              : alertLevel === 0 ? "Stav: OK — všechny hodnoty v pásmu A"
-              : alertLevel === 1 ? "Stav: Pozor — překročeno pásmo A/B"
-              : alertLevel === 2 ? "Stav: Alarm — překročeno pásmo B/C"
-              : "Stav: KRITICKÝ — překročeno pásmo C/D";
+              : alertLevel === 0 ? "Stav: A — OK, všechny hodnoty v pásmu A"
+              : alertLevel === 1 ? "Stav: B — OK, hodnoty v pásmu B"
+              : alertLevel === 2 ? "Stav: C — Upozornění, překročeno pásmo B/C"
+              : "Stav: D — Výstraha, překročeno pásmo C/D";
 
             const handleRowClick = () => {
               if (!sensorId) return;

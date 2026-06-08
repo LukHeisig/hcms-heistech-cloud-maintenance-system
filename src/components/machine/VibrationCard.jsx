@@ -39,8 +39,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import VibrationTrendDialog from "./VibrationTrendDialog";
 
 const bandColors = {
-    "A": "bg-green-100 text-green-800 border-green-200",
-    "B": "bg-green-100 text-green-800 border-green-200",
+    "A": "bg-green-100 text-green-700 border-green-200",
+    "B": "bg-green-100 text-green-900 border-green-400",
     "C": "bg-yellow-100 text-yellow-800 border-yellow-200",
     "D": "bg-red-100 text-red-800 border-red-200",
 };
@@ -204,8 +204,8 @@ export default function VibrationCard({ machine, jobs = [] }) {
                         </thead>
                         <tbody>
                             ${jobReadings.map((r, i) => {
-                                const bandColor = r.band === 'D' ? '#fee2e2' : r.band === 'C' ? '#fef9c3' : r.band === 'B' || r.band === 'A' ? '#dcfce7' : 'white';
-                                const bandTextColor = r.band === 'D' ? '#991b1b' : r.band === 'C' ? '#854d0e' : r.band === 'B' || r.band === 'A' ? '#166534' : '#475569';
+                                const bandColor = r.band === 'D' ? '#fee2e2' : r.band === 'C' ? '#fef9c3' : r.band === 'B' ? '#dcfce7' : r.band === 'A' ? '#dcfce7' : 'white';
+                                const bandTextColor = r.band === 'D' ? '#991b1b' : r.band === 'C' ? '#854d0e' : r.band === 'B' ? '#14532d' : r.band === 'A' ? '#166534' : '#475569';
                                 return `
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 3px 4px; font-weight: bold;">${r.point_label}</td>

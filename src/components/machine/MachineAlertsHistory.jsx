@@ -10,9 +10,9 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
 const SEVERITY_CONFIG = {
-  D: { label: "Pásmo D – Kritické", bg: "bg-red-100", text: "text-red-800", border: "border-red-300", dot: "bg-red-600" },
-  C: { label: "Pásmo C – Výstraha", bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300", dot: "bg-orange-500" },
-  B: { label: "Pásmo B – Varování", bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300", dot: "bg-yellow-400" },
+  D: { label: "Pásmo D — Výstraha", bg: "bg-red-100", text: "text-red-800", border: "border-red-300", dot: "bg-red-600" },
+  C: { label: "Pásmo C — Upozornění", bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300", dot: "bg-yellow-500" },
+  B: { label: "Pásmo B — OK", bg: "bg-green-50", text: "text-green-800", border: "border-green-300", dot: "bg-green-700" },
 };
 
 const ALERT_TYPE_CONFIG = {
@@ -147,9 +147,9 @@ export default function MachineAlertsHistory({ machineId }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Všechna pásma</SelectItem>
-                <SelectItem value="D">Pásmo D – Kritické</SelectItem>
-                <SelectItem value="C">Pásmo C – Výstraha</SelectItem>
-                <SelectItem value="B">Pásmo B – Varování</SelectItem>
+                <SelectItem value="D">Pásmo D — Výstraha</SelectItem>
+                <SelectItem value="C">Pásmo C — Upozornění</SelectItem>
+                <SelectItem value="B">Pásmo B — OK</SelectItem>
               </SelectContent>
             </Select>
 
