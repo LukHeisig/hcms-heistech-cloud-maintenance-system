@@ -1,0 +1,44 @@
+{
+  "name": "VibrationAlertRecipient",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID u\u017eivatele syst\u00e9mu"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email u\u017eivatele (cache pro rychl\u00e9 odes\u00edl\u00e1n\u00ed)"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Jm\u00e9no u\u017eivatele (cache pro zobrazen\u00ed)"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID firmy (null = v\u0161echny firmy)"
+    },
+    "line_id": {
+      "type": "string",
+      "description": "ID linky (null = v\u0161echny linky dan\u00e9 firmy)"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje (null = v\u0161echny stroje dan\u00e9 linky)"
+    },
+    "notify_severity_c": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zas\u00edlat notifikace pro p\u00e1smo C (Upozorn\u011bn\u00ed)"
+    },
+    "notify_severity_d": {
+      "type": "boolean",
+      "default": true,
+      "description": "Zas\u00edlat notifikace pro p\u00e1smo D (V\u00fdstraha/Kritick\u00e9)"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_email"
+  ]
+}

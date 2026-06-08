@@ -26,6 +26,77 @@ Deno.serve(async (req) => {
     // Klíč pro kontrolu duplicity: sensor_id|metric_key
     const activeAlertKeys = new Set(activeAlerts.map(a => `${a.sensor_id}|${a.metric_key}`));
 
+    // Načteme příjemce notifikací
+    const alertRecipients = await base44.asServiceRole.entities.VibrationAlertRecipient.list(null, 500);
+
+    // Načteme linky pro mapování machine -> line -> company
+    const lines = await base44.asServiceRole.entities.Line.list(null, 2000);
+    const linesById = Object.fromEntries(lines.map(l => [l.id, l]));
+
+    // Helper: najde příjemce pro daný stroj a závažnost
+    const findRecipients = (machineId, severity) => {
+      const machine = machinesById[machineId];
+      if (!machine) return [];
+      const line = linesById[machine.line_id];
+      const companyId = line?.company_id;
+      const lineId = line?.id;
+
+      return alertRecipients.filter(r => {
+        // Kontrola závažnosti
+        if (severity === "C" && !r.notify_severity_c) return false;
+        if (severity === "D" && !r.notify_severity_d) return false;
+
+        // Kontrola rozsahu (null = wildcard)
+        if (r.machine_id && r.machine_id !== machineId) return false;
+        if (r.line_id && r.line_id !== lineId) return false;
+        if (r.company_id && r.company_id !== companyId) return false;
+
+        return true;
+      });
+    };
+
+    const sentEmails = new Set(); // deduplikace: email|sensor|metric
+
+    const sendAlertEmails = async (alertDef, machineId, machineName, measurementPoint) => {
+      const recipients = findRecipients(machineId, alertDef.severity);
+      if (!recipients.length) return;
+
+      const machine = machinesById[machineId];
+      const line = linesById[machine?.line_id];
+      const severityLabel = alertDef.severity === "D" ? "🔴 Výstraha (pásmo D)" : "🟡 Upozornění (pásmo C)";
+      const subject = `HCMS Alarm: ${severityLabel} — ${machineName} / ${measurementPoint}`;
+      const body = `
+<p>Dobrý den,</p>
+<p>Byl detekován vibrační alarm na stroji <strong>${machineName}</strong>.</p>
+<table style="border-collapse:collapse;width:100%;max-width:500px">
+  <tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Stroj</td><td style="padding:6px 12px">${machineName}</td></tr>
+  <tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Měřicí bod</td><td style="padding:6px 12px">${measurementPoint}</td></tr>
+  ${line ? `<tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Linka</td><td style="padding:6px 12px">${line.name}</td></tr>` : ''}
+  <tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Veličina</td><td style="padding:6px 12px">${alertDef.metric_label} [${alertDef.metric_unit}]</td></tr>
+  <tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Naměřená hodnota</td><td style="padding:6px 12px"><strong>${alertDef.value?.toFixed(3)}</strong> ${alertDef.metric_unit}</td></tr>
+  <tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Překročený limit</td><td style="padding:6px 12px">${alertDef.severity === "D" ? `C/D: ${alertDef.limit_cd}` : `B/C: ${alertDef.limit_bc}`} ${alertDef.metric_unit}</td></tr>
+  <tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Závažnost</td><td style="padding:6px 12px;color:${alertDef.severity === "D" ? "#dc2626" : "#d97706"}"><strong>${severityLabel}</strong></td></tr>
+</table>
+<p>Přihlaste se do aplikace HCMS a zkontrolujte stav stroje.</p>
+<p style="color:#888;font-size:12px;">Tato zpráva byla vygenerována automaticky systémem HCMS.</p>
+      `.trim();
+
+      for (const recipient of recipients) {
+        if (!recipient.user_email) continue;
+        const dedupeKey = `${recipient.user_email}|${machineId}|${alertDef.metric_key}`;
+        if (sentEmails.has(dedupeKey)) continue;
+        sentEmails.add(dedupeKey);
+        try {
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: recipient.user_email,
+            subject,
+            body,
+            from_name: 'HCMS Alarmy',
+          });
+        } catch (_) {}
+      }
+    };
+
     let createdCount = 0;
     const now = Date.now();
 
@@ -89,6 +160,9 @@ Deno.serve(async (req) => {
           sensor_data_id: alertDef.sensor_data_id ?? null,
         });
         createdCount++;
+
+        // Odeslat email příjemcům
+        await sendAlertEmails(alertDef, assignment.machine_id, machine.name, measurementPoint);
       };
 
       // Alarm se generuje pouze při překročení pásma C (val >= limit_bc) nebo D (val >= limit_cd)

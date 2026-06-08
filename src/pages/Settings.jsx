@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, FileText, Cpu, Gauge } from "lucide-react";
+import { Activity, FileText, Cpu, Gauge, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -49,7 +49,22 @@ export default function Settings() {
                  </div>
                </CardContent>
              </Card>
-           </div>
+             {/* Podložka: Notifikace alarmů */}
+             <Card 
+               className="mt-3 hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-red-400 bg-slate-50"
+               onClick={() => navigate(createPageUrl("AlertRecipients"))}
+             >
+               <CardContent className="p-4 flex items-center gap-3">
+                 <div className="p-2 bg-red-50 rounded-lg">
+                   <Bell className="w-4 h-4 text-red-500" />
+                 </div>
+                 <div>
+                   <p className="text-sm font-semibold text-slate-700">Notifikace alarmů</p>
+                   <p className="text-xs text-slate-500">Příjemci e-mailů při alarmu C/D</p>
+                 </div>
+               </CardContent>
+             </Card>
+             </div>
 
           {/* Termodiagnostika */}
           <Card 
