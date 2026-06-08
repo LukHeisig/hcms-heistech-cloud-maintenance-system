@@ -213,9 +213,11 @@ Deno.serve(async (req) => {
 
     const prompt = `Jsi expert na vibrační diagnostiku valivých ložisek. Stroj: ${machineName || "Neznámý"}, místo: ${measurementPoint || "Neznámé"}.
 
+DŮLEŽITÉ: Jedná se o online kontinuální monitorování s automatickým měřením přibližně každé 3 hodiny. Data jsou tedy průběžně sbírána bez zásahu technika. Doporučení ke zvýšení frekvence měření nebo monitorování NEJSOU relevantní — systém již měří automaticky v optimálním intervalu.
+
 ${sections.join('\n\n')}
 
-Napiš stručnou diagnostickou zprávu v češtině: celkový stav, co pravděpodobně způsobuje anomálii, co má technik udělat. Buď konkrétní a stručný.`;
+Napiš stručnou diagnostickou zprávu v češtině: celkový stav, co pravděpodobně způsobuje anomálii, co má technik udělat. Buď konkrétní a stručný. Nenavrhuj zvýšení frekvence měření.`;
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
