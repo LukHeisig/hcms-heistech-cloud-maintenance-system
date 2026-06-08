@@ -1,21 +1,30 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, Settings2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const EMPTY = { designation: "", manufacturer: "", nb: "", bd: "", pd: "", contact_angle_deg: 0, notes: "" };
+const EMPTY = { designation: "", manufacturer: "", nb: "", bd: "", pd: "", contact_angle_deg: 0, notes: "", bpfo_coef: "", bpfi_coef: "", bsf_coef: "", ftf_coef: "" };
 
-// Výpočet defektních frekvencí při 1 Hz (rpm/60 → škálovat frontendem)
-function calcBearingFreqs(b, rpm = 1800) {
-  if (!b?.nb || !b?.bd || !b?.pd) return null;
-  const s = rpm / 60; // Hz
-  const ratio = b.bd / b.pd * Math.cos(b.contact_angle_deg * Math.PI / 180);
+function calcPreviewFreqs(b, rpm = 1800) {
+  const s = rpm / 60;
+  // Prioritize stored coefs
+  if (b.bpfo_coef && b.bpfi_coef) {
+    return {
+      bpfo: +(b.bpfo_coef * s).toFixed(3),
+      bpfi: +(b.bpfi_coef * s).toFixed(3),
+      bsf:  b.bsf_coef ? +(b.bsf_coef * s).toFixed(3) : null,
+      ftf:  b.ftf_coef ? +(b.ftf_coef * s).toFixed(3) : null,
+    };
+  }
+  if (!b.nb || !b.bd || !b.pd) return null;
+  const ratio = b.bd / b.pd * Math.cos((b.contact_angle_deg || 0) * Math.PI / 180);
   return {
     bpfo: +(0.5 * b.nb * s * (1 - ratio)).toFixed(3),
     bpfi: +(0.5 * b.nb * s * (1 + ratio)).toFixed(3),
@@ -24,14 +33,59 @@ function calcBearingFreqs(b, rpm = 1800) {
   };
 }
 
+function calcCoefsFromGeometry(nb, bd, pd, alpha_deg) {
+  if (!nb || !bd || !pd) return null;
+  const ratio = (bd / pd) * Math.cos((alpha_deg || 0) * Math.PI / 180);
+  return {
+    bpfo: +(0.5 * nb * (1 - ratio)).toFixed(4),
+    bpfi: +(0.5 * nb * (1 + ratio)).toFixed(4),
+    bsf:  +(0.5 * (pd / bd) * (1 - ratio * ratio)).toFixed(4),
+    ftf:  +(0.5 * (1 - ratio)).toFixed(4),
+  };
+}
+
 function BearingForm({ initial, onSave, onCancel }) {
+  // Determine initial tab based on whether stored coefs exist
+  const hasStoredCoefs = !!(initial?.bpfo_coef && initial?.bpfi_coef);
+  const [tab, setTab] = useState(hasStoredCoefs ? "manual" : "geometry");
   const [form, setForm] = useState(initial || EMPTY);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const preview = calcBearingFreqs({ ...form, nb: Number(form.nb), bd: Number(form.bd), pd: Number(form.pd), contact_angle_deg: Number(form.contact_angle_deg) || 0 });
+  // For geometry tab: auto-compute coefs as preview
+  const geoCoefs = calcCoefsFromGeometry(
+    Number(form.nb), Number(form.bd), Number(form.pd), Number(form.contact_angle_deg) || 0
+  );
+
+  const previewData = tab === "manual"
+    ? { ...form, nb: Number(form.nb), bd: Number(form.bd), pd: Number(form.pd), contact_angle_deg: Number(form.contact_angle_deg) || 0, bpfo_coef: Number(form.bpfo_coef), bpfi_coef: Number(form.bpfi_coef), bsf_coef: Number(form.bsf_coef), ftf_coef: Number(form.ftf_coef) }
+    : { ...form, nb: Number(form.nb), bd: Number(form.bd), pd: Number(form.pd), contact_angle_deg: Number(form.contact_angle_deg) || 0, bpfo_coef: 0, bpfi_coef: 0 };
+
+  const preview = calcPreviewFreqs(previewData);
+
+  const handleSave = () => {
+    const base = {
+      designation: form.designation,
+      manufacturer: form.manufacturer,
+      notes: form.notes,
+      nb: Number(form.nb) || null,
+      bd: Number(form.bd) || null,
+      pd: Number(form.pd) || null,
+      contact_angle_deg: Number(form.contact_angle_deg) || 0,
+    };
+    if (tab === "manual") {
+      onSave({ ...base, bpfo_coef: Number(form.bpfo_coef), bpfi_coef: Number(form.bpfi_coef), bsf_coef: Number(form.bsf_coef) || null, ftf_coef: Number(form.ftf_coef) || null });
+    } else {
+      // Geometry mode: store computed coefs
+      onSave({ ...base, bpfo_coef: geoCoefs?.bpfo || null, bpfi_coef: geoCoefs?.bpfi || null, bsf_coef: geoCoefs?.bsf || null, ftf_coef: geoCoefs?.ftf || null });
+    }
+  };
+
+  const manualValid = form.designation && form.bpfo_coef && form.bpfi_coef;
+  const geoValid = form.designation && form.nb && form.bd && form.pd;
 
   return (
     <div className="space-y-4">
+      {/* Common fields */}
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
           <Label>Označení ložiska *</Label>
@@ -42,26 +96,69 @@ function BearingForm({ initial, onSave, onCancel }) {
           <Input placeholder="SKF, FAG, NSK..." value={form.manufacturer} onChange={e => set("manufacturer", e.target.value)} />
         </div>
         <div>
-          <Label>Počet valivých elementů (Nb) *</Label>
-          <Input type="number" placeholder="9" value={form.nb} onChange={e => set("nb", e.target.value)} />
-        </div>
-        <div>
-          <Label>Průměr valivého elementu Bd [mm] *</Label>
-          <Input type="number" step="0.001" placeholder="7.938" value={form.bd} onChange={e => set("bd", e.target.value)} />
-        </div>
-        <div>
-          <Label>Roztečný průměr Pd [mm] *</Label>
-          <Input type="number" step="0.001" placeholder="38.5" value={form.pd} onChange={e => set("pd", e.target.value)} />
-        </div>
-        <div>
-          <Label>Kontaktní úhel α [°]</Label>
-          <Input type="number" placeholder="0" value={form.contact_angle_deg} onChange={e => set("contact_angle_deg", e.target.value)} />
-        </div>
-        <div>
           <Label>Poznámky</Label>
           <Input placeholder="Volitelný popis..." value={form.notes} onChange={e => set("notes", e.target.value)} />
         </div>
       </div>
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="w-full">
+          <TabsTrigger value="manual" className="flex-1">Defektní frekvence ručně</TabsTrigger>
+          <TabsTrigger value="geometry" className="flex-1">Výpočet z geometrie</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="manual" className="space-y-3 pt-3">
+          <p className="text-xs text-slate-500">Zadejte koeficienty defektních frekvencí (násobky otáčkové frekvence fr = RPM/60).</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>BPFO koeficient *</Label>
+              <Input type="number" step="0.0001" placeholder="3.5" value={form.bpfo_coef} onChange={e => set("bpfo_coef", e.target.value)} />
+            </div>
+            <div>
+              <Label>BPFI koeficient *</Label>
+              <Input type="number" step="0.0001" placeholder="5.5" value={form.bpfi_coef} onChange={e => set("bpfi_coef", e.target.value)} />
+            </div>
+            <div>
+              <Label>BSF koeficient</Label>
+              <Input type="number" step="0.0001" placeholder="2.3" value={form.bsf_coef} onChange={e => set("bsf_coef", e.target.value)} />
+            </div>
+            <div>
+              <Label>FTF koeficient</Label>
+              <Input type="number" step="0.0001" placeholder="0.4" value={form.ftf_coef} onChange={e => set("ftf_coef", e.target.value)} />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="geometry" className="space-y-3 pt-3">
+          <p className="text-xs text-slate-500">Zadejte geometrii ložiska — koeficienty budou vypočteny automaticky.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Počet valivých elementů (Nb) *</Label>
+              <Input type="number" placeholder="9" value={form.nb} onChange={e => set("nb", e.target.value)} />
+            </div>
+            <div>
+              <Label>Průměr elementu Bd [mm] *</Label>
+              <Input type="number" step="0.001" placeholder="7.938" value={form.bd} onChange={e => set("bd", e.target.value)} />
+            </div>
+            <div>
+              <Label>Roztečný průměr Pd [mm] *</Label>
+              <Input type="number" step="0.001" placeholder="38.5" value={form.pd} onChange={e => set("pd", e.target.value)} />
+            </div>
+            <div>
+              <Label>Kontaktní úhel α [°]</Label>
+              <Input type="number" placeholder="0" value={form.contact_angle_deg} onChange={e => set("contact_angle_deg", e.target.value)} />
+            </div>
+          </div>
+          {geoCoefs && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 grid grid-cols-2 gap-x-4 gap-y-0.5">
+              <span>BPFO: <strong>{geoCoefs.bpfo}</strong></span>
+              <span>BPFI: <strong>{geoCoefs.bpfi}</strong></span>
+              <span>BSF: <strong>{geoCoefs.bsf}</strong></span>
+              <span>FTF: <strong>{geoCoefs.ftf}</strong></span>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {preview && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">
@@ -69,8 +166,8 @@ function BearingForm({ initial, onSave, onCancel }) {
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono text-blue-800">
             <span>BPFO (vnější dráha): <strong>{preview.bpfo} Hz</strong></span>
             <span>BPFI (vnitřní dráha): <strong>{preview.bpfi} Hz</strong></span>
-            <span>BSF (valivý element): <strong>{preview.bsf} Hz</strong></span>
-            <span>FTF (klec): <strong>{preview.ftf} Hz</strong></span>
+            {preview.bsf != null && <span>BSF (valivý element): <strong>{preview.bsf} Hz</strong></span>}
+            {preview.ftf != null && <span>FTF (klec): <strong>{preview.ftf} Hz</strong></span>}
           </div>
         </div>
       )}
@@ -78,14 +175,8 @@ function BearingForm({ initial, onSave, onCancel }) {
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>Zrušit</Button>
         <Button
-          disabled={!form.designation || !form.nb || !form.bd || !form.pd}
-          onClick={() => onSave({
-            ...form,
-            nb: Number(form.nb),
-            bd: Number(form.bd),
-            pd: Number(form.pd),
-            contact_angle_deg: Number(form.contact_angle_deg) || 0,
-          })}
+          disabled={tab === "manual" ? !manualValid : !geoValid}
+          onClick={handleSave}
           className="bg-blue-600 hover:bg-blue-700"
         >
           Uložit
