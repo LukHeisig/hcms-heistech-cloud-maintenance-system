@@ -515,26 +515,38 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
             {(() => {
               const selBearing = selectedBearing && selectedBearing !== "__none__" ? bearingTypes.find(b => b.id === selectedBearing) : null;
               if (!selBearing || bearingSearchResult) return null;
-              const coefs = calcDefectCoefs(selBearing.nb, selBearing.bd, selBearing.pd, selBearing.contact_angle_deg || 0);
+
+              // Priorita: uložené koeficienty v DB → výpočet z geometrie
+              const hasStoredCoefs = selBearing.bpfo_coef != null && selBearing.bpfi_coef != null;
+              const hasGeometry = selBearing.nb != null && selBearing.bd != null && selBearing.pd != null;
+              if (!hasStoredCoefs && !hasGeometry) return null;
+
+              const coefs = hasStoredCoefs
+                ? { bpfo: selBearing.bpfo_coef, bpfi: selBearing.bpfi_coef, bsf: selBearing.bsf_coef, ftf: selBearing.ftf_coef }
+                : calcDefectCoefs(selBearing.nb, selBearing.bd, selBearing.pd, selBearing.contact_angle_deg || 0);
+
               return (
                 <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-3">
                   <p className="text-[10px] font-semibold text-orange-600 uppercase tracking-wide mb-2">
                     Defektní frekvence — {selBearing.designation}
                     {selBearing.manufacturer && <span className="text-slate-400 ml-1">({selBearing.manufacturer})</span>}
+                    {hasStoredCoefs && <span className="ml-2 text-[9px] bg-orange-200 text-orange-700 rounded px-1">uložené koef.</span>}
                   </p>
-                  <div className="grid grid-cols-4 gap-1 text-center mb-2">
-                    {[
-                      { label: "Nb", value: selBearing.nb, unit: "elem." },
-                      { label: "Bd", value: `${selBearing.bd} mm` },
-                      { label: "Pd", value: `${selBearing.pd} mm` },
-                      { label: "α", value: `${selBearing.contact_angle_deg ?? 0}°` },
-                    ].map(item => (
-                      <div key={item.label} className="bg-white border border-orange-200 rounded p-1">
-                        <div className="text-[9px] text-orange-500 font-bold">{item.label}</div>
-                        <div className="text-xs font-mono font-semibold text-slate-700">{item.value}</div>
-                      </div>
-                    ))}
-                  </div>
+                  {hasGeometry && !hasStoredCoefs && (
+                    <div className="grid grid-cols-4 gap-1 text-center mb-2">
+                      {[
+                        { label: "Nb", value: selBearing.nb },
+                        { label: "Bd", value: `${selBearing.bd} mm` },
+                        { label: "Pd", value: `${selBearing.pd} mm` },
+                        { label: "α", value: `${selBearing.contact_angle_deg ?? 0}°` },
+                      ].map(item => (
+                        <div key={item.label} className="bg-white border border-orange-200 rounded p-1">
+                          <div className="text-[9px] text-orange-500 font-bold">{item.label}</div>
+                          <div className="text-xs font-mono font-semibold text-slate-700">{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr className="bg-orange-100">
@@ -552,7 +564,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
                       ].map(row => (
                         <tr key={row.name} className="hover:bg-orange-50">
                           <td className="border border-orange-200 px-2 py-1 font-bold text-slate-700">{row.name}</td>
-                          <td className="border border-orange-200 px-2 py-1 text-center font-mono font-semibold text-orange-800">{row.coef}×</td>
+                          <td className="border border-orange-200 px-2 py-1 text-center font-mono font-semibold text-orange-800">{row.coef != null ? `${row.coef}×` : "—"}</td>
                           <td className="border border-orange-200 px-2 py-1 text-slate-500 text-[10px]">{row.desc}</td>
                         </tr>
                       ))}
