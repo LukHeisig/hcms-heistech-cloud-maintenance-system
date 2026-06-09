@@ -494,7 +494,7 @@ function LayoutContent({ children }) {
 
   // Nový uživatel bez přiřazeného podniku vidí pouze základní záložky
   const isNewUser = user &&
-    !['superAdmin', 'admin'].includes(user.user_type) &&
+    !['superAdmin', 'admin', 'manager'].includes(user.user_type) &&
     !user.company_id;
 
   const navigationItems = isNewUser ? [
