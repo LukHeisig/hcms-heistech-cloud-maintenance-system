@@ -50,6 +50,7 @@ export default function Users() {
     custom_display_name: "",
     auto_logout_enabled: false,
     auto_logout_minutes: 30,
+    access_until: "",
   });
 
   useEffect(() => {
@@ -140,15 +141,20 @@ export default function Users() {
       custom_display_name: user.custom_display_name || user.full_name || "",
       auto_logout_enabled: user.auto_logout_enabled || false,
       auto_logout_minutes: user.auto_logout_minutes || 30,
+      access_until: user.access_until ? user.access_until.slice(0, 10) : "",
     });
     setShowEditDialog(true);
   };
 
   const handleSaveUser = async () => {
     if (editingUser) {
+      const dataToSave = {
+        ...formData,
+        access_until: formData.access_until ? new Date(formData.access_until).toISOString() : null,
+      };
       await updateUserMutation.mutateAsync({
         id: editingUser.id,
-        data: formData,
+        data: dataToSave,
       });
     }
   };
@@ -426,6 +432,7 @@ export default function Users() {
                     <TableHead>Auto-logout</TableHead>
                     <TableHead>Podnik</TableHead>
                     <TableHead>Telefon</TableHead>
+                    <TableHead>Přístup do</TableHead>
                     <TableHead>Registrace</TableHead>
                     <TableHead>Poslední aktivita</TableHead>
                     <TableHead className="text-right">Akce</TableHead>
@@ -472,6 +479,21 @@ export default function Users() {
                         </TableCell>
                         <TableCell className="text-slate-600">
                           {user.phone || "-"}
+                        </TableCell>
+                        <TableCell>
+                          {user.access_until ? (
+                            new Date(user.access_until) < new Date() ? (
+                              <Badge className="bg-red-100 text-red-700 border-red-200 font-normal text-xs">
+                                Vypršel {format(new Date(user.access_until), "d. M. yyyy", { locale: cs })}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-normal text-xs">
+                                {format(new Date(user.access_until), "d. M. yyyy", { locale: cs })}
+                              </Badge>
+                            )
+                          ) : (
+                            <span className="text-slate-400 text-xs pl-2">Neomezeno</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-slate-600">
                           {format(new Date(user.created_date), "d. M. yyyy", {
@@ -673,6 +695,32 @@ export default function Users() {
                   placeholder="+420 123 456 789"
                 />
               </div>
+
+              {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin") && editingUser?.id !== currentUser?.id && (
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-4 h-4 text-slate-500" />
+                    <Label>Přístup platný do</Label>
+                  </div>
+                  <Input
+                    type="date"
+                    value={formData.access_until}
+                    onChange={(e) => setFormData({ ...formData, access_until: e.target.value })}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Prázdné pole = neomezený přístup. Uživatel bude po vypršení automaticky odhlášen.
+                  </p>
+                  {formData.access_until && (
+                    <button
+                      type="button"
+                      className="text-xs text-red-500 hover:underline mt-1"
+                      onClick={() => setFormData({ ...formData, access_until: "" })}
+                    >
+                      Odstranit omezení přístupu
+                    </button>
+                  )}
+                </div>
+              )}
 
               {(currentUser?.user_type === "superAdmin" || editingUser?.id === currentUser?.id) && (
                 <div className="space-y-4 pt-2 border-t border-slate-200">

@@ -92,6 +92,15 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+
+      // Check if user's access has expired
+      if (currentUser.access_until && new Date(currentUser.access_until) < new Date()) {
+        setAuthError({ type: 'access_expired', message: 'Přístup vypršel' });
+        setIsLoadingAuth(false);
+        setIsAuthenticated(false);
+        return;
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);

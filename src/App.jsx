@@ -11,6 +11,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AlertRecipients from '@/pages/AlertRecipients';
+import AccessExpired from '@/pages/AccessExpired';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -36,7 +37,9 @@ const AuthenticatedApp = () => {
 
   // Handle authentication errors
   if (authError) {
-    if (authError.type === 'user_not_registered') {
+    if (authError.type === 'access_expired') {
+      return <AccessExpired />;
+    } else if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
       // Redirect to login automatically
@@ -54,6 +57,7 @@ const AuthenticatedApp = () => {
           <Route key={path} path={`/${path}`} element={<Page />} handle={{ pageName: path }} />
         ))}
         <Route path="/AlertRecipients" element={<LayoutWrapper currentPageName="AlertRecipients"><AlertRecipients /></LayoutWrapper>} />
+        <Route path="/AccessExpired" element={<AccessExpired />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>

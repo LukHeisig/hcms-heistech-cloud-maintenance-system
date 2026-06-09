@@ -50,6 +50,11 @@
       "type": "number",
       "default": 30,
       "description": "Po\u010det minut ne\u010dinnosti pro automatick\u00e9 odhl\u00e1\u0161en\u00ed"
+    },
+    "access_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Datum a \u010das vypr\u0161en\u00ed p\u0159\u00edstupu do aplikace (null = neomezen\u00fd p\u0159\u00edstup)"
     }
   },
   "required": [
