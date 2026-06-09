@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import nodemailer from 'npm:nodemailer@6.9.13';
 
 Deno.serve(async (req) => {
   try {
@@ -10,24 +9,45 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields: to, subject, html' }, { status: 400 });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: Deno.env.get('GMAIL_USER'),
-        pass: Deno.env.get('GMAIL_APP_PASSWORD'),
-      },
-    });
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
 
-    await transporter.sendMail({
-      from: `"HCMS Alarmy" <${Deno.env.get('GMAIL_USER')}>`,
-      to,
-      subject,
+    // Encode subject for non-ASCII characters (RFC 2047)
+    const encodedSubject = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+
+    // Build RFC 2822 message
+    const messageParts = [
+      `To: ${to}`,
+      `Subject: ${encodedSubject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/html; charset=UTF-8`,
+      `Content-Transfer-Encoding: quoted-printable`,
+      ``,
       html,
+    ];
+    const rawMessage = messageParts.join('\r\n');
+
+    // Base64URL encode
+    const encodedMessage = btoa(unescape(encodeURIComponent(rawMessage)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ raw: encodedMessage }),
     });
 
-    return Response.json({ success: true });
+    if (!response.ok) {
+      const err = await response.text();
+      return Response.json({ error: `Gmail API error: ${err}` }, { status: response.status });
+    }
+
+    const result = await response.json();
+    return Response.json({ success: true, messageId: result.id });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
