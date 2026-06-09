@@ -87,13 +87,14 @@ Deno.serve(async (req) => {
         if (sentEmails.has(dedupeKey)) continue;
         sentEmails.add(dedupeKey);
         try {
-          await base44.asServiceRole.integrations.Core.SendEmail({
+          await base44.asServiceRole.functions.invoke('sendSmtpEmail', {
             to: recipient.user_email,
             subject,
-            body,
-            from_name: 'HCMS Alarmy',
+            html: body,
           });
-        } catch (_) {}
+        } catch (emailErr) {
+          console.error('Email send error:', emailErr.message);
+        }
       }
     };
 
