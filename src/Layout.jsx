@@ -76,6 +76,15 @@ function LayoutContent({ children }) {
     }
   }, []);
 
+  // Přesměrování nového uživatele bez podniku na Dashboard
+  useEffect(() => {
+    if (!user) return;
+    const isNew = !['superAdmin', 'admin'].includes(user.user_type) && !user.company_id;
+    if (isNew) {
+      navigate(createPageUrl("Dashboard"), { replace: true });
+    }
+  }, [user]);
+
   const handleNfcQuickScan = async () => {
     if (!nfcSupported) {
       alert("NFC není podporováno v tomto prohlížeči. Použijte prosím Chrome na Androidu.");
@@ -483,7 +492,16 @@ function LayoutContent({ children }) {
     return userObj.custom_display_name || userObj.full_name || userObj.email;
   };
 
-  const navigationItems = [
+  // Nový uživatel bez přiřazeného podniku vidí pouze základní záložky
+  const isNewUser = user &&
+    !['superAdmin', 'admin'].includes(user.user_type) &&
+    !user.company_id;
+
+  const navigationItems = isNewUser ? [
+    { title: "Dashboard", url: createPageUrl("Dashboard"), icon: LayoutDashboard },
+    { title: "Novinky", url: createPageUrl("Changelog"), icon: Sparkles },
+    { title: "O aplikaci", url: createPageUrl("About"), icon: Info },
+  ] : [
     {
       title: "Dashboard",
       url: createPageUrl("Dashboard"),
