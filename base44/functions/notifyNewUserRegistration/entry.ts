@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
 
         // Find users without company_id created in the last 65 minutes (safe overlap)
-        const since = new Date(Date.now() - 65 * 60 * 1000).toISOString();
+        const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         const allUsers = await base44.asServiceRole.entities.User.list(null, 500);
 
         const newUsersWithoutCompany = allUsers.filter(u =>
