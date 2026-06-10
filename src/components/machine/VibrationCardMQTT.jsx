@@ -832,6 +832,24 @@ export default function VibrationCardMQTT({ machine }) {
   const [selectedRow, setSelectedRow] = useState(null);
   const activeRowIdx = selectedRow !== null ? selectedRow : firstAssignedIdx;
 
+  // Mapování metric_key z alarmu na interní metricKey trendu
+  const ALERT_METRIC_TO_TREND_METRIC = {
+    vel_rms_x_mm_s: "vel_x",
+    vel_rms_y_mm_s: "vel_y",
+    vel_rms_z_mm_s: "vel_z",
+    rms_z_g: "acc_z",
+    oa_acc_z: "acc_z",
+    env_rms_z: "env_z",
+    temperature: "temperature",
+  };
+
+  // Detekce URL parametru open_trend (z alarmu)
+  const urlOpenTrend = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const metricKey = params.get("open_trend");
+    return metricKey ? (ALERT_METRIC_TO_TREND_METRIC[metricKey] || "vel_xyz") : null;
+  }, []);
+
   // Trend: { sensorId, metricKey }
   const defaultTrendSensorId = useMemo(() => rowSensors[firstAssignedIdx] || null, [firstAssignedIdx, rowSensors]);
   const [trendConfig, setTrendConfig] = useState(null); // null = použij default
@@ -843,6 +861,14 @@ export default function VibrationCardMQTT({ machine }) {
 
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
   const [showTrend, setShowTrend] = useState(false);
+
+  // Automatické otevření trendu z URL parametru (z kliknutí na alarm)
+  useEffect(() => {
+    if (urlOpenTrend && firstAssignedIdx >= 0 && defaultTrendSensorId) {
+      setShowTrend(true);
+      setTrendConfig({ sensorId: defaultTrendSensorId, metricKey: urlOpenTrend });
+    }
+  }, [urlOpenTrend, firstAssignedIdx, defaultTrendSensorId]);
   const [showDSP, setShowDSP] = useState(false);
   const [showAI, setShowAI] = useState(false);
 

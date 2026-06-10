@@ -120,8 +120,8 @@ function AlertCard({ alert, onAcknowledge }) {
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            onClick={() => navigate(createPageUrl(`Machine?id=${alert.machine_id}#vibration`))}
-            title="Otevřít vibrační kartu"
+            onClick={() => navigate(createPageUrl(`Machine?id=${alert.machine_id}&open_trend=${alert.metric_key}#vibration`))}
+            title="Otevřít vibrační kartu a trend"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
