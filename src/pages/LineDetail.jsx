@@ -291,44 +291,19 @@ export default function LineDetail() {
   }, [lineVibrationAssignments]);
 
   // Load latest sensor data for all sensors on this line
+  // Use pre-computed values from SensorData (same as VibrationCardMQTT)
   const { data: lineVibroData = {} } = useQuery({
     queryKey: ["lineVibroData", lineVibrationAssignments.map(a => a.sensor_id).filter(Boolean).join(",")],
     queryFn: async () => {
       const sensorIds = [...new Set(lineVibrationAssignments.map(a => a.sensor_id).filter(Boolean))];
       if (sensorIds.length === 0) return {};
 
-      const calcRMS = (amps, freqRes, minF, maxF) => {
-        if (!amps || !amps.length) return null;
-        let sumSq = 0;
-        for (let i = 0; i < amps.length; i++) {
-          const f = i * freqRes;
-          if (f >= minF && f <= maxF && f > 0) sumSq += amps[i] * amps[i];
-        }
-        return Math.sqrt(sumSq / 2);
-      };
-
-      const result = {}; // sensorId → enriched data
+      const result = {};
       for (const sid of sensorIds) {
-        const records = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 1);
-        const rec = records[0];
-        if (!rec) continue;
-        const fftRecs = await base44.entities.SensorFFTData.filter({ sensor_data_id: rec.id });
-        const fft = fftRecs[0];
-        if (!fft) { result[sid] = rec; continue; }
-        const freqRes = fft.frequency_resolution || 3.259;
-        const velX = fft.vel_x_json ? JSON.parse(fft.vel_x_json) : [];
-        const velY = fft.vel_y_json ? JSON.parse(fft.vel_y_json) : [];
-        const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
-        const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
-        const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
-        result[sid] = {
-          ...rec,
-          vel_rms_x_mm_s: calcRMS(velX, freqRes, 2, 1000),
-          vel_rms_y_mm_s: calcRMS(velY, freqRes, 2, 1000),
-          vel_rms_z_mm_s: calcRMS(velZ, freqRes, 2, 1000),
-          oa_acc_z: calcRMS(accZ, freqRes, 2, 6000),
-          env_rms_z: calcRMS(envZ, freqRes, 2, 1000),
-        };
+        // Take last 20 FFT records, find first with pre-computed RMS (new DSP format) — same logic as VibrationCardMQTT
+        const recs = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 20);
+        const rec = recs.find(r => r.vel_rms_x_mm_s != null) ?? null;
+        if (rec) result[sid] = rec;
       }
       return result;
     },
@@ -398,13 +373,15 @@ export default function LineDetail() {
 
   const getVibroBgText = (machineId) => {
     const level = getVibroAlertLevel(machineId);
+    // level 0=A(zelená), 1=B(tmavě zelená), 2=C(žlutá), 3=D(červená)
     const colorPairs = [
       { bg: "bg-green-100", text: "text-green-600" },
-      { bg: "bg-yellow-100", text: "text-yellow-600" },
-      { bg: "bg-orange-100", text: "text-orange-600" },
+      { bg: "bg-green-100", text: "text-green-800" },
+      { bg: "bg-yellow-100", text: "text-yellow-700" },
       { bg: "bg-red-100", text: "text-red-600" }
     ];
-    return colorPairs[level] || colorPairs[0];
+    if (level < 0) return { bg: "bg-slate-100", text: "text-slate-400" };
+    return colorPairs[level] ?? colorPairs[0];
   };
 
   const getMachineStatusStyles = (machineId) => {
