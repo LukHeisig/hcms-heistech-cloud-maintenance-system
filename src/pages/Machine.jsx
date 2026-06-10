@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
 import MachineAlertsHistory from "@/components/machine/MachineAlertsHistory";
+import VibrationStatsSection from "@/components/machine/VibrationStatsSection";
 import VibrationCard from "@/components/machine/VibrationCard";
 import VibrationCardMQTT from "@/components/machine/VibrationCardMQTT";
 import ThermoJobDialog from "@/components/machine/ThermoJobDialog";
@@ -1628,6 +1629,17 @@ export default function Machine() {
 
           {/* Statistiky */}
           <TabsContent value="statistics" className="space-y-6">
+            {/* Vibrační statistiky — pouze pokud má stroj aktivní vibrace */}
+            {machine?.monitor_vibration && (
+              <div>
+                <h3 className="text-base font-semibold text-slate-700 flex items-center gap-2 mb-4">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  Vibrační diagnostika
+                </h3>
+                <VibrationStatsSection machineId={machineId} />
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="border-none shadow-lg">
                 <CardHeader className="border-b border-slate-100">
