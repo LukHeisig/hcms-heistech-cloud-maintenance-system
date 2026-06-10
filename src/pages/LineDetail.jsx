@@ -267,15 +267,15 @@ export default function LineDetail() {
   // Vibration monitoring machines
   const vibrationMachineIds = useMemo(() => machines.filter(m => m.monitor_vibration).map(m => m.id), [machines]);
 
-  // Load sensors assigned to vibration machines
-  const { data: lineSensors = [] } = useQuery({
-    queryKey: ["lineSensors", vibrationMachineIds.join(",")],
+  // Load VibrationSensorAssignments for vibration machines (includes sensor + standard IDs)
+  const { data: lineVibrationAssignments = [] } = useQuery({
+    queryKey: ["lineVibrationAssignments", vibrationMachineIds.join(",")],
     queryFn: async () => {
       if (vibrationMachineIds.length === 0) return [];
       const results = [];
       for (const mid of vibrationMachineIds) {
-        const sensors = await base44.entities.AissensSensor.filter({ machine_id: mid });
-        results.push(...sensors.map(s => ({ ...s, _machineId: mid })));
+        const assignments = await base44.entities.VibrationSensorAssignment.filter({ machine_id: mid });
+        results.push(...assignments.map(a => ({ ...a, _machineId: mid })));
       }
       return results;
     },
@@ -283,11 +283,18 @@ export default function LineDetail() {
     staleTime: 120000,
   });
 
+  // Load sensors assigned to vibration machines (for sensor_id lookup)
+  const lineSensors = useMemo(() => {
+    return lineVibrationAssignments
+      .filter(a => a.sensor_id)
+      .map(a => ({ sensor_id: a.sensor_id, _machineId: a._machineId }));
+  }, [lineVibrationAssignments]);
+
   // Load latest sensor data for all sensors on this line
   const { data: lineVibroData = {} } = useQuery({
-    queryKey: ["lineVibroData", lineSensors.map(s => s.sensor_id).join(",")],
+    queryKey: ["lineVibroData", lineVibrationAssignments.map(a => a.sensor_id).filter(Boolean).join(",")],
     queryFn: async () => {
-      const sensorIds = [...new Set(lineSensors.map(s => s.sensor_id))];
+      const sensorIds = [...new Set(lineVibrationAssignments.map(a => a.sensor_id).filter(Boolean))];
       if (sensorIds.length === 0) return {};
 
       const calcRMS = (amps, freqRes, minF, maxF) => {
@@ -325,7 +332,7 @@ export default function LineDetail() {
       }
       return result;
     },
-    enabled: lineSensors.length > 0,
+    enabled: lineVibrationAssignments.some(a => a.sensor_id),
     staleTime: 60000,
   });
 
@@ -337,19 +344,10 @@ export default function LineDetail() {
   });
   const standardsById = useMemo(() => Object.fromEntries(allVibrationStandards.map(s => [s.id, s])), [allVibrationStandards]);
 
-  // Compute vibration alert level for a machine from live data
+  // Compute vibration alert level for a machine from live data (using DB assignments)
   const computeVibroLevelForMachine = (machineId) => {
-    const machineSensors = lineSensors.filter(s => s._machineId === machineId);
-    if (machineSensors.length === 0) return -1; // no sensors assigned
-
-    // Get row assignments from localStorage (same key as VibrationCardMQTT)
-    let rowAssignments = {};
-    try {
-      const raw = JSON.parse(localStorage.getItem(`vibro_row_sensors_v2_${machineId}`) || "{}");
-      for (const [k, v] of Object.entries(raw)) {
-        rowAssignments[k] = typeof v === "string" ? { sensorId: v } : v;
-      }
-    } catch { rowAssignments = {}; }
+    const machineAssignments = lineVibrationAssignments.filter(a => a._machineId === machineId && a.sensor_id);
+    if (machineAssignments.length === 0) return -1; // no sensors assigned
 
     const getLimitLevel = (value, limitA, limitB, limitC) => {
       if (value == null || limitA == null) return -1;
@@ -360,12 +358,11 @@ export default function LineDetail() {
     };
 
     let worstLevel = -1;
-    for (const assignment of Object.values(rowAssignments)) {
-      if (!assignment?.sensorId) continue;
-      const data = lineVibroData[assignment.sensorId];
+    for (const assignment of machineAssignments) {
+      const data = lineVibroData[assignment.sensor_id];
       if (!data) continue;
-      const velStd = standardsById[assignment.velStandardId];
-      const accStd = standardsById[assignment.accStandardId];
+      const velStd = standardsById[assignment.vel_standard_id];
+      const accStd = standardsById[assignment.acc_standard_id];
       const levels = [
         getLimitLevel(data.vel_rms_x_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
         getLimitLevel(data.vel_rms_y_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
@@ -376,9 +373,9 @@ export default function LineDetail() {
       if (levels.length > 0) worstLevel = Math.max(worstLevel, ...levels);
     }
 
-    // If no row assignments but sensors exist and have data → show green (0)
+    // If assignments exist but no standards set and sensors have data → show green (0)
     if (worstLevel === -1) {
-      const hasSensorData = machineSensors.some(s => lineVibroData[s.sensor_id]);
+      const hasSensorData = machineAssignments.some(a => lineVibroData[a.sensor_id]);
       if (hasSensorData) return 0;
     }
 
