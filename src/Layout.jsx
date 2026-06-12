@@ -513,11 +513,13 @@ function LayoutContent({ children }) {
       icon: ClipboardList,
       badge: myWorkOrders.length > 0 && user?.user_type === "technician" ? myWorkOrders.length : 0,
     },
-    {
-      title: "Vibrace online",
-      url: createPageUrl("VibrationOnline"),
-      icon: Radio,
-    },
+    ...(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false
+      ? [{
+          title: "Vibrace online",
+          url: createPageUrl("VibrationOnline"),
+          icon: Radio,
+        }]
+      : []),
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [
           {
@@ -642,6 +644,7 @@ function LayoutContent({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false) && (
             <button
               className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
               onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
@@ -654,6 +657,7 @@ function LayoutContent({ children }) {
                 </span>
               )}
             </button>
+            )}
             {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -875,6 +879,7 @@ function LayoutContent({ children }) {
       <div className="lg:pl-72">
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
+           {(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false) && (
            <button
               className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors mr-1"
               onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
@@ -887,6 +892,7 @@ function LayoutContent({ children }) {
                 </span>
               )}
             </button>
+           )}
            {myWorkOrders.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
