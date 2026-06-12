@@ -312,9 +312,17 @@ export default function Dashboard() {
         return "warning"; // Yellow for overdue
     } else {
         // traffic_light
-        const overduePercent = ((hoursSince - interval) / interval) * 100;
+        const overdueHours = hoursSince - interval;
+        const minYellowHours = (company?.min_yellow_window_minutes || 0) / 60;
+        
+        // Minimum time window overrides percentage for short intervals
+        if (overdueHours <= minYellowHours) {
+            return "warning"; // Yellow: within minimum window
+        }
+        
+        const overduePercent = (overdueHours / interval) * 100;
         if (overduePercent <= tolerance) {
-            return "warning"; // Yellow
+            return "warning"; // Yellow: within percentage tolerance
         } else {
             return "critical"; // Red
         }

@@ -80,6 +80,11 @@
       "default": 4,
       "description": "Tolerance v procentech pro semafor (\u017elut\u00e1)"
     },
+    "min_yellow_window_minutes": {
+      "type": "number",
+      "default": null,
+      "description": "Minim\u00e1ln\u00ed \u010dasov\u00e9 okno v minut\u00e1ch pro \u017elutou barvu u kr\u00e1tk\u00fdch interval\u016f. Pokud je (interval * tolerance%) < t\u00e9to hodnoty, pou\u017eije se tato hodnota."
+    },
     "is_active": {
       "type": "boolean",
       "default": true

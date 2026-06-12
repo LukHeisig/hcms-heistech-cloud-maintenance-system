@@ -61,6 +61,7 @@ export default function AdminCompanies() {
     force_technician_demip_mobile: false,
     overdue_visualization_type: "two_colors",
     overdue_tolerance_percent: 4,
+    min_yellow_window_minutes: null,
   });
 
   const { data: allCompanies = [], isLoading } = useQuery({
@@ -137,6 +138,7 @@ export default function AdminCompanies() {
       force_technician_demip_mobile: false,
       overdue_visualization_type: "two_colors",
       overdue_tolerance_percent: 4,
+      min_yellow_window_minutes: null,
     });
   };
 
@@ -160,6 +162,7 @@ export default function AdminCompanies() {
         force_technician_demip_mobile: company.force_technician_demip_mobile === true,
         overdue_visualization_type: company.overdue_visualization_type || "two_colors",
         overdue_tolerance_percent: company.overdue_tolerance_percent || 4,
+        min_yellow_window_minutes: company.min_yellow_window_minutes ?? null,
       });
     } else {
       setEditingCompany(null);
@@ -510,19 +513,35 @@ export default function AdminCompanies() {
                     </div>
                     
                     {formData.overdue_visualization_type === "traffic_light" && (
-                        <div>
-                            <Label htmlFor="tolerance">Tolerance (%) pro žlutou barvu</Label>
-                            <Input
-                                id="tolerance"
-                                type="number"
-                                min="0"
-                                value={formData.overdue_tolerance_percent}
-                                onChange={(e) => setFormData({...formData, overdue_tolerance_percent: parseInt(e.target.value) || 0})}
-                            />
-                            <p className="text-xs text-slate-500 mt-1">
-                                Např. 4% znamená, že do 104% intervalu bude barva žlutá, poté červená.
-                            </p>
-                        </div>
+                        <>
+                            <div>
+                                <Label htmlFor="tolerance">Tolerance (%) pro žlutou barvu</Label>
+                                <Input
+                                    id="tolerance"
+                                    type="number"
+                                    min="0"
+                                    value={formData.overdue_tolerance_percent}
+                                    onChange={(e) => setFormData({...formData, overdue_tolerance_percent: parseInt(e.target.value) || 0})}
+                                />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Např. 4% znamená, že do 104% intervalu bude barva žlutá, poté červená.
+                                </p>
+                            </div>
+                            <div>
+                                <Label htmlFor="minYellow">Minimální žluté okno (minut)</Label>
+                                <Input
+                                    id="minYellow"
+                                    type="number"
+                                    min="0"
+                                    placeholder="např. 240 (4 hodiny)"
+                                    value={formData.min_yellow_window_minutes ?? ""}
+                                    onChange={(e) => setFormData({...formData, min_yellow_window_minutes: e.target.value ? parseInt(e.target.value) : null})}
+                                />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Pro krátké intervaly zajistí minimální dobu žluté barvy. Např. 240 min = u 8h intervalu bude žlutá vždy minimálně 4 hodiny.
+                                </p>
+                            </div>
+                        </>
                     )}
                 </div>
               </div>
