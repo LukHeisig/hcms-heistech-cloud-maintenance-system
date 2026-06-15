@@ -188,10 +188,10 @@ export default function About() {
                   <Activity className="w-8 h-8 text-rose-600" />
                 </div>
                 <h3 className="font-semibold text-slate-900 mb-2">
-                  Vibrodiagnostika
+                  Online vibrační diagnostika
                 </h3>
                 <p className="text-sm text-slate-600">
-                  Měření a analýza vibrací strojů, sledování trendů a odhalování závad ložisek.
+                  Online měření a analýza vibrací strojů s využitím AI diagnostiky pro odhalování závad ložisek a sledování trendů.
                 </p>
               </div>
 
