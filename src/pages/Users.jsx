@@ -352,7 +352,6 @@ export default function Users() {
         {/* Noví uživatelé bez podniku — pouze superAdmin */}
         {currentUser?.user_type === "superAdmin" && (() => {
           const usersWithoutCompany = users.filter(u => !u.company_id && (!u.assigned_company_ids || u.assigned_company_ids.length === 0));
-          if (usersWithoutCompany.length === 0) return null;
           return (
             <Card className="mb-6 border-l-4 border-l-amber-500 shadow-md">
               <CardHeader className="border-b border-amber-100 bg-amber-50/50 py-3">
@@ -376,7 +375,15 @@ export default function Users() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {usersWithoutCompany.map((user) => {
+                      {usersWithoutCompany.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8">
+                            <User className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                            <p className="text-slate-500 text-sm">Všichni uživatelé mají přidělený podnik</p>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        usersWithoutCompany.map((user) => {
                         const lastActivity = getUserLastActivity(user.email);
                         return (
                           <TableRow key={user.id} className="hover:bg-amber-50/30">
@@ -413,7 +420,8 @@ export default function Users() {
                             </TableCell>
                           </TableRow>
                         );
-                      })}
+                      })
+                      )}
                     </TableBody>
                   </Table>
                 </div>
