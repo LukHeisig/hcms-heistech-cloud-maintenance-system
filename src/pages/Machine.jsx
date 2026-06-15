@@ -746,7 +746,7 @@ export default function Machine() {
               </TabsTrigger>
             )}
             
-            {machine?.monitor_vibration && (
+            {showVibration && (
               <TabsTrigger value="vibro-diag" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
                 <Activity className="w-4 h-4" />
                 <span className="hidden md:inline">Vibrace</span>
@@ -768,7 +768,7 @@ export default function Machine() {
               </TabsTrigger>
             )}
 
-            {machine?.monitor_vibration && (
+            {showVibration && (
               <TabsTrigger value="alerts-history" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4" />
                 <span className="hidden md:inline">Alarmy</span>
@@ -1349,7 +1349,7 @@ export default function Machine() {
 
           {/* Vibrodiagnostika */}
           <TabsContent value="vibro-diag" className="space-y-6">
-            <VibrationCardMQTT machine={machine} />
+            <VibrationCardMQTT machine={machine} enablePredictive={company?.enable_predictive === true} />
           </TabsContent>
 
           {/* Termodiagnostika */}

@@ -666,7 +666,7 @@ function BearingFreqBadge({ bearing }) {
 }
 
 // Hlavní komponenta — Vibrační karta MQTT
-export default function VibrationCardMQTT({ machine }) {
+export default function VibrationCardMQTT({ machine, enablePredictive }) {
   const machineId = machine?.id;
   const queryClient = useQueryClient();
 
@@ -1094,7 +1094,7 @@ export default function VibrationCardMQTT({ machine }) {
                 const velSt  = velLevel  >= 0 ? { label: VEL_LABELS[velLevel],   detail: VEL_DETAILS[velLevel],   ...STATUS_DEFS[velLevel]  } : noVel;
                 const bearSt = bearingLevel >= 0 ? { label: BEAR_LABELS[bearingLevel], detail: BEAR_DETAILS[bearingLevel], ...STATUS_DEFS[bearingLevel] } : noBear;
 
-                const showAIBtn = velLevel >= 2 || bearingLevel >= 2;
+                const showAIBtn = enablePredictive && (velLevel >= 2 || bearingLevel >= 2);
                 return (
                   <div className="flex-1 flex flex-col gap-2">
                     {/* Stav vibrací — rychlost */}

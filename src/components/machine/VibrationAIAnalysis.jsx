@@ -77,7 +77,12 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
       });
       setAnalysis(res.data);
     } catch (e) {
-      setError(e.message || "Chyba při analýze");
+      const msg = e?.response?.data?.error || e?.message || "Chyba při analýze";
+      if (e?.response?.status === 404 || msg?.includes("not found") || msg?.includes("404")) {
+        setError("Pro vybrané měření nejsou dostupná FFT data. Analýza vyžaduje záznam s FFT spektrem.");
+      } else {
+        setError(msg);
+      }
     } finally {
       stopStepProgress();
       setLoading(false);
