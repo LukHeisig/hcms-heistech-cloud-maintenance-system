@@ -349,6 +349,79 @@ export default function Users() {
           </Card>
         )}
 
+        {/* Noví uživatelé bez podniku — pouze superAdmin */}
+        {currentUser?.user_type === "superAdmin" && (() => {
+          const usersWithoutCompany = users.filter(u => !u.company_id && (!u.assigned_company_ids || u.assigned_company_ids.length === 0));
+          if (usersWithoutCompany.length === 0) return null;
+          return (
+            <Card className="mb-6 border-l-4 border-l-amber-500 shadow-md">
+              <CardHeader className="border-b border-amber-100 bg-amber-50/50 py-3">
+                <CardTitle className="flex items-center gap-2 text-amber-800">
+                  <User className="w-5 h-5" />
+                  Noví uživatelé bez přiděleného podniku
+                  <Badge className="bg-amber-200 text-amber-800 ml-2">{usersWithoutCompany.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-amber-50/30">
+                        <TableHead>Jméno</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Registrace</TableHead>
+                        <TableHead>Poslední aktivita</TableHead>
+                        <TableHead className="text-right">Akce</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usersWithoutCompany.map((user) => {
+                        const lastActivity = getUserLastActivity(user.email);
+                        return (
+                          <TableRow key={user.id} className="hover:bg-amber-50/30">
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                  {(user.custom_display_name || user.full_name)?.[0] || "?"}
+                                </div>
+                                {user.custom_display_name || user.full_name || "Bez jména"}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-slate-600">{user.email}</TableCell>
+                            <TableCell>{getUserTypeBadge(user.user_type)}</TableCell>
+                            <TableCell className="text-slate-600 text-sm">
+                              {format(new Date(user.created_date), "d. M. yyyy", { locale: cs })}
+                            </TableCell>
+                            <TableCell className="text-slate-600 text-xs">
+                              {lastActivity ? (
+                                format(new Date(lastActivity.created_date), "d. M. yyyy HH:mm", { locale: cs })
+                              ) : (
+                                <span className="text-slate-400 italic">Žádná aktivita</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                                onClick={() => handleOpenEdit(user)}
+                              >
+                                <Pencil className="w-3.5 h-3.5 mr-1" />
+                                Přiřadit podnik
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
