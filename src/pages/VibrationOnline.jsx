@@ -373,7 +373,7 @@ export default function VibrationOnline() {
               <span className="text-[10px] font-semibold text-slate-400 uppercase">Senzor:</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-green-300" /> {"< 12h"}</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-yellow-300" /> 12–24h</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-red-200" /> &gt;24h</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-red-200" /> {'>'} 24h</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-slate-200" /> Bez</span>
             </div>
           </div>
