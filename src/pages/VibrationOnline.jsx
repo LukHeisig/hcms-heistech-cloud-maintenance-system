@@ -350,15 +350,22 @@ export default function VibrationOnline() {
 
         {/* Panel senzorů */}
         {activeTab === "sensors" && <>
-        {/* Vyhledávání */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            className="pl-9"
-            placeholder="Hledat stroj, linku nebo podnik..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        {/* Vyhledávání + vysvětlivky */}
+        <div className="flex items-start gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              className="pl-9"
+              placeholder="Hledat stroj, linku nebo podnik..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-3 text-xs text-slate-500 bg-white rounded-lg border border-slate-200 px-3 py-2 flex-shrink-0">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> OK</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500" /> Upozornění</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-600" /> Výstraha</span>
+          </div>
         </div>
 
         {isLoading ? (
