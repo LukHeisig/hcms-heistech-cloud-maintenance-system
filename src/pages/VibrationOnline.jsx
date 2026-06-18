@@ -48,6 +48,53 @@ function BatteryIcon({ level, voltage }) {
   );
 }
 
+// Pomocná funkce pro výpočet pásma limitu (0=A, 1=B, 2=C, 3=D, -1=bez dat/normy)
+function getLimitLevel(value, limitA, limitB, limitC) {
+  if (value == null || limitA == null) return -1;
+  if (value < limitA) return 0;
+  if (value < limitB) return 1;
+  if (value < limitC) return 2;
+  return 3;
+}
+
+// Vypočítá globální vibrační stav stroje — nejhorší pásmo napříč všemi senzory
+function getMachineAlertLevel(machineId, assignments, allStandards, latestSensorDataMap) {
+  const machineAssignments = assignments.filter(a => a.machine_id === machineId && a.sensor_id);
+  if (machineAssignments.length === 0) return -1;
+
+  const levels = [];
+  for (const a of machineAssignments) {
+    const velStd = allStandards.find(s => s.id === a.vel_standard_id);
+    const accStd = allStandards.find(s => s.id === a.acc_standard_id);
+    const latest = latestSensorDataMap[a.sensor_id];
+    if (!latest || (!velStd && !accStd)) continue;
+
+    const rowLevels = [
+      getLimitLevel(latest.vel_rms_x_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
+      getLimitLevel(latest.vel_rms_y_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
+      getLimitLevel(latest.vel_rms_z_mm_s, velStd?.limit_ab, velStd?.limit_bc, velStd?.limit_cd),
+      getLimitLevel(latest.rms_z_g ?? latest.oa_acc_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd),
+      getLimitLevel(latest.env_rms_z, accStd?.acc_limit_ab, accStd?.acc_limit_bc, accStd?.acc_limit_cd),
+    ].filter(l => l >= 0);
+
+    if (rowLevels.length > 0) levels.push(Math.max(...rowLevels));
+  }
+
+  return levels.length > 0 ? Math.max(...levels) : -1;
+}
+
+// Semafor puntík pro globální stav stroje
+function AlertDot({ level, size = "w-2.5 h-2.5" }) {
+  if (level < 0) return null;
+  const style = level <= 1
+    ? "bg-green-500 shadow-[0_0_4px_1px_rgba(34,197,94,0.3)]"
+    : level === 2
+    ? "bg-yellow-500 shadow-[0_0_4px_1px_rgba(234,179,8,0.4)]"
+    : "bg-red-600 shadow-[0_0_5px_2px_rgba(220,38,38,0.5)] animate-pulse";
+  const title = level <= 1 ? "Vibrace OK" : level === 2 ? "Upozornění — pásmo C" : "Výstraha — pásmo D";
+  return <div className={`${size} rounded-full flex-shrink-0 ${style}`} title={title} />;
+}
+
 export default function VibrationOnline() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -89,6 +136,37 @@ export default function VibrationOnline() {
     queryKey: ["vibrationAssignments"],
     queryFn: () => base44.entities.VibrationSensorAssignment.list(null, 1000),
     staleTime: 60000,
+  });
+
+  // Všechna ID přiřazených senzorů (pro hromadné načtení dat)
+  const allAssignedSensorIds = useMemo(() =>
+    [...new Set(assignments.map(a => a.sensor_id).filter(Boolean))],
+    [assignments]
+  );
+
+  // Normy pro výpočet pásem
+  const { data: allStandards = [] } = useQuery({
+    queryKey: ["vibrationStandards"],
+    queryFn: () => base44.entities.VibrationStandard.list(null, 500),
+    staleTime: 120000,
+  });
+
+  // Poslední SensorData s RMS hodnotami pro všechny přiřazené senzory
+  const { data: latestSensorDataMap = {} } = useQuery({
+    queryKey: ["vibrationOnlineLatestData", allAssignedSensorIds.join(",")],
+    queryFn: async () => {
+      if (allAssignedSensorIds.length === 0) return {};
+      const results = {};
+      await Promise.all(allAssignedSensorIds.map(async (sid) => {
+        const recs = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 20);
+        const latest = recs.find(r => r.vel_rms_x_mm_s != null);
+        if (latest) results[sid] = latest;
+      }));
+      return results;
+    },
+    enabled: allAssignedSensorIds.length > 0,
+    staleTime: 0,
+    refetchInterval: 30000,
   });
 
   // Určit viditelné společnosti dle role
@@ -361,6 +439,7 @@ export default function VibrationOnline() {
                                 : null;
                               const isOnline = diffH != null && diffH < 1;
                               const borderColor = isOnline ? "border-green-200" : sensor ? "border-yellow-200" : "border-slate-200";
+                              const alertLevel = getMachineAlertLevel(machine.id, assignments, allStandards, latestSensorDataMap);
 
                               return (
                                 <div
@@ -370,9 +449,12 @@ export default function VibrationOnline() {
                                 >
                                   <div className="flex items-start justify-between gap-2 mb-2">
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-semibold text-slate-900 text-sm truncate group-hover:text-blue-700 transition-colors">
-                                        {machine.name}
-                                      </p>
+                                      <div className="flex items-center gap-1.5">
+                                        <AlertDot level={alertLevel} />
+                                        <p className="font-semibold text-slate-900 text-sm truncate group-hover:text-blue-700 transition-colors">
+                                          {machine.name}
+                                        </p>
+                                      </div>
                                       {machine.location && (
                                         <p className="text-xs text-slate-400 truncate">{machine.location}</p>
                                       )}
