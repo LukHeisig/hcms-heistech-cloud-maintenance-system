@@ -32,7 +32,7 @@ import VibrationAlertsPanel from "@/components/vibration/VibrationAlertsPanel";
 function StatusBadge({ lastSeen }) {
   if (!lastSeen) return <Badge variant="outline" className="text-slate-400 text-xs">Neznámý</Badge>;
   const diffH = (Date.now() - new Date(lastSeen).getTime()) / 3600000;
-  if (diffH < 1) return <Badge className="bg-green-100 text-green-700 border-green-300 text-xs">Online</Badge>;
+  if (diffH < 12) return <Badge className="bg-green-100 text-green-700 border-green-300 text-xs">Online</Badge>;
   if (diffH < 24) return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 text-xs">Nedávno</Badge>;
   return <Badge className="bg-red-100 text-red-600 border-red-200 text-xs">Offline</Badge>;
 }
@@ -371,9 +371,10 @@ export default function VibrationOnline() {
             <span className="w-px h-4 bg-slate-200" />
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold text-slate-400 uppercase">Senzor:</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-green-300" /> Online</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-yellow-300" /> Offline</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-slate-200" /> Bez senzoru</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-green-300" /> {"< 12h"}</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-yellow-300" /> 12–24h</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-red-200" /> &gt;24h</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border-2 border-slate-200" /> Bez</span>
             </div>
           </div>
         </div>
@@ -404,7 +405,7 @@ export default function VibrationOnline() {
                 return s + l.machines.filter(m => {
                   const sensor = getBestSensorForMachine(m.id);
                   if (!sensor?.last_seen) return false;
-                  return (Date.now() - new Date(sensor.last_seen).getTime()) < 3600000;
+                  return (Date.now() - new Date(sensor.last_seen).getTime()) < 12 * 3600000;
                 }).length;
               }, 0);
 
@@ -454,8 +455,9 @@ export default function VibrationOnline() {
                               const diffH = sensor?.last_seen
                                 ? (Date.now() - new Date(sensor.last_seen).getTime()) / 3600000
                                 : null;
-                              const isOnline = diffH != null && diffH < 1;
-                              const borderColor = isOnline ? "border-green-200" : sensor ? "border-yellow-200" : "border-slate-200";
+                              const borderColor = sensor
+                                ? (diffH != null && diffH < 12 ? "border-green-200" : diffH != null && diffH < 24 ? "border-yellow-200" : "border-red-200")
+                                : "border-slate-200";
                               const alertLevel = getMachineAlertLevel(machine.id, assignments, allStandards, latestSensorDataMap);
 
                               return (
