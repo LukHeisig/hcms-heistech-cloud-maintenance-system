@@ -34,6 +34,110 @@ function TrendArrow({ direction }) {
   return <ArrowDown className="w-3 h-3 text-green-500 inline ml-0.5" />;
 }
 
+// Vyhledávací picker ložisek z interní databáze (přes backend funkci searchBearings)
+function BearingPicker({ value, onChange }) {
+  const [input, setInput] = useState("");
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(input.trim()), 350);
+    return () => clearTimeout(t);
+  }, [input]);
+
+  const { data: searchData, isFetching } = useQuery({
+    queryKey: ["bearingPickerSearch", query],
+    queryFn: async () => (await base44.functions.invoke("searchBearings", { q: query })).data,
+    enabled: query.length >= 2,
+    staleTime: 30000,
+  });
+  const results = searchData?.results || [];
+
+  // Načti aktuálně vybrané ložisko podle ID (pro zobrazení detailu)
+  const { data: selected } = useQuery({
+    queryKey: ["bearingById", value],
+    queryFn: async () => {
+      const r = await base44.entities.BearingType.filter({ id: value });
+      return r[0] || null;
+    },
+    enabled: !!value,
+    staleTime: 300000,
+  });
+
+  const coefsOf = (b) => {
+    if (b.bpfo_coef != null && b.bpfi_coef != null) {
+      return { bpfo: b.bpfo_coef, bpfi: b.bpfi_coef, bsf: b.bsf_coef, ftf: b.ftf_coef };
+    }
+    if (b.nb && b.bd && b.pd) return calcBearingDefectCoefs(b.nb, b.bd, b.pd, b.contact_angle_deg || 0);
+    return null;
+  };
+
+  if (value && selected) {
+    const c = coefsOf(selected);
+    return (
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <span className="font-bold text-orange-700">{selected.designation}</span>
+            {selected.manufacturer && <span className="text-slate-400 ml-2 text-xs">{selected.manufacturer}</span>}
+          </div>
+          <button type="button" className="text-xs text-slate-400 hover:text-red-600 flex-shrink-0" onClick={() => onChange("")}>
+            Změnit / odebrat
+          </button>
+        </div>
+        {c && (
+          <div className="grid grid-cols-4 gap-1 mt-2 text-center text-[11px] font-mono">
+            <div><div className="text-orange-500 font-bold">FTF</div>{c.ftf ?? "—"}</div>
+            <div><div className="text-orange-500 font-bold">BSF</div>{c.bsf ?? "—"}</div>
+            <div><div className="text-red-500 font-bold">BPFO</div>{c.bpfo ?? "—"}</div>
+            <div><div className="text-blue-500 font-bold">BPFI</div>{c.bpfi ?? "—"}</div>
+          </div>
+        )}
+        <p className="text-[9px] text-slate-400 mt-1.5">Koeficienty platí při 1 Hz (= 60 RPM). Pro jiné otáčky: Hz = koef × (RPM / 60).</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="relative">
+        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <Input
+          className="pl-9"
+          placeholder="Hledat ložisko (např. 6205, SKF)..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+        />
+        {isFetching && <Loader2 className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 animate-spin" />}
+      </div>
+      {query.length >= 2 && (
+        <div className="mt-1 max-h-52 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
+          {results.length === 0 && !isFetching && (
+            <div className="p-3 text-xs text-slate-400 text-center">Nic nenalezeno</div>
+          )}
+          {results.map(b => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => { onChange(b.id); setInput(""); setQuery(""); }}
+              className="w-full text-left px-3 py-2 hover:bg-orange-50 flex items-center justify-between gap-2"
+            >
+              <span className="min-w-0 truncate">
+                <span className="font-medium text-slate-800">{b.designation}</span>
+                {b.manufacturer && <span className="text-slate-400 ml-2 text-xs">{b.manufacturer}</span>}
+              </span>
+              <span className="font-mono text-[10px] text-slate-400 flex-shrink-0">
+                BPFO {b.bpfo_coef != null ? b.bpfo_coef.toFixed(2) : "—"} · BPFI {b.bpfi_coef != null ? b.bpfi_coef.toFixed(2) : "—"}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      {query.length > 0 && query.length < 2 && (
+        <p className="text-[10px] text-slate-400 mt-1">Zadejte alespoň 2 znaky.</p>
+      )}
+    </div>
+  );
+}
+
 
 
 // Dialog pro přiřazení senzoru + normy k řádku
@@ -336,13 +440,6 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
   const accStandards = useMemo(() => allStandards.filter(s => s.limit_type === "acceleration"), [allStandards]);
   const tempStandards = useMemo(() => allStandards.filter(s => s.limit_type === "temperature"), [allStandards]);
 
-  const { data: bearingTypes = [] } = useQuery({
-    queryKey: ["bearingTypes"],
-    queryFn: () => base44.entities.BearingType.list(null, 500),
-    enabled: open,
-    staleTime: 60000,
-  });
-
   const allSensorIds = useMemo(() => {
     const registeredIds = registeredSensors.map(s => s.sensor_id);
     return [...new Set([...registeredIds, ...recentSensorData])].sort();
@@ -494,88 +591,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
               Typ ložiska <span className="normal-case font-normal text-slate-500">(pro výpočet BPFO/BPFI/BSF/FTF)</span>
             </label>
 
-            {/* Výběr z existujících */}
-            <Select value={selectedBearing || "__none__"} onValueChange={v => setSelectedBearing(v === "__none__" ? "" : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="— bez ložiska —" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— bez ložiska —</SelectItem>
-                {bearingTypes.map(b => (
-                  <SelectItem key={b.id} value={b.id}>
-                    <span className="font-medium">{b.designation}</span>
-                    {b.manufacturer && <span className="text-slate-400 ml-2 text-xs">{b.manufacturer}</span>}
-                    <span className="text-slate-400 ml-2 text-xs">Nb={b.nb} Bd={b.bd}mm Pd={b.pd}mm</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Defektní frekvence pro vybrané ložisko z dropdownu */}
-            {(() => {
-              const selBearing = selectedBearing && selectedBearing !== "__none__" ? bearingTypes.find(b => b.id === selectedBearing) : null;
-              if (!selBearing || bearingSearchResult) return null;
-
-              // Priorita: uložené koeficienty v DB → výpočet z geometrie
-              const hasStoredCoefs = selBearing.bpfo_coef != null && selBearing.bpfi_coef != null;
-              const hasGeometry = selBearing.nb != null && selBearing.bd != null && selBearing.pd != null;
-              if (!hasStoredCoefs && !hasGeometry) return null;
-
-              const coefs = hasStoredCoefs
-                ? { bpfo: selBearing.bpfo_coef, bpfi: selBearing.bpfi_coef, bsf: selBearing.bsf_coef, ftf: selBearing.ftf_coef }
-                : calcDefectCoefs(selBearing.nb, selBearing.bd, selBearing.pd, selBearing.contact_angle_deg || 0);
-
-              return (
-                <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <p className="text-[10px] font-semibold text-orange-600 uppercase tracking-wide mb-2">
-                    Defektní frekvence — {selBearing.designation}
-                    {selBearing.manufacturer && <span className="text-slate-400 ml-1">({selBearing.manufacturer})</span>}
-                    {hasStoredCoefs && <span className="ml-2 text-[9px] bg-orange-200 text-orange-700 rounded px-1">uložené koef.</span>}
-                  </p>
-                  {hasGeometry && !hasStoredCoefs && (
-                    <div className="grid grid-cols-4 gap-1 text-center mb-2">
-                      {[
-                        { label: "Nb", value: selBearing.nb },
-                        { label: "Bd", value: `${selBearing.bd} mm` },
-                        { label: "Pd", value: `${selBearing.pd} mm` },
-                        { label: "α", value: `${selBearing.contact_angle_deg ?? 0}°` },
-                      ].map(item => (
-                        <div key={item.label} className="bg-white border border-orange-200 rounded p-1">
-                          <div className="text-[9px] text-orange-500 font-bold">{item.label}</div>
-                          <div className="text-xs font-mono font-semibold text-slate-700">{item.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-orange-100">
-                        <th className="border border-orange-200 px-2 py-1 text-left font-semibold text-orange-700">Frekvence</th>
-                        <th className="border border-orange-200 px-2 py-1 text-center font-semibold text-orange-700">Koef.</th>
-                        <th className="border border-orange-200 px-2 py-1 text-left text-[10px] font-normal text-orange-600">Popis</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { name: "BPFO", coef: coefs.bpfo, desc: "Vnější kroužek" },
-                        { name: "BPFI", coef: coefs.bpfi, desc: "Vnitřní kroužek" },
-                        { name: "BSF",  coef: coefs.bsf,  desc: "Valivý element" },
-                        { name: "FTF",  coef: coefs.ftf,  desc: "Klec (FTF)" },
-                      ].map(row => (
-                        <tr key={row.name} className="hover:bg-orange-50">
-                          <td className="border border-orange-200 px-2 py-1 font-bold text-slate-700">{row.name}</td>
-                          <td className="border border-orange-200 px-2 py-1 text-center font-mono font-semibold text-orange-800">{row.coef != null ? `${row.coef}×` : "—"}</td>
-                          <td className="border border-orange-200 px-2 py-1 text-slate-500 text-[10px]">{row.desc}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <p className="text-[9px] text-slate-400 mt-1">Koeficienty platí při 1 Hz (= 60 RPM). Při 1500 RPM násobte ×25.</p>
-                </div>
-              );
-            })()}
-
-
+            <BearingPicker value={selectedBearing} onChange={setSelectedBearing} />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -776,12 +792,23 @@ export default function VibrationCardMQTT({ machine, enablePredictive }) {
   });
   const standardsById = useMemo(() => Object.fromEntries(allStandards.map(s => [s.id, s])), [allStandards]);
 
-  const { data: allBearingTypes = [] } = useQuery({
-    queryKey: ["bearingTypes"],
-    queryFn: () => base44.entities.BearingType.list(null, 500),
+  // Načteme pouze ložiska skutečně přiřazená k tomuto stroji (podle ID) — databáze ložisek je velká
+  const assignedBearingIds = useMemo(
+    () => [...new Set(dbAssignments.map(a => a.bearing_id).filter(Boolean))],
+    [dbAssignments]
+  );
+  const { data: assignedBearings = [] } = useQuery({
+    queryKey: ["assignedBearings", assignedBearingIds.join(",")],
+    queryFn: async () => {
+      const out = await Promise.all(
+        assignedBearingIds.map(id => base44.entities.BearingType.filter({ id }).then(r => r[0]).catch(() => null))
+      );
+      return out.filter(Boolean);
+    },
+    enabled: assignedBearingIds.length > 0,
     staleTime: 300000,
   });
-  const bearingsById = useMemo(() => Object.fromEntries(allBearingTypes.map(b => [b.id, b])), [allBearingTypes]);
+  const bearingsById = useMemo(() => Object.fromEntries(assignedBearings.map(b => [b.id, b])), [assignedBearings]);
 
   // Helper: vrátí CSS třídu pro barevné pásmo limitu
   const getLimitClass = (value, limitA, limitB, limitC) => {
