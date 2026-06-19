@@ -6,13 +6,17 @@
       "type": "string",
       "description": "Ozna\u010den\u00ed lo\u017eiska (nap\u0159. 6205, SKF 22312)"
     },
+    "type_number": {
+      "type": "string",
+      "description": "Typ / \u010c\u00edslo lo\u017eiska z katalogu"
+    },
     "manufacturer": {
       "type": "string",
       "description": "V\u00fdrobce (SKF, FAG, NSK, ...)"
     },
     "nb": {
       "type": "number",
-      "description": "Po\u010det valiv\u00fdch element\u016f (Nb)"
+      "description": "Po\u010det valiv\u00fdch element\u016f (Nb / Z)"
     },
     "bd": {
       "type": "number",
@@ -24,8 +28,24 @@
     },
     "contact_angle_deg": {
       "type": "number",
-      "description": "Kontaktn\u00ed \u00fahel ve stupn\u00edch (\u03b1) \u2014 pro kuli\u010dkov\u00e1 lo\u017eiska typicky 0\u00b0",
+      "description": "Kontaktn\u00ed \u00fahel ve stupn\u00edch (\u03b1)",
       "default": 0
+    },
+    "ftf_coef": {
+      "type": "number",
+      "description": "Koeficient FTF (n\u00e1sobek ot\u00e1\u010dkov\u00e9 frekvence)"
+    },
+    "bsf_coef": {
+      "type": "number",
+      "description": "Koeficient BSF (n\u00e1sobek ot\u00e1\u010dkov\u00e9 frekvence)"
+    },
+    "bpfo_coef": {
+      "type": "number",
+      "description": "Koeficient BPFO (n\u00e1sobek ot\u00e1\u010dkov\u00e9 frekvence)"
+    },
+    "bpfi_coef": {
+      "type": "number",
+      "description": "Koeficient BPFI (n\u00e1sobek ot\u00e1\u010dkov\u00e9 frekvence)"
     },
     "notes": {
       "type": "string",
@@ -33,9 +53,6 @@
     }
   },
   "required": [
-    "designation",
-    "nb",
-    "bd",
-    "pd"
+    "designation"
   ]
 }

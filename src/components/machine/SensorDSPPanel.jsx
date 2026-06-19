@@ -31,6 +31,22 @@ function calcBearingDefectCoefs(nb, bd, pd, alpha_deg) {
   };
 }
 
+// Vrátí koeficienty defektních frekvencí — preferuje uložené hodnoty,
+// jinak je dopočítá z geometrie.
+function getBearingCoefs(b) {
+  if (!b) return { bpfo: 0, bpfi: 0, bsf: 0, ftf: 0 };
+  if (b.bpfo_coef != null && b.bpfi_coef != null) {
+    return {
+      bpfo: b.bpfo_coef,
+      bpfi: b.bpfi_coef,
+      bsf:  b.bsf_coef ?? 0,
+      ftf:  b.ftf_coef ?? 0,
+    };
+  }
+  if (!b.nb || !b.bd || !b.pd) return { bpfo: 0, bpfi: 0, bsf: 0, ftf: 0 };
+  return calcBearingDefectCoefs(b.nb, b.bd, b.pd, b.contact_angle_deg || 0);
+}
+
 function detectRpmFromSpectrum(specVel, freqRes) {
   if (!specVel || specVel.length === 0) return null;
   let maxAmp = 0, maxIdx = -1;
@@ -52,7 +68,7 @@ function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visi
 
   const displayRpm = rpm ?? autoRpm ?? 1500;
   const coefs = useMemo(
-    () => calcBearingDefectCoefs(bearing.nb, bearing.bd, bearing.pd, bearing.contact_angle_deg || 0),
+    () => getBearingCoefs(bearing),
     [bearing]
   );
   const fr = displayRpm / 60;
@@ -375,7 +391,7 @@ export default function SensorDSPPanel({
   // Výpočet ložiskových frekvencí pro grafy
   const bearingFreqLines = useMemo(() => {
     if (!bearing || !dsp) return null;
-    const coefs = calcBearingDefectCoefs(bearing.nb, bearing.bd, bearing.pd, bearing.contact_angle_deg || 0);
+    const coefs = getBearingCoefs(bearing);
     const autoRpm = detectRpmFromSpectrum(dsp.specVel, dsp.freqRes);
     const rpm = bearingRpm ?? autoRpm ?? 1500;
     const fr = rpm / 60;
@@ -634,7 +650,7 @@ export default function SensorDSPPanel({
 
             // Ložiskové frekvence pro fullscreen
             const fsBearingFreqLines = bearing && fsEffectiveRpm ? (() => {
-              const coefs = calcBearingDefectCoefs(bearing.nb, bearing.bd, bearing.pd, bearing.contact_angle_deg || 0);
+              const coefs = getBearingCoefs(bearing);
               const fr2 = fsEffectiveRpm / 60;
               return {
                 BPFO: +(coefs.bpfo * fr2).toFixed(2),
