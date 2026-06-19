@@ -85,10 +85,10 @@ function BearingPicker({ value, onChange }) {
         </div>
         {c && (
           <div className="grid grid-cols-4 gap-1 mt-2 text-center text-[11px] font-mono">
-            <div><div className="text-orange-500 font-bold">FTF</div>{c.ftf ?? "—"}</div>
-            <div><div className="text-orange-500 font-bold">BSF</div>{c.bsf ?? "—"}</div>
-            <div><div className="text-red-500 font-bold">BPFO</div>{c.bpfo ?? "—"}</div>
-            <div><div className="text-blue-500 font-bold">BPFI</div>{c.bpfi ?? "—"}</div>
+            <div><div className="text-orange-500 font-bold">FTF</div>{c.ftf != null ? c.ftf.toFixed(3) : "—"}</div>
+            <div><div className="text-orange-500 font-bold">BSF</div>{c.bsf != null ? c.bsf.toFixed(3) : "—"}</div>
+            <div><div className="text-red-500 font-bold">BPFO</div>{c.bpfo != null ? c.bpfo.toFixed(3) : "—"}</div>
+            <div><div className="text-blue-500 font-bold">BPFI</div>{c.bpfi != null ? c.bpfi.toFixed(3) : "—"}</div>
           </div>
         )}
         <p className="text-[9px] text-slate-400 mt-1.5">Koeficienty platí při 1 Hz (= 60 RPM). Pro jiné otáčky: Hz = koef × (RPM / 60).</p>
