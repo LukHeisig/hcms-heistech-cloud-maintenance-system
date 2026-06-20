@@ -27,6 +27,37 @@ function formatSensorTs(created_date, opts = {}) {
   return new Date(utcStr).toLocaleString("cs-CZ", { timeZone: "Europe/Prague", ...opts });
 }
 
+// Stavová značka senzoru dle last_seen (Online < 12h, Nedávno 12-24h, Offline > 24h)
+function SensorStatusBadge({ lastSeen, className = "" }) {
+  let style, label, title;
+  if (!lastSeen) {
+    style = "bg-slate-100 text-slate-400 border-slate-200";
+    label = "Bez dat";
+    title = "Senzor zatím neodeslal žádná data";
+  } else {
+    const diffH = (Date.now() - new Date(lastSeen).getTime()) / 3600000;
+    if (diffH < 12) {
+      style = "bg-green-100 text-green-700 border-green-300";
+      label = "Online";
+      title = "Senzor je online (poslední data < 12 h)";
+    } else if (diffH < 24) {
+      style = "bg-yellow-100 text-yellow-700 border-yellow-300";
+      label = "Nedávno";
+      title = "Senzor odeslal data nedávno (12–24 h)";
+    } else {
+      style = "bg-red-100 text-red-600 border-red-200";
+      label = "Offline";
+      title = "Senzor je offline (poslední data > 24 h)";
+    }
+  }
+  return (
+    <span title={title} className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${style} ${className}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${label === "Online" ? "bg-green-500" : label === "Nedávno" ? "bg-yellow-500" : label === "Offline" ? "bg-red-500" : "bg-slate-300"}`} />
+      {label}
+    </span>
+  );
+}
+
 // Šipka trendu
 function TrendArrow({ direction }) {
   if (!direction || direction === "stable") return <Minus className="w-3 h-3 text-slate-400 inline ml-0.5" />;
@@ -1272,7 +1303,10 @@ export default function VibrationCardMQTT({ machine, enablePredictive }) {
                   <div className="flex flex-col gap-0.5">
                     {sensorId ? (
                       <>
-                        <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">{sensorId}</span>
+                          <SensorStatusBadge lastSeen={sensorInfo?.last_seen} />
+                        </div>
                         {latest?.created_date && (
                           <span className="text-[10px] text-slate-400 pl-0.5">
                             {formatSensorTs(latest.created_date, { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
@@ -1338,10 +1372,11 @@ export default function VibrationCardMQTT({ machine, enablePredictive }) {
 
                   {/* ID senzoru */}
                   {sensorId ? (
-                    <div className="mb-2">
+                    <div className="mb-2 flex items-center gap-1.5 flex-wrap">
                       <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{sensorId}</span>
+                      <SensorStatusBadge lastSeen={sensorInfo?.last_seen} />
                       {latest?.created_date && (
-                        <span className="text-[10px] text-slate-400 ml-2">
+                        <span className="text-[10px] text-slate-400">
                           {formatSensorTs(latest.created_date, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                       )}
