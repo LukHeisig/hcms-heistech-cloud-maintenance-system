@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AppDocumentation from "@/components/about/AppDocumentation";
 import {
   CheckCircle,
   Droplet,
@@ -24,6 +26,12 @@ import {
 } from "lucide-react";
 
 export default function About() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => setUser(null));
+  }, []);
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <style>{`
@@ -415,6 +423,9 @@ export default function About() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Kompletní dokumentace — pouze SuperAdmin */}
+        {user?.user_type === "superAdmin" && <AppDocumentation />}
 
         {/* Footer s kontaktem */}
         <Card className="heistech-gradient text-white border-none">
