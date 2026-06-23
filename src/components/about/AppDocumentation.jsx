@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   ShieldAlert,
   LayoutDashboard,
@@ -22,7 +23,9 @@ import {
   Smartphone,
   Cpu,
   GitBranch,
+  Download,
 } from "lucide-react";
+import { APP_DOCUMENTATION_PROMPT } from "@/components/about/appDocumentationPrompt";
 
 const roleColors = {
   SuperAdmin: "bg-red-100 text-red-700 border-red-200",
@@ -66,17 +69,39 @@ function PageBlock({ icon: Icon, title, route, roles, children }) {
 }
 
 export default function AppDocumentation() {
+  const handleExport = () => {
+    // BOM zajistí korektní diakritiku při otevření v Excelu / textovém editoru
+    const blob = new Blob(["\uFEFF" + APP_DOCUMENTATION_PROMPT], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `HCMS-popis-aplikace-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card className="mb-8 border-2 border-red-200 bg-gradient-to-br from-red-50/40 to-white">
       <CardHeader>
-        <CardTitle className="text-2xl flex items-center gap-3">
-          <ShieldAlert className="w-8 h-8 text-red-600" />
-          Kompletní dokumentace aplikace
-        </CardTitle>
-        <p className="text-sm text-slate-500 mt-1">
-          Tato sekce je viditelná <strong>pouze pro SuperAdministrátory</strong> a obsahuje detailní technický popis
-          celého systému — všech stránek, sekcí, rolí, datových struktur a automatizací.
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <CardTitle className="text-2xl flex items-center gap-3">
+              <ShieldAlert className="w-8 h-8 text-red-600" />
+              Kompletní dokumentace aplikace
+            </CardTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Tato sekce je viditelná <strong>pouze pro SuperAdministrátory</strong> a obsahuje detailní technický popis
+              celého systému — všech stránek, sekcí, rolí, datových struktur a automatizací.
+            </p>
+          </div>
+          <Button onClick={handleExport} className="gap-2 flex-shrink-0">
+            <Download className="w-4 h-4" />
+            Export do Excelu
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-8">
 
