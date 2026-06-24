@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatMachineName } from "@/lib/utils";
 import {
   AlertTriangle, ClipboardCheck, Activity, ArrowLeft, ChevronRight,
   FileText, Image as ImageIcon, Camera, Upload, X, Loader2, Pencil, CheckCircle2,
@@ -254,7 +255,7 @@ export default function ControlPointDetail({
               <div className="flex items-center gap-2 text-xs text-blue-100 mt-1 mb-2 opacity-90">
                 <span>{currentLineForPoint?.name || "Neznámá linka"}</span>
                 <ChevronRight className="w-3 h-3" />
-                <span>{currentMachineForPoint?.name || "Neznámý stroj"}</span>
+                <span>{currentMachineForPoint ? formatMachineName(currentMachineForPoint) : "Neznámý stroj"}</span>
               </div>
               {currentPoint.description && (
                 <p className="text-sm text-blue-100 opacity-90">{currentPoint.description}</p>
