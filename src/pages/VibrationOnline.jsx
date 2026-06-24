@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatMachineName } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -471,7 +472,7 @@ export default function VibrationOnline() {
                                       <div className="flex items-center gap-1.5">
                                         <AlertDot level={alertLevel} />
                                         <p className="font-semibold text-slate-900 text-sm truncate group-hover:text-blue-700 transition-colors">
-                                          {machine.name}
+                                          {formatMachineName(machine)}
                                         </p>
                                       </div>
                                       {machine.location && (

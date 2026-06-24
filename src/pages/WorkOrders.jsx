@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatMachineName } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -88,7 +89,7 @@ export default function WorkOrders() {
 
       return {
         ...wo,
-        machineName: machine?.name || "Neznámý stroj",
+        machineName: machine ? formatMachineName(machine) : "Neznámý stroj",
         lineName: line?.name || "Neznámá linka",
         companyName: company?.name || "Neznámý podnik",
         companyId: company?.id,

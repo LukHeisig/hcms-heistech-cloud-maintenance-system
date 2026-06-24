@@ -49,6 +49,7 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatMachineName } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -660,12 +661,12 @@ export default function Machine() {
             <ChevronRight className="w-4 h-4" />
             <span>{line?.name || "Linka"}</span>
             <ChevronRight className="w-4 h-4" />
-            <span className="font-semibold">{machine.name}</span>
+            <span className="font-semibold">{formatMachineName(machine)}</span>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold mb-1">{machine.name}</h1>
+              <h1 className="text-2xl font-bold mb-1">{formatMachineName(machine)}</h1>
               {machine.description && (
                 <p className="text-blue-100 text-sm">{machine.description}</p>
               )}

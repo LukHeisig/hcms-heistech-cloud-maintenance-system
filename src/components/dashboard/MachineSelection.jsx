@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatMachineName } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -125,7 +126,7 @@ export default function MachineSelection({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-bold text-slate-900 text-lg">{machine.name}</h3>
+                      <h3 className="font-bold text-slate-900 text-lg">{formatMachineName(machine)}</h3>
                       {statusBadge}
                     </div>
                     <p className="text-sm text-slate-500 font-medium">{currentLine?.name || "Linka"}</p>
