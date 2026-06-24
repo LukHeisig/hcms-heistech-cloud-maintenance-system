@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { formatMachineName } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -653,7 +654,7 @@ export default function LineDetail() {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                              <h3 className="font-bold text-lg text-slate-900 truncate">{machine.name}</h3>
+                              <h3 className="font-bold text-lg text-slate-900 truncate">{formatMachineName(machine)}</h3>
                               {machine.parent_id && <Badge variant="outline" className="text-xs flex-shrink-0">Podřízený</Badge>}
                           </div>
                           <p className="text-sm text-slate-500 truncate">
@@ -808,7 +809,7 @@ export default function LineDetail() {
                                    <Activity className="w-5 h-5" />
                                  </div>
                                  <div>
-                                   <p className="font-medium text-slate-900">{machine.name}</p>
+                                   <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
                                    <div className="flex gap-2 text-xs text-slate-500 items-center">
                                       <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
                                       {machine.vibration_standard_id && <span>• Norma nastavena</span>}
@@ -841,7 +842,7 @@ export default function LineDetail() {
                                      <Thermometer className="w-5 h-5" />
                                    </div>
                                    <div>
-                                     <p className="font-medium text-slate-900">{machine.name}</p>
+                                     <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
                                      <div className="flex gap-2 text-xs text-slate-500">
                                         <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
                                      </div>
@@ -873,7 +874,7 @@ export default function LineDetail() {
                                      <Droplet className="w-5 h-5" />
                                    </div>
                                    <div>
-                                     <p className="font-medium text-slate-900">{machine.name}</p>
+                                     <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
                                      <div className="flex gap-2 text-xs text-slate-500">
                                         <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
                                      </div>
@@ -941,7 +942,7 @@ export default function LineDetail() {
                           <div className="flex items-center gap-3">
                             <Droplet className="w-5 h-5 text-blue-600" />
                             <div>
-                              <p className="font-medium text-slate-900">{machine.name}</p>
+                              <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
                               <p className="text-xs text-slate-500">{machinePoints.length} bodů</p>
                             </div>
                           </div>
@@ -1016,7 +1017,7 @@ export default function LineDetail() {
                           <div className="flex items-center gap-3">
                             <ClipboardCheck className="w-5 h-5 text-purple-600" />
                             <div>
-                              <p className="font-medium text-slate-900">{machine.name}</p>
+                              <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
                               <p className="text-xs text-slate-500">{machinePoints.length} bodů</p>
                             </div>
                           </div>
@@ -1095,7 +1096,7 @@ export default function LineDetail() {
                                         </div>
                                         <div className="flex-1 min-w-0 flex items-center gap-4">
                                             <div className="flex-shrink-0 w-48">
-                                                <p className="text-sm font-bold text-slate-900" title={machine?.name}>{machine?.name || "Neznámý stroj"}</p>
+                                                <p className="text-sm font-bold text-slate-900" title={machine ? formatMachineName(machine) : "Neznámý stroj"}>{machine ? formatMachineName(machine) : "Neznámý stroj"}</p>
                                                 <p className="text-xs text-slate-500 truncate" title={point?.name}>{point?.name || "Neznámý bod"}</p>
                                             </div>
                                             <div className="flex-1">
