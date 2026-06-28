@@ -589,14 +589,14 @@ export default function Users() {
 
         {/* Edit Dialog */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Upravit uživatele</DialogTitle>
               <DialogDescription>
                 Upravte roli a kontaktní údaje uživatele {editingUser?.full_name}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 overflow-y-auto flex-1 -mr-2 pr-2">
               <div>
                 <Label>Email</Label>
                 <Input value={editingUser?.email || ""} disabled className="bg-slate-50" />
