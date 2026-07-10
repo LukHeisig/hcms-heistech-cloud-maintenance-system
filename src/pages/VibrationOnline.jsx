@@ -286,15 +286,28 @@ export default function VibrationOnline() {
     refetchInterval: 60000,
   });
 
+  // Množina ID strojů, které smí uživatel vidět (null = superAdmin, bez omezení)
+  const visibleMachineIdSet = useMemo(() => {
+    if (user?.user_type === "superAdmin") return null;
+    return new Set(allMachines.filter(m => visibleLineIds.includes(m.line_id)).map(m => m.id));
+  }, [user, allMachines, visibleLineIds]);
+
+  const visibleActiveAlerts = useMemo(() =>
+    visibleMachineIdSet === null
+      ? activeAlerts
+      : activeAlerts.filter(a => visibleMachineIdSet.has(a.machine_id)),
+    [activeAlerts, visibleMachineIdSet]
+  );
+
   const alertBadge = useMemo(() => {
-    const dCount = activeAlerts.filter(a => a.severity === "D").length;
-    const cCount = activeAlerts.filter(a => a.severity === "C").length;
-    const bCount = activeAlerts.filter(a => a.severity === "B").length;
+    const dCount = visibleActiveAlerts.filter(a => a.severity === "D").length;
+    const cCount = visibleActiveAlerts.filter(a => a.severity === "C").length;
+    const bCount = visibleActiveAlerts.filter(a => a.severity === "B").length;
     if (dCount > 0) return { count: dCount, label: "D", bg: "bg-red-600", text: "text-white", tabBg: "bg-red-50", tabText: "text-red-700" };
     if (cCount > 0) return { count: cCount, label: "C", bg: "bg-orange-500", text: "text-white", tabBg: "bg-orange-50", tabText: "text-orange-700" };
     if (bCount > 0) return { count: bCount, label: "B", bg: "bg-yellow-400", text: "text-slate-900", tabBg: "bg-yellow-50", tabText: "text-yellow-700" };
     return null;
-  }, [activeAlerts]);
+  }, [visibleActiveAlerts]);
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -344,7 +357,7 @@ export default function VibrationOnline() {
         {activeTab === "alerts" && (
           <Card className="border-none shadow-sm">
             <CardContent className="p-6">
-              <VibrationAlertsPanel user={user} />
+              <VibrationAlertsPanel user={user} visibleMachineIds={visibleMachineIdSet} />
             </CardContent>
           </Card>
         )}

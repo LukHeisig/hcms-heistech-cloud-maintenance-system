@@ -142,7 +142,7 @@ function AlertCard({ alert, onAcknowledge }) {
   );
 }
 
-export default function VibrationAlertsPanel({ user }) {
+export default function VibrationAlertsPanel({ user, visibleMachineIds = null }) {
   const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState("active");
   const [ackDialog, setAckDialog] = useState(null); // alert object
@@ -159,7 +159,15 @@ export default function VibrationAlertsPanel({ user }) {
     refetchInterval: 60000,
   });
 
-  const activeCount = useMemo(() => alerts.filter(a => a.status === "active").length, [alerts]);
+  // Omezení na stroje, které smí uživatel vidět (null = bez omezení, např. superAdmin)
+  const visibleAlerts = useMemo(() =>
+    visibleMachineIds === null
+      ? alerts
+      : alerts.filter(a => visibleMachineIds.has(a.machine_id)),
+    [alerts, visibleMachineIds]
+  );
+
+  const activeCount = useMemo(() => visibleAlerts.filter(a => a.status === "active").length, [visibleAlerts]);
 
   const handleAcknowledge = async () => {
     if (!ackDialog) return;
@@ -178,10 +186,10 @@ export default function VibrationAlertsPanel({ user }) {
 
   const severityOrder = { D: 0, C: 1, B: 2 };
   const sortedAlerts = useMemo(() =>
-    [...alerts].sort((a, b) => {
+    [...visibleAlerts].sort((a, b) => {
       if (a.status !== b.status) return a.status === "active" ? -1 : 1;
       return (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9);
-    }), [alerts]
+    }), [visibleAlerts]
   );
 
   return (
