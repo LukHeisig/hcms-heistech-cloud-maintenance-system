@@ -438,9 +438,9 @@ export default function VibrationOnline() {
 
                   {/* Lines + Machines — vždy viditelné pro manager/technician, toggle pro admin */}
                   {(!isSuperOrAdmin || isExpanded) && (
-                    <div className="border-t border-slate-100 divide-y divide-slate-50">
+                    <div className="border-t border-slate-100 p-4 bg-slate-50/60 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       {lines.map(({ line, machines: lineMachines }) => (
-                        <div key={line.id} className="p-4 bg-slate-50/60">
+                        <div key={line.id} className="bg-white rounded-lg border border-slate-100 p-3">
                           {/* Line label */}
                           <div className="flex items-center gap-2 mb-3">
                             <Factory className="w-4 h-4 text-slate-400" />
@@ -449,7 +449,7 @@ export default function VibrationOnline() {
                           </div>
 
                           {/* Machine cards */}
-                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          <div className="grid gap-2">
                             {lineMachines.map(machine => {
                               const sensor = getBestSensorForMachine(machine.id);
                               const sensorCount = getSensorsForMachine(machine.id).length;
