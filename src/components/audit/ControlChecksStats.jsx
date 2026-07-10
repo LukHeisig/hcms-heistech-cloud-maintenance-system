@@ -20,7 +20,7 @@ const RECORD_TYPE_LABELS = {
   prevention: { label: "Prevence", color: "bg-purple-100 text-purple-700" },
 };
 
-export default function ControlChecksStats({ visibleUsers, getUserDisplayName }) {
+export default function ControlChecksStats({ visibleUsers, getUserDisplayName, currentUser }) {
   const [lineFilter, setLineFilter] = useState("all");
   const [machineFilter, setMachineFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
@@ -51,11 +51,31 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName })
     staleTime: 60000,
   });
 
+  // Omezení dle podniku uživatele
+  const visibleLines = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.user_type === "superAdmin") return lines;
+    if (currentUser.user_type === "admin") {
+      const assigned = currentUser.assigned_company_ids || [];
+      return lines.filter(l => assigned.includes(l.company_id));
+    }
+    return lines.filter(l => l.company_id === currentUser.company_id);
+  }, [lines, currentUser]);
+
+  const visibleLineIds = useMemo(() => new Set(visibleLines.map(l => l.id)), [visibleLines]);
+
+  const visibleMachines = useMemo(
+    () => machines.filter(m => visibleLineIds.has(m.line_id)),
+    [machines, visibleLineIds]
+  );
+
+  const visibleMachineIds = useMemo(() => new Set(visibleMachines.map(m => m.id)), [visibleMachines]);
+
   // Stroje filtrované dle linky
   const filteredMachines = useMemo(() => {
-    if (lineFilter === "all") return machines;
-    return machines.filter(m => m.line_id === lineFilter);
-  }, [machines, lineFilter]);
+    if (lineFilter === "all") return visibleMachines;
+    return visibleMachines.filter(m => m.line_id === lineFilter);
+  }, [visibleMachines, lineFilter]);
 
   // Mapování kontrolních bodů → stroj → linka
   const cpToMachine = useMemo(() => Object.fromEntries(controlPoints.map(cp => [cp.id, cp.machine_id])), [controlPoints]);
@@ -84,7 +104,11 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName })
   };
 
   const filteredRecords = useMemo(() => {
-    let records = controlRecords;
+    // Pouze kontroly strojů z podniků uživatele
+    let records = controlRecords.filter(r => {
+      const machineId = cpToMachine[r.control_point_id];
+      return machineId && visibleMachineIds.has(machineId);
+    });
 
     // Časový filtr
     if (dateRangeFilter !== "all") {
@@ -132,7 +156,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName })
     }
 
     return records;
-  }, [controlRecords, dateRangeFilter, userFilter, lineFilter, machineFilter, searchQuery, cpToMachine, machineToLine, cpMap]);
+  }, [controlRecords, dateRangeFilter, userFilter, lineFilter, machineFilter, searchQuery, cpToMachine, machineToLine, cpMap, visibleMachineIds]);
 
   const hasFilters = lineFilter !== "all" || machineFilter !== "all" || userFilter !== "all" || dateRangeFilter !== "last30Days" || searchQuery;
 
@@ -201,7 +225,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName })
                 <SelectTrigger><SelectValue placeholder="Všechny linky" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Všechny linky</SelectItem>
-                  {lines.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                  {visibleLines.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

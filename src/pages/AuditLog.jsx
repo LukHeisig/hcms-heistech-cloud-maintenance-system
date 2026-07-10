@@ -828,7 +828,7 @@ export default function AuditLog() {
 
           {canAccessChecks && (
             <TabsContent value="checks">
-              <ControlChecksStats visibleUsers={visibleUsers} getUserDisplayName={getUserDisplayName} />
+              <ControlChecksStats visibleUsers={visibleUsers} getUserDisplayName={getUserDisplayName} currentUser={user} />
             </TabsContent>
           )}
         </Tabs>
