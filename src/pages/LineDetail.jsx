@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatMachineName } from "@/lib/utils";
+import { getEffectiveHoursSince } from "@/lib/intervalCalculations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -419,7 +420,7 @@ export default function LineDetail() {
     }
 
     const now = new Date();
-    const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
+    const hoursSince = getEffectiveHoursSince(lastPerformed, now, line?.excluded_days);
 
     if (hoursSince <= interval) return "ok";
 

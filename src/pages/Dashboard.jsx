@@ -30,6 +30,7 @@ import MachineSelection from "../components/dashboard/MachineSelection";
 import PointsList from "../components/dashboard/PointsList";
 import ControlPointDetail from "../components/dashboard/ControlPointDetail";
 import VibrationAlarmFrequencyChart from "../components/dashboard/VibrationAlarmFrequencyChart";
+import { getEffectiveHoursSince, getNextDueDate } from "@/lib/intervalCalculations";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -304,7 +305,7 @@ export default function Dashboard() {
     }
 
     const now = new Date();
-    const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
+    const hoursSince = getEffectiveHoursSince(lastPerformed, now, line?.excluded_days);
 
     if (hoursSince <= interval) return "ok";
     
@@ -349,9 +350,10 @@ export default function Dashboard() {
         return null;
     }
 
-    const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
-    return nextDate;
-  }, [records]);
+    const machine = allMachines.find(m => m.id === point.machine_id);
+    const line = allLines.find(l => l.id === machine?.line_id);
+    return getNextDueDate(lastPerformed, point.interval_hours, line?.excluded_days);
+  }, [records, allMachines, allLines]);
 
   const activeCompanies = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {

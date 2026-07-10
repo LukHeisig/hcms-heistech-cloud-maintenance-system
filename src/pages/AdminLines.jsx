@@ -49,6 +49,16 @@ import {
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
+const WEEK_DAYS = [
+  { value: 1, label: "Po" },
+  { value: 2, label: "Út" },
+  { value: 3, label: "St" },
+  { value: 4, label: "Čt" },
+  { value: 5, label: "Pá" },
+  { value: 6, label: "So" },
+  { value: 0, label: "Ne" },
+];
+
 export default function AdminLines() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -62,7 +72,7 @@ export default function AdminLines() {
   const [copyingLine, setCopyingLine] = useState(null);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyName, setCopyName] = useState("");
-  const [formData, setFormData] = useState({ name: "", description: "", responsible_person_email: "" });
+  const [formData, setFormData] = useState({ name: "", description: "", responsible_person_email: "", excluded_days: [] });
 
   React.useEffect(() => {
     loadUser();
@@ -130,7 +140,7 @@ export default function AdminLines() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lines"] });
       setShowLineDialog(false);
-      setFormData({ name: "", description: "", responsible_person_email: "" });
+      setFormData({ name: "", description: "", responsible_person_email: "", excluded_days: [] });
     },
   });
 
@@ -140,7 +150,7 @@ export default function AdminLines() {
       queryClient.invalidateQueries({ queryKey: ["lines"] });
       setShowLineDialog(false);
       setEditingLine(null);
-      setFormData({ name: "", description: "", responsible_person_email: "" });
+      setFormData({ name: "", description: "", responsible_person_email: "", excluded_days: [] });
     },
   });
 
@@ -188,11 +198,12 @@ export default function AdminLines() {
       setFormData({ 
         name: line.name, 
         description: line.description || "",
-        responsible_person_email: line.responsible_person_email || ""
+        responsible_person_email: line.responsible_person_email || "",
+        excluded_days: line.excluded_days || []
       });
     } else {
       setEditingLine(null);
-      setFormData({ name: "", description: "", responsible_person_email: "" });
+      setFormData({ name: "", description: "", responsible_person_email: "", excluded_days: [] });
     }
     setShowLineDialog(true);
   };
@@ -243,6 +254,7 @@ export default function AdminLines() {
         description: copyingLine.description || "",
         company_id: copyingLine.company_id,
         responsible_person_email: copyingLine.responsible_person_email || "",
+        excluded_days: copyingLine.excluded_days || [],
         order_index: lines.length,
       });
 
@@ -535,6 +547,38 @@ export default function AdminLines() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Dny započítávané do intervalů (DEMIP)</Label>
+                <p className="text-xs text-slate-500 mb-2">
+                  Odklikněte dny, kdy linka stojí – v těchto dnech se interval mazání/inspekcí nepočítá.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {WEEK_DAYS.map((day) => {
+                    const excluded = (formData.excluded_days || []).includes(day.value);
+                    return (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => {
+                          const current = formData.excluded_days || [];
+                          const next = excluded
+                            ? current.filter((d) => d !== day.value)
+                            : [...current, day.value];
+                          setFormData({ ...formData, excluded_days: next });
+                        }}
+                        className={`w-10 h-10 rounded-lg border-2 text-sm font-semibold transition-colors ${
+                          excluded
+                            ? "bg-slate-100 border-slate-200 text-slate-400 line-through"
+                            : "bg-blue-50 border-blue-500 text-blue-700"
+                        }`}
+                        title={excluded ? "Den se nepočítá do intervalu" : "Den se počítá do intervalu"}
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               </div>
             <DialogFooter>

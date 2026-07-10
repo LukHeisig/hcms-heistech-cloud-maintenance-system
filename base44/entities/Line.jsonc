@@ -18,6 +18,14 @@
       "format": "email",
       "description": "Email odpov\u011bdn\u00e9 osoby za linku"
     },
+    "excluded_days": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [],
+      "description": "Dny v t\u00fddnu (0=Ne, 1=Po ... 6=So), kdy se NEPO\u010c\u00cdT\u00c1 interval maz\u00e1n\u00ed/inspekc\u00ed (linka stoj\u00ed). Pr\u00e1zdn\u00e9 pole = po\u010d\u00edtaj\u00ed se v\u0161echny dny."
+    },
     "order_index": {
       "type": "number",
       "description": "Po\u0159ad\u00ed zobrazen\u00ed",
