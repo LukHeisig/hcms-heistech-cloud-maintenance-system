@@ -713,7 +713,7 @@ function BearingFreqBadge({ bearing }) {
 }
 
 // Hlavní komponenta — Vibrační karta MQTT
-export default function VibrationCardMQTT({ machine, enablePredictive }) {
+export default function VibrationCardMQTT({ machine, enablePredictive, canConfigure = false }) {
   const machineId = machine?.id;
   const queryClient = useQueryClient();
 
@@ -1345,10 +1345,12 @@ export default function VibrationCardMQTT({ machine, enablePredictive }) {
                     {rssiDb != null ? <span className={rssiColor} title={rssiTitle}>{rssiDb}</span> : <span className="text-slate-300">—</span>}
                   </div>
                   <div className="flex justify-end">
+                    {canConfigure && (
                     <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-slate-500 hover:text-blue-600"
                       onClick={(e) => { e.stopPropagation(); setAssignDialog({ rowIndex: idx, rowLabel: `${label}${name && name !== label ? ' — ' + name : ''}`, currentAssignment: rowAssignments[idx] }); }}>
                       <Settings2 className="w-3 h-3" />
                     </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1364,10 +1366,12 @@ export default function VibrationCardMQTT({ machine, enablePredictive }) {
                       <span className={`font-semibold text-sm ${isSelected && sensorId ? "text-blue-700" : "text-slate-900"}`}>{label}</span>
                       {name && name !== label && <span className="text-slate-500 text-xs">{name}</span>}
                     </div>
+                    {canConfigure && (
                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-blue-600"
                       onClick={(e) => { e.stopPropagation(); setAssignDialog({ rowIndex: idx, rowLabel: `${label}${name && name !== label ? ' — ' + name : ''}`, currentAssignment: rowAssignments[idx] }); }}>
                       <Settings2 className="w-3.5 h-3.5" />
                     </Button>
+                    )}
                   </div>
 
                   {/* ID senzoru */}

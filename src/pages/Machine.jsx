@@ -1350,7 +1350,7 @@ export default function Machine() {
 
           {/* Vibrodiagnostika */}
           <TabsContent value="vibro-diag" className="space-y-6">
-            <VibrationCardMQTT machine={machine} enablePredictive={company?.enable_predictive === true} />
+            <VibrationCardMQTT machine={machine} enablePredictive={company?.enable_predictive === true} canConfigure={currentUser?.user_type === "superAdmin"} />
           </TabsContent>
 
           {/* Termodiagnostika */}
