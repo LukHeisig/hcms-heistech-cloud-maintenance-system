@@ -807,7 +807,7 @@ export default function Users() {
                 </div>
               )}
 
-              {(currentUser?.user_type === "superAdmin" || editingUser?.id === currentUser?.id) && (
+              {(currentUser?.user_type === "superAdmin" || currentUser?.user_type === "admin" || editingUser?.id === currentUser?.id) && (
                 <div className="space-y-4 pt-2 border-t border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
