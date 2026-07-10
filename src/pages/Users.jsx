@@ -21,6 +21,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,7 +40,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Users as UsersIcon, Pencil, Loader2, Shield, User, Crown, Filter, Building2, Clock } from "lucide-react";
+import { ArrowLeft, Users as UsersIcon, Pencil, Trash2, Loader2, Shield, User, Crown, Filter, Building2, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -43,6 +53,7 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState("all");
+  const [deletingUser, setDeletingUser] = useState(null);
   const [formData, setFormData] = useState({
     user_type: "technician",
     phone: "",
@@ -130,6 +141,32 @@ export default function Users() {
       setEditingUser(null);
     },
   });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId) => {
+      const response = await base44.functions.invoke("deleteUser", { userId });
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setDeletingUser(null);
+    },
+    onError: (error) => {
+      alert("Chyba při mazání uživatele: " + error.message);
+      setDeletingUser(null);
+    },
+  });
+
+  const canDeleteUser = (user) => {
+    if (!currentUser) return false;
+    if (user.id === currentUser.id) return false;
+    if (currentUser.user_type === "superAdmin") return true;
+    if (currentUser.user_type === "admin") {
+      return (roleLevels[user.user_type] || 0) < (roleLevels[currentUser.user_type] || 0);
+    }
+    return false;
+  };
 
   const handleOpenEdit = (user) => {
     setEditingUser(user);
@@ -565,6 +602,15 @@ export default function Users() {
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
+                          {canDeleteUser(user) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeletingUser(user)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -827,6 +873,28 @@ export default function Users() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Opravdu smazat uživatele?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Uživatel {deletingUser?.custom_display_name || deletingUser?.full_name || deletingUser?.email} ({deletingUser?.email}) ztratí přístup do aplikace. Tato akce je nevratná.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Zrušit</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteUserMutation.mutate(deletingUser.id)}
+                disabled={deleteUserMutation.isPending}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {deleteUserMutation.isPending ? "Mažu..." : "Smazat"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
