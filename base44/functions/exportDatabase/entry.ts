@@ -55,7 +55,11 @@ Deno.serve(async (req) => {
             "Note", "Documentation", "SparePart", "VibrationMeasurement",
             "MachineResponsibility", "AuditLog", "LineCheckSection", 
             "LineCheckPoint", "LineCheckRecord", "VibrationStandard", 
-            "VibrationSchema", "VibrationJob", "User"
+            "VibrationSchema", "VibrationJob", "User",
+            // Online vibrace (MQTT senzory)
+            "AissensSensor", "VibrationSensorAssignment",
+            "SensorTrendPoint", "VibrationAlert", "VibrationAlertRecipient",
+            "BearingType"
         ];
 
         // Fetch and add each entity to zip

@@ -82,6 +82,7 @@ export default function AdminExport() {
                                 <li>Závady a Servisní zásahy</li>
                                 <li>Uživatelé a Audit logy</li>
                                 <li>Vibrodiagnostická data</li>
+                                <li>Online vibrace (senzory, trendy, alarmy)</li>
                                 <li>Nastavení a číselníky</li>
                             </ul>
                         </div>
