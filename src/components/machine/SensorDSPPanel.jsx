@@ -61,7 +61,7 @@ function detectRpmFromSpectrum(specVel, freqRes) {
 }
 
 // Panel pro nastavení ložiskových překryvů
-function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visibleFreqs, onToggleFreq, showHarmonics, onToggleHarmonics }) {
+function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visibleFreqs, onToggleFreq, showHarmonics, onToggleHarmonics, bearingHarmonics, onToggleBearingHarmonics }) {
   const autoRpm = useMemo(() => detectRpmFromSpectrum(specVel, freqRes), [specVel, freqRes]);
   const [manualMode, setManualMode] = useState(false);
   const [inputVal, setInputVal] = useState("");
@@ -128,9 +128,9 @@ function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visi
         </div>
       </div>
       {/* Přepínače typů frekvencí */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 items-center">
         {Object.entries(freqs).map(([name, hz]) => {
-          const on = visibleFreqs[name] !== false;
+          const on = visibleFreqs[name] === true;
           return (
             <button
               key={name}
@@ -146,6 +146,15 @@ function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visi
             </button>
           );
         })}
+        <button
+          onClick={onToggleBearingHarmonics}
+          className={`text-[11px] font-semibold rounded px-2 py-0.5 border transition-all ${
+            bearingHarmonics ? "bg-slate-700 text-white border-transparent" : "bg-white text-slate-600 border-slate-300 hover:bg-slate-100"
+          }`}
+          title="Zobrazit harmonické defektních frekvencí (max 3 peaky)"
+        >
+          {bearingHarmonics ? "Harmonické defektů 3X ✓" : "+ Harmonické defektů (3X)"}
+        </button>
       </div>
       {/* Harmonické otáčkové frekvence */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -239,20 +248,25 @@ function RotationalFreqPanel({ specVel, freqRes, rpm, onRpmChange, showHarmonics
 }
 
 // Pomocník pro generování ReferenceLine překryvů v grafu
-function BearingReferenceLines({ freqLines, visibleFreqs }) {
+// harmonics = true → vykreslí max 3 peaky (1X–3X) každé defektní frekvence
+function BearingReferenceLines({ freqLines, visibleFreqs, harmonics = false }) {
   if (!freqLines) return null;
+  const maxN = harmonics ? 3 : 1;
   return Object.entries(freqLines)
-    .filter(([name]) => name !== "rpm" && visibleFreqs[name] !== false)
-    .map(([name, hz]) => (
-      <ReferenceLine
-        key={name}
-        x={hz}
-        stroke={BEARING_FREQ_COLORS[name]}
-        strokeWidth={1.5}
-        strokeDasharray="4 2"
-        label={{ value: name, position: "insideTopRight", fontSize: 9, fill: BEARING_FREQ_COLORS[name], fontWeight: "bold" }}
-      />
-    ));
+    .filter(([name]) => name !== "rpm" && visibleFreqs[name] === true)
+    .flatMap(([name, hz]) =>
+      Array.from({ length: maxN }, (_, i) => i + 1).map(n => (
+        <ReferenceLine
+          key={`${name}-${n}`}
+          x={+(n * hz).toFixed(2)}
+          stroke={BEARING_FREQ_COLORS[name]}
+          strokeWidth={n === 1 ? 1.5 : 1}
+          strokeOpacity={n === 1 ? 1 : 0.6}
+          strokeDasharray={n === 1 ? "4 2" : "2 3"}
+          label={{ value: n === 1 ? name : `${name} ${n}X`, position: "insideTopRight", fontSize: 9, fill: BEARING_FREQ_COLORS[name], fontWeight: "bold" }}
+        />
+      ))
+    );
 }
 
 export default function SensorDSPPanel({
@@ -316,7 +330,8 @@ export default function SensorDSPPanel({
   const [fsManualMode, setFsManualMode] = useState(false);
   const [fsRpmInput, setFsRpmInput] = useState('');
   const [fsShowHarmonics, setFsShowHarmonics] = useState(true);
-  const [fsVisibleFreqs, setFsVisibleFreqs] = useState({ BPFO: true, BPFI: true, BSF: true, FTF: true });
+  const [fsVisibleFreqs, setFsVisibleFreqs] = useState({ BPFO: false, BPFI: false, BSF: false, FTF: false });
+  const [fsBearingHarmonics, setFsBearingHarmonics] = useState(false);
   // Harmonic cursor
   const [hcMode, setHcMode] = useState(false); // harmonic cursor enabled
   const [hcFreq, setHcFreq] = useState(null);  // pinned base frequency (null = follow mouse)
@@ -331,6 +346,7 @@ export default function SensorDSPPanel({
     setFsRpm(bearingRpm);
     setFsShowHarmonics(showHarmonics);
     setFsVisibleFreqs({ ...visibleFreqs });
+    setFsBearingHarmonics(bearingHarmonics);
     setHcMode(false);
     setHcFreq(null);
     setHcHoverFreq(null);
@@ -349,8 +365,9 @@ export default function SensorDSPPanel({
 
   // Ložiskové překryvy
   const [bearingRpm, setBearingRpm] = useState(null);
-  const [visibleFreqs, setVisibleFreqs] = useState({ BPFO: true, BPFI: true, BSF: true, FTF: true });
+  const [visibleFreqs, setVisibleFreqs] = useState({ BPFO: false, BPFI: false, BSF: false, FTF: false });
   const [showHarmonics, setShowHarmonics] = useState(false);
+  const [bearingHarmonics, setBearingHarmonics] = useState(false);
   const handleToggleFreq = (name) => setVisibleFreqs(prev => ({ ...prev, [name]: !prev[name] }));
 
   const dsp = useMemo(() => {
@@ -478,6 +495,8 @@ export default function SensorDSPPanel({
               onToggleFreq={handleToggleFreq}
               showHarmonics={showHarmonics}
               onToggleHarmonics={() => setShowHarmonics(v => !v)}
+              bearingHarmonics={bearingHarmonics}
+              onToggleBearingHarmonics={() => setBearingHarmonics(v => !v)}
             />
           )}
           {!bearing && (
@@ -552,7 +571,7 @@ export default function SensorDSPPanel({
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} />
                     {zoomStates.acc.refAreaLeft && zoomStates.acc.refAreaRight && <ReferenceArea x1={zoomStates.acc.refAreaLeft} x2={zoomStates.acc.refAreaRight} strokeOpacity={0.3} />}
-                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} harmonics={bearingHarmonics} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -588,7 +607,7 @@ export default function SensorDSPPanel({
                     <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y" />
                     <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z" />
                     {zoomStates.vel.refAreaLeft && zoomStates.vel.refAreaRight && <ReferenceArea x1={zoomStates.vel.refAreaLeft} x2={zoomStates.vel.refAreaRight} strokeOpacity={0.3} />}
-                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} harmonics={bearingHarmonics} />
                     {rotRefLines.map(({ n, hz }) => (
                       <ReferenceLine key={`rot-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                         strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -626,7 +645,7 @@ export default function SensorDSPPanel({
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
                     {zoomStates.env.refAreaLeft && zoomStates.env.refAreaRight && <ReferenceArea x1={zoomStates.env.refAreaLeft} x2={zoomStates.env.refAreaRight} strokeOpacity={0.3} />}
-                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} />
+                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} harmonics={bearingHarmonics} />
                     {rotRefLines.map(({ n, hz }) => (
                       <ReferenceLine key={`rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                         strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -745,7 +764,7 @@ export default function SensorDSPPanel({
                         <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-lg px-3 py-1.5 flex-wrap">
                           <span className="text-xs font-bold text-orange-700 whitespace-nowrap mr-1">⚙ {bearing.designation}:</span>
                           {Object.entries(fsBearingFreqLines).map(([name, hz]) => {
-                            const on = fsVisibleFreqs[name] !== false;
+                            const on = fsVisibleFreqs[name] === true;
                             return (
                               <button key={name}
                                 onClick={() => setFsVisibleFreqs(prev => ({ ...prev, [name]: !prev[name] }))}
@@ -757,6 +776,13 @@ export default function SensorDSPPanel({
                               </button>
                             );
                           })}
+                          <button
+                            onClick={() => setFsBearingHarmonics(v => !v)}
+                            className={`text-[11px] font-semibold rounded px-2 py-0.5 border whitespace-nowrap transition-all ${fsBearingHarmonics ? 'bg-slate-700 text-white border-transparent' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}
+                            title="Zobrazit harmonické defektních frekvencí (max 3 peaky)"
+                          >
+                            {fsBearingHarmonics ? 'Harmonické 3X ✓' : '+ Harmonické (3X)'}
+                          </button>
                         </div>
                       )}
 
@@ -885,7 +911,7 @@ export default function SensorDSPPanel({
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} name="Zrychlení Z [g]" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
-                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
+                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} harmonics={fsBearingHarmonics} />
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-acc-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -904,7 +930,7 @@ export default function SensorDSPPanel({
                           <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y [mm/s]" />
                           <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z [mm/s]" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
-                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
+                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} harmonics={fsBearingHarmonics} />
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-vel-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -920,7 +946,7 @@ export default function SensorDSPPanel({
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Obálka Z" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
-                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} />
+                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} harmonics={fsBearingHarmonics} />
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
