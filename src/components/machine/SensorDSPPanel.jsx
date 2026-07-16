@@ -247,9 +247,10 @@ function RotationalFreqPanel({ specVel, freqRes, rpm, onRpmChange, showHarmonics
   );
 }
 
-// Pomocník pro generování ReferenceLine překryvů v grafu
+// Pomocník pro generování ReferenceLine překryvů v grafu — volá se jako funkce,
+// protože recharts nevykresluje ReferenceLine zabalené v custom komponentě.
 // harmonics = true → vykreslí max 3 peaky (1X–3X) každé defektní frekvence
-function BearingReferenceLines({ freqLines, visibleFreqs, harmonics = false }) {
+function renderBearingRefLines(freqLines, visibleFreqs, harmonics = false) {
   if (!freqLines) return null;
   const maxN = harmonics ? 3 : 1;
   return Object.entries(freqLines)
@@ -571,7 +572,7 @@ export default function SensorDSPPanel({
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} />
                     {zoomStates.acc.refAreaLeft && zoomStates.acc.refAreaRight && <ReferenceArea x1={zoomStates.acc.refAreaLeft} x2={zoomStates.acc.refAreaRight} strokeOpacity={0.3} />}
-                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} harmonics={bearingHarmonics} />
+                    {renderBearingRefLines(bearingFreqLines, visibleFreqs, bearingHarmonics)}
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -607,7 +608,7 @@ export default function SensorDSPPanel({
                     <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y" />
                     <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z" />
                     {zoomStates.vel.refAreaLeft && zoomStates.vel.refAreaRight && <ReferenceArea x1={zoomStates.vel.refAreaLeft} x2={zoomStates.vel.refAreaRight} strokeOpacity={0.3} />}
-                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} harmonics={bearingHarmonics} />
+                    {renderBearingRefLines(bearingFreqLines, visibleFreqs, bearingHarmonics)}
                     {rotRefLines.map(({ n, hz }) => (
                       <ReferenceLine key={`rot-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                         strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -645,7 +646,7 @@ export default function SensorDSPPanel({
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
                     {zoomStates.env.refAreaLeft && zoomStates.env.refAreaRight && <ReferenceArea x1={zoomStates.env.refAreaLeft} x2={zoomStates.env.refAreaRight} strokeOpacity={0.3} />}
-                    <BearingReferenceLines freqLines={bearingFreqLines} visibleFreqs={visibleFreqs} harmonics={bearingHarmonics} />
+                    {renderBearingRefLines(bearingFreqLines, visibleFreqs, bearingHarmonics)}
                     {rotRefLines.map(({ n, hz }) => (
                       <ReferenceLine key={`rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                         strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -911,7 +912,7 @@ export default function SensorDSPPanel({
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} name="Zrychlení Z [g]" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
-                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} harmonics={fsBearingHarmonics} />
+                          {renderBearingRefLines(fsBearingFreqLines, fsVisibleFreqs, fsBearingHarmonics)}
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-acc-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -930,7 +931,7 @@ export default function SensorDSPPanel({
                           <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y [mm/s]" />
                           <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z [mm/s]" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
-                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} harmonics={fsBearingHarmonics} />
+                          {renderBearingRefLines(fsBearingFreqLines, fsVisibleFreqs, fsBearingHarmonics)}
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-vel-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
@@ -946,7 +947,7 @@ export default function SensorDSPPanel({
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Obálka Z" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
-                          <BearingReferenceLines freqLines={fsBearingFreqLines} visibleFreqs={fsVisibleFreqs} harmonics={fsBearingHarmonics} />
+                          {renderBearingRefLines(fsBearingFreqLines, fsVisibleFreqs, fsBearingHarmonics)}
                           {fsRotLines.map(({ n, hz }) => (
                             <ReferenceLine key={`fs-rot-env-${n}`} x={hz} stroke="#6366f1" strokeWidth={n === 1 ? 2 : 1}
                               strokeDasharray={n === 1 ? "none" : "3 2"}
