@@ -1465,7 +1465,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
               tempStandard={standardsById[rowAssignments[aiRowIdx]?.tempStandardId]}
               bearing={bearingsById[rowAssignments[aiRowIdx]?.bearingId]}
               machineName={machine?.name}
-              measurementPoint={schemaRows[aiRowIdx]?.label || schemaRows[aiRowIdx]?.name || `Bod ${aiRowIdx + 1}`}
+              measurementPoint={(() => { const r = schemaRows[aiRowIdx]; if (!r) return `Bod ${aiRowIdx + 1}`; const l = r.label || ""; const n = r.name || ""; return l && n && l !== n ? `${l} — ${n}` : (l || n || `Bod ${aiRowIdx + 1}`); })()}
             />
           </CardContent>
         </Card>
@@ -1537,7 +1537,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                 bearing={bearingsById[rowAssignments[activeRowIdx]?.bearingId]}
                 temperature={getSensorById(activeSensorId)?.last_temperature}
                 machineName={machine?.name}
-                measurementPoint={schemaRows[activeRowIdx]?.label || schemaRows[activeRowIdx]?.name || `Bod ${activeRowIdx + 1}`}
+                measurementPoint={(() => { const r = schemaRows[activeRowIdx]; if (!r) return `Bod ${activeRowIdx + 1}`; const l = r.label || ""; const n = r.name || ""; return l && n && l !== n ? `${l} — ${n}` : (l || n || `Bod ${activeRowIdx + 1}`); })()}
               />
             </CardContent>
           </Card>
