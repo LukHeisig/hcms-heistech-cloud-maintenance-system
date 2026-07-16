@@ -239,6 +239,12 @@ ${contextLines.join('\n\n')}
 
 DŮLEŽITÉ: Jedná se o online kontinuální monitorování s automatickým měřením přibližně každé 3 hodiny. Data jsou tedy průběžně sbírána bez zásahu technika. Doporučení ke zvýšení frekvence měření nebo monitorování NEJSOU relevantní — systém již měří automaticky v optimálním intervalu.
 
+PRAVIDLA ZÁVAŽNOSTI (striktně dodržuj):
+- Pásmo A = stav OK, bez nálezu.
+- Pásmo B = stav stále OK / vyhovující. NEESKALUJ — overall_status i domain status musí být "OK". Formuluj závěr pozitivně (stroj je provozuschopný) a případný nález uveď pouze jako informativní upozornění na možný budoucí vývoj, který stačí sledovat v trendu. Doporučení drž mírná (běžná kontrola při nejbližší příležitosti), žádná urgence, žádná výměna dílů.
+- Pásmo C = teprve zde eskaluj na "Pozor" nebo "Alarm" s konkrétními opatřeními.
+- Pásmo D = "Kritický" stav s okamžitými opatřeními.
+
 ${sections.join('\n\n')}
 
 Napiš stručnou diagnostickou zprávu v češtině: celkový stav, co pravděpodobně způsobuje anomálii, co má technik udělat. Buď konkrétní a stručný. Nenavrhuj zvýšení frekvence měření.`;
