@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing } = body;
+    const { sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing, action, operatingSpeedHz } = body;
 
     if (!sensorDataId) return Response.json({ error: 'Missing sensorDataId' }, { status: 400 });
 
@@ -36,6 +36,27 @@ Deno.serve(async (req) => {
     const velZ = fft.vel_z_json ? JSON.parse(fft.vel_z_json) : [];
     const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
     const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
+
+    // Autodetekce otáčkové frekvence (1X) z FFT rychlosti v pásmu 6–80 Hz
+    const detectSpeed = () => {
+      const spectra = [velX, velY, velZ].filter(s => s && s.length > 0);
+      if (spectra.length === 0) return null;
+      const minBin = Math.max(1, Math.ceil(6 / freqRes));
+      const maxBin = Math.min(Math.floor(80 / freqRes), spectra[0].length - 1);
+      let maxAmp = -1, bin = -1;
+      for (let i = minBin; i <= maxBin; i++) {
+        const avgAmp = spectra.reduce((s, sp) => s + (sp[i] || 0), 0) / spectra.length;
+        if (avgAmp > maxAmp) { maxAmp = avgAmp; bin = i; }
+      }
+      if (bin < 0) return null;
+      const freq = +(bin * freqRes).toFixed(2);
+      return { freq, rpm: Math.round(freq * 60), amp: +maxAmp.toFixed(4), source: 'auto' };
+    };
+
+    // Režim detekce otáček — vrátí odhad k potvrzení uživatelem
+    if (action === 'detectSpeed') {
+      return Response.json({ detected: detectSpeed() });
+    }
 
     // Helper: RMS ze spektra
     const calcRMS = (arr, minF, maxF) => {
@@ -77,16 +98,18 @@ Deno.serve(async (req) => {
 
     // =====================================================================
     // DEFEKTNÍ FREKVENCE LOŽISKA (BPFO, BPFI, BSF, FTF)
-    // Vypočítáme jako násobky otáčkové frekvence — aplikujeme po detekci 1X
+    // Bereme katalogové koeficienty z databáze ložisek (NE z geometrie)
+    // a násobíme potvrzenou otáčkovou frekvencí.
     // =====================================================================
     const calcBearingDefectFreqs = (b, rpm1x_hz) => {
-      if (!b?.nb || !b?.bd || !b?.pd || !rpm1x_hz) return null;
-      const ratio = (b.bd / b.pd) * Math.cos((b.contact_angle_deg || 0) * Math.PI / 180);
+      if (!b || !rpm1x_hz) return null;
+      if (b.bpfo_coef == null && b.bpfi_coef == null && b.bsf_coef == null && b.ftf_coef == null) return null;
+      const mk = (c) => (c != null ? +(c * rpm1x_hz).toFixed(3) : null);
       return {
-        bpfo: +(0.5 * b.nb * rpm1x_hz * (1 - ratio)).toFixed(3),
-        bpfi: +(0.5 * b.nb * rpm1x_hz * (1 + ratio)).toFixed(3),
-        bsf:  +(0.5 * (b.pd / b.bd) * rpm1x_hz * (1 - ratio * ratio)).toFixed(3),
-        ftf:  +(0.5 * rpm1x_hz * (1 - ratio)).toFixed(3),
+        bpfo: mk(b.bpfo_coef),
+        bpfi: mk(b.bpfi_coef),
+        bsf:  mk(b.bsf_coef),
+        ftf:  mk(b.ftf_coef),
         designation: b.designation,
         manufacturer: b.manufacturer || null,
       };
@@ -110,24 +133,18 @@ Deno.serve(async (req) => {
       return candidates.sort((a, b) => b.amp - a.amp).slice(0, n);
     };
 
-    // Otáčková frekvence (1X) — hledáme pouze pokud je potřeba pro klasifikaci
+    // Otáčková frekvence (1X) — přednostně hodnota potvrzená/zadaná uživatelem,
+    // jinak fallback na autodetekci z FFT rychlosti (6–80 Hz)
     let operatingSpeed = null;
-    if (velExceeded || envExceeded) {
-      const spectra = [velX, velY, velZ].filter(s => s && s.length > 0);
-      if (spectra.length > 0) {
-        const minBin = Math.floor(10 / freqRes);
-        const maxBin = Math.min(Math.floor(80 / freqRes), spectra[0].length - 1);
-        let maxAmp = -1, rpmBin = -1;
-        for (let i = minBin; i <= maxBin; i++) {
-          const avgAmp = spectra.reduce((s, sp) => s + (sp[i] || 0), 0) / spectra.length;
-          if (avgAmp > maxAmp) { maxAmp = avgAmp; rpmBin = i; }
-        }
-        if (rpmBin >= 0) {
-          const freq = +(rpmBin * freqRes).toFixed(2);
-          operatingSpeed = { freq, rpm: Math.round(freq * 60), amp: +maxAmp.toFixed(4) };
-        }
-      }
+    if (operatingSpeedHz && Number(operatingSpeedHz) > 0) {
+      const f = Number(operatingSpeedHz);
+      operatingSpeed = { freq: +f.toFixed(2), rpm: Math.round(f * 60), source: 'user' };
+    } else {
+      operatingSpeed = detectSpeed();
     }
+
+    // Defektní frekvence ložiska z databáze — počítáme vždy, když je ložisko přiřazeno
+    const bearingFreqs = operatingSpeed ? calcBearingDefectFreqs(bearing, operatingSpeed.freq) : null;
 
     // Sestavíme sekce promptu — jen pro překročené domény
     const sections = [];
@@ -153,7 +170,6 @@ Deno.serve(async (req) => {
 
     if (envExceeded) {
       const peaksEnv = findTopPeaks(envZ, 6, Math.floor(fftLowCutHz / freqRes));
-      const bearingFreqs = operatingSpeed ? calcBearingDefectFreqs(bearing, operatingSpeed.freq) : null;
       const TOLERANCE_HZ = freqRes * 1.5; // toleranční pásmo ±1.5 bins
 
       const classifiedEnv = peaksEnv.map(p => {
@@ -168,6 +184,7 @@ Deno.serve(async (req) => {
             { name: "FTF",  freq: bearingFreqs.ftf },
           ];
           for (const { name, freq } of checks) {
+            if (freq == null) continue;
             // Zkontroluj základní frekvenci i harmonické (1×, 2×, 3×)
             for (let harmonic = 1; harmonic <= 3; harmonic++) {
               if (Math.abs(p.freq - freq * harmonic) <= TOLERANCE_HZ) {
@@ -190,16 +207,9 @@ Deno.serve(async (req) => {
         return `${p.freq}Hz/${p.amp}g [${cls}]`;
       });
 
-      let bearingInfo = '';
-      if (bearingFreqs) {
-        bearingInfo = `\n  Ložisko: ${bearingFreqs.designation}${bearingFreqs.manufacturer ? ` (${bearingFreqs.manufacturer})` : ''}
-  Defektní frekvence: BPFO=${bearingFreqs.bpfo}Hz, BPFI=${bearingFreqs.bpfi}Hz, BSF=${bearingFreqs.bsf}Hz, FTF=${bearingFreqs.ftf}Hz`;
-      }
-
       sections.push(`OBÁLKA Z (překročen limit):
   RMS: ${rmsEnvZ?.toFixed(3)} g [pásmo ${envZZone}]
   Peaky: ${classifiedEnv.join(', ') || 'žádné'}
-  Otáčky: ${operatingSpeed ? `${operatingSpeed.freq} Hz = ${operatingSpeed.rpm} RPM` : 'neznámé'}${bearingInfo}
   Limity normy: A/B=${accStandard?.acc_limit_ab} B/C=${accStandard?.acc_limit_bc} C/D=${accStandard?.acc_limit_cd} g`);
     }
 
@@ -211,7 +221,21 @@ Deno.serve(async (req) => {
   Teplota: ${sd.temperature ?? 'N/A'} °C`);
     }
 
+    // Kontextový blok — otáčky a defektní frekvence ložiska (vždy, když jsou k dispozici)
+    const contextLines = [];
+    contextLines.push(`OTÁČKY STROJE: ${operatingSpeed
+      ? `${operatingSpeed.freq} Hz = ${operatingSpeed.rpm} RPM ${operatingSpeed.source === 'user' ? '(potvrzeno/zadáno uživatelem)' : '(autodetekce z FFT rychlosti 6–80 Hz)'}`
+      : 'neznámé'}`);
+    if (bearingFreqs) {
+      const fmtF = (v) => (v != null ? `${v}Hz` : 'N/A');
+      contextLines.push(`LOŽISKO: ${bearingFreqs.designation}${bearingFreqs.manufacturer ? ` (${bearingFreqs.manufacturer})` : ''}
+Defektní frekvence ložiska při daných otáčkách (z katalogových koeficientů databáze ložisek): BPFO=${fmtF(bearingFreqs.bpfo)}, BPFI=${fmtF(bearingFreqs.bpfi)}, BSF=${fmtF(bearingFreqs.bsf)}, FTF=${fmtF(bearingFreqs.ftf)}
+Při hodnocení porovnej peaky ve spektrech s těmito frekvencemi a jejich harmonickými (1×, 2×, 3×).`);
+    }
+
     const prompt = `Jsi expert na vibrační diagnostiku valivých ložisek. Stroj: ${machineName || "Neznámý"}, místo: ${measurementPoint || "Neznámé"}.
+
+${contextLines.join('\n\n')}
 
 DŮLEŽITÉ: Jedná se o online kontinuální monitorování s automatickým měřením přibližně každé 3 hodiny. Data jsou tedy průběžně sbírána bez zásahu technika. Doporučení ke zvýšení frekvence měření nebo monitorování NEJSOU relevantní — systém již měří automaticky v optimálním intervalu.
 

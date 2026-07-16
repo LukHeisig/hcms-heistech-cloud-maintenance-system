@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, Activity, Zap, Gauge, Info
 } from "lucide-react";
 export { LimitEvaluationPanel } from "@/components/machine/LimitEvaluationPanel";
+import RpmConfirmDialog from "@/components/machine/RpmConfirmDialog";
 
 const STATUS_CONFIG = {
   OK:       { color: "bg-green-50 border-green-300 text-green-800",   icon: CheckCircle,   dot: "bg-green-500",  label: "V pořádku" },
@@ -47,6 +48,9 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
   const [showDetail, setShowDetail] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const stepTimersRef = useRef([]);
+  const [rpmDialogOpen, setRpmDialogOpen] = useState(false);
+  const [detectedSpeed, setDetectedSpeed] = useState(null);
+  const [detectingSpeed, setDetectingSpeed] = useState(false);
 
   const startStepProgress = () => {
     stepTimersRef.current.forEach(clearTimeout);
@@ -66,14 +70,38 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
     stepTimersRef.current = [];
   };
 
-  const runAnalysis = async () => {
+  // Krok 1: autodetekce otáček z FFT rychlosti (6–80 Hz) → dialog k potvrzení
+  const startAnalysis = async () => {
+    setError(null);
+    setDetectingSpeed(true);
+    try {
+      const res = await base44.functions.invoke("analyzeVibrationAI", {
+        sensorDataId, action: "detectSpeed",
+      });
+      setDetectedSpeed(res.data?.detected || null);
+      setRpmDialogOpen(true);
+    } catch (e) {
+      const msg = e?.response?.data?.error || e?.message || "Chyba při detekci otáček";
+      if (e?.response?.status === 404 || msg?.includes("not found") || msg?.includes("404")) {
+        setError("Pro vybrané měření nejsou dostupná FFT data. Analýza vyžaduje záznam s FFT spektrem.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setDetectingSpeed(false);
+    }
+  };
+
+  // Krok 2: analýza s potvrzenými otáčkami
+  const runAnalysis = async (operatingSpeedHz) => {
+    setRpmDialogOpen(false);
     setLoading(true);
     setError(null);
     setShowDetail(false);
     startStepProgress();
     try {
       const res = await base44.functions.invoke("analyzeVibrationAI", {
-        sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing,
+        sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing, operatingSpeedHz,
       });
       setAnalysis(res.data);
     } catch (e) {
@@ -104,11 +132,13 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
           </CardTitle>
           <Button
             size="sm"
-            onClick={runAnalysis}
-            disabled={loading || !sensorDataId}
+            onClick={startAnalysis}
+            disabled={loading || detectingSpeed || !sensorDataId}
             className="bg-purple-600 hover:bg-purple-700 text-white h-8 px-3 gap-1.5"
           >
-            {loading ? (
+            {detectingSpeed ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Detekuji otáčky...</>
+            ) : loading ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzuji...</>
             ) : (
               <><Sparkles className="w-3.5 h-3.5" /> {analysis ? "Znovu" : "Analyzovat AI"}</>
@@ -257,6 +287,13 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
 
         </CardContent>
       )}
+
+      <RpmConfirmDialog
+        open={rpmDialogOpen}
+        onClose={() => setRpmDialogOpen(false)}
+        detected={detectedSpeed}
+        onConfirm={(hz) => runAnalysis(hz)}
+      />
     </Card>
   );
 }
