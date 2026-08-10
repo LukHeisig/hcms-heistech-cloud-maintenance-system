@@ -256,10 +256,23 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Kontrola baterie (level <= 1 = alarm)
+      // Kontrola baterie — debounce: alarm až po 3 po sobě jdoucích nízkých čteních (level <= 1)
       if (sensor && sensor.last_battery_level != null && sensor.last_battery_level <= 1) {
         const key = `${assignment.sensor_id}|battery_level`;
         if (!activeAlertKeys.has(key)) {
+          // Ověření: poslední 3 platná čtení baterie musí být všechna <= 1
+          const recentBattery = await base44.asServiceRole.entities.SensorData.filter(
+            { sensor_id: assignment.sensor_id },
+            "-created_date",
+            20
+          );
+          const lastReadings = recentBattery
+            .filter(r => r.battery_level != null)
+            .slice(0, 3)
+            .map(r => r.battery_level);
+          if (lastReadings.length < 3 || lastReadings.some(l => l > 1)) {
+            continue; // nedostatek dat nebo jen ojedinělý pokles — alarm nevytváříme
+          }
           activeAlertKeys.add(key);
           await base44.asServiceRole.entities.VibrationAlert.create({
             sensor_id: assignment.sensor_id,

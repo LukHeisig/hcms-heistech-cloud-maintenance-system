@@ -50,6 +50,21 @@ function adcToVoltage(adc) {
   return Math.round(((adc - 1400) * 0.001547 + 2.7) * 1000) / 1000;
 }
 
+// Baterie: úroveň odvozujeme z napětí (spolehlivé), NE z bajtu úrovně od senzoru.
+// Filtr věrohodnosti: napětí mimo rozsah 2.5–4.0 V = poškozený rámec → data ignorujeme.
+function evaluateBattery(voltage) {
+  if (voltage == null || !isFinite(voltage) || voltage < 2.5 || voltage > 4.0) {
+    return { level: null, voltage: null };
+  }
+  let level;
+  if (voltage >= 3.30) level = 4;
+  else if (voltage >= 3.15) level = 3;
+  else if (voltage >= 3.00) level = 2;
+  else if (voltage >= 2.85) level = 1;
+  else level = 0;
+  return { level, voltage };
+}
+
 function calcRMS(arr) {
   if (!arr || arr.length === 0) return null;
   const sum = arr.reduce((s, v) => s + v * v, 0);
@@ -369,8 +384,12 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
         const jsonStr = new TextDecoder().decode(data.slice(9));
         const info = JSON.parse(jsonStr);
         if (info.Temperature != null) result.temperature = parseFloat(info.Temperature);
-        if (info.BatVoltage != null) result.battery_voltage = parseFloat(info.BatVoltage);
-        if (info.BatteryLevel != null) result.battery_level = parseInt(info.BatteryLevel);
+        if (info.BatVoltage != null) {
+          // Úroveň odvozujeme z napětí, BatteryLevel z JSON ignorujeme (nespolehlivé)
+          const bat4 = evaluateBattery(parseFloat(info.BatVoltage));
+          result.battery_voltage = bat4.voltage;
+          result.battery_level = bat4.level;
+        }
         if (info.SignalStrength != null) result.rssi = parseInt(info.SignalStrength);
         console.log(`[Type4 JSON] temp=${result.temperature} voltage=${result.battery_voltage} level=${result.battery_level} rssi=${result.rssi}`);
       } catch(e) {
@@ -415,12 +434,12 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
     // tempRaw=0 znamená, že senzor teplotu neposkytl (výsledek by byl přesně 28.0°C) — ignorujeme
     result.temperature = tempRaw0 !== 0 ? Math.round((tempRaw0 / 256.0 + 28) * 100) / 100 : null;
 
-    // Battery level: [15]
-    result.battery_level = data[15] & 0x0F;
-
-    // Last ADC: Int16BE at [16-17]
+    // Baterie: Last ADC Int16BE at [16-17] → napětí → odvozená úroveň
+    // (bajt úrovně [15] od senzoru ignorujeme — firmware hlásí nesmyslné hodnoty pod zátěží)
     const lastAdc = readInt16BE(data, 16);
-    result.battery_voltage = Math.round(((lastAdc - 1400) * 0.001547 + 2.7) * 1000) / 1000;
+    const bat0 = evaluateBattery(adcToVoltage(lastAdc));
+    result.battery_level = bat0.level;
+    result.battery_voltage = bat0.voltage;
 
     // Real ODR: Int16BE at [13-14]
     result.real_odr = readInt16BE(data, 13);
