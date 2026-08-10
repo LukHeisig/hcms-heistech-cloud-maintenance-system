@@ -50,6 +50,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
+import { throttled } from "@/lib/requestQueue";
 
 function LayoutContent({ children }) {
   const location = useLocation();
@@ -331,29 +332,30 @@ function LayoutContent({ children }) {
 
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
+    queryFn: () => throttled(() => base44.entities.Issue.filter({ status: "reported" })),
     enabled: !!user,
+    staleTime: 300000,
   });
 
   // Fetch minimal data needed for notifications/badges
   // Use same keys as Dashboard to share cache and avoid 429s
   const { data: lines = [] } = useQuery({
     queryKey: ["allLines"],
-    queryFn: () => base44.entities.Line.list(null, 1000),
+    queryFn: () => throttled(() => base44.entities.Line.list("order_index", 1000)),
     enabled: !!user,
     staleTime: 300000, // 5 minutes
   });
 
   const { data: machines = [] } = useQuery({
     queryKey: ["allMachines"],
-    queryFn: () => base44.entities.Machine.list(null, 1000),
+    queryFn: () => throttled(() => base44.entities.Machine.list("order_index", 1000)),
     enabled: !!user,
     staleTime: 300000, // 5 minutes
   });
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["allControlPoints"],
-    queryFn: () => base44.entities.ControlPoint.list(null, 1000),
+    queryFn: () => throttled(() => base44.entities.ControlPoint.list("order_index", 1000)),
     enabled: !!user,
     staleTime: 300000, // 5 minutes
   });
@@ -362,27 +364,30 @@ function LayoutContent({ children }) {
     queryKey: ["myWorkOrders", user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      const allOrders = await base44.entities.PlannedMaintenance.filter({ 
+      const allOrders = await throttled(() => base44.entities.PlannedMaintenance.filter({ 
         assigned_to: user.email,
         status: "assigned"
-      }, "planned_date");
+      }, "planned_date"));
       return allOrders;
     },
     enabled: !!user?.email,
-    refetchInterval: 30000,
+    staleTime: 120000,
+    refetchInterval: 300000,
   });
 
   const { data: allMachines = [] } = useQuery({
-    queryKey: ["allMachinesForNotifications"],
-    queryFn: () => base44.entities.Machine.list(null, 1000),
+    queryKey: ["allMachines"],
+    queryFn: () => throttled(() => base44.entities.Machine.list("order_index", 1000)),
     enabled: myWorkOrders.length > 0,
+    staleTime: 300000,
   });
 
   const { data: activeVibrationAlerts = [] } = useQuery({
     queryKey: ["activeVibrationAlerts"],
-    queryFn: () => base44.entities.VibrationAlert.filter({ status: "active" }),
+    queryFn: () => throttled(() => base44.entities.VibrationAlert.filter({ status: "active" })),
     enabled: !!user,
-    refetchInterval: 60000,
+    staleTime: 120000,
+    refetchInterval: 300000,
   });
 
   const vibrationAlertsCount = useMemo(() => {
@@ -406,10 +411,11 @@ function LayoutContent({ children }) {
     queryKey: ["userCompany", user?.company_id],
     queryFn: async () => {
       if (!user?.company_id) return null;
-      const companies = await base44.entities.Company.filter({ id: user.company_id });
+      const companies = await throttled(() => base44.entities.Company.filter({ id: user.company_id }));
       return companies[0] || null;
     },
     enabled: !!user?.company_id,
+    staleTime: 300000,
   });
 
   // Force DEMIP mode for technicians on mobile if configured

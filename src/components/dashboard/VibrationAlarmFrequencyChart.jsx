@@ -10,6 +10,7 @@ import {
 import { Activity, AlertTriangle } from "lucide-react";
 import { subDays, format } from "date-fns";
 import { cs } from "date-fns/locale";
+import { throttled } from "@/lib/requestQueue";
 
 const SEVERITY_COLORS = { D: "#dc2626", C: "#f97316", B: "#eab308" };
 
@@ -25,7 +26,7 @@ export default function VibrationAlarmFrequencyChart({ user, machines = [], line
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["vibrationAlerts", "all", periodDays],
-    queryFn: () => base44.entities.VibrationAlert.list("-created_date", 1000),
+    queryFn: () => throttled(() => base44.entities.VibrationAlert.list("-created_date", 1000)),
     enabled: !!user,
     staleTime: 120000,
   });

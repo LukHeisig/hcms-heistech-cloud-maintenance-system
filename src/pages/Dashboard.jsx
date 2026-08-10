@@ -31,6 +31,7 @@ import PointsList from "../components/dashboard/PointsList";
 import ControlPointDetail from "../components/dashboard/ControlPointDetail";
 import VibrationAlarmFrequencyChart from "../components/dashboard/VibrationAlarmFrequencyChart";
 import { getEffectiveHoursSince, getNextDueDate } from "@/lib/intervalCalculations";
+import { throttled } from "@/lib/requestQueue";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -73,23 +74,21 @@ export default function Dashboard() {
 
   const { data: allCompanies = [] } = useQuery({
     queryKey: ["companies"],
-    queryFn: () => base44.entities.Company.list("name", 1000),
+    queryFn: () => throttled(() => base44.entities.Company.list("name", 1000)),
     enabled: user?.user_type === "admin" || user?.user_type === "superAdmin",
     staleTime: 300000,
-    retry: 5,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   const { data: userCompany } = useQuery({
     queryKey: ["userCompany", user?.company_id],
-    queryFn: () => base44.entities.Company.filter({ id: user.company_id }).then(res => res[0]),
+    queryFn: () => throttled(() => base44.entities.Company.filter({ id: user.company_id })).then(res => res[0]),
     enabled: !!user?.company_id && user?.user_type !== "admin" && user?.user_type !== "superAdmin",
   });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
     queryFn: async () => {
-      const { data } = await base44.functions.invoke("getUsers");
+      const { data } = await throttled(() => base44.functions.invoke("getUsers"));
       return data;
     },
     staleTime: 600000, // 10 minutes
@@ -123,26 +122,22 @@ export default function Dashboard() {
     queryKey: ["lines", user?.company_id],
     queryFn: () =>
       user?.company_id
-        ? base44.entities.Line.filter({ company_id: user.company_id }, "order_index")
+        ? throttled(() => base44.entities.Line.filter({ company_id: user.company_id }, "order_index"))
         : [],
     enabled: !!user?.company_id && user?.user_type !== "admin" && user?.user_type !== "superAdmin",
   });
 
   const { data: allLines = [], isLoading: isLoadingAllLines } = useQuery({
     queryKey: ["allLines"],
-    queryFn: () => base44.entities.Line.list("order_index", 1000),
+    queryFn: () => throttled(() => base44.entities.Line.list("order_index", 1000)),
     staleTime: 300000,
-    retry: 5,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
     queryKey: ["allMachines"],
-    queryFn: () => base44.entities.Machine.list("order_index", 1000),
+    queryFn: () => throttled(() => base44.entities.Machine.list("order_index", 1000)),
     enabled: !!user,
     staleTime: 300000,
-    retry: 5,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   // Filtrovat stroje podle company_id pro non-admin uživatele
@@ -158,11 +153,9 @@ export default function Dashboard() {
 
   const { data: allControlPoints = [], isLoading: isLoadingControlPoints } = useQuery({
     queryKey: ["allControlPoints"],
-    queryFn: () => base44.entities.ControlPoint.list("order_index", 1000),
+    queryFn: () => throttled(() => base44.entities.ControlPoint.list("order_index", 1000)),
     enabled: !!user,
     staleTime: 300000,
-    retry: 5,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   // Filtrovat kontrolní body podle company_id pro non-admin uživatele
@@ -178,14 +171,14 @@ export default function Dashboard() {
 
   const { data: allRecords = [] } = useQuery({
     queryKey: ["allRecords", user?.id],
-    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 5000),
+    queryFn: () => throttled(() => base44.entities.ControlRecord.list("-performed_at", 5000)),
     enabled: !!user,
     staleTime: 300000,
   });
 
   const { data: selectedPointRecords = [] } = useQuery({
     queryKey: ["pointRecords", selectedPoint, user?.id],
-    queryFn: () => base44.entities.ControlRecord.filter({ control_point_id: selectedPoint }, "-performed_at", 50),
+    queryFn: () => throttled(() => base44.entities.ControlRecord.filter({ control_point_id: selectedPoint }, "-performed_at", 50)),
     enabled: !!selectedPoint,
   });
 
@@ -202,7 +195,7 @@ export default function Dashboard() {
 
   const { data: allIssues = [] } = useQuery({
     queryKey: ["allIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "reported" }, null, 1000),
+    queryFn: () => throttled(() => base44.entities.Issue.filter({ status: "reported" }, null, 1000)),
     enabled: !!user,
     staleTime: 300000,
   });
@@ -224,7 +217,7 @@ export default function Dashboard() {
 
   const { data: documentation = [] } = useQuery({
     queryKey: ["documentation", selectedPoint],
-    queryFn: () => base44.entities.Documentation.filter({ control_point_id: selectedPoint }),
+    queryFn: () => throttled(() => base44.entities.Documentation.filter({ control_point_id: selectedPoint })),
     enabled: !!selectedPoint && viewMode === 'demip',
   });
 
