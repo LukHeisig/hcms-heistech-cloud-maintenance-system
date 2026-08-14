@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
 import SensorDSPPanel from "@/components/machine/SensorDSPPanel";
+import { throttled } from "@/lib/requestQueue";
 
 // Zobrazujeme created_date (UTC ISO z DB) v pražském čase (CEST/CET).
 function formatSensorTs(created_date, opts = {}) {
@@ -445,7 +446,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
 
   const { data: registeredSensors = [], isLoading } = useQuery({
     queryKey: ["aissens_sensors"],
-    queryFn: () => base44.entities.AissensSensor.list(null, 500),
+    queryFn: () => throttled(() => base44.entities.AissensSensor.list(null, 500)),
     enabled: open,
     staleTime: 60000,
   });
@@ -736,7 +737,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
     queryKey: ["vibrationSchema", machine?.vibration_schema_id],
     queryFn: async () => {
       if (!machine?.vibration_schema_id) return null;
-      const schemas = await base44.entities.VibrationSchema.filter({ id: machine.vibration_schema_id });
+      const schemas = await throttled(() => base44.entities.VibrationSchema.filter({ id: machine.vibration_schema_id }));
       return schemas[0] || null;
     },
     enabled: !!machine?.vibration_schema_id,
@@ -748,9 +749,9 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
   // Načteme všechny registrované senzory (pro teplotu, baterii, signál)
   const { data: sensors = [], refetch: refetchSensors } = useQuery({
     queryKey: ["aissens_sensors_all"],
-    queryFn: () => base44.entities.AissensSensor.list(null, 500),
-    staleTime: 0,
-    refetchInterval: 30000,
+    queryFn: () => throttled(() => base44.entities.AissensSensor.list(null, 500)),
+    staleTime: 30000,
+    refetchInterval: 60000,
   });
 
   // Parsování řádků ze schématu
@@ -764,7 +765,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
   // Přiřazení senzorů — načítáme z DB (sdílené mezi všemi uživateli)
   const { data: dbAssignments = [], refetch: refetchAssignments } = useQuery({
     queryKey: ["vibrationSensorAssignments", machineId],
-    queryFn: () => base44.entities.VibrationSensorAssignment.filter({ machine_id: machineId }, null, 200),
+    queryFn: () => throttled(() => base44.entities.VibrationSensorAssignment.filter({ machine_id: machineId }, null, 200)),
     enabled: !!machineId,
     staleTime: 30000,
     retry: 3,
@@ -818,7 +819,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
   // Načtení norem pro zobrazení limitů
   const { data: allStandards = [] } = useQuery({
     queryKey: ["vibrationStandards"],
-    queryFn: () => base44.entities.VibrationStandard.list(null, 500),
+    queryFn: () => throttled(() => base44.entities.VibrationStandard.list(null, 500)),
     staleTime: 120000,
   });
   const standardsById = useMemo(() => Object.fromEntries(allStandards.map(s => [s.id, s])), [allStandards]);
@@ -832,7 +833,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
     queryKey: ["assignedBearings", assignedBearingIds.join(",")],
     queryFn: async () => {
       const out = await Promise.all(
-        assignedBearingIds.map(id => base44.entities.BearingType.filter({ id }).then(r => r[0]).catch(() => null))
+        assignedBearingIds.map(id => throttled(() => base44.entities.BearingType.filter({ id })).then(r => r[0]).catch(() => null))
       );
       return out.filter(Boolean);
     },
@@ -942,11 +943,11 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
       if (assignedSensorIds.length === 0) return {};
       const result = {};
       await Promise.all(assignedSensorIds.map(async (sid) => {
-        const res = await base44.functions.invoke("getSensorTrend", {
+        const res = await throttled(() => base44.functions.invoke("getSensorTrend", {
           sensor_id: sid,
           limit: 10,
           trend_only: true,
-        });
+        }));
         result[sid] = res.data?.trends || {};
       }));
       return result;
@@ -964,14 +965,14 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
       if (assignedSensorIds.length === 0) return [];
       const results = await Promise.all(assignedSensorIds.map(async (sid) => {
         // Vezmi posledních 20 záznamů s FFT a najdi první, který má vyplněné RMS (nový DSP formát)
-        const recs = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 20);
+        const recs = await throttled(() => base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 20));
         return recs.find(r => r.vel_rms_x_mm_s != null) ?? null;
       }));
       return results.filter(Boolean);
     },
     enabled: assignedSensorIds.length > 0,
-    staleTime: 0,
-    refetchInterval: 30000,
+    staleTime: 30000,
+    refetchInterval: 60000,
   });
 
   const getSensorById = (sensorId) => sensors.find(s => s.sensor_id === sensorId);

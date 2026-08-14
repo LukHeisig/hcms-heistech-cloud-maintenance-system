@@ -57,6 +57,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { throttled } from "@/lib/requestQueue";
 
 export default function Machine() {
   const navigate = useNavigate();
@@ -86,7 +87,7 @@ export default function Machine() {
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
     queryFn: async () => {
-      const machines = await base44.entities.Machine.filter({ id: machineId });
+      const machines = await throttled(() => base44.entities.Machine.filter({ id: machineId }));
       return machines[0];
     },
     enabled: !!machineId,
@@ -97,7 +98,7 @@ export default function Machine() {
     queryKey: ["line", machine?.line_id],
     queryFn: async () => {
       if (!machine?.line_id) return null;
-      const lines = await base44.entities.Line.filter({ id: machine.line_id });
+      const lines = await throttled(() => base44.entities.Line.filter({ id: machine.line_id }));
       return lines[0];
     },
     enabled: !!machine?.line_id,
@@ -108,7 +109,7 @@ export default function Machine() {
     queryKey: ["company", line?.company_id],
     queryFn: async () => {
       if (!line?.company_id) return null;
-      const companies = await base44.entities.Company.filter({ id: line.company_id });
+      const companies = await throttled(() => base44.entities.Company.filter({ id: line.company_id }));
       return companies[0];
     },
     enabled: !!line?.company_id,
@@ -118,9 +119,10 @@ export default function Machine() {
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
     queryFn: async () => {
-      const { data } = await base44.functions.invoke("getUsers");
+      const { data } = await throttled(() => base44.functions.invoke("getUsers"));
       return data;
     },
+    staleTime: 300000,
   });
 
   const userMap = React.useMemo(() => {
@@ -137,7 +139,7 @@ export default function Machine() {
 
   const { data: controlPoints = [] } = useQuery({
     queryKey: ["controlPoints", machineId],
-    queryFn: () => base44.entities.ControlPoint.filter({ machine_id: machineId }),
+    queryFn: () => throttled(() => base44.entities.ControlPoint.filter({ machine_id: machineId })),
     enabled: !!machineId,
   });
 
@@ -151,7 +153,7 @@ export default function Machine() {
         for (let i = 0; i < cpIds.length; i += 3) {
           const batch = cpIds.slice(i, i + 3);
           const results = await Promise.all(
-            batch.map(cpId => base44.entities.ControlRecord.filter({ control_point_id: cpId }, "-performed_at", 30))
+            batch.map(cpId => throttled(() => base44.entities.ControlRecord.filter({ control_point_id: cpId }, "-performed_at", 30)))
           );
           allRecords.push(...results.flat());
         }
@@ -166,8 +168,8 @@ export default function Machine() {
     queryFn: async () => {
         // Fetch machine-wide issues + all reported issues, filter client-side to avoid per-CP requests
         const [machineIssues, allReported] = await Promise.all([
-          base44.entities.Issue.filter({ machine_id: machineId, status: "reported" }),
-          base44.entities.Issue.filter({ status: "reported" }, "-created_date", 200),
+          throttled(() => base44.entities.Issue.filter({ machine_id: machineId, status: "reported" })),
+          throttled(() => base44.entities.Issue.filter({ status: "reported" }, "-created_date", 200)),
         ]);
         const cpIds = new Set(controlPoints.map(p => p.id));
         const cpIssues = allReported.filter(i => cpIds.has(i.control_point_id));
@@ -184,53 +186,61 @@ export default function Machine() {
 
   const { data: documentation = [] } = useQuery({
     queryKey: ["documentation", machineId],
-    queryFn: () => base44.entities.Documentation.filter({ machine_id: machineId }),
+    queryFn: () => throttled(() => base44.entities.Documentation.filter({ machine_id: machineId })),
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: maintenanceRecords = [] } = useQuery({
     queryKey: ["maintenanceRecords", machineId],
-    queryFn: () => base44.entities.MaintenanceRecord.filter({ machine_id: machineId }, "-performed_at"),
+    queryFn: () => throttled(() => base44.entities.MaintenanceRecord.filter({ machine_id: machineId }, "-performed_at")),
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: plannedMaintenance = [] } = useQuery({
     queryKey: ["plannedMaintenance", machineId],
-    queryFn: () => base44.entities.PlannedMaintenance.filter({ 
+    queryFn: () => throttled(() => base44.entities.PlannedMaintenance.filter({ 
       machine_id: machineId,
       status: ["planned", "assigned"]
-    }, "planned_date"),
+    }, "planned_date")),
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: spareParts = [] } = useQuery({
     queryKey: ["spareParts", machineId],
-    queryFn: () => base44.entities.SparePart.filter({ machine_id: machineId }),
+    queryFn: () => throttled(() => base44.entities.SparePart.filter({ machine_id: machineId })),
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: vibrationMeasurements = [] } = useQuery({
     queryKey: ["vibrationMeasurements", machineId],
-    queryFn: () => base44.entities.VibrationMeasurement.filter({ machine_id: machineId }, "-measurement_date"),
+    queryFn: () => throttled(() => base44.entities.VibrationMeasurement.filter({ machine_id: machineId }, "-measurement_date")),
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: vibrationJobs = [] } = useQuery({
     queryKey: ["vibrationJobs", machineId],
-    queryFn: () => base44.entities.VibrationJob.filter({ machine_id: machineId }, "-date"),
-    enabled: !!machineId
+    queryFn: () => throttled(() => base44.entities.VibrationJob.filter({ machine_id: machineId }, "-date")),
+    enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: thermoJobs = [] } = useQuery({
     queryKey: ["thermoJobs", machineId],
-    queryFn: () => base44.entities.ThermoJob.filter({ machine_id: machineId }, "-measurement_date"),
-    enabled: !!machineId
+    queryFn: () => throttled(() => base44.entities.ThermoJob.filter({ machine_id: machineId }, "-measurement_date")),
+    enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const { data: predictiveAnalysis = [] } = useQuery({
     queryKey: ["predictiveAnalysis", machineId],
-    queryFn: () => base44.entities.PredictiveAnalysis.filter({ machine_id: machineId }, "-analysis_date"),
-    enabled: !!machineId
+    queryFn: () => throttled(() => base44.entities.PredictiveAnalysis.filter({ machine_id: machineId }, "-analysis_date")),
+    enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const runPredictionMutation = useMutation({
@@ -260,8 +270,9 @@ export default function Machine() {
 
   const { data: responsibilities = [] } = useQuery({
     queryKey: ["responsibilities", machineId],
-    queryFn: () => base44.entities.MachineResponsibility.filter({ machine_id: machineId }),
+    queryFn: () => throttled(() => base44.entities.MachineResponsibility.filter({ machine_id: machineId })),
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const inspectionRecords = React.useMemo(() => {
