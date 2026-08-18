@@ -131,7 +131,8 @@ export default function DSPVisualization() {
 
       // Spektrum zrychlení je v DB uloženo v m/s² — pro zobrazení převádíme na g
       const specAccZ = accZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp: amp / 9.80665 }));
-      const specEnvZ = envZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp }));
+      // Spektrum obálky je v DB uloženo v m/s² — pro zobrazení převádíme na g
+      const specEnvZ = envZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp: amp / 9.80665 }));
       
       const specVel = [];
       const maxVelLen = Math.max(velX.length, velY.length, velZ.length);
@@ -323,7 +324,7 @@ export default function DSPVisualization() {
 
             <Card>
               <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm">Spektrum Obálky Z</CardTitle>
+                <CardTitle className="text-sm">Spektrum Obálky Z (g Peak)</CardTitle>
                 {zoomStates.env.left !== 'dataMin' && <Button variant="outline" size="sm" onClick={() => zoomOut('env')} className="h-7 px-2 text-xs"><ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom</Button>}
               </CardHeader>
               <CardContent>
@@ -336,7 +337,7 @@ export default function DSPVisualization() {
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="f" domain={[zoomStates.env.left, zoomStates.env.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'amplituda [m/s²]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'amplituda [g Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
                     {zoomStates.env.refAreaLeft && zoomStates.env.refAreaRight ? <ReferenceArea x1={zoomStates.env.refAreaLeft} x2={zoomStates.env.refAreaRight} strokeOpacity={0.3} /> : null}
