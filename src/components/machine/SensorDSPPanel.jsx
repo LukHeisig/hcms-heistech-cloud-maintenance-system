@@ -379,7 +379,7 @@ export default function SensorDSPPanel({
         const rawZ = JSON.parse(activeRecord.raw_z_json);
         const fs = 26700, step = Math.max(1, Math.floor(rawZ.length / 500));
         for (let i = 0; i < rawZ.length; i += step)
-          rawChart.push({ t: Number((i * (1 / fs) * 1000).toFixed(1)), z: rawZ[i] });
+          rawChart.push({ t: Number((i * (1 / fs) * 1000).toFixed(1)), z: rawZ[i] / 9.80665 }); // m/s² → g
       }
       const freqRes = activeFFT.frequency_resolution || 3.259;
       const accZ = activeFFT.acc_z_json ? JSON.parse(activeFFT.acc_z_json) : [];
@@ -388,7 +388,8 @@ export default function SensorDSPPanel({
       const velZ = activeFFT.vel_z_json ? JSON.parse(activeFFT.vel_z_json) : [];
       const envZ = activeFFT.env_z_json ? JSON.parse(activeFFT.env_z_json) : [];
 
-      const specAccZ = accZ.map((amp, i) => ({ f: +(i * freqRes).toFixed(1), amp }));
+      // Spektrum zrychlení je v DB uloženo v m/s² — pro zobrazení převádíme na g
+      const specAccZ = accZ.map((amp, i) => ({ f: +(i * freqRes).toFixed(1), amp: amp / 9.80665 }));
       const specEnvZ = envZ.map((amp, i) => ({ f: +(i * freqRes).toFixed(1), amp }));
       const specVel = [];
       for (let i = 0; i < Math.max(velX.length, velY.length, velZ.length); i++)
@@ -536,7 +537,7 @@ export default function SensorDSPPanel({
                     onMouseUp={() => handleZoom('raw')}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="t" domain={[zoomStates.raw.left, zoomStates.raw.right]} type="number" allowDataOverflow label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 10 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} label={{ value: 'zrychlení [g]', angle: -90, position: 'insideLeft', style: { fontSize: 10, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="z" stroke="#3b82f6" dot={false} isAnimationActive={false} />
                     {zoomStates.raw.refAreaLeft && zoomStates.raw.refAreaRight && <ReferenceArea x1={zoomStates.raw.refAreaLeft} x2={zoomStates.raw.refAreaRight} strokeOpacity={0.3} />}
@@ -568,7 +569,7 @@ export default function SensorDSPPanel({
                     onMouseUp={() => handleZoom('acc')}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="f" domain={[zoomStates.acc.left, zoomStates.acc.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 10 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} label={{ value: 'amplituda [g Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 10, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} />
                     {zoomStates.acc.refAreaLeft && zoomStates.acc.refAreaRight && <ReferenceArea x1={zoomStates.acc.refAreaLeft} x2={zoomStates.acc.refAreaRight} strokeOpacity={0.3} />}
@@ -600,8 +601,8 @@ export default function SensorDSPPanel({
                     onMouseMove={e => zoomStates.vel.refAreaLeft && e && setZoomStates(prev => ({ ...prev, vel: { ...prev.vel, refAreaRight: e.activeLabel } }))}
                     onMouseUp={() => handleZoom('vel')}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="f" domain={[zoomStates.vel.left, zoomStates.vel.right]} type="number" allowDataOverflow tick={{ fontSize: 10 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} />
+                    <XAxis dataKey="f" domain={[zoomStates.vel.left, zoomStates.vel.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 10 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} label={{ value: 'amplituda [mm/s Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 10, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                     <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X" />
@@ -641,8 +642,8 @@ export default function SensorDSPPanel({
                     onMouseMove={e => zoomStates.env.refAreaLeft && e && setZoomStates(prev => ({ ...prev, env: { ...prev.env, refAreaRight: e.activeLabel } }))}
                     onMouseUp={() => handleZoom('env')}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="f" domain={[zoomStates.env.left, zoomStates.env.right]} type="number" allowDataOverflow tick={{ fontSize: 10 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} />
+                    <XAxis dataKey="f" domain={[zoomStates.env.left, zoomStates.env.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 10 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} label={{ value: 'amplituda [m/s²]', angle: -90, position: 'insideLeft', style: { fontSize: 10, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
                     {zoomStates.env.refAreaLeft && zoomStates.env.refAreaRight && <ReferenceArea x1={zoomStates.env.refAreaLeft} x2={zoomStates.env.refAreaRight} strokeOpacity={0.3} />}
@@ -899,7 +900,7 @@ export default function SensorDSPPanel({
                           onMouseUp={handleFsZoom}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="t" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} label={{ value: 'zrychlení [g]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                           <Tooltip />
                           <Line type="monotone" dataKey="z" stroke="#3b82f6" dot={false} isAnimationActive={false} />
                           {fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
@@ -908,7 +909,7 @@ export default function SensorDSPPanel({
                         <LineChart data={dsp.specAccZ} {...commonMouseHandlers}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} label={{ value: 'amplituda [g Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} name="Zrychlení Z [g]" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
@@ -924,7 +925,7 @@ export default function SensorDSPPanel({
                         <LineChart data={dsp.specVel} {...commonMouseHandlers}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} label={{ value: 'amplituda [mm/s Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Legend iconSize={12} wrapperStyle={{ fontSize: 12 }} />
                           <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X [mm/s]" />
@@ -943,7 +944,7 @@ export default function SensorDSPPanel({
                         <LineChart data={dsp.specEnvZ} {...commonMouseHandlers}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} label={{ value: 'amplituda [m/s²]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Obálka Z" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}

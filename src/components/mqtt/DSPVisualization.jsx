@@ -115,7 +115,7 @@ export default function DSPVisualization() {
         for (let i = 0; i < rawZ.length; i += step) {
           rawChart.push({
             t: Number((i * (1/fs)*1000).toFixed(1)),
-            z: rawZ[i]
+            z: rawZ[i] / 9.80665 // m/s² → g
           });
         }
       }
@@ -129,7 +129,8 @@ export default function DSPVisualization() {
       const velZ = activeFFT.vel_z_json ? JSON.parse(activeFFT.vel_z_json) : [];
       const envZ = activeFFT.env_z_json ? JSON.parse(activeFFT.env_z_json) : [];
 
-      const specAccZ = accZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp }));
+      // Spektrum zrychlení je v DB uloženo v m/s² — pro zobrazení převádíme na g
+      const specAccZ = accZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp: amp / 9.80665 }));
       const specEnvZ = envZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp }));
       
       const specVel = [];
@@ -147,8 +148,8 @@ export default function DSPVisualization() {
       const rmsVelX = calcRMSFromSpectrum(specVel.map(p => p.x), freqRes, 2, 1000);
       const rmsVelY = calcRMSFromSpectrum(specVel.map(p => p.y), freqRes, 2, 1000);
       const rmsVelZ = calcRMSFromSpectrum(specVel.map(p => p.z), freqRes, 2, 1000);
-      // Spektrum zrychlení je uloženo v m/s² — převod RMS na g (÷ 9.80665), stejně jako backend
-      const rmsAccZ = calcRMSFromSpectrum(specAccZ.map(p => p.amp), freqRes, 2, 6000) / 9.80665;
+      // specAccZ je již převedeno na g, RMS tedy vychází přímo v g (shodně s backendem)
+      const rmsAccZ = calcRMSFromSpectrum(specAccZ.map(p => p.amp), freqRes, 2, 6000);
       const rmsEnvZ = calcRMSFromSpectrum(specEnvZ.map(p => p.amp), freqRes, 2, 1000);
 
       return {
@@ -260,7 +261,7 @@ export default function DSPVisualization() {
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="t" domain={[zoomStates.raw.left, zoomStates.raw.right]} type="number" allowDataOverflow label={{ value: 'čas (ms)', position: 'insideBottomRight', offset: -5 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'zrychlení [g]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="z" stroke="#3b82f6" dot={false} isAnimationActive={false} />
                     {zoomStates.raw.refAreaLeft && zoomStates.raw.refAreaRight ? <ReferenceArea x1={zoomStates.raw.refAreaLeft} x2={zoomStates.raw.refAreaRight} strokeOpacity={0.3} /> : null}
@@ -284,7 +285,7 @@ export default function DSPVisualization() {
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="f" domain={[zoomStates.acc.left, zoomStates.acc.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'amplituda [g Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#10b981" dot={false} isAnimationActive={false} />
                     {zoomStates.acc.refAreaLeft && zoomStates.acc.refAreaRight ? <ReferenceArea x1={zoomStates.acc.refAreaLeft} x2={zoomStates.acc.refAreaRight} strokeOpacity={0.3} /> : null}
@@ -307,8 +308,8 @@ export default function DSPVisualization() {
                     onMouseUp={() => handleZoom('vel', 'f')}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="f" domain={[zoomStates.vel.left, zoomStates.vel.right]} type="number" allowDataOverflow />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
+                    <XAxis dataKey="f" domain={[zoomStates.vel.left, zoomStates.vel.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'amplituda [mm/s Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Legend />
                     <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X" />
@@ -334,8 +335,8 @@ export default function DSPVisualization() {
                     onMouseUp={() => handleZoom('env', 'f')}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="f" domain={[zoomStates.env.left, zoomStates.env.right]} type="number" allowDataOverflow />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow />
+                    <XAxis dataKey="f" domain={[zoomStates.env.left, zoomStates.env.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'amplituda [m/s²]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Line type="monotone" dataKey="amp" stroke="#f97316" dot={false} isAnimationActive={false} name="Amplituda" />
                     {zoomStates.env.refAreaLeft && zoomStates.env.refAreaRight ? <ReferenceArea x1={zoomStates.env.refAreaLeft} x2={zoomStates.env.refAreaRight} strokeOpacity={0.3} /> : null}
