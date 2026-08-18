@@ -90,8 +90,10 @@ export default function DSPVisualization() {
     }));
   };
 
-  // Výpočet RMS z peak amplitud spektra (Parsevalova věta)
-  const calcRMSFromSpectrum = (amps, freqRes, minFreq, maxFreq) => {
+  // Výpočet celkové RMS ze spektra (Parsevalova věta).
+  // isRms=true → amplitudy jsou již RMS: RMS = sqrt(sum(A²))
+  // isRms=false → amplitudy jsou peak: RMS = sqrt(sum(A²)/2)
+  const calcRMSFromSpectrum = (amps, freqRes, minFreq, maxFreq, isRms = false) => {
     let sumSq = 0;
     for (let i = 0; i < amps.length; i++) {
       const f = i * freqRes;
@@ -99,7 +101,7 @@ export default function DSPVisualization() {
         sumSq += amps[i] * amps[i];
       }
     }
-    return Math.sqrt(sumSq / 2);
+    return Math.sqrt(isRms ? sumSq : sumSq / 2);
   };
 
   const dspResults = useMemo(() => {
@@ -134,21 +136,23 @@ export default function DSPVisualization() {
       // Spektrum obálky je v DB uloženo v m/s² — pro zobrazení převádíme na g
       const specEnvZ = envZ.map((amp, i) => ({ f: Number((i * freqRes).toFixed(1)), amp: amp / 9.80665 }));
       
+      // Rychlostní spektrum je v DB v peak amplitudách — zobrazujeme v RMS (÷ √2)
+      const SQRT2 = Math.SQRT2;
       const specVel = [];
       const maxVelLen = Math.max(velX.length, velY.length, velZ.length);
       for (let i = 0; i < maxVelLen; i++) {
         specVel.push({
           f: Number((i * freqRes).toFixed(1)),
-          x: velX[i] || 0,
-          y: velY[i] || 0,
-          z: velZ[i] || 0
+          x: (velX[i] || 0) / SQRT2,
+          y: (velY[i] || 0) / SQRT2,
+          z: (velZ[i] || 0) / SQRT2
         });
       }
 
-      // Počítej RMS přímo ze spekter (Parsevalova věta: RMS = sqrt(sum(A_i^2)/2))
-      const rmsVelX = calcRMSFromSpectrum(specVel.map(p => p.x), freqRes, 2, 1000);
-      const rmsVelY = calcRMSFromSpectrum(specVel.map(p => p.y), freqRes, 2, 1000);
-      const rmsVelZ = calcRMSFromSpectrum(specVel.map(p => p.z), freqRes, 2, 1000);
+      // Celkové RMS rychlosti ze spektra (amplitudy již v RMS)
+      const rmsVelX = calcRMSFromSpectrum(specVel.map(p => p.x), freqRes, 2, 1000, true);
+      const rmsVelY = calcRMSFromSpectrum(specVel.map(p => p.y), freqRes, 2, 1000, true);
+      const rmsVelZ = calcRMSFromSpectrum(specVel.map(p => p.z), freqRes, 2, 1000, true);
       // specAccZ je již převedeno na g, RMS tedy vychází přímo v g (shodně s backendem)
       const rmsAccZ = calcRMSFromSpectrum(specAccZ.map(p => p.amp), freqRes, 2, 6000);
       const rmsEnvZ = calcRMSFromSpectrum(specEnvZ.map(p => p.amp), freqRes, 2, 1000);
@@ -297,7 +301,7 @@ export default function DSPVisualization() {
 
             <Card>
               <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm">Spektrum Rychlosti X, Y, Z (mm/s) [0-1000 Hz]</CardTitle>
+                <CardTitle className="text-sm">Spektrum Rychlosti X, Y, Z (mm/s RMS) [0-1000 Hz]</CardTitle>
                 {zoomStates.vel.left !== 'dataMin' && <Button variant="outline" size="sm" onClick={() => zoomOut('vel')} className="h-7 px-2 text-xs"><ZoomOut className="w-3 h-3 mr-1" />Zrušit zoom</Button>}
               </CardHeader>
               <CardContent>
@@ -310,7 +314,7 @@ export default function DSPVisualization() {
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="f" domain={[zoomStates.vel.left, zoomStates.vel.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'amplituda [mm/s Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow label={{ value: 'amplituda [mm/s RMS]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Legend />
                     <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X" />

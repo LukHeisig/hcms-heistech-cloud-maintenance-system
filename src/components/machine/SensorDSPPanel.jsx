@@ -392,9 +392,15 @@ export default function SensorDSPPanel({
       const specAccZ = accZ.map((amp, i) => ({ f: +(i * freqRes).toFixed(1), amp: amp / 9.80665 }));
       // Spektrum obálky je v DB uloženo v m/s² — pro zobrazení převádíme na g
       const specEnvZ = envZ.map((amp, i) => ({ f: +(i * freqRes).toFixed(1), amp: amp / 9.80665 }));
+      // Rychlostní spektrum je v DB v peak amplitudách — zobrazujeme v RMS (÷ √2)
       const specVel = [];
       for (let i = 0; i < Math.max(velX.length, velY.length, velZ.length); i++)
-        specVel.push({ f: +(i * freqRes).toFixed(1), x: velX[i] || 0, y: velY[i] || 0, z: velZ[i] || 0 });
+        specVel.push({
+          f: +(i * freqRes).toFixed(1),
+          x: (velX[i] || 0) / Math.SQRT2,
+          y: (velY[i] || 0) / Math.SQRT2,
+          z: (velZ[i] || 0) / Math.SQRT2,
+        });
 
       return {
         rmsVelX: activeRecord?.vel_rms_x_mm_s ?? null,
@@ -583,7 +589,7 @@ export default function SensorDSPPanel({
             {/* Spektrum rychlosti */}
             <Card>
               <CardHeader className="pb-1 flex flex-row items-center justify-between py-3 px-4">
-                <CardTitle className="text-xs font-semibold">Spektrum Rychlosti X, Y, Z (mm/s) [0-1000 Hz]</CardTitle>
+                <CardTitle className="text-xs font-semibold">Spektrum Rychlosti X, Y, Z (mm/s RMS) [0-1000 Hz]</CardTitle>
                 <div className="flex items-center gap-1">
                   {zoomStates.vel.left !== 'dataMin' && (
                     <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => zoomOut('vel')}>
@@ -603,7 +609,7 @@ export default function SensorDSPPanel({
                     onMouseUp={() => handleZoom('vel')}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="f" domain={[zoomStates.vel.left, zoomStates.vel.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 10 }} />
-                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} label={{ value: 'amplituda [mm/s Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 10, textAnchor: 'middle' } }} />
+                    <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 10 }} label={{ value: 'amplituda [mm/s RMS]', angle: -90, position: 'insideLeft', style: { fontSize: 10, textAnchor: 'middle' } }} />
                     <Tooltip />
                     <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                     <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X" />
@@ -694,7 +700,7 @@ export default function SensorDSPPanel({
                     <span className="font-semibold text-slate-800 text-sm">
                       {fullscreenChart === 'raw' && '📈 Časová vlna Z (Surová data) [g]'}
                       {fullscreenChart === 'acc' && '📊 Spektrum Zrychlení Z (g Peak)'}
-                      {fullscreenChart === 'vel' && '📊 Spektrum Rychlosti X, Y, Z (mm/s)'}
+                      {fullscreenChart === 'vel' && '📊 Spektrum Rychlosti X, Y, Z (mm/s RMS)'}
                       {fullscreenChart === 'env' && '📊 Spektrum Obálky Z (g Peak)'}
                     </span>
                     <button onClick={() => setFullscreenChart(null)} className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800">
@@ -926,12 +932,12 @@ export default function SensorDSPPanel({
                         <LineChart data={dsp.specVel} {...commonMouseHandlers}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="f" domain={[fsZoom.left, fsZoom.right]} type="number" allowDataOverflow label={{ value: 'frekvence (Hz)', position: 'insideBottomRight', offset: -5 }} tick={{ fontSize: 11 }} />
-                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} label={{ value: 'amplituda [mm/s Peak]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
+                          <YAxis domain={['auto', 'auto']} allowDataOverflow tick={{ fontSize: 11 }} label={{ value: 'amplituda [mm/s RMS]', angle: -90, position: 'insideLeft', style: { fontSize: 11, textAnchor: 'middle' } }} />
                           <Tooltip formatter={(v, n) => [v?.toFixed ? v.toFixed(4) : v, n]} labelFormatter={v => `${v} Hz`} />
                           <Legend iconSize={12} wrapperStyle={{ fontSize: 12 }} />
-                          <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X [mm/s]" />
-                          <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y [mm/s]" />
-                          <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z [mm/s]" />
+                          <Line type="monotone" dataKey="x" stroke="#3b82f6" dot={false} isAnimationActive={false} name="Osa X [mm/s RMS]" />
+                          <Line type="monotone" dataKey="y" stroke="#10b981" dot={false} isAnimationActive={false} name="Osa Y [mm/s RMS]" />
+                          <Line type="monotone" dataKey="z" stroke="#f59e0b" dot={false} isAnimationActive={false} name="Osa Z [mm/s RMS]" />
                           {!hcMode && fsZoom.refAreaLeft && fsZoom.refAreaRight && <ReferenceArea x1={fsZoom.refAreaLeft} x2={fsZoom.refAreaRight} strokeOpacity={0.3} fill="#6366f1" fillOpacity={0.1} />}
                           {renderBearingRefLines(fsBearingFreqLines, fsVisibleFreqs, fsBearingHarmonics)}
                           {fsRotLines.map(({ n, hz }) => (
