@@ -147,7 +147,8 @@ export default function DSPVisualization() {
       const rmsVelX = calcRMSFromSpectrum(specVel.map(p => p.x), freqRes, 2, 1000);
       const rmsVelY = calcRMSFromSpectrum(specVel.map(p => p.y), freqRes, 2, 1000);
       const rmsVelZ = calcRMSFromSpectrum(specVel.map(p => p.z), freqRes, 2, 1000);
-      const rmsAccZ = calcRMSFromSpectrum(specAccZ.map(p => p.amp), freqRes, 2, 6000);
+      // Spektrum zrychlení je uloženo v m/s² — převod RMS na g (÷ 9.80665), stejně jako backend
+      const rmsAccZ = calcRMSFromSpectrum(specAccZ.map(p => p.amp), freqRes, 2, 6000) / 9.80665;
       const rmsEnvZ = calcRMSFromSpectrum(specEnvZ.map(p => p.amp), freqRes, 2, 1000);
 
       return {
