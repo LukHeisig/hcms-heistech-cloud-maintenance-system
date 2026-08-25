@@ -253,6 +253,7 @@ export default function AdminMachines() {
         location: machine.location || "",
         machine_type: machine.machine_type || null,
         vibration_schema_id: machine.vibration_schema_id || null,
+        alarm_delay_count: machine.alarm_delay_count || 1,
         photo_url: machine.photo_url || "",
         parent_id: machine.parent_id || null,
         monitor_vibration: machine.monitor_vibration || false,
@@ -268,6 +269,7 @@ export default function AdminMachines() {
         location: "",
         machine_type: null,
         vibration_schema_id: null,
+        alarm_delay_count: 1,
         photo_url: "",
         parent_id: null,
         monitor_vibration: false,
@@ -304,6 +306,7 @@ export default function AdminMachines() {
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
       vibration_schema_id: formData.vibration_schema_id || null,
+      alarm_delay_count: Math.max(1, parseInt(formData.alarm_delay_count) || 1),
       photo_url: formData.photo_url || null,
       parent_id: formData.parent_id === "none" ? null : formData.parent_id,
       monitor_vibration: formData.monitor_vibration,
@@ -768,7 +771,8 @@ export default function AdminMachines() {
 
                 <div className="border-t pt-4 mt-4">
                 <h4 className="font-semibold mb-3 text-slate-800">Nastavení vibrodiagnostiky</h4>
-                <div>
+                <div className="space-y-4">
+                  <div>
                     <Label>Schéma měření</Label>
                     <Select
                         value={formData.vibration_schema_id || "none"}
@@ -784,6 +788,21 @@ export default function AdminMachines() {
                             ))}
                         </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="alarm_delay_count">Zpoždění alarmu (počet měření)</Label>
+                    <Input
+                        id="alarm_delay_count"
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={formData.alarm_delay_count ?? 1}
+                        onChange={(e) => setFormData({ ...formData, alarm_delay_count: e.target.value })}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                        Limit musí být překročen v tolika po sobě jdoucích měřeních, aby se alarm aktivoval. 1 = alarm ihned při prvním překročení.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

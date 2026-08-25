@@ -108,13 +108,26 @@ Deno.serve(async (req) => {
       const machine = machinesById[assignment.machine_id];
       if (!machine) continue;
 
-      // Načteme poslední DSP záznam (má vyplněné RMS hodnoty)
+      // Zpoždění alarmu: limit musí být překročen v tolika po sobě jdoucích měřeních
+      const delayCount = Math.max(1, machine.alarm_delay_count || 1);
+
+      // Načteme poslední DSP záznamy (mají vyplněné RMS hodnoty)
       const recentData = await base44.asServiceRole.entities.SensorData.filter(
         { sensor_id: assignment.sensor_id, has_fft: true },
         "-created_date",
-        5
+        Math.max(5, delayCount + 3)
       );
-      const latest = recentData.find(r => r.vel_rms_x_mm_s != null) ?? null;
+      const validReadings = recentData.filter(r => r.vel_rms_x_mm_s != null);
+      const latest = validReadings[0] ?? null;
+
+      // Ověří, že posledních delayCount měření všechna překročila limit B/C (val >= bc)
+      const isConfirmed = (getVal, bc) => {
+        if (delayCount <= 1) return true;
+        if (bc == null) return false;
+        const vals = validReadings.slice(0, delayCount).map(getVal).filter(v => v != null);
+        if (vals.length < delayCount) return false; // nedostatek historie — alarm nevytváříme
+        return vals.every(v => v >= bc);
+      };
 
       // Načteme senzor pro teplotu a baterii
       const sensorRecords = await base44.asServiceRole.entities.AissensSensor.filter(
@@ -183,7 +196,7 @@ Deno.serve(async (req) => {
         ];
         for (const m of velMetrics) {
           const severity = getSeverity(m.value, velStd.limit_ab, velStd.limit_bc, velStd.limit_cd);
-          if (severity) {
+          if (severity && isConfirmed(r => r[m.key], velStd.limit_bc)) {
             await createAlert({
               alert_type: "velocity",
               metric_key: m.key,
@@ -204,7 +217,7 @@ Deno.serve(async (req) => {
       if (latest && accStd) {
         const accVal = latest.rms_z_g ?? latest.oa_acc_z;
         const accSeverity = getSeverity(accVal, accStd.acc_limit_ab, accStd.acc_limit_bc, accStd.acc_limit_cd);
-        if (accSeverity) {
+        if (accSeverity && isConfirmed(r => r.rms_z_g ?? r.oa_acc_z, accStd.acc_limit_bc)) {
           await createAlert({
             alert_type: "acceleration",
             metric_key: "rms_z_g",
@@ -221,7 +234,7 @@ Deno.serve(async (req) => {
 
         // Kontrola obálky (envelope)
         const envSeverity = getSeverity(latest.env_rms_z, accStd.acc_limit_ab, accStd.acc_limit_bc, accStd.acc_limit_cd);
-        if (envSeverity && latest.env_rms_z != null) {
+        if (envSeverity && latest.env_rms_z != null && isConfirmed(r => r.env_rms_z, accStd.acc_limit_bc)) {
           await createAlert({
             alert_type: "envelope",
             metric_key: "env_rms_z",
@@ -241,7 +254,15 @@ Deno.serve(async (req) => {
       if (sensor && tempStd) {
         const temp = sensor.last_temperature;
         const tempSeverity = getSeverity(temp, tempStd.temp_limit_ab, tempStd.temp_limit_bc, tempStd.temp_limit_cd);
-        if (tempSeverity) {
+        // Teplota: potvrzení z historie měření (záznamy s vyplněnou teplotou)
+        const tempConfirmed = (() => {
+          if (delayCount <= 1) return true;
+          if (tempStd.temp_limit_bc == null) return false;
+          const temps = recentData.filter(r => r.temperature != null).slice(0, delayCount).map(r => r.temperature);
+          if (temps.length < delayCount) return false;
+          return temps.every(t => t >= tempStd.temp_limit_bc);
+        })();
+        if (tempSeverity && tempConfirmed) {
           await createAlert({
             alert_type: "temperature",
             metric_key: "temperature",

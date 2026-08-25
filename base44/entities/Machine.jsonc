@@ -70,6 +70,11 @@
       "type": "string",
       "description": "ID p\u0159i\u0159azen\u00e9ho sch\u00e9matu m\u011b\u0159en\u00ed (tabulky)"
     },
+    "alarm_delay_count": {
+      "type": "number",
+      "default": 1,
+      "description": "Zpo\u017ed\u011bn\u00ed alarmu vibrodiagnostiky \u2014 po\u010det po sob\u011b jdouc\u00edch m\u011b\u0159en\u00ed, kter\u00e1 mus\u00ed p\u0159ekro\u010dit limit, aby se alarm aktivoval (1 = bez zpo\u017ed\u011bn\u00ed)"
+    },
     "photo_url": {
       "type": "string",
       "description": "URL fotografie stroje pro vibra\u010dn\u00ed kartu"
