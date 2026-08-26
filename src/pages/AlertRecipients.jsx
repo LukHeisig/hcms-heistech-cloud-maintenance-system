@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Bell,
   Plus,
+  Pencil,
   Trash2,
   ChevronLeft,
   User,
@@ -45,6 +46,7 @@ export default function AlertRecipients() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     user_id: "",
     company_id: "",
@@ -88,13 +90,36 @@ export default function AlertRecipients() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.VibrationAlertRecipient.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vibrationAlertRecipients"] });
+      setShowDialog(false);
+      resetForm();
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.VibrationAlertRecipient.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vibrationAlertRecipients"] }),
   });
 
   const resetForm = () => {
+    setEditingId(null);
     setForm({ user_id: "", company_id: "", line_id: "", machine_id: "", notify_severity_c: false, notify_severity_d: true });
+  };
+
+  const handleEdit = (r) => {
+    setEditingId(r.id);
+    setForm({
+      user_id: r.user_id,
+      company_id: r.company_id || "",
+      line_id: r.line_id || "",
+      machine_id: r.machine_id || "",
+      notify_severity_c: !!r.notify_severity_c,
+      notify_severity_d: !!r.notify_severity_d,
+    });
+    setShowDialog(true);
   };
 
   const filteredLines = form.company_id ? lines.filter(l => l.company_id === form.company_id) : lines;
@@ -106,7 +131,7 @@ export default function AlertRecipients() {
   const handleSave = () => {
     const user = users.find(u => u.id === form.user_id);
     if (!user) return;
-    createMutation.mutate({
+    const data = {
       user_id: form.user_id,
       user_email: user.email,
       user_name: user.custom_display_name || user.full_name || user.email,
@@ -115,7 +140,12 @@ export default function AlertRecipients() {
       machine_id: form.machine_id || null,
       notify_severity_c: form.notify_severity_c,
       notify_severity_d: form.notify_severity_d,
-    });
+    };
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   const getScopeType = (r) => {
@@ -226,6 +256,16 @@ export default function AlertRecipients() {
                         )}
                       </div>
 
+                      {/* Edit */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-slate-400 hover:text-blue-600 flex-shrink-0"
+                        onClick={() => handleEdit(r)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+
                       {/* Delete */}
                       <Button
                         variant="ghost"
@@ -250,7 +290,7 @@ export default function AlertRecipients() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-blue-600" />
-              Přidat příjemce notifikací
+              {editingId ? "Upravit nastavení notifikací" : "Přidat příjemce notifikací"}
             </DialogTitle>
           </DialogHeader>
 
@@ -351,7 +391,7 @@ export default function AlertRecipients() {
             <Button variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>Zrušit</Button>
             <Button
               onClick={handleSave}
-              disabled={!form.user_id || (!form.notify_severity_c && !form.notify_severity_d) || createMutation.isPending}
+              disabled={!form.user_id || (!form.notify_severity_c && !form.notify_severity_d) || createMutation.isPending || updateMutation.isPending}
             >
               Uložit
             </Button>
