@@ -42,7 +42,8 @@ export default async function (req: Request) {
       continue;
     }
 
-    const sd = await db.SensorData.filter({ dsp_version: null }, null, 300);
+    // malá dávka — záznamy obsahují velká raw_*_json pole (paměť)
+    const sd = await db.SensorData.filter({ dsp_version: null }, null, 40);
     if (sd.length > 0) {
       const validTs = (t: any) => typeof t === 'number' && t > 1500000000 && t < 4000000000;
       await db.SensorData.bulkUpdate(sd.map((p: any) => ({
