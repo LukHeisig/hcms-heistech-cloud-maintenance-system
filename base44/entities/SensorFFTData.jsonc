@@ -14,9 +14,17 @@
       "type": "number",
       "description": "UNIX timestamp z hlavi\u010dky"
     },
+    "dsp_version": {
+      "type": "number",
+      "description": "Verze DSP pipeline (1=p\u016fvodn\u00ed, 2=opraven\u00e1 normalizace)"
+    },
     "frequency_resolution": {
       "type": "number",
-      "description": "Rozli\u0161en\u00ed frekvence v Hz"
+      "description": "Rozte\u010d spektr\u00e1ln\u00edch \u010dar v Hz (po zero-paddingu)"
+    },
+    "true_resolution_hz": {
+      "type": "number",
+      "description": "Skute\u010dn\u00e1 rozli\u0161ovac\u00ed schopnost FFT v Hz (fs / d\u00e9lka segmentu)"
     },
     "report_len": {
       "type": "number",

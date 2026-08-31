@@ -14,6 +14,10 @@
       "type": "number",
       "description": "UNIX timestamp m\u011b\u0159en\u00ed"
     },
+    "dsp_version": {
+      "type": "number",
+      "description": "Verze DSP pipeline (1=p\u016fvodn\u00ed, 2=opraven\u00e1 normalizace)"
+    },
     "vel_rms_x_mm_s": {
       "type": "number",
       "description": "Velocity RMS X [mm/s]"

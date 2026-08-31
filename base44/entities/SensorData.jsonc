@@ -14,6 +14,15 @@
       "type": "number",
       "description": "UNIX timestamp z hlavi\u010dky senzoru"
     },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Sjednocen\u00fd \u010das m\u011b\u0159en\u00ed (validovan\u00fd timestamp senzoru, nebo \u010das serveru)"
+    },
+    "dsp_version": {
+      "type": "number",
+      "description": "Verze DSP pipeline, kterou byla data spo\u010d\u00edt\u00e1na (1=p\u016fvodn\u00ed, 2=opraven\u00e1 normalizace)"
+    },
     "temperature": {
       "type": "number",
       "description": "Teplota senzoru v \u00b0C"

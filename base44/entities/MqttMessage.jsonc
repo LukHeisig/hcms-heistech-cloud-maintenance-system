@@ -12,7 +12,7 @@
     },
     "payload_hex": {
       "type": "string",
-      "description": "Raw HEX payload"
+      "description": "Raw HEX payload (u Type 0 se neukl\u00e1d\u00e1 \u2014 p\u0159\u00edli\u0161 velk\u00fd)"
     },
     "report_type": {
       "type": "number",
@@ -25,7 +25,6 @@
   },
   "required": [
     "topic",
-    "sensor_id",
-    "payload_hex"
+    "sensor_id"
   ]
 }
