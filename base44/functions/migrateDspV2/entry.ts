@@ -22,7 +22,11 @@ export default async function (req: Request) {
   let fftMigrated = 0;
   let done = false;
 
-  while (Date.now() - started < 90000) {
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  let throttles = 0;
+
+  while (Date.now() - started < 80000) {
+   try {
     const trend = await db.SensorTrendPoint.filter({ dsp_version: null }, null, 500);
     if (trend.length > 0) {
       await db.SensorTrendPoint.bulkUpdate(trend.map((p: any) => ({
@@ -71,7 +75,14 @@ export default async function (req: Request) {
 
     done = true;
     break;
+   } catch (e) {
+    // typicky 429 (limit objemu čtení) — počkat a zkusit znovu
+    throttles++;
+    console.log(`[Migrace] throttle #${throttles}: ${e.message}`);
+    if (throttles > 12) break;
+    await sleep(10000);
+   }
   }
 
-  return Response.json({ ok: true, done, trendMigrated, sensorDataMigrated, fftMigrated });
+  return Response.json({ ok: true, done, throttles, trendMigrated, sensorDataMigrated, fftMigrated });
 }
