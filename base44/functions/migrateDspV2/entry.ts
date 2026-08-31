@@ -10,8 +10,10 @@ const r3 = (v: number | null, k: number) => (v != null ? Math.round(v * k * 1000
 
 export default async function (req: Request) {
   const base44 = createClientFromRequest(req);
-  const user = await base44.auth.me();
-  if (user?.user_type !== 'superAdmin') {
+  // Povolit superAdmina, nebo interní spuštění automatizací (bez uživatele).
+  let user = null;
+  try { user = await base44.auth.me(); } catch (_e) { /* automatizace bez uživatele */ }
+  if (user && user.user_type !== 'superAdmin') {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
