@@ -44,10 +44,11 @@ export default async function (req: Request) {
 
     const sd = await db.SensorData.filter({ dsp_version: null }, null, 300);
     if (sd.length > 0) {
+      const validTs = (t: any) => typeof t === 'number' && t > 1500000000 && t < 4000000000;
       await db.SensorData.bulkUpdate(sd.map((p: any) => ({
         id: p.id,
         dsp_version: 2,
-        recorded_at: p.recorded_at || (p.timestamp_unix ? new Date(p.timestamp_unix * 1000).toISOString() : p.created_date),
+        recorded_at: p.recorded_at || (validTs(p.timestamp_unix) ? new Date(p.timestamp_unix * 1000).toISOString() : p.created_date),
         rms_z_g: r3(p.rms_z_g, K_ACC),
         oa_acc_z: r3(p.oa_acc_z, K_ACC),
         vel_rms_x_mm_s: r3(p.vel_rms_x_mm_s, K_VEL),
