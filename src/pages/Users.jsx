@@ -134,11 +134,18 @@ export default function Users() {
   }, [users, selectedCompanyFilter, currentUser]);
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const response = await base44.functions.invoke("updateUser", { userId: id, data });
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowEditDialog(false);
       setEditingUser(null);
+    },
+    onError: (error) => {
+      alert("Chyba při ukládání uživatele: " + error.message);
     },
   });
 
@@ -866,9 +873,10 @@ export default function Users() {
               </Button>
               <Button
                 onClick={handleSaveUser}
+                disabled={updateUserMutation.isPending}
                 className="bg-gradient-to-r from-red-600 to-red-700"
               >
-                Uložit změny
+                {updateUserMutation.isPending ? "Ukládám..." : "Uložit změny"}
               </Button>
             </DialogFooter>
           </DialogContent>
