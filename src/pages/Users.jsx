@@ -54,6 +54,7 @@ export default function Users() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState("all");
   const [deletingUser, setDeletingUser] = useState(null);
+  const [saveError, setSaveError] = useState(null);
   const [formData, setFormData] = useState({
     user_type: "technician",
     phone: "",
@@ -141,11 +142,12 @@ export default function Users() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      setSaveError(null);
       setShowEditDialog(false);
       setEditingUser(null);
     },
     onError: (error) => {
-      alert("Chyba při ukládání uživatele: " + error.message);
+      setSaveError(error.message || "Neznámá chyba");
     },
   });
 
@@ -177,6 +179,7 @@ export default function Users() {
 
   const handleOpenEdit = (user) => {
     setEditingUser(user);
+    setSaveError(null);
     setFormData({
       user_type: user.user_type || "technician",
       phone: user.phone || "",
@@ -190,17 +193,16 @@ export default function Users() {
     setShowEditDialog(true);
   };
 
-  const handleSaveUser = async () => {
-    if (editingUser) {
-      const dataToSave = {
+  const handleSaveUser = () => {
+    if (!editingUser) return;
+    setSaveError(null);
+    updateUserMutation.mutate({
+      id: editingUser.id,
+      data: {
         ...formData,
         access_until: formData.access_until ? new Date(formData.access_until).toISOString() : null,
-      };
-      await updateUserMutation.mutateAsync({
-        id: editingUser.id,
-        data: dataToSave,
-      });
-    }
+      },
+    });
   };
 
   const getUserTypeLabel = (type) => {
@@ -866,6 +868,14 @@ export default function Users() {
                 </p>
               </div>
               ) : null}
+
+              {saveError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-700">
+                    <strong>Uložení se nepovedlo:</strong> {saveError}
+                  </p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowEditDialog(false)}>
