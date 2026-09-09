@@ -1,0 +1,44 @@
+{
+  "name": "Kontrola p\u0159ekro\u010den\u00ed limit\u016f vibrac\u00ed",
+  "description": "Ka\u017ed\u00fdch 15 minut kontroluje RMS hodnoty, teplotu a baterii vibra\u010dn\u00edch senzor\u016f a vytv\u00e1\u0159\u00ed alarmy p\u0159i p\u0159ekro\u010den\u00ed limit\u016f.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 15,
+      "interval_unit": "minutes",
+      "interval_anchor": "2026-06-06T06:26:46.680000",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "kontrola_p_ekro_en_limit_vibrac",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "checkVibrationAlerts",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "checkVibrationAlerts"
+  }
+}

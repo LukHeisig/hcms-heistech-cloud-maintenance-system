@@ -1,0 +1,44 @@
+{
+  "name": "Do\u010dasn\u00e1 migrace DSP v2",
+  "description": "Do\u010dasn\u00e1 automatizace \u2014 dokon\u010d\u00ed jednor\u00e1zovou migraci historick\u00fdch vibra\u010dn\u00edch dat na DSP v2. Po dokon\u010den\u00ed smazat.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 30,
+      "interval_unit": "minutes",
+      "interval_anchor": "2026-08-31T18:44:42.425000",
+      "ends_type": "after_count",
+      "ends_on_date": null,
+      "ends_after_count": 60
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "do_asn_migrace_dsp_v2",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "migrateDspV2",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "migrateDspV2"
+  }
+}
