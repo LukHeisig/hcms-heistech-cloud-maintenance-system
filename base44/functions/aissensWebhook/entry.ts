@@ -281,11 +281,11 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
 
   const result = { report_type: type, dsp_version: DSP_VERSION };
 
-  // OPRAVA v2: deklarovaná délka se ověřuje — uříznuté rámce se zahodí.
-  if (dataLength > 0 && data.length < dataLength) {
-    console.log(`[Parse] TRUNCATED frame: declared ${dataLength} B, got ${data.length} B — zahazuji`);
-    result.truncated = true;
-    return result;
+  // Deklarovaná délka v hlavičce se u těchto senzorů neshoduje se skutečnou délkou dat
+  // (kontrola v2 zahazovala VŠECHNY platné RAW zprávy). Neshodu pouze logujeme —
+  // počet vzorků se odvozuje ze skutečné délky dat, viditelnost hodnot to neohrozí.
+  if (dataLength > 0 && data.length !== dataLength) {
+    console.log(`[Parse] length mismatch: declared ${dataLength} B, got ${data.length} B — pokračuji`);
   }
 
   // ── Type 1: FFT ──────────────────────────────────────────────────────────
