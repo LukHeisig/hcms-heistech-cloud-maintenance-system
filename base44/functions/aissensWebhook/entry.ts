@@ -8,7 +8,7 @@ import { secrets } from 'base44:runtime';
 // POZOR: hodnoty rms_z_g a vel_rms_* se oproti v1 číselně mění.
 // ═════════════════════════════════════════════════════════════════════════════
 
-const DSP_VERSION = 2; // redeploy touch 2026-08-31
+const DSP_VERSION = 2; // redeploy touch 2026-09-10 (length-mismatch fix)
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
