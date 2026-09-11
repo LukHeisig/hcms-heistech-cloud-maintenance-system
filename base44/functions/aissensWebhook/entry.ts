@@ -8,7 +8,8 @@ import { secrets } from 'base44:runtime';
 // POZOR: hodnoty rms_z_g a vel_rms_* se oproti v1 číselně mění.
 // ═════════════════════════════════════════════════════════════════════════════
 
-const DSP_VERSION = 2; // redeploy touch 2026-09-10 (length-mismatch fix)
+const DSP_VERSION = 2;
+const CODE_BUILD = "2026-09-11b"; // full rewrite to force redeploy (length-mismatch fix)
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -149,8 +150,6 @@ function performFFT(real, imag, N, dir) {
 // Jednostranné amplitudové spektrum (špičkové amplitudy ve fyzikálních jednotkách).
 //
 // OPRAVA v2: normalizuje se koherentním ziskem okna (windowSum), NE délkou FFT N.
-// Signál se doplňuje nulami na mocninu dvou (13350 → 16384); dělení N tedy
-// ve v1 podhodnocovalo všechny amplitudy faktorem L/N ≈ 0,815 (−18,5 %).
 function computeRFFT(signal, fs, windowSum = null) {
   const L = signal.length;
   let N = 1;
@@ -168,7 +167,6 @@ function computeRFFT(signal, fs, windowSum = null) {
   amplitudes[0] = Math.sqrt(real[0]*real[0] + imag[0]*imag[0]) / cg; // DC — bez ×2
   frequencies[0] = 0;
   for (let i = 1; i < numBins; i++) {
-    // ×2 = jednostranné spektrum; kompenzace útlumu okna je už v dělení cg
     amplitudes[i] = (Math.sqrt(real[i]*real[i] + imag[i]*imag[i]) / cg) * 2;
     frequencies[i] = (i * fs) / N;
   }
@@ -187,11 +185,7 @@ function getVelocitySpectrum(accelAmpsG, freqs) {
 }
 
 // RMS v pásmu z amplitudového spektra.
-//
-// OPRAVA v2: parametr `corr` = windowSum² / (N · windowSumSq) — energetická
-// korekce, která současně řeší (a) rozdíl mezi amplitudovým a energetickým
-// korekčním faktorem okna a (b) rozprostření energie zero-paddingem.
-// Bez ní RMS ve v1 nadhodnocovala zhruba o 33 %.
+// `corr` = windowSum² / (N · windowSumSq) — energetická korekce (okno + zero-padding).
 function calculateRMSFromSpectrum(amps, freqs, minFreq, maxFreq, corr = 1) {
   let sumSq = 0;
   for (let i = 0; i < amps.length; i++) {
@@ -281,9 +275,8 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
 
   const result = { report_type: type, dsp_version: DSP_VERSION };
 
-  // Deklarovaná délka v hlavičce se u těchto senzorů neshoduje se skutečnou délkou dat
-  // (kontrola v2 zahazovala VŠECHNY platné RAW zprávy). Neshodu pouze logujeme —
-  // počet vzorků se odvozuje ze skutečné délky dat, viditelnost hodnot to neohrozí.
+  // Deklarovaná délka v hlavičce se u těchto senzorů neshoduje se skutečnou délkou dat.
+  // Neshodu pouze logujeme — počet vzorků se odvozuje ze skutečné délky dat.
   if (dataLength > 0 && data.length !== dataLength) {
     console.log(`[Parse] length mismatch: declared ${dataLength} B, got ${data.length} B — pokračuji`);
   }
@@ -292,17 +285,14 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
   if (type === 1) {
     if (data.length < 45) return result;
     result.timestamp_unix = readUint64BE(data, 0);
-    // OPRAVA v2: úroveň z napětí, nibble od senzoru ignorujeme (viz evaluateBattery)
     const lastAdc1 = (data[12] << 8) | data[13];
     const bat1 = evaluateBattery(adcToVoltage(lastAdc1));
     result.battery_level = bat1.level;
     result.battery_voltage = bat1.voltage;
 
     const tempRaw = readInt16BE(data, 14);
-    // tempRaw=0 znamená, že senzor teplotu neposkytl (výsledek by byl přesně 28.0°C) — ignorujeme
     result.temperature = tempRaw !== 0 ? Math.round((tempRaw / 256.0 + 28) * 100) / 100 : null;
 
-    // OA X,Y,Z at offset 16 (3 * float32 LE)
     result.oa_x = Math.round(readFloat32LE(data, 16) * 10000) / 10000;
     result.oa_y = Math.round(readFloat32LE(data, 20) * 10000) / 10000;
     result.oa_z = Math.round(readFloat32LE(data, 24) * 10000) / 10000;
@@ -310,7 +300,6 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
     result.frequency_resolution = Math.round(readFloat32LE(data, 28) * 10000) / 10000;
     result.fft_length = readUint32BE(data, 32);
     result.fft_lines = readUint32BE(data, 36);
-    // reserved 5 bytes at 40, FFT data od offsetu 45
 
     const fftOffset = 45;
     const reportLen = result.fft_lines;
@@ -332,7 +321,6 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
       result.vel_z = readAxis(fftOffset + reportLen * 4 * 5);
 
       result.has_fft = true;
-      // OPRAVA v2: calcRMS může vrátit null → v1 z toho udělala 0
       const rmsAccZ = calcRMS(result.acc_z);
       result.oa_acc_z = rmsAccZ != null ? Math.round(rmsAccZ * 10000) / 10000 : null;
     }
@@ -379,17 +367,11 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
   }
 
   // ── Type 4: Hibernate/Wakeup ─────────────────────────────────────────────
-  // Per spec v1.7:
-  //   Hibernate: Timestamp(8B) | Status(1B) | Sensor Information(json string)
-  //   Wakeup:    Timestamp(8B) | Status(1B) | OnlineDuration(2B) | WiFiOnlineDuration(2B)
-  //              | TransmissionDuration(2B) | BatteryUsageTime(4B)
   else if (type === 4) {
     if (data.length < 9) return result;
     result.timestamp_unix = readUint64BE(data, 0);
     result.status_code = data[8];
 
-    // Zda zpráva obsahuje JSON zjistíme spolehlivě podle toho, že na pozici 9 začíná znakem '{' (0x7B).
-    // Různé verze firmwaru totiž posílají JSON buď při Wakeup, nebo Hibernate.
     if (data.length > 9 && data[9] === 0x7B) {
       try {
         const jsonStr = new TextDecoder().decode(data.slice(9));
@@ -406,7 +388,6 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
         console.log(`[Type4 JSON] parse error: ${e.message}`);
       }
     } else if (data.length >= 19) {
-      // OPRAVA v2: battery_usage_time je uint32 na [15..18] → potřeba 19 B, ne 17
       result.online_duration = (data[9] << 8) | data[10];
       result.wifi_online_duration = (data[11] << 8) | data[12];
       result.transmission_duration = (data[13] << 8) | data[14];
@@ -423,17 +404,9 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
   }
 
   // ── Type 0: Raw Data ─────────────────────────────────────────────────────
-  // Per spec v1.7, Header (20B):
-  //   [0-7]   Timestamp (8B, uint64BE)
-  //   [8]     Control Flags (1B)
-  //   [9]     *Index (1B, always 1)
-  //   [10]    *Total (1B, always 1)
-  //   [11-12] Temp (2B, Int16BE) → temperature = value/256.0 + 28
-  //   [13-14] Real ODR (2B, Int16BE)
-  //   [15]    Battery information (1B) — ignorujeme (nespolehlivé pod zátěží)
-  //   [16-17] Last ADC (2B, Int16BE) → voltage = (adc-1400)*0.001547+2.7
-  //   [18-19] Average ADC (2B, Int16BE)
-  //   [20..]  Acceleration data: x(2B LE), y(2B LE), z(2B LE) per sample
+  // Header (20B): [0-7] Timestamp | [8] Flags | [9] Index | [10] Total | [11-12] Temp
+  //   | [13-14] Real ODR | [15] Battery info | [16-17] Last ADC | [18-19] Avg ADC
+  //   [20..] Acceleration data: x(2B LE), y(2B LE), z(2B LE) per sample
   else if (type === 0) {
     if (data.length < 20) return result;
     result.timestamp_unix = readUint64BE(data, 0);
@@ -448,8 +421,6 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
 
     result.real_odr = readInt16BE(data, 13);
 
-    // OPRAVA v2: fs se odvozuje jednou a používá se ve VŠECH filtrech
-    // (v1 měla v HP filtru natvrdo 26700 Hz bez ohledu na skutečné ODR).
     const fs = (result.real_odr >= 1000 && result.real_odr <= 30000) ? result.real_odr : 26700;
     result.fs_used = fs;
 
@@ -462,8 +433,6 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
     const numSamples = Math.floor(remainingBytes / 6);
     result.num_samples = numSamples;
 
-    // Validace: odmítni záznamy s příliš malým počtem vzorků (< 1000 = nesmyslná data).
-    // Správný záznam při 26700 Hz / 1 s má ~26700 vzorků.
     const MIN_VALID_SAMPLES = 1000;
     if (numSamples < MIN_VALID_SAMPLES) {
       console.log(`[Type0] REJECTED: only ${numSamples} samples (min ${MIN_VALID_SAMPLES}), skipping raw/FFT storage`);
@@ -472,8 +441,7 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
       return result;
     }
 
-    // Little-endian Int16, dvojkový doplněk → g
-    // 0.0002441062 ≈ 8/32768 = LSB akcelerometru ±8 g. Jednotka je [g], NE m/s².
+    // Little-endian Int16 → g (LSB ±8 g)
     const ADC_TO_G = 0.0002441062;
     const rawXa = new Float64Array(numSamples);
     const rawYa = new Float64Array(numSamples);
@@ -486,13 +454,10 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
       rawZa[i] = toSigned16((data[off+5] << 8) | data[off+4]) * ADC_TO_G;
     }
 
-    // OPRAVA v2: de-mean + zero-phase Butterworth HP 10 Hz místo jednopólového
-    // kauzálního filtru → žádný přechodový děj na začátku, žádný fázový posun.
     const rawX = filtfiltButterworthHPF(removeMean(rawXa), 10, fs);
     const rawY = filtfiltButterworthHPF(removeMean(rawYa), 10, fs);
     const rawZ = filtfiltButterworthHPF(removeMean(rawZa), 10, fs);
 
-    // Uložení raw dat (omezeno kvůli velikosti pole v DB)
     const maxSamples = 5000;
     const round5 = (v) => Math.round(v * 100000) / 100000;
     result.raw_x = Array.from(rawX.slice(0, maxSamples), round5);
@@ -510,9 +475,6 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
       return result;
     }
 
-    // Průměr N spekter pro jednu osu.
-    // OPRAVA v2: průměruje se VÝKON (|A|²), ne amplituda — amplitudové
-    // průměrování podhodnocuje náhodné složky (šum ložisek, kavitace).
     function computeAveragedFFT(signal, axisName) {
       const numSeg = Math.min(NUM_SEGMENTS, Math.floor(signal.length / segLen));
       if (numSeg < 1) {
@@ -531,7 +493,6 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
         for (let i = 0; i < fft.amplitudes.length; i++) {
           sumPow[i] += fft.amplitudes[i] * fft.amplitudes[i];
         }
-        // energetická korekce (okno + zero-padding); pro všechny segmenty stejná
         corr = (windowSum * windowSum) / (fft.N * windowSumSq);
       }
       const avgAmps = new Float64Array(sumPow.length);
@@ -548,39 +509,30 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
       return result;
     }
 
-    // Rychlostní spektra [mm/s] — integrace zrychlení [g] ve frekvenční oblasti
     const velXAmps = getVelocitySpectrum(fftX.avgAmps, fftX.frequencies);
     const velYAmps = getVelocitySpectrum(fftY.avgAmps, fftY.frequencies);
     const velZAmps = getVelocitySpectrum(fftZ.avgAmps, fftZ.frequencies);
 
-    // Obálka: HP 500 Hz → Hilbertova obálka → de-mean → průměrované FFT
     const filteredZHP = filtfiltButterworthHPF(rawZ, 500, fs);
     const envelopeZ = computeHilbertEnvelope(filteredZHP);
     const fftEnvZ = computeAveragedFFT(removeMean(envelopeZ), 'EnvZ');
 
-    // ─── Celkové hodnoty (RMS) z průměrných spekter ─────────────────────────
     const r3 = (v) => Math.round(v * 1000) / 1000;
-    // Rychlost XYZ [mm/s]: fftLowCutHz–1000 Hz
     result.vel_rms_x_mm_s = r3(calculateRMSFromSpectrum(velXAmps, fftX.frequencies, fftLowCutHz, 1000, fftX.corr));
     result.vel_rms_y_mm_s = r3(calculateRMSFromSpectrum(velYAmps, fftY.frequencies, fftLowCutHz, 1000, fftY.corr));
     result.vel_rms_z_mm_s = r3(calculateRMSFromSpectrum(velZAmps, fftZ.frequencies, fftLowCutHz, 1000, fftZ.corr));
-    // Zrychlení Z [g]: fftLowCutHz–6000 Hz
-    // OPRAVA v2: spektrum je už v g — žádné dělení 9,80665 (v1 dělila navíc).
     result.rms_z_g = r3(calculateRMSFromSpectrum(fftZ.avgAmps, fftZ.frequencies, fftLowCutHz, 6000, fftZ.corr));
-    // Obálka Z [g]: fftLowCutHz–1000 Hz
     result.env_rms_z = fftEnvZ
       ? r3(calculateRMSFromSpectrum(fftEnvZ.avgAmps, fftEnvZ.frequencies, fftLowCutHz, 1000, fftEnvZ.corr))
       : null;
 
     console.log(`[DSP] low_cut=${fftLowCutHz}Hz | vel_rms x=${result.vel_rms_x_mm_s} y=${result.vel_rms_y_mm_s} z=${result.vel_rms_z_mm_s} mm/s | acc_z=${result.rms_z_g} g | env_z=${result.env_rms_z} g`);
 
-    // ─── Příprava FFT dat pro uložení do DB ─────────────────────────────────
     result.has_fft = true;
     const binWidth = fftZ.frequencies[1] || 1;
-    result.frequency_resolution = binWidth;    // rozteč čar (po zero-paddingu)
-    result.true_resolution_hz = fs / segLen;   // skutečná rozlišovací schopnost
+    result.frequency_resolution = binWidth;
+    result.true_resolution_hz = fs / segLen;
 
-    // Vynulování frekvencí pod fftLowCutHz (DC + velmi nízké frekvence)
     for (let i = 0; i < fftZ.frequencies.length; i++) {
       if (fftZ.frequencies[i] >= fftLowCutHz) break;
       fftX.avgAmps[i] = 0; fftY.avgAmps[i] = 0; fftZ.avgAmps[i] = 0;
@@ -588,9 +540,9 @@ function parseAissensData(bytes, fftLowCutHz = 2) {
       if (fftEnvZ) fftEnvZ.avgAmps[i] = 0;
     }
 
-    const maxVelPoints = Math.ceil(1000 / binWidth) + 1;  // vel: low_cut–1000 Hz
-    const maxAccPoints = Math.ceil(6000 / binWidth) + 1;  // acc: low_cut–6000 Hz
-    const maxEnvPoints = Math.ceil(1000 / binWidth) + 1;  // env: low_cut–1000 Hz
+    const maxVelPoints = Math.ceil(1000 / binWidth) + 1;
+    const maxAccPoints = Math.ceil(6000 / binWidth) + 1;
+    const maxEnvPoints = Math.ceil(1000 / binWidth) + 1;
 
     result.acc_x = Array.from(fftX.avgAmps.slice(0, maxAccPoints), round5);
     result.acc_y = Array.from(fftY.avgAmps.slice(0, maxAccPoints), round5);
@@ -612,7 +564,6 @@ export default async function(req) {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
-  // OPRAVA v2: fail-closed — chybějící token dřív znamenal otevřený endpoint
   const expectedToken = secrets.get("VIBRATION_API_TOKEN");
   if (!expectedToken) {
     console.error("VIBRATION_API_TOKEN není nastaven — odmítám požadavek");
@@ -633,19 +584,16 @@ export default async function(req) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Expected: { topic: "SENSORID/report", payload: "HEX: 01 00 ...", qos: 0 }
   const { topic, payload } = body;
   if (!topic || !payload) {
     return Response.json({ error: "Missing topic or payload" }, { status: 400 });
   }
 
-  // Extract sensor_id from topic (e.g. "S9IMP600001265H/report")
   const sensor_id = topic.split('/')[0];
   if (!sensor_id) {
     return Response.json({ error: "Cannot parse sensor_id from topic" }, { status: 400 });
   }
 
-  // Extract hex string — support "HEX: xx xx" prefix or plain hex
   let hexStr = typeof payload === 'string' ? payload : String(payload);
   if (hexStr.startsWith('HEX: ')) hexStr = hexStr.slice(5);
   else if (hexStr.startsWith('HEX:')) hexStr = hexStr.slice(4);
@@ -660,12 +608,7 @@ export default async function(req) {
   const now = new Date().toISOString();
   const nowSec = Math.floor(Date.now() / 1000);
 
-  // ─── FILTRACE ZPRÁV ────────────────────────────────────────────────────────
-  // Akceptujeme POUZE Type 0 (RAW) pro plné zpracování.
-  // Type 4 (Hibernate/Wakeup) zpracujeme částečně — jen metadata (baterie, teplota, rssi).
-  //
-  // OPRAVA v2: typ se zjišťuje z prvního bajtu PŘED parsováním — zahazované
-  // Type 1 zprávy se tak už zbytečně nedekódují (6 × 512 floatů na zprávu).
+  // ─── FILTRACE ZPRÁV: jen Type 0 (plně) a Type 4 (metadata) ────────────────
   const report_type = bytes.length > 0 ? bytes[0] : -1;
 
   if (report_type !== 0 && report_type !== 4) {
@@ -681,10 +624,10 @@ export default async function(req) {
     } catch (e) {
       console.error("[Filter] registry update failed:", e.message);
     }
-    return Response.json({ ok: true, sensor_id, report_type, action: "discarded" });
+    return Response.json({ ok: true, sensor_id, report_type, code_build: CODE_BUILD, action: "discarded" });
   }
 
-  // ─── Type 4: jen metadata, bez SensorData záznamu ──────────────────────────
+  // ─── Type 4: jen metadata ──────────────────────────────────────────────────
   if (report_type === 4) {
     let parsed4 = null;
     try {
@@ -714,17 +657,16 @@ export default async function(req) {
       console.error("[Type4] registry update failed:", e.message);
       return Response.json({ error: "Storage failed" }, { status: 500 });
     }
-    return Response.json({ ok: true, sensor_id, report_type, action: "metadata_only" });
+    return Response.json({ ok: true, sensor_id, report_type, code_build: CODE_BUILD, action: "metadata_only" });
   }
 
-  // ─── Od zde zpracováváme POUZE Type 0 (RAW) ────────────────────────────────
+  // ─── Type 0 (RAW) ──────────────────────────────────────────────────────────
 
-  // Načtení nastavení (fft_low_cut_hz) z MqttSettings
   let fftLowCutHz = 2;
   try {
     const mqttSettings = await base44.asServiceRole.entities.MqttSettings.list(null, 1);
     if (mqttSettings[0]?.fft_low_cut_hz != null) fftLowCutHz = mqttSettings[0].fft_low_cut_hz;
-  } catch (_) { /* použijeme default 2 Hz */ }
+  } catch (_) { /* default 2 Hz */ }
 
   let parsed = null;
   try {
@@ -736,8 +678,6 @@ export default async function(req) {
     return Response.json({ error: "Parse failed" }, { status: 422 });
   }
 
-  // OPRAVA v2: jedna časová značka pro SensorData i SensorTrendPoint,
-  // se sanity checkem (firmware bez NTP posílá 0 nebo nesmysly).
   const tsValid = parsed.timestamp_unix > 1500000000 && parsed.timestamp_unix < nowSec + 86400;
   const tsUnix = tsValid ? parsed.timestamp_unix : nowSec;
   const recordTimestamp = new Date(tsUnix * 1000).toISOString();
@@ -750,9 +690,6 @@ export default async function(req) {
   const warnings = [];
 
   try {
-    // 1. Save raw message
-    // OPRAVA v2: u Type 0 má hex ~160 kB; uříznutý zlomek na 4000 znaků byl
-    // k ničemu (nešlo z něj přeparsovat), takže se pro RAW neukládá vůbec.
     msgRecord = await base44.asServiceRole.entities.MqttMessage.create({
       topic,
       sensor_id,
@@ -761,7 +698,6 @@ export default async function(req) {
       payload_size: bytes.length,
     });
 
-    // 2. Save parsed SensorData
     sensorDataRecord = await base44.asServiceRole.entities.SensorData.create({
       sensor_id,
       report_type,
@@ -795,7 +731,6 @@ export default async function(req) {
     return Response.json({ error: "Storage failed", detail: e.message }, { status: 500 });
   }
 
-  // 3. SensorTrendPoint (lightweight trend record)
   if (parsed.has_fft && sensorDataRecord &&
       (parsed.vel_rms_x_mm_s > 0 || parsed.vel_rms_y_mm_s > 0 || parsed.vel_rms_z_mm_s > 0)) {
     try {
@@ -817,7 +752,6 @@ export default async function(req) {
     }
   }
 
-  // 3b. FFT data
   if (parsed.has_fft && sensorDataRecord) {
     try {
       await base44.asServiceRole.entities.SensorFFTData.create({
@@ -846,7 +780,6 @@ export default async function(req) {
     }
   }
 
-  // 4. Update AissensSensor registry
   try {
     const existing = await base44.asServiceRole.entities.AissensSensor.filter({ sensor_id });
     const updateData = {
@@ -879,6 +812,7 @@ export default async function(req) {
     sensor_id,
     report_type,
     dsp_version: DSP_VERSION,
+    code_build: CODE_BUILD,
     parsed: true,
     has_fft: parsed?.has_fft ?? false,
     mqtt_message_id: msgRecord?.id ?? null,
