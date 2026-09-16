@@ -1,4 +1,5 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { canAccessSensor } from '../../shared/access.ts';
 
 // Lineární regrese — vrátí sklon (slope) přímky pro pole hodnot
 function linearRegressionSlope(values) {
@@ -32,7 +33,7 @@ function formatTs(timestamp_unix) {
 }
 
 // Payload: { sensor_id, days, limit, is_temperature, trend_only }
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -40,6 +41,11 @@ Deno.serve(async (req) => {
 
     const { sensor_id, days, limit = 200, is_temperature = false, trend_only = false } = await req.json();
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
+
+    // Uživatel smí číst trendy jen senzorů strojů svého podniku
+    if (!(await canAccessSensor(base44, user, sensor_id))) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Načteme práh trendu z nastavení (default 20%)
     let thresholdPct = 20;
@@ -132,4 +138,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

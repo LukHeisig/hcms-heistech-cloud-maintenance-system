@@ -1,6 +1,7 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { canAccessSensor } from '../../shared/access.ts';
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -22,6 +23,11 @@ Deno.serve(async (req) => {
     const sensorRecords = await base44.asServiceRole.entities.SensorData.filter({ id: sensorDataId });
     const sd = sensorRecords[0];
     if (!sd) return Response.json({ error: 'SensorData not found' }, { status: 404 });
+
+    // Uživatel smí analyzovat jen senzory strojů svého podniku
+    if (!(await canAccessSensor(base44, user, sd.sensor_id))) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Načteme FFT data
     const fftRecords = await base44.asServiceRole.entities.SensorFFTData.filter({ sensor_data_id: sensorDataId });
@@ -310,4 +316,4 @@ Napiš stručnou diagnostickou zprávu v češtině: celkový stav, co pravděpo
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

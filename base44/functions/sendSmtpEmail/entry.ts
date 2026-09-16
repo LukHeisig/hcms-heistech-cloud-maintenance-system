@@ -1,8 +1,14 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { isAppAdmin } from '../../shared/access.ts';
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
+    // Pouze interní volání (alarmy) nebo správci — nikdy anonymní relay
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAppAdmin(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
+
     const { to, subject, html } = await req.json();
 
     if (!to || !subject || !html) {
@@ -51,4 +57,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
