@@ -10,6 +10,7 @@ export default async function(req) {
     for (const [k, v] of req.headers.entries()) headers[k] = k.toLowerCase().includes('auth') || k.toLowerCase().includes('token') || k.toLowerCase().includes('key') ? `<${v.length} chars>` : v;
     const out = { user: user ? { id: user.id, email: user.email, role: user.role, user_type: user.user_type } : null, err, isAuth, headers };
     console.log(JSON.stringify(out));
+    await base44.asServiceRole.entities.SystemLog.create({ type: 'info', message: 'WHOAMI_TEST ' + JSON.stringify(out), timestamp: new Date().toISOString() });
     return Response.json(out);
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
