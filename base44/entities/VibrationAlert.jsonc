@@ -101,5 +101,42 @@
     "value",
     "severity",
     "status"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "technician"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
 }

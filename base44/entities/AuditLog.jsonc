@@ -47,5 +47,35 @@
     "entity_type",
     "changed_by",
     "change_description"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "data.company_id": {
+            "$in": "{{user.data.assigned_company_ids}}"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
 }

@@ -14,5 +14,47 @@
   "required": [
     "control_point_id",
     "text"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    }
+  }
 }

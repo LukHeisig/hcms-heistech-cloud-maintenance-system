@@ -38,5 +38,23 @@
     "type",
     "message",
     "timestamp"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
 }

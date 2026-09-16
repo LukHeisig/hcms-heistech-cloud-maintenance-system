@@ -45,5 +45,60 @@
   },
   "required": [
     "company_id"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "data.company_id": {
+            "$in": "{{user.data.assigned_company_ids}}"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        }
+      ]
+    }
+  }
 }

@@ -95,5 +95,52 @@
     "title",
     "maintenance_type",
     "planned_date"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "technician"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    }
+  }
 }

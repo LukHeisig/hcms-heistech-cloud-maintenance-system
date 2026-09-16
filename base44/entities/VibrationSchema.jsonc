@@ -17,5 +17,23 @@
   "required": [
     "name",
     "rows_definition"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
 }
