@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle, Search, Filter, Calendar, User as UserIcon, Loader2, FileText, X, Download } from "lucide-react";
+import { CheckCircle, Search, Filter, Calendar, User as UserIcon, Loader2, FileText, X, Download, FileDown } from "lucide-react";
+import { exportControlChecksPdf } from "@/components/audit/exportControlChecksPdf";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
 
@@ -160,26 +161,37 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
 
   const hasFilters = lineFilter !== "all" || machineFilter !== "all" || userFilter !== "all" || dateRangeFilter !== "last30Days" || searchQuery;
 
+  const buildExportRows = () => filteredRecords.map(record => {
+    const cp = cpMap[record.control_point_id];
+    const machineId = cp ? cpToMachine[cp.id] : null;
+    const machine = machineId ? machineMap[machineId] : null;
+    const line = machine ? lineMap[machineToLine[machine.id]] : null;
+    const typeInfo = RECORD_TYPE_LABELS[record.record_type] || { label: record.record_type };
+    return {
+      date: format(new Date(record.performed_at), "d. M. yyyy HH:mm", { locale: cs }),
+      type: typeInfo.label,
+      point: cp?.name || "",
+      machine: machine?.name || "",
+      line: line?.name || "",
+      user: getUserName(record),
+      note: record.note || "",
+    };
+  });
+
+  const handleExportPdf = () => {
+    const parts = [];
+    if (lineFilter !== "all") parts.push(`Linka: ${lineMap[lineFilter]?.name || ""}`);
+    if (machineFilter !== "all") parts.push(`Stroj: ${machineMap[machineFilter]?.name || ""}`);
+    exportControlChecksPdf(buildExportRows(), parts.join(", "));
+  };
+
   const handleExport = () => {
     const BOM = "\uFEFF";
     const headers = ["Datum", "Typ kontroly", "Kontrolní bod", "Stroj", "Linka", "Uživatel", "Poznámka"];
-    const rows = filteredRecords.map(record => {
-      const cp = cpMap[record.control_point_id];
-      const machineId = cp ? cpToMachine[cp.id] : null;
-      const machine = machineId ? machineMap[machineId] : null;
-      const line = machine ? lineMap[machineToLine[machine.id]] : null;
-      const typeInfo = RECORD_TYPE_LABELS[record.record_type] || { label: record.record_type };
-      const safe = (val) => `"${String(val || "").replace(/"/g, '""')}"`;
-      return [
-        safe(format(new Date(record.performed_at), "d. M. yyyy HH:mm", { locale: cs })),
-        safe(typeInfo.label),
-        safe(cp?.name || ""),
-        safe(machine?.name || ""),
-        safe(line?.name || ""),
-        safe(getUserName(record)),
-        safe(record.note || ""),
-      ].join(";");
-    });
+    const safe = (val) => `"${String(val || "").replace(/"/g, '""')}"`;
+    const rows = buildExportRows().map(r =>
+      [r.date, r.type, r.point, r.machine, r.line, r.user, r.note].map(safe).join(";")
+    );
     const csvContent = BOM + [headers.join(";"), ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
@@ -313,8 +325,11 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-base">{filteredRecords.length} záznamů</Badge>
-              <Button variant="outline" size="icon" onClick={handleExport} title="Exportovat do CSV" disabled={filteredRecords.length === 0}>
+              <Button variant="outline" size="icon" onClick={handleExport} title="Exportovat do CSV (Excel)" disabled={filteredRecords.length === 0}>
                 <Download className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleExportPdf} title="Exportovat do PDF" disabled={filteredRecords.length === 0}>
+                <FileDown className="w-4 h-4" />
               </Button>
             </div>
           </div>
