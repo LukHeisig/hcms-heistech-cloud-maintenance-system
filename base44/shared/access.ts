@@ -11,7 +11,7 @@ export function isSuperAdmin(user) {
 
 // Správce aplikace: superAdmin, admin (podnikový) nebo interní servisní volání.
 export function isAppAdmin(user) {
-  return isServiceCaller(user) || isSuperAdmin(user) || user?.user_type === 'admin';
+  return isServiceCaller(user) || isSuperAdmin(user) || user?.user_type === 'admin' || user?.role === 'admin';
 }
 
 // Vrátí null = přístup ke všem podnikům, jinak seznam ID podniků, které uživatel smí vidět.

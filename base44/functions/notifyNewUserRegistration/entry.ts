@@ -1,10 +1,16 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { isAppAdmin } from '../../shared/access.ts';
 
 // Scheduled function: runs periodically, finds users registered in the last interval
 // who have no company assigned, and emails superAdmins.
-Deno.serve(async (req) => {
+export default async function(req) {
     try {
         const base44 = createClientFromRequest(req);
+
+        // Spouští workflow (identita vlastníka aplikace) nebo správce — nikdo jiný
+        const user = await base44.auth.me();
+        if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!isAppAdmin(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
         // Find users without company_id created in the last 65 minutes (safe overlap)
         const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -64,4 +70,4 @@ Deno.serve(async (req) => {
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
     }
-});
+}

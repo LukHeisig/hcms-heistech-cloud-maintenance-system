@@ -1,10 +1,16 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { isAppAdmin } from '../../shared/access.ts';
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Tato funkce je volána z automatizace — použijeme service role
+    // Spouští workflow (identita vlastníka aplikace) nebo správce — nikdo jiný
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAppAdmin(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
+
+    // Data čteme přes service role (agregace přes všechny podniky)
     // Načteme všechna přiřazení senzorů
     const assignments = await base44.asServiceRole.entities.VibrationSensorAssignment.list(null, 2000);
     if (!assignments.length) return Response.json({ checked: 0, created: 0 });
@@ -317,4 +323,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

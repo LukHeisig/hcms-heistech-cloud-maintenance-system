@@ -1,4 +1,5 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { isAppAdmin } from '../../shared/access.ts';
 
 function calcRMS(arr) {
   if (!arr || arr.length === 0) return null;
@@ -245,9 +246,14 @@ function getEnvelopeRMS_10_1000Hz(signal, fs = 26700) {
   }
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
+
+    // Spouští workflow (identita vlastníka aplikace) nebo správce — nikdo jiný
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isAppAdmin(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
     
@@ -364,4 +370,4 @@ Deno.serve(async (req) => {
     console.error("computeSensorMetrics error:", error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
