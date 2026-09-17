@@ -99,23 +99,7 @@
         "data.user_type": "superAdmin"
       }
     },
-    "read": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.user_type": "superAdmin"
-          }
-        },
-        {
-          "id": "{{user.data.company_id}}"
-        },
-        {
-          "id": {
-            "$in": "{{user.data.assigned_company_ids}}"
-          }
-        }
-      ]
-    },
+    "read": null,
     "update": {
       "$or": [
         {
@@ -124,7 +108,14 @@
           }
         },
         {
-          "id": "{{user.data.company_id}}"
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
         }
       ]
     },
