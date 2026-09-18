@@ -1,8 +1,16 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 function parse(json) {
   try { return JSON.parse(json || "[]"); } catch { return []; }
+}
+
+function fmtTime(ts) {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? String(ts) : format(d, "d. M. yyyy HH:mm:ss.SSS");
 }
 
 export default function VseValuesTable({ valuesJson }) {
@@ -15,7 +23,8 @@ export default function VseValuesTable({ valuesJson }) {
       <TableHeader>
         <TableRow>
           <TableHead>Název</TableHead>
-          <TableHead>Node ID</TableHead>
+          <TableHead>Čas</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead className="text-right">Hodnota</TableHead>
           <TableHead>Jednotka</TableHead>
         </TableRow>
@@ -23,8 +32,13 @@ export default function VseValuesTable({ valuesJson }) {
       <TableBody>
         {values.map((v, i) => (
           <TableRow key={i}>
-            <TableCell className="font-medium">{v.name}</TableCell>
-            <TableCell className="font-mono text-xs text-slate-500">{v.node_id || "—"}</TableCell>
+            <TableCell className="font-medium" title={v.node_id || ""}>{v.name}</TableCell>
+            <TableCell className="font-mono text-xs text-slate-600">{fmtTime(v.timestamp)}</TableCell>
+            <TableCell>
+              {v.status ? (
+                <Badge className={v.status === "Good" ? "bg-green-600" : "bg-amber-500"}>{v.status}</Badge>
+              ) : <span className="text-slate-400">—</span>}
+            </TableCell>
             <TableCell className="text-right font-mono">
               {typeof v.value === "number" ? v.value.toLocaleString("cs-CZ", { maximumFractionDigits: 3 }) : String(v.value)}
             </TableCell>

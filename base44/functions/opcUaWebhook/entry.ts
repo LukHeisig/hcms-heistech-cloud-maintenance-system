@@ -20,6 +20,8 @@ function normalizeValues(values) {
       name: v.name ?? v.node_id ?? v.nodeId ?? 'value',
       value: v.value,
       unit: v.unit ?? null,
+      timestamp: v.timestamp ?? null,
+      status: v.status ?? null,
     }));
   }
   if (values && typeof values === 'object') {
