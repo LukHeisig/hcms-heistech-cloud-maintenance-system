@@ -13,8 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, LayoutDashboard } from "lucide-react";
 import VseElementRow from "@/components/vibration/VseElementRow";
+import VseLayoutPreview from "@/components/vibration/VseLayoutPreview";
 
-const emptyElement = () => ({ type: "value", label: "", metric: "", unit: "" });
+const newElement = () => ({
+  key: `el_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+  type: "value",
+  label: "",
+  unit: "",
+  width: "1",
+});
 
 export default function VseSchemaDialog({ open, onOpenChange, schema, onSave, isSaving }) {
   const [name, setName] = useState("");
@@ -43,24 +50,33 @@ export default function VseSchemaDialog({ open, onOpenChange, schema, onSave, is
 
   const removeElement = (index) => setElements(elements.filter((_, i) => i !== index));
 
+  const moveElement = (index, dir) => {
+    const target = index + dir;
+    if (target < 0 || target >= elements.length) return;
+    const copy = [...elements];
+    [copy[index], copy[target]] = [copy[target], copy[index]];
+    setElements(copy);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <LayoutDashboard className="w-5 h-5 text-teal-600" />
-            {schema ? "Upravit vizualizaci VSE" : "Nová vizualizace VSE"}
+            {schema ? "Upravit šablonu vizualizace" : "Nová šablona vizualizace"}
           </DialogTitle>
           <DialogDescription>
-            Vizualizace se skládá z prvků (objektů), na které se mapují hodnoty z VSE jednotek.
+            Zde se definuje pouze rozložení prvků (šablona pro typ stroje). Konkrétní proměnné z VSE
+            jednotek se k prvkům mapují až na kartě stroje.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Název vizualizace *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="např. CNC Edwards" />
+              <Label>Název šablony *</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="např. CNC obráběcí stroj" />
             </div>
             <div>
               <Label>Popis</Label>
@@ -70,8 +86,8 @@ export default function VseSchemaDialog({ open, onOpenChange, schema, onSave, is
 
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-slate-800">Prvky vizualizace ({elements.length})</h4>
-              <Button variant="outline" size="sm" onClick={() => setElements([...elements, emptyElement()])}>
+              <h4 className="font-semibold text-slate-800">Prvky rozložení ({elements.length})</h4>
+              <Button variant="outline" size="sm" onClick={() => setElements([...elements, newElement()])}>
                 <Plus className="w-4 h-4 mr-2" /> Přidat prvek
               </Button>
             </div>
@@ -81,17 +97,22 @@ export default function VseSchemaDialog({ open, onOpenChange, schema, onSave, is
                 Zatím žádné prvky. Začněte přidáním prvního prvku.
               </div>
             ) : (
-              <div className="space-y-3 bg-slate-50 p-3 rounded-lg">
-                {elements.map((el, idx) => (
-                  <VseElementRow
-                    key={idx}
-                    element={el}
-                    index={idx}
-                    onChange={updateElement}
-                    onRemove={removeElement}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="space-y-3 bg-slate-50 p-3 rounded-lg">
+                  {elements.map((el, idx) => (
+                    <VseElementRow
+                      key={el.key || idx}
+                      element={el}
+                      index={idx}
+                      total={elements.length}
+                      onChange={updateElement}
+                      onRemove={removeElement}
+                      onMove={moveElement}
+                    />
+                  ))}
+                </div>
+                <VseLayoutPreview elements={elements} />
+              </>
             )}
           </div>
         </div>
