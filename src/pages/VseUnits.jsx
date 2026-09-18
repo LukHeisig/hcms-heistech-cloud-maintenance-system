@@ -10,6 +10,7 @@ import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import VseWebhookInfo from "@/components/vse/VseWebhookInfo";
 import VseUnitCard from "@/components/vse/VseUnitCard";
+import VseUnitSelect from "@/components/vse/VseUnitSelect";
 import VseValuesTable from "@/components/vse/VseValuesTable";
 import VseReadingsHistory from "@/components/vse/VseReadingsHistory";
 
@@ -51,9 +52,12 @@ export default function VseUnits() {
                 Zatím nebyla přijata žádná data. Nastavte OPC UA bridge podle instrukcí níže.
               </CardContent></Card>
             )}
-            {units.map((u) => (
-              <VseUnitCard key={u.id} unit={u} selected={selected?.id === u.id} onClick={() => setSelectedId(u.id)} />
-            ))}
+            {units.length > 0 && (
+              <>
+                <VseUnitSelect units={units} selectedId={selected?.id} onChange={setSelectedId} />
+                {selected && <VseUnitCard unit={selected} selected />}
+              </>
+            )}
             <VseWebhookInfo />
           </div>
 
