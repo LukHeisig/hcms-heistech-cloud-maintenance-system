@@ -68,6 +68,7 @@ export default function IssueApproval() {
   const [isResolving, setIsResolving] = useState(false);
   const [deleteIssueId, setDeleteIssueId] = useState(null);
   const [highlightedIssueId, setHighlightedIssueId] = useState(null);
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   
   // Work Order State
   const [showCreateWorkOrderDialog, setShowCreateWorkOrderDialog] = useState(false);
@@ -211,6 +212,13 @@ export default function IssueApproval() {
     return { name: "Neznámá lokace", machineName: "", lineName: "", companyName: "", type: "unknown", category };
   };
 
+  // Filtr dle zařazení v údržbě nahlašujícího uživatele
+  const matchesDepartment = (issue) => {
+    if (departmentFilter === "all") return true;
+    const reporter = userMap[issue.created_by];
+    return (reporter?.department || "none") === departmentFilter;
+  };
+
   // Filtrování závad podle podniku uživatele
   const reportedIssues = React.useMemo(() => {
     if (!user) return [];
@@ -218,6 +226,7 @@ export default function IssueApproval() {
     return allReportedIssues.filter(issue => {
       const details = getIssueInfo(issue);
       if (!details.companyId) return false; // Hide orphans
+      if (!matchesDepartment(issue)) return false;
 
       if (user.user_type === "superAdmin") return true;
       if (user.user_type === "admin") {
@@ -225,13 +234,14 @@ export default function IssueApproval() {
       }
       return user.company_id === details.companyId;
     });
-  }, [allReportedIssues, user, lines, machines, controlPoints]);
+  }, [allReportedIssues, user, lines, machines, controlPoints, departmentFilter, userMap]);
 
   const resolvedIssues = React.useMemo(() => {
     if (!user) return [];
     return allResolvedIssues.filter(issue => {
       const details = getIssueInfo(issue);
       if (!details.companyId) return false;
+      if (!matchesDepartment(issue)) return false;
 
       if (user.user_type === "superAdmin") return true;
       if (user.user_type === "admin") {
@@ -239,7 +249,7 @@ export default function IssueApproval() {
       }
       return user.company_id === details.companyId;
     });
-  }, [allResolvedIssues, user, lines, machines, controlPoints]);
+  }, [allResolvedIssues, user, lines, machines, controlPoints, departmentFilter, userMap]);
 
   const allVisibleIssues = React.useMemo(() => [...reportedIssues, ...resolvedIssues], [reportedIssues, resolvedIssues]);
 
@@ -653,6 +663,30 @@ export default function IssueApproval() {
             </CardContent>
           </Card>
         )}
+
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <Filter className="w-5 h-5 text-slate-600 flex-shrink-0" />
+              <div className="flex-1">
+                <Label htmlFor="departmentFilter" className="text-sm font-medium text-slate-700 mb-2 block">
+                  Zařazení v údržbě (nahlásil)
+                </Label>
+                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                  <SelectTrigger id="departmentFilter" className="w-full md:w-80">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Všechna zařazení</SelectItem>
+                    <SelectItem value="electro">Elektro údržba</SelectItem>
+                    <SelectItem value="mechanical">Mechanická údržba</SelectItem>
+                    <SelectItem value="none">Neurčeno</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="reported" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm">
