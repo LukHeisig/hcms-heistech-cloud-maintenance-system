@@ -25,6 +25,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
   const [lineFilter, setLineFilter] = useState("all");
   const [machineFilter, setMachineFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [dateRangeFilter, setDateRangeFilter] = useState("last30Days");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -122,6 +123,14 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
       }
     }
 
+    // Filtr zařazení v údržbě (elektro / mechanická)
+    if (departmentFilter !== "all") {
+      const deptUsers = visibleUsers.filter(u => (u.department || "none") === departmentFilter);
+      const deptIds = new Set(deptUsers.map(u => u.id));
+      const deptEmails = new Set(deptUsers.map(u => u.email));
+      records = records.filter(r => deptIds.has(r.created_by_id) || deptEmails.has(r.created_by));
+    }
+
     // Filtr uživatele
     if (userFilter !== "all") {
       records = records.filter(r => r.created_by_id === userFilter || r.created_by === userFilter);
@@ -157,9 +166,9 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
     }
 
     return records;
-  }, [controlRecords, dateRangeFilter, userFilter, lineFilter, machineFilter, searchQuery, cpToMachine, machineToLine, cpMap, visibleMachineIds]);
+  }, [controlRecords, dateRangeFilter, userFilter, departmentFilter, visibleUsers, lineFilter, machineFilter, searchQuery, cpToMachine, machineToLine, cpMap, visibleMachineIds]);
 
-  const hasFilters = lineFilter !== "all" || machineFilter !== "all" || userFilter !== "all" || dateRangeFilter !== "last30Days" || searchQuery;
+  const hasFilters = lineFilter !== "all" || machineFilter !== "all" || userFilter !== "all" || departmentFilter !== "all" || dateRangeFilter !== "last30Days" || searchQuery;
 
   const buildExportRows = () => filteredRecords.map(record => {
     const cp = cpMap[record.control_point_id];
@@ -207,6 +216,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
     setLineFilter("all");
     setMachineFilter("all");
     setUserFilter("all");
+    setDepartmentFilter("all");
     setDateRangeFilter("last30Days");
     setSearchQuery("");
   };
@@ -229,7 +239,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* Linka */}
             <div>
               <Label>Linka</Label>
@@ -269,6 +279,20 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
                       </div>
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Zařazení v údržbě */}
+            <div>
+              <Label>Zařazení v údržbě</Label>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Všechna zařazení</SelectItem>
+                  <SelectItem value="electro">Elektro údržba</SelectItem>
+                  <SelectItem value="mechanical">Mechanická údržba</SelectItem>
+                  <SelectItem value="none">Neurčeno</SelectItem>
                 </SelectContent>
               </Select>
             </div>
