@@ -227,7 +227,6 @@ export default function IssueApproval() {
     return allReportedIssues.filter(issue => {
       const details = getIssueInfo(issue);
       if (!details.companyId) return false; // Hide orphans
-      if (!matchesDepartment(issue)) return false;
 
       if (user.user_type === "superAdmin") return true;
       if (user.user_type === "admin") {
@@ -242,7 +241,6 @@ export default function IssueApproval() {
     return allResolvedIssues.filter(issue => {
       const details = getIssueInfo(issue);
       if (!details.companyId) return false;
-      if (!matchesDepartment(issue)) return false;
 
       if (user.user_type === "superAdmin") return true;
       if (user.user_type === "admin") {
@@ -711,6 +709,7 @@ export default function IssueApproval() {
                            <IssueDepartmentFilter value={departmentFilter} onChange={setDepartmentFilter} />
                            <div className="space-y-8">
                               {Object.entries(data.categories).map(([category, issues]) => {
+                                 issues = issues.filter(matchesDepartment);
                                  if (issues.length === 0) return null;
                                  return (
                                    <div key={category} className="space-y-3">
@@ -737,6 +736,7 @@ export default function IssueApproval() {
                         <div key={data.companyName} className="space-y-8">
                              <IssueDepartmentFilter value={departmentFilter} onChange={setDepartmentFilter} />
                              {Object.entries(data.categories).map(([category, issues]) => {
+                                   issues = issues.filter(matchesDepartment);
                                    if (issues.length === 0) return null;
                                    return (
                                      <div key={category} className="space-y-3">
