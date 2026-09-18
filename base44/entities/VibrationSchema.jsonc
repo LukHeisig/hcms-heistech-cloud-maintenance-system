@@ -6,6 +6,15 @@
       "type": "string",
       "description": "N\u00e1zev sch\u00e9matu (nap\u0159. Motor + P\u0159evodovka 8 bod\u016f)"
     },
+    "source": {
+      "type": "string",
+      "enum": [
+        "aissens",
+        "vse"
+      ],
+      "default": "aissens",
+      "description": "Pro jak\u00fd zdroj dat je sch\u00e9ma ur\u010deno: aissens = bezdr\u00e1tov\u00e9 senzory Aissens, vse = ifm VSE jednotky (OPC UA)"
+    },
     "rows_definition": {
       "type": "string",
       "description": "JSON definice \u0159\u00e1dk\u016f (bod\u016f) a sm\u011br\u016f. Nap\u0159: [{'label': 'L1', 'name': 'Motor', 'directions': ['H','V','A']}]"

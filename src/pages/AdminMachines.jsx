@@ -809,7 +809,9 @@ export default function AdminMachines() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="none">-- Žádné --</SelectItem>
-                            {vibrationSchemas.map(s => (
+                            {vibrationSchemas
+                              .filter(s => (s.source || "aissens") === (formData.vibration_source || "aissens"))
+                              .map(s => (
                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                             ))}
                         </SelectContent>

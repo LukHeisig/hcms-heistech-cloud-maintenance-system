@@ -27,11 +27,13 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SchemaList from "@/components/vibration/SchemaList";
 
 export default function AdminVibrations() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("standards");
+  const [schemaSource, setSchemaSource] = useState("aissens");
 
   // Standards State
   const [editingStandard, setEditingStandard] = useState(null);
@@ -111,7 +113,9 @@ export default function AdminVibrations() {
   // Schema Mutations
   const createSchemaMutation = useMutation({
     mutationFn: (data) => base44.entities.VibrationSchema.create({
-        ...data,
+        name: data.name,
+        description: data.description,
+        source: data.source || "aissens",
         rows_definition: JSON.stringify(data.rows_config)
     }),
     onSuccess: () => {
@@ -124,6 +128,7 @@ export default function AdminVibrations() {
     mutationFn: ({ id, data }) => base44.entities.VibrationSchema.update(id, {
         name: data.name,
         description: data.description,
+        source: data.source || "aissens",
         rows_definition: JSON.stringify(data.rows_config)
     }),
     onSuccess: () => {
@@ -246,6 +251,7 @@ export default function AdminVibrations() {
       setSchemaForm({
         name: schema.name,
         description: schema.description || "",
+        source: schema.source || "aissens",
         rows_count: rows.length,
         rows_config: rows
       });
@@ -253,6 +259,7 @@ export default function AdminVibrations() {
       setSchemaForm({
         name: "",
         description: "",
+        source: schemaSource,
         rows_count: 1,
         rows_config: [{ label: "L1", name: "", directions: ["H", "V", "A"] }]
       });
@@ -390,36 +397,39 @@ export default function AdminVibrations() {
 
           {/* SCHEMAS TAB */}
           <TabsContent value="schemas">
-            <div className="flex justify-end mb-4">
-              <Button onClick={() => openSchemaDialog()} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" /> Nové schéma
-              </Button>
-            </div>
-            <div className="grid gap-4">
-              {schemas.map((sch) => {
-                let rowsCount = 0;
-                try { rowsCount = JSON.parse(sch.rows_definition).length; } catch(e) {}
-                return (
-                  <Card key={sch.id}>
-                    <CardContent className="p-6 flex justify-between items-center">
-                      <div>
-                        <h3 className="font-bold text-lg">{sch.name}</h3>
-                        <p className="text-sm text-slate-500">{sch.description}</p>
-                        <p className="text-xs text-slate-400 mt-1">{rowsCount} měřících bodů</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => openSchemaDialog(sch)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-red-600" onClick={() => deleteSchemaMutation.mutate(sch.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            <Tabs value={schemaSource} onValueChange={setSchemaSource} className="space-y-4">
+              <div className="flex justify-between items-center">
+                <TabsList>
+                  <TabsTrigger value="aissens">Aissens senzory</TabsTrigger>
+                  <TabsTrigger value="vse">VSE jednotky</TabsTrigger>
+                </TabsList>
+                <Button onClick={() => openSchemaDialog()} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" /> Nové schéma
+                </Button>
+              </div>
+
+              <TabsContent value="aissens">
+                <SchemaList
+                  schemas={schemas.filter((s) => (s.source || "aissens") === "aissens")}
+                  onEdit={openSchemaDialog}
+                  onDelete={(id) => deleteSchemaMutation.mutate(id)}
+                  emptyText="Zatím žádné schéma pro Aissens senzory."
+                />
+              </TabsContent>
+
+              <TabsContent value="vse">
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4 text-sm text-teal-900">
+                  Schémata pro VSE jednotky (ifm, OPC UA). Zde se budou definovat měřící místa, na která
+                  se následně mapují jednotlivé hodnoty z VSE jednotek.
+                </div>
+                <SchemaList
+                  schemas={schemas.filter((s) => s.source === "vse")}
+                  onEdit={openSchemaDialog}
+                  onDelete={(id) => deleteSchemaMutation.mutate(id)}
+                  emptyText="Zatím žádné schéma pro VSE jednotky."
+                />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* TEMPLATES TAB */}
@@ -567,7 +577,13 @@ export default function AdminVibrations() {
         <Dialog open={showSchemaDialog} onOpenChange={setShowSchemaDialog}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingSchema ? "Upravit schéma" : "Nové schéma"}</DialogTitle>
+              <DialogTitle>
+                {editingSchema ? "Upravit schéma" : "Nové schéma"}
+                {" "}
+                <Badge variant="outline" className="ml-2 align-middle">
+                  {(schemaForm.source || "aissens") === "vse" ? "VSE jednotky" : "Aissens senzory"}
+                </Badge>
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
