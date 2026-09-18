@@ -1,0 +1,49 @@
+{
+  "name": "VseReading",
+  "type": "object",
+  "properties": {
+    "unit_id": {
+      "type": "string",
+      "description": "Identifik\u00e1tor VSE jednotky"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u010cas m\u011b\u0159en\u00ed (z payloadu, nebo \u010das serveru)"
+    },
+    "values_json": {
+      "type": "string",
+      "description": "JSON pole hodnot [{node_id,name,value,unit}]"
+    },
+    "values_count": {
+      "type": "number",
+      "description": "Po\u010det hodnot ve zpr\u00e1v\u011b"
+    },
+    "raw_json": {
+      "type": "string",
+      "description": "P\u016fvodn\u00ed payload z OPC UA bridge"
+    }
+  },
+  "required": [
+    "unit_id",
+    "recorded_at"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
+}

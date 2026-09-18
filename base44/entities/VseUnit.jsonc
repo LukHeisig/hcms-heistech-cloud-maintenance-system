@@ -1,0 +1,64 @@
+{
+  "name": "VseUnit",
+  "type": "object",
+  "properties": {
+    "unit_id": {
+      "type": "string",
+      "description": "Identifik\u00e1tor VSE jednotky z OPC UA bridge (nap\u0159. VSE-01)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Vlastn\u00ed n\u00e1zev jednotky"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "ID p\u0159i\u0159azen\u00e9ho stroje"
+    },
+    "endpoint": {
+      "type": "string",
+      "description": "OPC UA endpoint / IP adresa jednotky (z payloadu)"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u010cas posledn\u00edho p\u0159ijet\u00ed dat"
+    },
+    "last_values_json": {
+      "type": "string",
+      "description": "JSON pole posledn\u00edch hodnot [{node_id,name,value,unit}]"
+    },
+    "messages_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Celkov\u00fd po\u010det p\u0159ijat\u00fdch zpr\u00e1v"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "unit_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
+}

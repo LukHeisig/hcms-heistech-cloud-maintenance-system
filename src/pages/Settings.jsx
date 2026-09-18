@@ -105,6 +105,26 @@ export default function Settings() {
               </p>
             </CardContent>
           </Card>
+
+          {/* VSE jednotky (OPC UA) */}
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-teal-500"
+            onClick={() => navigate(createPageUrl("VseUnits"))}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-slate-800">
+                <div className="p-2 bg-teal-100 rounded-lg">
+                  <Cpu className="w-6 h-6 text-teal-600" />
+                </div>
+                VSE jednotky
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600">
+                Data z ifm VSE jednotek přijímaná přes OPC UA bridge webhook. Přehled jednotek, aktuálních hodnot a historie.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
