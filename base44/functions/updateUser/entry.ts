@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 const roleLevels = { superAdmin: 4, admin: 3, manager: 2, technician: 1 };
 const allowedFields = [
-  'user_type', 'phone', 'company_id', 'assigned_company_ids',
+  'user_type', 'department', 'phone', 'company_id', 'assigned_company_ids',
   'custom_display_name', 'auto_logout_enabled', 'auto_logout_minutes', 'access_until',
 ];
 

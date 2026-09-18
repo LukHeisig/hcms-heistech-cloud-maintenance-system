@@ -12,6 +12,14 @@
       ],
       "description": "Role u\u017eivatele v syst\u00e9mu"
     },
+    "department": {
+      "type": "string",
+      "enum": [
+        "electro",
+        "mechanical"
+      ],
+      "description": "Za\u0159azen\u00ed v podniku: electro = Elektro \u00fadr\u017eba, mechanical = Mechanick\u00e1 \u00fadr\u017eba"
+    },
     "company_id": {
       "type": "string",
       "description": "ID podniku (pro manager a technician)"

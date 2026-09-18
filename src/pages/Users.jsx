@@ -57,6 +57,7 @@ export default function Users() {
   const [saveError, setSaveError] = useState(null);
   const [formData, setFormData] = useState({
     user_type: "technician",
+    department: "",
     phone: "",
     company_id: null,
     custom_display_name: "",
@@ -182,6 +183,7 @@ export default function Users() {
     setSaveError(null);
     setFormData({
       user_type: user.user_type || "technician",
+      department: user.department || "",
       phone: user.phone || "",
       company_id: user.company_id || null,
       assigned_company_ids: user.assigned_company_ids || [],
@@ -200,6 +202,7 @@ export default function Users() {
       id: editingUser.id,
       data: {
         ...formData,
+        department: formData.department || null,
         access_until: formData.access_until ? new Date(formData.access_until).toISOString() : null,
       },
     });
@@ -253,6 +256,16 @@ export default function Users() {
       default:
         return <Badge variant="outline">Neurčeno</Badge>;
     }
+  };
+
+  const getDepartmentBadge = (department) => {
+    if (department === "electro") {
+      return <Badge className="bg-amber-100 text-amber-800 font-normal">Elektro údržba</Badge>;
+    }
+    if (department === "mechanical") {
+      return <Badge className="bg-teal-100 text-teal-800 font-normal">Mechanická údržba</Badge>;
+    }
+    return <span className="text-slate-400 text-xs pl-2">-</span>;
   };
 
   // getCustomerName removed
@@ -514,6 +527,7 @@ export default function Users() {
                     <TableHead>Jméno</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Zařazení</TableHead>
                     <TableHead>Auto-logout</TableHead>
                     <TableHead>Podnik</TableHead>
                     <TableHead>Telefon</TableHead>
@@ -538,6 +552,7 @@ export default function Users() {
                         </TableCell>
                         <TableCell className="text-slate-600">{user.email}</TableCell>
                         <TableCell>{getUserTypeBadge(user.user_type)}</TableCell>
+                        <TableCell>{getDepartmentBadge(user.department)}</TableCell>
                         <TableCell>
                           {user.auto_logout_enabled ? (
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1 font-normal">
@@ -777,6 +792,25 @@ export default function Users() {
                   </p>
                 </div>
               )}
+
+              <div>
+                <Label htmlFor="department">Zařazení v podniku</Label>
+                <Select
+                  value={formData.department || "none"}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, department: value === "none" ? "" : value })
+                  }
+                >
+                  <SelectTrigger id="department">
+                    <SelectValue placeholder="Vyberte zařazení" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Neurčeno</SelectItem>
+                    <SelectItem value="electro">Elektro údržba</SelectItem>
+                    <SelectItem value="mechanical">Mechanická údržba</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div>
                 <Label htmlFor="phone">Telefonní číslo</Label>
