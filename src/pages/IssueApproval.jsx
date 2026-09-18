@@ -112,7 +112,7 @@ export default function IssueApproval() {
 
   const { data: allReportedIssues = [] } = useQuery({
     queryKey: ["reportedIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "reported" }, "-created_date", 1000),
+    queryFn: () => base44.entities.Issue.filter({ status: { $in: ["reported", "work_order_created"] } }, "-created_date", 1000),
   });
 
   const { data: allResolvedIssues = [] } = useQuery({
