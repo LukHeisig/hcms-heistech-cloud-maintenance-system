@@ -57,6 +57,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
+import IssueDepartmentFilter from "@/components/issues/IssueDepartmentFilter";
 
 export default function IssueApproval() {
   const navigate = useNavigate();
@@ -664,30 +665,6 @@ export default function IssueApproval() {
           </Card>
         )}
 
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <Filter className="w-5 h-5 text-slate-600 flex-shrink-0" />
-              <div className="flex-1">
-                <Label htmlFor="departmentFilter" className="text-sm font-medium text-slate-700 mb-2 block">
-                  Zařazení v údržbě (nahlásil)
-                </Label>
-                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger id="departmentFilter" className="w-full md:w-80">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Všechna zařazení</SelectItem>
-                    <SelectItem value="electro">Elektro údržba</SelectItem>
-                    <SelectItem value="mechanical">Mechanická údržba</SelectItem>
-                    <SelectItem value="none">Neurčeno</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <Tabs defaultValue="reported" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm">
             <TabsTrigger value="reported" className="gap-2">
@@ -731,6 +708,7 @@ export default function IssueApproval() {
                            </div>
                          </AccordionTrigger>
                          <AccordionContent className="pt-2 pb-6">
+                           <IssueDepartmentFilter value={departmentFilter} onChange={setDepartmentFilter} />
                            <div className="space-y-8">
                               {Object.entries(data.categories).map(([category, issues]) => {
                                  if (issues.length === 0) return null;
@@ -757,6 +735,7 @@ export default function IssueApproval() {
                    <div className="space-y-8">
                      {Object.values(groupedReportedIssues).map((data) => (
                         <div key={data.companyName} className="space-y-8">
+                             <IssueDepartmentFilter value={departmentFilter} onChange={setDepartmentFilter} />
                              {Object.entries(data.categories).map(([category, issues]) => {
                                    if (issues.length === 0) return null;
                                    return (
