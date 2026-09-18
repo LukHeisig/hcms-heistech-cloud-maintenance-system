@@ -13,6 +13,7 @@ import VseUnitCard from "@/components/vse/VseUnitCard";
 import VseUnitSelect from "@/components/vse/VseUnitSelect";
 import VseValuesTable from "@/components/vse/VseValuesTable";
 import VseReadingsHistory from "@/components/vse/VseReadingsHistory";
+import VseTrendChart from "@/components/vse/VseTrendChart";
 
 export default function VseUnits() {
   const navigate = useNavigate();
@@ -64,19 +65,25 @@ export default function VseUnits() {
           <div className="lg:col-span-2 space-y-6">
             {selected && (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base text-slate-800">
-                      Aktuální hodnoty — {selected.name || selected.unit_id}
-                      {selected.last_seen && (
-                        <span className="ml-2 text-xs font-normal text-slate-500">
-                          {format(new Date(selected.last_seen), "d. M. yyyy HH:mm:ss")}
-                        </span>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent><VseValuesTable valuesJson={selected.last_values_json} /></CardContent>
-                </Card>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base text-slate-800">
+                        Aktuální hodnoty — {selected.name || selected.unit_id}
+                        {selected.last_seen && (
+                          <span className="ml-2 text-xs font-normal text-slate-500">
+                            {format(new Date(selected.last_seen), "d. M. yyyy HH:mm:ss")}
+                          </span>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent><VseValuesTable valuesJson={selected.last_values_json} /></CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader><CardTitle className="text-base text-slate-800">Trend hodnot</CardTitle></CardHeader>
+                    <CardContent><VseTrendChart readings={readings} isLoading={readingsLoading} /></CardContent>
+                  </Card>
+                </div>
                 <Card>
                   <CardHeader><CardTitle className="text-base text-slate-800">Historie (posledních 50)</CardTitle></CardHeader>
                   <CardContent><VseReadingsHistory readings={readings} isLoading={readingsLoading} /></CardContent>
