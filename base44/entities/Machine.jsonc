@@ -62,6 +62,15 @@
       "type": "number",
       "default": 0
     },
+    "vibration_source": {
+      "type": "string",
+      "enum": [
+        "aissens",
+        "vse"
+      ],
+      "default": "aissens",
+      "description": "Zdroj dat vibrodiagnostiky: aissens = bezdr\u00e1tov\u00e9 senzory Aissens (MQTT), vse = ifm VSE jednotky p\u0159es OPC UA bridge"
+    },
     "vibration_standard_id": {
       "type": "string",
       "description": "ID p\u0159i\u0159azen\u00e9 normy vibrac\u00ed"

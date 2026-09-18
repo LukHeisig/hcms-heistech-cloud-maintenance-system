@@ -252,6 +252,7 @@ export default function AdminMachines() {
         inventory_number: machine.inventory_number || "",
         location: machine.location || "",
         machine_type: machine.machine_type || null,
+        vibration_source: machine.vibration_source || "aissens",
         vibration_schema_id: machine.vibration_schema_id || null,
         alarm_delay_count: machine.alarm_delay_count || 1,
         photo_url: machine.photo_url || "",
@@ -268,6 +269,7 @@ export default function AdminMachines() {
         inventory_number: "",
         location: "",
         machine_type: null,
+        vibration_source: "aissens",
         vibration_schema_id: null,
         alarm_delay_count: 1,
         photo_url: "",
@@ -305,6 +307,7 @@ export default function AdminMachines() {
       inventory_number: formData.inventory_number.trim() || null,
       location: formData.location.trim() || null,
       machine_type: formData.machine_type || null,
+      vibration_source: formData.vibration_source || "aissens",
       vibration_schema_id: formData.vibration_schema_id || null,
       alarm_delay_count: Math.max(1, parseInt(formData.alarm_delay_count) || 1),
       photo_url: formData.photo_url || null,
@@ -772,6 +775,29 @@ export default function AdminMachines() {
                 <div className="border-t pt-4 mt-4">
                 <h4 className="font-semibold mb-3 text-slate-800">Nastavení vibrodiagnostiky</h4>
                 <div className="space-y-4">
+                  <div>
+                    <Label>Zdroj dat</Label>
+                    <Select
+                        value={formData.vibration_source || "aissens"}
+                        onValueChange={(val) => setFormData({...formData, vibration_source: val})}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="aissens">Aissens senzory (MQTT)</SelectItem>
+                            <SelectItem value="vse">VSE jednotky (OPC UA)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Určuje, jakým způsobem se na kartě stroje zobrazují vibrační data.
+                    </p>
+                  </div>
+                  {formData.vibration_source === "vse" && (
+                    <div className="bg-teal-50 border border-teal-200 rounded-md p-3 text-xs text-teal-900">
+                        Schéma měření pro VSE jednotky se zatím připravuje. Data z jednotek najdete v Nastavení → VSE jednotky.
+                    </div>
+                  )}
                   <div>
                     <Label>Schéma měření</Label>
                     <Select
