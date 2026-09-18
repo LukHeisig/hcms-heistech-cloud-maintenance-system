@@ -28,12 +28,15 @@ import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SchemaList from "@/components/vibration/SchemaList";
+import VseSchemaDialog from "@/components/vibration/VseSchemaDialog";
 
 export default function AdminVibrations() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("standards");
   const [schemaSource, setSchemaSource] = useState("aissens");
+  const [showVseSchemaDialog, setShowVseSchemaDialog] = useState(false);
+  const [editingVseSchema, setEditingVseSchema] = useState(null);
 
   // Standards State
   const [editingStandard, setEditingStandard] = useState(null);
@@ -301,6 +304,22 @@ export default function AdminVibrations() {
     setSchemaForm({ ...schemaForm, rows_count: newCount, rows_config: newConfig });
   };
 
+  // Handlers - VSE visualizations
+  const openVseSchemaDialog = (schema = null) => {
+    setEditingVseSchema(schema);
+    setShowVseSchemaDialog(true);
+  };
+
+  const handleSaveVseSchema = ({ name, description, elements }) => {
+    const data = { name, description, source: "vse", rows_config: elements };
+    if (editingVseSchema) {
+      updateSchemaMutation.mutate({ id: editingVseSchema.id, data });
+    } else {
+      createSchemaMutation.mutate(data);
+    }
+    setShowVseSchemaDialog(false);
+  };
+
   // Handlers - Templates
   const handleSaveTemplate = () => {
     if (editingTemplate) {
@@ -403,9 +422,15 @@ export default function AdminVibrations() {
                   <TabsTrigger value="aissens">Aissens senzory</TabsTrigger>
                   <TabsTrigger value="vse">VSE jednotky</TabsTrigger>
                 </TabsList>
-                <Button onClick={() => openSchemaDialog()} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" /> Nové schéma
-                </Button>
+                {schemaSource === "aissens" ? (
+                  <Button onClick={() => openSchemaDialog()} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" /> Nové schéma
+                  </Button>
+                ) : (
+                  <Button onClick={() => openVseSchemaDialog()} className="bg-teal-600 hover:bg-teal-700">
+                    <Plus className="w-4 h-4 mr-2" /> Nová vizualizace
+                  </Button>
+                )}
               </div>
 
               <TabsContent value="aissens">
@@ -419,14 +444,15 @@ export default function AdminVibrations() {
 
               <TabsContent value="vse">
                 <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4 text-sm text-teal-900">
-                  Schémata pro VSE jednotky (ifm, OPC UA). Zde se budou definovat měřící místa, na která
-                  se následně mapují jednotlivé hodnoty z VSE jednotek.
+                  Vizualizace pro VSE jednotky (ifm, OPC UA) se skládají z volně definovaných prvků
+                  (hodnoty, ukazatele, kontrolky, trendy), na které se mapují hodnoty z jednotek.
                 </div>
                 <SchemaList
                   schemas={schemas.filter((s) => s.source === "vse")}
-                  onEdit={openSchemaDialog}
+                  onEdit={openVseSchemaDialog}
                   onDelete={(id) => deleteSchemaMutation.mutate(id)}
-                  emptyText="Zatím žádné schéma pro VSE jednotky."
+                  itemsLabel="prvků"
+                  emptyText="Zatím žádná vizualizace pro VSE jednotky."
                 />
               </TabsContent>
             </Tabs>
@@ -641,7 +667,15 @@ export default function AdminVibrations() {
               </DialogContent>
               </Dialog>
 
-              {/* TEMPLATE DIALOG */}
+              <VseSchemaDialog
+          open={showVseSchemaDialog}
+          onOpenChange={setShowVseSchemaDialog}
+          schema={editingVseSchema}
+          onSave={handleSaveVseSchema}
+          isSaving={createSchemaMutation.isPending || updateSchemaMutation.isPending}
+        />
+
+        {/* TEMPLATE DIALOG */}
               <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
               <DialogContent>
               <DialogHeader>
