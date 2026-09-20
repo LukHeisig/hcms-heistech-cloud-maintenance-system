@@ -79,6 +79,10 @@
       "type": "string",
       "description": "ID p\u0159i\u0159azen\u00e9ho sch\u00e9matu m\u011b\u0159en\u00ed (tabulky)"
     },
+    "vse_counter_map": {
+      "type": "string",
+      "description": "JSON mapov\u00e1n\u00ed slot\u016f \u0161ablony VSE na prom\u011bnn\u00e9 jednotek. Nap\u0159. {\"X.ok\":{\"unit_id\":\"VSE-01\",\"node_id\":\"ns=2;s=...\",\"name\":\"ObjectState1\"}}"
+    },
     "alarm_delay_count": {
       "type": "number",
       "default": 1,

@@ -1363,7 +1363,7 @@ export default function Machine() {
           {/* Vibrodiagnostika */}
           <TabsContent value="vibro-diag" className="space-y-6">
             {machine?.vibration_source === "vse" ? (
-              <VseVibrationCard machine={machine} />
+              <VseVibrationCard machine={machine} canConfigure={currentUser?.user_type === "superAdmin"} />
             ) : (
               <VibrationCardMQTT machine={machine} enablePredictive={company?.enable_predictive === true} canConfigure={currentUser?.user_type === "superAdmin"} />
             )}
