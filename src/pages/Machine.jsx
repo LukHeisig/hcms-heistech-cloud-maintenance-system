@@ -42,6 +42,7 @@ import VibrationJobDialog from "@/components/machine/VibrationJobDialog";
 import MachineAlertsHistory from "@/components/machine/MachineAlertsHistory";
 import VibrationCard from "@/components/machine/VibrationCard";
 import VibrationCardMQTT from "@/components/machine/VibrationCardMQTT";
+import VseVibrationCard from "@/components/vse/VseVibrationCard";
 import ThermoJobDialog from "@/components/machine/ThermoJobDialog";
 import ThermoCard from "@/components/machine/ThermoCard";
 import MaintenanceTab from "@/components/machine/MaintenanceTab";
@@ -1361,7 +1362,11 @@ export default function Machine() {
 
           {/* Vibrodiagnostika */}
           <TabsContent value="vibro-diag" className="space-y-6">
-            <VibrationCardMQTT machine={machine} enablePredictive={company?.enable_predictive === true} canConfigure={currentUser?.user_type === "superAdmin"} />
+            {machine?.vibration_source === "vse" ? (
+              <VseVibrationCard machine={machine} />
+            ) : (
+              <VibrationCardMQTT machine={machine} enablePredictive={company?.enable_predictive === true} canConfigure={currentUser?.user_type === "superAdmin"} />
+            )}
           </TabsContent>
 
           {/* Termodiagnostika */}

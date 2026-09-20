@@ -795,7 +795,7 @@ export default function AdminMachines() {
                   </div>
                   {formData.vibration_source === "vse" && (
                     <div className="bg-teal-50 border border-teal-200 rounded-md p-3 text-xs text-teal-900">
-                        Schéma měření pro VSE jednotky se zatím připravuje. Data z jednotek najdete v Nastavení → VSE jednotky.
+                        Vyberte šablonu vizualizace VSE. Na kartě stroje se zobrazí jako podzáložky vibrodiagnostiky; countery z jednotky se přiřazují tam.
                     </div>
                   )}
                   <div>
