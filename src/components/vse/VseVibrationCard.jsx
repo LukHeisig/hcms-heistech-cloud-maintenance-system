@@ -1,11 +1,13 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LayoutDashboard } from "lucide-react";
+import { Loader2, LayoutDashboard, Settings } from "lucide-react";
 import { VSE_TEMPLATES, parseVseDefinition } from "@/components/vibration/vseTemplates";
 import VseSpindleEnergyPanel from "@/components/vse/VseSpindleEnergyPanel";
+import VseCounterMappingDialog from "@/components/vse/VseCounterMappingDialog";
 
 function parseJson(raw, fallback) {
   try { return JSON.parse(raw || "null") ?? fallback; } catch { return fallback; }
@@ -14,6 +16,7 @@ function parseJson(raw, fallback) {
 export default function VseVibrationCard({ machine, canConfigure = false }) {
   const schemaId = machine?.vibration_schema_id;
   const queryClient = useQueryClient();
+  const [showDialog, setShowDialog] = useState(false);
 
   const { data: schema, isLoading } = useQuery({
     queryKey: ["vibrationSchema", schemaId],
@@ -28,22 +31,13 @@ export default function VseVibrationCard({ machine, canConfigure = false }) {
     staleTime: 60000,
   });
 
-  const options = useMemo(() => {
-    const out = [];
+  const values = useMemo(() => {
+    const out = {};
     units.forEach((u) => {
-      const unitLabel = u.name || u.unit_id;
       parseJson(u.last_values_json, []).forEach((v) => {
-        out.push({
-          value: `${u.unit_id}|${v.node_id}`,
-          label: `${unitLabel} – ${v.name}`,
-          unit_id: u.unit_id,
-          unit_label: unitLabel,
-          node_id: v.node_id,
-          name: v.name,
-          value_display: typeof v.value === "number"
-            ? `${v.value.toLocaleString("cs-CZ", { maximumFractionDigits: 3 })}${v.unit ? " " + v.unit : ""}`
-            : String(v.value ?? "—"),
-        });
+        out[`${u.unit_id}|${v.node_id}`] = typeof v.value === "number"
+          ? `${v.value.toLocaleString("cs-CZ", { maximumFractionDigits: 3 })}${v.unit ? " " + v.unit : ""}`
+          : String(v.value ?? "—");
       });
     });
     return out;
@@ -56,15 +50,9 @@ export default function VseVibrationCard({ machine, canConfigure = false }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["machine", machine.id] });
       queryClient.invalidateQueries({ queryKey: ["allMachines"] });
+      setShowDialog(false);
     },
   });
-
-  const handleAssign = (slot, option) => {
-    const next = { ...mapping };
-    if (!option) delete next[slot];
-    else next[slot] = { unit_id: option.unit_id, unit_label: option.unit_label, node_id: option.node_id, name: option.name };
-    saveMapping.mutate(next);
-  };
 
   if (!schemaId) {
     return (
@@ -96,20 +84,33 @@ export default function VseVibrationCard({ machine, canConfigure = false }) {
 
   return (
     <Tabs defaultValue={definition.template} className="space-y-4">
-      <TabsList className="bg-white shadow-sm">
-        <TabsTrigger value={definition.template} className="gap-2">
-          <LayoutDashboard className="w-4 h-4" /> {template.label}
-        </TabsTrigger>
-      </TabsList>
+      <div className="flex items-center justify-between gap-3">
+        <TabsList className="bg-white shadow-sm">
+          <TabsTrigger value={definition.template} className="gap-2">
+            <LayoutDashboard className="w-4 h-4" /> {template.label}
+          </TabsTrigger>
+        </TabsList>
+        {canConfigure && (
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowDialog(true)}>
+            <Settings className="w-4 h-4" /> Nastavit
+          </Button>
+        )}
+      </div>
       <TabsContent value="spindle_energy">
-        <VseSpindleEnergyPanel
-          definition={definition}
-          mapping={mapping}
-          options={options}
-          canConfigure={canConfigure}
-          onAssign={handleAssign}
-        />
+        <VseSpindleEnergyPanel definition={definition} mapping={mapping} values={values} />
       </TabsContent>
+
+      {canConfigure && (
+        <VseCounterMappingDialog
+          open={showDialog}
+          onOpenChange={setShowDialog}
+          definition={definition}
+          units={units}
+          mapping={mapping}
+          onSave={(next) => saveMapping.mutate(next)}
+          isSaving={saveMapping.isPending}
+        />
+      )}
     </Tabs>
   );
 }
