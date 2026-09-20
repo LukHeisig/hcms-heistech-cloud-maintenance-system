@@ -35,7 +35,7 @@ export default function VseSpindleEnergyPanel({ definition, mapping = {}, values
                       </div>
                       {assigned && (
                         <p className="text-xs text-slate-500 truncate mt-1" title={assigned.node_id}>
-                          {assigned.unit_label || assigned.unit_id} – {assigned.name}
+                          {assigned.unit_label || assigned.unit_id}{assigned.sensor ? ` · ${assigned.sensor}` : ""} · {assigned.name}
                         </p>
                       )}
                     </div>
