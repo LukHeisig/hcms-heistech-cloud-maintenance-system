@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 
-export default function SchemaList({ schemas, onEdit, onDelete, emptyText, itemsLabel = "měřících bodů" }) {
+export default function SchemaList({ schemas, onEdit, onDelete, emptyText, itemsLabel = "měřících bodů", describe }) {
   if (schemas.length === 0) {
     return (
       <Card>
@@ -25,7 +25,9 @@ export default function SchemaList({ schemas, onEdit, onDelete, emptyText, items
               <div>
                 <h3 className="font-bold text-lg">{sch.name}</h3>
                 <p className="text-sm text-slate-500">{sch.description}</p>
-                <p className="text-xs text-slate-400 mt-1">{rowsCount} {itemsLabel}</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {describe ? describe(sch.rows_definition) : `${rowsCount} ${itemsLabel}`}
+                </p>
               </div>
               <div className="flex gap-2">
                 <Button variant="ghost" size="icon" onClick={() => onEdit(sch)}>

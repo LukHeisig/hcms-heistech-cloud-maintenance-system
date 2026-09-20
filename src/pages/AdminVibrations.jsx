@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SchemaList from "@/components/vibration/SchemaList";
 import VseSchemaDialog from "@/components/vibration/VseSchemaDialog";
+import { describeVseDefinition } from "@/components/vibration/vseTemplates";
 
 export default function AdminVibrations() {
   const navigate = useNavigate();
@@ -310,8 +311,8 @@ export default function AdminVibrations() {
     setShowVseSchemaDialog(true);
   };
 
-  const handleSaveVseSchema = ({ name, description, elements }) => {
-    const data = { name, description, source: "vse", rows_config: elements };
+  const handleSaveVseSchema = ({ name, description, definition }) => {
+    const data = { name, description, source: "vse", rows_config: definition };
     if (editingVseSchema) {
       updateSchemaMutation.mutate({ id: editingVseSchema.id, data });
     } else {
@@ -444,14 +445,15 @@ export default function AdminVibrations() {
 
               <TabsContent value="vse">
                 <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4 text-sm text-teal-900">
-                  Vizualizace pro VSE jednotky (ifm, OPC UA) se skládají z volně definovaných prvků
-                  (hodnoty, ukazatele, kontrolky, trendy), na které se mapují hodnoty z jednotek.
+                  Šablony vizualizace pro VSE jednotky (ifm, OPC UA) mají pevně danou strukturu podle typu
+                  (např. Energie vibrací vřetene — 3 osy × 3 countery). Konkrétní countery z jednotky
+                  se přiřazují až na kartě stroje.
                 </div>
                 <SchemaList
                   schemas={schemas.filter((s) => s.source === "vse")}
                   onEdit={openVseSchemaDialog}
                   onDelete={(id) => deleteSchemaMutation.mutate(id)}
-                  itemsLabel="prvků"
+                  describe={describeVseDefinition}
                   emptyText="Zatím žádná vizualizace pro VSE jednotky."
                 />
               </TabsContent>
