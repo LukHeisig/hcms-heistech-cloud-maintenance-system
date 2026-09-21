@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
+import IssueDepartmentSelect from "@/components/issues/IssueDepartmentSelect";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -62,6 +63,7 @@ export default function ControlPointDetail({
 
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
+  const [issueDepartment, setIssueDepartment] = useState("");
   const [issuePhoto, setIssuePhoto] = useState(null);
   const [isReportingIssue, setIsReportingIssue] = useState(false);
   const [showDocPreviewDialog, setShowDocPreviewDialog] = useState(false);
@@ -195,6 +197,7 @@ export default function ControlPointDetail({
       return base44.entities.Issue.create({
         control_point_id: data.control_point_id || null,
         description: data.description,
+        department: data.department,
         photo_url: photoUrl,
         status: "reported",
       });
@@ -203,6 +206,7 @@ export default function ControlPointDetail({
       queryClient.invalidateQueries({ queryKey: ["allIssues"] });
       setShowIssueDialog(false);
       setIssueDescription("");
+      setIssueDepartment("");
       setIssuePhoto(null);
       setIsReportingIssue(false);
     },
@@ -524,7 +528,7 @@ export default function ControlPointDetail({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showIssueDialog} onOpenChange={(isOpen) => { setShowIssueDialog(isOpen); if (!isOpen) { setIssueDescription(""); setIssuePhoto(null); } }}>
+      <Dialog open={showIssueDialog} onOpenChange={(isOpen) => { setShowIssueDialog(isOpen); if (!isOpen) { setIssueDescription(""); setIssueDepartment(""); setIssuePhoto(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-orange-700"><AlertTriangle className="w-5 h-5" />Nahlásit závadu</DialogTitle>
@@ -535,6 +539,7 @@ export default function ControlPointDetail({
               <Label htmlFor="description">Popis závady *</Label>
               <Textarea id="description" value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)} placeholder="Popište podrobně zjištěnou závadu..." rows={5} className="mt-2" />
             </div>
+            <IssueDepartmentSelect value={issueDepartment} onChange={setIssueDepartment} />
             <div>
               <Label>Fotografie závady (volitelné)</Label>
               <div className="flex gap-2 mt-2">
@@ -549,8 +554,8 @@ export default function ControlPointDetail({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowIssueDialog(false); setIssueDescription(""); setIssuePhoto(null); }} disabled={isReportingIssue}>Zrušit</Button>
-            <Button onClick={() => { setIsReportingIssue(true); issueMutation.mutate({ control_point_id: selectedPoint, description: issueDescription, photo: issuePhoto }); }} disabled={!issueDescription.trim() || isReportingIssue} className="bg-gradient-to-r from-orange-600 to-orange-700">
+            <Button variant="outline" onClick={() => { setShowIssueDialog(false); setIssueDescription(""); setIssueDepartment(""); setIssuePhoto(null); }} disabled={isReportingIssue}>Zrušit</Button>
+            <Button onClick={() => { setIsReportingIssue(true); issueMutation.mutate({ control_point_id: selectedPoint, description: issueDescription, department: issueDepartment, photo: issuePhoto }); }} disabled={!issueDescription.trim() || !issueDepartment || isReportingIssue} className="bg-gradient-to-r from-orange-600 to-orange-700">
               {isReportingIssue ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Ukládání...</> : <><AlertTriangle className="w-4 h-4 mr-2" />Nahlásit závadu</>}
             </Button>
           </DialogFooter>

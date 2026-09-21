@@ -51,6 +51,7 @@ import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useOffline } from "@/components/OfflineProvider";
+import IssueDepartmentSelect from "@/components/issues/IssueDepartmentSelect";
 
 export default function ControlPoint() {
   const navigate = useNavigate();
@@ -60,6 +61,7 @@ export default function ControlPoint() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
+  const [issueDepartment, setIssueDepartment] = useState("");
   const [isReportingIssue, setIsReportingIssue] = useState(false);
   
   // Změněno z photo-specific na generic doc state
@@ -225,6 +227,7 @@ export default function ControlPoint() {
         control_point_id: data.control_point_id || null,
         machine_id: data.machine_id || null,
         description: data.description,
+        department: data.department,
         photo_url: photoUrl,
         status: "reported",
       });
@@ -233,6 +236,7 @@ export default function ControlPoint() {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       setShowIssueDialog(false);
       setIssueDescription("");
+      setIssueDepartment("");
       setIsReportingIssue(false);
     },
     onError: () => {
@@ -350,12 +354,13 @@ export default function ControlPoint() {
   };
 
   const handleReportIssue = async () => {
-    if (!issueDescription.trim() || !point) return;
+    if (!issueDescription.trim() || !issueDepartment || !point) return;
     setIsReportingIssue(true);
 
     await issueMutation.mutateAsync({
       control_point_id: point.id,
       description: issueDescription,
+      department: issueDepartment,
       status: "reported",
     });
   };
@@ -1021,6 +1026,7 @@ export default function ControlPoint() {
                   className="mt-2"
                 />
               </div>
+              <IssueDepartmentSelect value={issueDepartment} onChange={setIssueDepartment} />
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
                   <strong>Tip:</strong> Uveďte co nejvíce detailů - co jste zjistili, 
@@ -1034,6 +1040,7 @@ export default function ControlPoint() {
                 onClick={() => {
                   setShowIssueDialog(false);
                   setIssueDescription("");
+                  setIssueDepartment("");
                 }}
                 disabled={isReportingIssue}
               >
@@ -1041,7 +1048,7 @@ export default function ControlPoint() {
               </Button>
               <Button
                 onClick={handleReportIssue}
-                disabled={!issueDescription.trim() || isReportingIssue}
+                disabled={!issueDescription.trim() || !issueDepartment || isReportingIssue}
                 className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
               >
                 {isReportingIssue ? (

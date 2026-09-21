@@ -60,6 +60,7 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import IssueDepartmentFilter from "@/components/issues/IssueDepartmentFilter";
 import IssueEditDialog from "@/components/issues/IssueEditDialog";
+import { ISSUE_DEPARTMENT_LABELS } from "@/components/issues/IssueDepartmentSelect";
 
 export default function IssueApproval() {
   const navigate = useNavigate();
@@ -510,6 +511,11 @@ export default function IssueApproval() {
                 
                 {issueInfo.type === "machine" && (
                   <Badge className="bg-blue-100 text-blue-700">Celý stroj</Badge>
+                )}
+                {issue.department && (
+                  <Badge variant="outline" className={issue.department === "electro" ? "bg-yellow-50 text-yellow-800 border-yellow-300" : "bg-slate-100 text-slate-700 border-slate-300"}>
+                    {ISSUE_DEPARTMENT_LABELS[issue.department]}
+                  </Badge>
                 )}
                 
                 {isResolved ? (

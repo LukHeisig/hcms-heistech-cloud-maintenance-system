@@ -6,15 +6,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2, Pencil, X } from "lucide-react";
+import IssueDepartmentSelect from "@/components/issues/IssueDepartmentSelect";
 
 export default function IssueEditDialog({ open, onOpenChange, issue, onSave, isSaving }) {
   const [description, setDescription] = useState("");
+  const [department, setDepartment] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open && issue) {
       setDescription(issue.description || "");
+      setDepartment(issue.department || "");
       setPhotoUrl(issue.photo_url || "");
     }
   }, [open, issue]);
@@ -40,6 +43,7 @@ export default function IssueEditDialog({ open, onOpenChange, issue, onSave, isS
             <Label htmlFor="edit_desc">Popis závady</Label>
             <Textarea id="edit_desc" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1" />
           </div>
+          <IssueDepartmentSelect value={department} onChange={setDepartment} />
           <div>
             <Label>Fotografie</Label>
             {photoUrl ? (
@@ -57,7 +61,7 @@ export default function IssueEditDialog({ open, onOpenChange, issue, onSave, isS
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Zrušit</Button>
-          <Button onClick={() => onSave({ description: description.trim(), photo_url: photoUrl || null })} disabled={isSaving || uploading || !description.trim()}>
+          <Button onClick={() => onSave({ description: description.trim(), department: department || null, photo_url: photoUrl || null })} disabled={isSaving || uploading || !description.trim() || !department}>
             {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Ukládám...</> : "Uložit změny"}
           </Button>
         </DialogFooter>
