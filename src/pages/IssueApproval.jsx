@@ -54,10 +54,12 @@ import {
   Clock,
   Factory,
   Activity,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import IssueDepartmentFilter from "@/components/issues/IssueDepartmentFilter";
+import IssueEditDialog from "@/components/issues/IssueEditDialog";
 
 export default function IssueApproval() {
   const navigate = useNavigate();
@@ -70,6 +72,7 @@ export default function IssueApproval() {
   const [deleteIssueId, setDeleteIssueId] = useState(null);
   const [highlightedIssueId, setHighlightedIssueId] = useState(null);
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [editIssue, setEditIssue] = useState(null);
   
   // Work Order State
   const [showCreateWorkOrderDialog, setShowCreateWorkOrderDialog] = useState(false);
@@ -334,6 +337,26 @@ export default function IssueApproval() {
     },
   });
 
+  const editIssueMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Issue.update(id, data),
+    onSuccess: async (updatedIssue) => {
+      const info = getIssueInfo(updatedIssue);
+      await base44.entities.AuditLog.create({
+        entity_type: "Issue",
+        entity_id: updatedIssue.id,
+        changed_by: user?.email || "",
+        change_description: `Upravil závadu "${updatedIssue.description.slice(0, 50)}..." na "${info.name || "Neznámý"}"`,
+        user_type: user?.user_type,
+        company_id: user?.company_id || null,
+      });
+      queryClient.invalidateQueries({ queryKey: ["reportedIssues"] });
+      queryClient.invalidateQueries({ queryKey: ["resolvedIssues"] });
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
+      setEditIssue(null);
+    },
+  });
+
   const deleteIssueMutation = useMutation({
     mutationFn: (id) => base44.entities.Issue.delete(id),
     onSuccess: async (_, deletedId) => {
@@ -519,6 +542,17 @@ export default function IssueApproval() {
 
             {/* Actions */}
             <div className="flex gap-2 flex-shrink-0 flex-col sm:flex-row">
+              {canResolveIssues && (
+                <Button
+                  onClick={() => setEditIssue(issue)}
+                  variant="ghost"
+                  size="icon"
+                  className="text-slate-600 hover:text-slate-900"
+                  title="Upravit závadu"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              )}
               {!isResolved && !hasWorkOrder && canResolveIssues && (
                 <>
                   <Button
@@ -998,6 +1032,14 @@ export default function IssueApproval() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <IssueEditDialog
+          open={!!editIssue}
+          onOpenChange={(o) => !o && setEditIssue(null)}
+          issue={editIssue}
+          isSaving={editIssueMutation.isPending}
+          onSave={(data) => editIssueMutation.mutate({ id: editIssue.id, data })}
+        />
 
         {/* Alert dialog pro smazání vyřešené závady */}
         <AlertDialog
