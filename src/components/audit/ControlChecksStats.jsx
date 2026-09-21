@@ -180,6 +180,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
       date: format(new Date(record.performed_at), "d. M. yyyy HH:mm", { locale: cs }),
       type: typeInfo.label,
       point: cp?.name || "",
+      description: cp?.description || "",
       machine: machine?.name || "",
       line: line?.name || "",
       user: getUserName(record),

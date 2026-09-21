@@ -8,8 +8,8 @@ const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").
  * rows: [{ date, type, point, machine, line, user, note }]
  */
 export function exportControlChecksPdf(rows, subtitle = "") {
-  const headers = ["Datum", "Typ kontroly", "Kontrolní bod", "Stroj", "Linka", "Uživatel", "Poznámka"];
-  const body = rows.map(r => `<tr>${[r.date, r.type, r.point, r.machine, r.line, r.user, r.note].map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
+  const headers = ["Datum", "Typ kontroly", "Kontrolní bod", "Popis", "Stroj", "Linka", "Uživatel", "Poznámka"];
+  const body = rows.map(r => `<tr>${[r.date, r.type, r.point, r.description, r.machine, r.line, r.user, r.note].map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
   const generated = format(new Date(), "d. M. yyyy HH:mm", { locale: cs });
 
   const html = `<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Statistiky kontrol</title>
