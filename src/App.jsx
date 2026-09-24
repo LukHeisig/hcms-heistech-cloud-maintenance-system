@@ -13,6 +13,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AlertRecipients from '@/pages/AlertRecipients';
 import AccessExpired from '@/pages/AccessExpired';
 import VseUnits from '@/pages/VseUnits';
+import Revisions from '@/pages/Revisions';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
           <Route key={path} path={`/${path}`} element={<Page />} handle={{ pageName: path }} />
         ))}
         <Route path="/AlertRecipients" element={<LayoutWrapper currentPageName="AlertRecipients"><AlertRecipients /></LayoutWrapper>} />
+        <Route path="/Revisions" element={<Revisions />} handle={{ pageName: "Revisions" }} />
         <Route path="/VseUnits" element={<VseUnits />} handle={{ pageName: "VseUnits" }} />
         <Route path="/AccessExpired" element={<AccessExpired />} />
         <Route path="*" element={<PageNotFound />} />

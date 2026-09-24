@@ -31,6 +31,7 @@ import {
   Loader2,
   Terminal,
   Radio,
+  ShieldCheck,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -524,6 +525,13 @@ function LayoutContent({ children }) {
           title: "Vibrace online",
           url: createPageUrl("VibrationOnline"),
           icon: Radio,
+        }]
+      : []),
+    ...(user?.user_type === "superAdmin" || userCompany?.enable_revisions === true
+      ? [{
+          title: "Revize",
+          url: createPageUrl("Revisions"),
+          icon: ShieldCheck,
         }]
       : []),
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"

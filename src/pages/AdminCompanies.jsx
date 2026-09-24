@@ -158,6 +158,7 @@ export default function AdminCompanies() {
         enable_thermo: company.enable_thermo !== false,
         enable_tribo: company.enable_tribo !== false,
         enable_predictive: company.enable_predictive === true,
+        enable_revisions: company.enable_revisions === true,
         allow_manual_confirmation: company.allow_manual_confirmation !== false,
         force_technician_demip_mobile: company.force_technician_demip_mobile === true,
         overdue_visualization_type: company.overdue_visualization_type || "two_colors",
@@ -447,6 +448,14 @@ export default function AdminCompanies() {
                             onCheckedChange={(checked) => setFormData({...formData, enable_predictive: checked})}
                         />
                         <Label htmlFor="enable_predictive" className="cursor-pointer">AI Prediktivní analýza</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="enable_revisions" 
+                            checked={!!formData.enable_revisions}
+                            onCheckedChange={(checked) => setFormData({...formData, enable_revisions: checked})}
+                        />
+                        <Label htmlFor="enable_revisions" className="cursor-pointer">Revize</Label>
                     </div>
                 </div>
               </div>

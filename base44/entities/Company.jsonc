@@ -56,6 +56,11 @@
       "default": false,
       "description": "Povolit modul AI Prediktivn\u00ed anal\u00fdza"
     },
+    "enable_revisions": {
+      "type": "boolean",
+      "default": false,
+      "description": "Povolit modul Revize (zobraz\u00ed z\u00e1lo\u017eku Revize v hlavn\u00edm menu)"
+    },
     "allow_manual_confirmation": {
       "type": "boolean",
       "default": true,
