@@ -9,7 +9,7 @@ import ChangeHistory from "./ChangeHistory";
 import DefectsTable from "./DefectsTable";
 import { logChanges } from "./revisionLog";
 
-export default function ReportEditDialog({ report, defects, users, user, canEdit, onClose, onOpenDefect }) {
+export default function ReportEditDialog({ report, defects, users, user, canEdit, canDelete, onClose, onOpenDefect }) {
   const qc = useQueryClient();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -63,7 +63,7 @@ export default function ReportEditDialog({ report, defects, users, user, canEdit
           <ChangeHistory recordId={report.id} />
         </div>
         <DialogFooter className="gap-2">
-          {canEdit && (
+          {canDelete && (
             <Button variant="outline" onClick={remove} disabled={saving} className="text-red-600 mr-auto gap-2">
               <Trash2 className="w-4 h-4" /> Smazat
             </Button>
