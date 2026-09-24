@@ -419,6 +419,17 @@ function LayoutContent({ children }) {
     staleTime: 300000,
   });
 
+  const { data: adminCompanies = [] } = useQuery({
+    queryKey: ["companies"],
+    queryFn: () => throttled(() => base44.entities.Company.list(null, 1000)),
+    enabled: user?.user_type === "admin",
+    staleTime: 300000,
+  });
+
+  const revisionsEnabled = userCompany?.enable_revisions === true ||
+    (user?.user_type === "admin" && adminCompanies.some(c =>
+      c.enable_revisions && (user.assigned_company_ids || []).includes(c.id)));
+
   // Force DEMIP mode for technicians on mobile if configured
   useEffect(() => {
     if (user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) {
@@ -527,7 +538,7 @@ function LayoutContent({ children }) {
           icon: Radio,
         }]
       : []),
-    ...(user?.user_type === "superAdmin" || userCompany?.enable_revisions === true
+    ...(user?.user_type === "superAdmin" || revisionsEnabled
       ? [{
           title: "Revize",
           url: createPageUrl("Revisions"),
