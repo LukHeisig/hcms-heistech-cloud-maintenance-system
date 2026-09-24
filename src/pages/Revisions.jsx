@@ -29,18 +29,19 @@ export default function Revisions() {
   const { data: companies = [] } = useQuery({
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list(null, 1000),
-    enabled: isGlobal,
+    enabled: !!user,
   });
 
   const companyOptions = useMemo(() => {
-    if (user?.user_type === "superAdmin") return companies.filter((c) => c.enable_revisions);
-    return companies.filter((c) => (user?.assigned_company_ids || []).includes(c.id));
+    const enabled = companies.filter((c) => c.enable_revisions);
+    if (user?.user_type === "superAdmin") return enabled;
+    if (user?.user_type === "admin") return enabled.filter((c) => (user.assigned_company_ids || []).includes(c.id));
+    return enabled.filter((c) => c.id === user?.company_id);
   }, [companies, user]);
 
   useEffect(() => {
     if (!user || companyId) return;
-    if (!isGlobal) setCompanyId(user.company_id || "");
-    else if (companyOptions.length) setCompanyId(companyOptions[0].id);
+    if (companyOptions.length) setCompanyId(companyOptions[0].id);
   }, [user, isGlobal, companyOptions, companyId]);
 
   const { data: reports = [], isLoading: loadingReports } = useQuery({
