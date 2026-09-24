@@ -1,0 +1,215 @@
+{
+  "name": "RevisionDefect",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "ID podniku"
+    },
+    "report_id": {
+      "type": "string",
+      "description": "ID revizn\u00ed zpr\u00e1vy"
+    },
+    "defect_number": {
+      "type": "string",
+      "description": "\u010c\u00edslo z\u00e1vady (nap\u0159. RE-26-4919/1)"
+    },
+    "vtz_type": {
+      "type": "string",
+      "enum": [
+        "electro",
+        "gas",
+        "pressure",
+        "lifting"
+      ],
+      "description": "Typ VTZ"
+    },
+    "location": {
+      "type": "string",
+      "description": "M\u00edsto / \u010d\u00e1st za\u0159\u00edzen\u00ed dle zpr\u00e1vy"
+    },
+    "standard_ref": {
+      "type": "string",
+      "description": "Odkaz na normu / \u010dl\u00e1nek"
+    },
+    "description": {
+      "type": "string",
+      "description": "Popis z\u00e1vady a po\u017eadovan\u00e9 n\u00e1pravy"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "description": "Klasifikace z\u00e1vady"
+    },
+    "found_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum zji\u0161t\u011bn\u00ed"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Term\u00edn odstran\u011bn\u00ed"
+    },
+    "responsible": {
+      "type": "string",
+      "description": "Odpov\u011bdn\u00e1 osoba / \u00fatvar"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email p\u0159id\u011blen\u00e9ho pracovn\u00edka"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "assigned",
+        "in_progress",
+        "removed",
+        "awaiting_verification",
+        "closed"
+      ],
+      "default": "new",
+      "description": "Stav z\u00e1vady"
+    },
+    "removed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum odstran\u011bn\u00ed"
+    },
+    "removed_by": {
+      "type": "string",
+      "description": "Kdo z\u00e1vadu odstranil"
+    },
+    "closed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum ukon\u010den\u00ed"
+    },
+    "closed_by": {
+      "type": "string",
+      "description": "Kdo odstran\u011bn\u00ed potvrdil / ukon\u010dil"
+    },
+    "verified_by": {
+      "type": "string",
+      "description": "Kdo provedl n\u00e1slednou kontrolu"
+    },
+    "removal_method": {
+      "type": "string",
+      "description": "Zp\u016fsob odstran\u011bn\u00ed / popis opravy"
+    },
+    "note": {
+      "type": "string"
+    },
+    "attachments": {
+      "type": "array",
+      "description": "P\u0159\u00edlohy k z\u00e1vad\u011b a jej\u00edmu odstran\u011bn\u00ed",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "uploaded_by": {
+            "type": "string"
+          },
+          "uploaded_at": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "company_id",
+    "report_id",
+    "description",
+    "classification"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "data.company_id": {
+            "$in": "{{user.data.assigned_company_ids}}"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    }
+  }
+}

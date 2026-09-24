@@ -1,0 +1,95 @@
+{
+  "name": "RevisionChangeLog",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "record_type": {
+      "type": "string",
+      "enum": [
+        "report",
+        "defect"
+      ],
+      "description": "Typ z\u00e1znamu"
+    },
+    "record_id": {
+      "type": "string",
+      "description": "ID zpr\u00e1vy nebo z\u00e1vady"
+    },
+    "action": {
+      "type": "string",
+      "description": "created / updated / deleted / attachment"
+    },
+    "field": {
+      "type": "string",
+      "description": "Zm\u011bn\u011bn\u00e9 pole"
+    },
+    "old_value": {
+      "type": "string"
+    },
+    "new_value": {
+      "type": "string"
+    },
+    "changed_by": {
+      "type": "string",
+      "description": "Email u\u017eivatele"
+    },
+    "changed_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_type",
+    "record_id",
+    "action"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "data.company_id": {
+            "$in": "{{user.data.assigned_company_ids}}"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
+}

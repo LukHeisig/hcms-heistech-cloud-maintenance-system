@@ -1,0 +1,188 @@
+{
+  "name": "RevisionReport",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "ID podniku"
+    },
+    "report_number": {
+      "type": "string",
+      "description": "\u010c\u00edslo revizn\u00ed zpr\u00e1vy (nap\u0159. RE-26-4919)"
+    },
+    "vtz_type": {
+      "type": "string",
+      "enum": [
+        "electro",
+        "gas",
+        "pressure",
+        "lifting"
+      ],
+      "default": "electro",
+      "description": "Typ VTZ"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "ex_special",
+        "gas_boiler",
+        "gas_appliances",
+        "technology",
+        "buildings",
+        "lightning",
+        "by_device"
+      ],
+      "description": "Kategorie pro v\u00fdchoz\u00ed interval revize"
+    },
+    "subject": {
+      "type": "string",
+      "description": "P\u0159edm\u011bt revize / za\u0159\u00edzen\u00ed"
+    },
+    "revision_kind": {
+      "type": "string",
+      "description": "Druh revize (pravideln\u00e1, v\u00fdchoz\u00ed, ...)"
+    },
+    "technician_name": {
+      "type": "string",
+      "description": "Revizn\u00ed technik"
+    },
+    "technician_reg_no": {
+      "type": "string",
+      "description": "Eviden\u010dn\u00ed \u010d\u00edslo revizn\u00edho technika"
+    },
+    "revision_date_from": {
+      "type": "string",
+      "format": "date",
+      "description": "Revize provedena od"
+    },
+    "revision_date_to": {
+      "type": "string",
+      "format": "date",
+      "description": "Revize ukon\u010dena dne"
+    },
+    "previous_revision_date": {
+      "type": "string",
+      "format": "date",
+      "description": "P\u0159edchoz\u00ed revize"
+    },
+    "report_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Vyhotoven\u00ed zpr\u00e1vy"
+    },
+    "next_revision_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Term\u00edn p\u0159\u00ed\u0161t\u00ed revize"
+    },
+    "interval_months": {
+      "type": "number",
+      "description": "Interval revize v m\u011bs\u00edc\u00edch"
+    },
+    "overall_assessment": {
+      "type": "string",
+      "description": "Celkov\u00fd posudek"
+    },
+    "conclusion": {
+      "type": "string",
+      "description": "Z\u00e1v\u011br revizn\u00ed zpr\u00e1vy"
+    },
+    "is_operational": {
+      "type": "boolean",
+      "default": true,
+      "description": "Za\u0159\u00edzen\u00ed je schopno bezpe\u010dn\u00e9ho provozu"
+    },
+    "responsible_person": {
+      "type": "string",
+      "description": "Odpov\u011bdn\u00e1 osoba / \u00fatvar za za\u0159\u00edzen\u00ed"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL PDF revizn\u00ed zpr\u00e1vy"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "report_number",
+    "vtz_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "data.company_id": {
+            "$in": "{{user.data.assigned_company_ids}}"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    }
+  }
+}
