@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Paperclip, Loader2, Trash2, Upload } from "lucide-react";
 import { ATTACHMENT_KINDS } from "./revisionConstants";
 
-export default function DefectAttachments({ attachments = [], onChange, canEdit, user }) {
+export default function DefectAttachments({ attachments = [], onChange, canEdit, canAdd = canEdit, user }) {
   const [kind, setKind] = useState("photo_before");
   const [uploading, setUploading] = useState(false);
 
@@ -41,7 +41,7 @@ export default function DefectAttachments({ attachments = [], onChange, canEdit,
           </div>
         ))}
       </div>
-      {canEdit && (
+      {canAdd && (
         <div className="flex gap-2">
           <Select value={kind} onValueChange={setKind}>
             <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>

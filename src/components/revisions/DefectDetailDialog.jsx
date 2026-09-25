@@ -25,12 +25,18 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
   useEffect(() => { setForm(defect ? { ...defect, status: defect.status || "new" } : null); }, [defect]);
   if (!defect || !form) return null;
 
+  // Přidělený pracovník (bez manažerských práv) smí vyplnit způsob odstranění, přílohy a stav "Odstraněno"
+  const isAssignee = !canEdit && !!user?.email && defect.assigned_to === user.email &&
+    ["new", "assigned", "in_progress", "removed"].includes(defect.status || "new");
+  const canWork = canEdit || isAssignee;
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const txt = (k) => ({ value: form[k] || "", disabled: !canEdit, onChange: (e) => set({ [k]: e.target.value }) });
+  const assigneeStatuses = [...new Set([defect.status || "new", "removed"])];
 
   const setStatus = (status) => {
     const patch = { status };
     if (status === "removed" && !form.removed_date) patch.removed_date = todayIso();
+    if (status === "removed" && !form.removed_by) patch.removed_by = user?.custom_display_name || user?.full_name || user?.email;
     if (status === "closed") {
       if (!form.closed_date) patch.closed_date = todayIso();
       if (!form.closed_by) patch.closed_by = user?.email;
@@ -51,8 +57,11 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
 
   const save = async () => {
     setSaving(true);
-    const { id, created_date, updated_date, created_by_id, created_by, attachments, ...data } = form;
-    if (data.assigned_to && data.status === "new") data.status = "assigned";
+    const { id, created_date, updated_date, created_by_id, created_by, attachments, ...rest } = form;
+    const data = isAssignee
+      ? { removal_method: form.removal_method || "", status: form.status, removed_date: form.removed_date || "", removed_by: form.removed_by || "" }
+      : rest;
+    if (!isAssignee && data.assigned_to && data.status === "new") data.status = "assigned";
     await base44.entities.RevisionDefect.update(defect.id, data);
     await logChanges({ user, recordType: "defect", recordId: defect.id, companyId: defect.company_id, before: defect, after: data });
     refresh();
@@ -104,12 +113,18 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
               </Select>
             </F>
             <F label="Stav">
-              <Select value={form.status} onValueChange={setStatus} disabled={!canEdit}>
+              <Select value={form.status} onValueChange={setStatus} disabled={!canWork}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(STATUSES).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {Object.entries(STATUSES)
+                    .filter(([k]) => canEdit || assigneeStatuses.includes(k))
+                    .map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                </SelectContent>
               </Select>
             </F>
-            <F label="Způsob odstranění / popis opravy" className="md:col-span-3"><Textarea rows={2} {...txt("removal_method")} /></F>
+            <F label="Způsob odstranění / popis opravy" className="md:col-span-3">
+              <Textarea rows={2} {...txt("removal_method")} disabled={!canWork} />
+            </F>
             <F label="Datum odstranění"><Input type="date" {...txt("removed_date")} /></F>
             <F label="Odstranil"><Input {...txt("removed_by")} /></F>
             <F label="Následnou kontrolu provedl"><Input {...txt("verified_by")} /></F>
@@ -120,13 +135,13 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
             <F label="Poznámka" className="md:col-span-3"><Textarea rows={2} {...txt("note")} /></F>
           </div>
 
-          <DefectAttachments attachments={form.attachments || []} onChange={saveAttachments} canEdit={canEdit} user={user} />
+          <DefectAttachments attachments={form.attachments || []} onChange={saveAttachments} canEdit={canEdit} canAdd={canWork} user={user} />
           <ChangeHistory recordId={defect.id} formatValue={formatValue} />
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Zavřít</Button>
-          {canEdit && (
+          {canWork && (
             <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />} Uložit změny
             </Button>

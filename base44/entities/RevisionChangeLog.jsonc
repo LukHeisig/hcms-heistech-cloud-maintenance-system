@@ -61,6 +61,9 @@
           "user_condition": {
             "data.user_type": "manager"
           }
+        },
+        {
+          "data.changed_by": "{{user.email}}"
         }
       ]
     },

@@ -189,6 +189,9 @@
           "user_condition": {
             "data.user_type": "manager"
           }
+        },
+        {
+          "data.assigned_to": "{{user.email}}"
         }
       ]
     },
