@@ -12,6 +12,7 @@ import DefectStatusBadge, { ClassificationBadge } from "./DefectStatusBadge";
 import DefectAttachments from "./DefectAttachments";
 import DefectTrail from "./DefectTrail";
 import ChangeHistory from "./ChangeHistory";
+import DefectWorkflowActions from "./DefectWorkflowActions";
 import { STATUSES, CLASSIFICATIONS, VTZ_TYPES, todayIso, userName } from "./revisionConstants";
 import { logChanges } from "./revisionLog";
 
@@ -21,23 +22,24 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
   const qc = useQueryClient();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => { setForm(defect ? { ...defect, status: defect.status || "new" } : null); }, [defect]);
+  useEffect(() => { setForm(defect ? { ...defect, status: defect.status || "new" } : null); setError(""); }, [defect]);
   if (!defect || !form) return null;
 
-  // Přidělený pracovník (bez manažerských práv) smí vyplnit způsob odstranění, přílohy a stav "Odstraněno"
-  const isAssignee = !canEdit && !!user?.email && defect.assigned_to === user.email &&
-    ["new", "assigned", "in_progress", "removed"].includes(defect.status || "new");
+  const status = defect.status || "new";
+  const isAssigned = !!user?.email && defect.assigned_to === user.email;
+  // Přidělený pracovník (bez manažerských práv) smí ve stavu "V řešení" vyplnit popis opravy a přílohy
+  const isAssignee = !canEdit && isAssigned && status === "in_progress";
   const canWork = canEdit || isAssignee;
+  const myName = user?.custom_display_name || user?.full_name || user?.email;
+
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const txt = (k) => ({ value: form[k] || "", disabled: !canEdit, onChange: (e) => set({ [k]: e.target.value }) });
-  const assigneeStatuses = [...new Set([defect.status || "new", "removed"])];
 
-  const setStatus = (status) => {
-    const patch = { status };
-    if (status === "removed" && !form.removed_date) patch.removed_date = todayIso();
-    if (status === "removed" && !form.removed_by) patch.removed_by = user?.custom_display_name || user?.full_name || user?.email;
-    if (status === "closed") {
+  const setStatus = (s) => {
+    const patch = { status: s };
+    if (s === "closed") {
       if (!form.closed_date) patch.closed_date = todayIso();
       if (!form.closed_by) patch.closed_by = user?.email;
     }
@@ -55,18 +57,29 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
     return v;
   };
 
-  const save = async () => {
+  const persist = async (data) => {
     setSaving(true);
-    const { id, created_date, updated_date, created_by_id, created_by, attachments, ...rest } = form;
-    const data = isAssignee
-      ? { removal_method: form.removal_method || "", status: form.status, removed_date: form.removed_date || "", removed_by: form.removed_by || "" }
-      : rest;
-    if (!isAssignee && data.assigned_to && data.status === "new") data.status = "assigned";
     await base44.entities.RevisionDefect.update(defect.id, data);
     await logChanges({ user, recordType: "defect", recordId: defect.id, companyId: defect.company_id, before: defect, after: data });
     refresh();
     setSaving(false);
     onClose();
+  };
+
+  const save = () => {
+    const { id, created_date, updated_date, created_by_id, created_by, attachments, ...rest } = form;
+    const data = isAssignee ? { removal_method: form.removal_method || "" } : rest;
+    if (!isAssignee && data.assigned_to && data.status === "new") data.status = "assigned";
+    return persist(data);
+  };
+
+  const handOver = () => {
+    if (!form.removal_method?.trim()) return setError("Vyplňte způsob odstranění / popis opravy.");
+    if (!(form.attachments || []).length) return setError("Nahrajte alespoň jednu přílohu (dokumentaci nebo foto).");
+    return persist({
+      removal_method: form.removal_method, status: "awaiting_verification",
+      removed_date: form.removed_date || todayIso(), removed_by: form.removed_by || myName,
+    });
   };
 
   const saveAttachments = async (list, message) => {
@@ -75,6 +88,8 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
     set({ attachments: list });
     refresh();
   };
+
+  const statusOptions = Object.entries(STATUSES).filter(([k]) => k !== "removed" || status === "removed");
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
@@ -113,13 +128,9 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
               </Select>
             </F>
             <F label="Stav">
-              <Select value={form.status} onValueChange={setStatus} disabled={!canWork}>
+              <Select value={form.status} onValueChange={setStatus} disabled={!canEdit}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(STATUSES)
-                    .filter(([k]) => canEdit || assigneeStatuses.includes(k))
-                    .map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                </SelectContent>
+                <SelectContent>{statusOptions.map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
               </Select>
             </F>
             <F label="Způsob odstranění / popis opravy" className="md:col-span-3">
@@ -139,8 +150,19 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
           <ChangeHistory recordId={defect.id} formatValue={formatValue} />
         </div>
 
-        <DialogFooter>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <DialogFooter className="gap-2 flex-wrap">
           <Button variant="outline" onClick={onClose}>Zavřít</Button>
+          <DefectWorkflowActions
+            status={status}
+            isAssigned={isAssigned}
+            canConfirm={canEdit}
+            busy={saving}
+            onTake={() => persist({ status: "in_progress" })}
+            onHandOver={handOver}
+            onConfirm={() => persist({ status: "closed", closed_date: todayIso(), closed_by: user?.email })}
+            onReturn={() => persist({ status: "in_progress" })}
+          />
           {canWork && (
             <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />} Uložit změny
