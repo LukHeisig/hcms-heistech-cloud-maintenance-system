@@ -52,6 +52,8 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { throttled } from "@/lib/requestQueue";
+import useMyRevisionTasks from "@/hooks/useMyRevisionTasks";
+import RevisionTasksBell from "@/components/revisions/RevisionTasksBell";
 
 function LayoutContent({ children }) {
   const location = useLocation();
@@ -430,6 +432,8 @@ function LayoutContent({ children }) {
     (user?.user_type === "admin" && adminCompanies.some(c =>
       c.enable_revisions && (user.assigned_company_ids || []).includes(c.id)));
 
+  const revisionTasks = useMyRevisionTasks(user, user?.user_type === "superAdmin" || revisionsEnabled);
+
   // Force DEMIP mode for technicians on mobile if configured
   useEffect(() => {
     if (user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) {
@@ -543,6 +547,7 @@ function LayoutContent({ children }) {
           title: "Revize",
           url: createPageUrl("Revisions"),
           icon: ShieldCheck,
+          badge: revisionTasks.length,
         }]
       : []),
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
@@ -669,6 +674,7 @@ function LayoutContent({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <RevisionTasksBell tasks={revisionTasks} />
             {(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false) && (
             <button
               className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
@@ -904,6 +910,7 @@ function LayoutContent({ children }) {
       <div className="lg:pl-72">
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
+           <RevisionTasksBell tasks={revisionTasks} />
            {(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false) && (
            <button
               className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors mr-1"

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +22,7 @@ export default function Revisions() {
   const [importOpen, setImportOpen] = useState(false);
   const [openReport, setOpenReport] = useState(null);
   const [openDefect, setOpenDefect] = useState(null);
+  const [params, setParams] = useSearchParams();
 
   useEffect(() => { base44.auth.me().then(setUser); }, []);
   const isGlobal = ["superAdmin", "admin"].includes(user?.user_type);
@@ -60,6 +62,17 @@ export default function Revisions() {
     enabled: !!user,
     staleTime: 300000,
   });
+
+  // Otevření závady z notifikace (?company=...&defect=...)
+  useEffect(() => {
+    const c = params.get("company");
+    if (c) setCompanyId(c);
+  }, [params]);
+  useEffect(() => {
+    const id = params.get("defect");
+    const d = id && defects.find((x) => x.id === id);
+    if (d) { setOpenDefect(d); setParams({}, { replace: true }); }
+  }, [params, defects]);
 
   const reportOf = (d) => reports.find((r) => r.id === d?.report_id);
   const refresh = () => {

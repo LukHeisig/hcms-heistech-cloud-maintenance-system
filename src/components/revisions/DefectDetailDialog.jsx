@@ -49,6 +49,7 @@ export default function DefectDetailDialog({ defect, report, users, user, canEdi
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["revisionDefects"] });
     qc.invalidateQueries({ queryKey: ["revisionLog", defect.id] });
+    qc.invalidateQueries({ queryKey: ["myRevisionTasks"] });
   };
 
   const formatValue = (field, v) => {

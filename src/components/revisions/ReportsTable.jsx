@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { FileText } from "lucide-react";
-import { VTZ_TYPES, CATEGORIES, OPEN_STATUSES, fmtDate, daysUntil, isDefectOverdue } from "./revisionConstants";
+import { FileText, Check } from "lucide-react";
+import { VTZ_TYPES, CATEGORIES, fmtDate, daysUntil, isDefectOverdue } from "./revisionConstants";
 
 export default function ReportsTable({ reports, defects, onOpen }) {
   const sorted = [...reports].sort((a, b) => (b.revision_date_to || "").localeCompare(a.revision_date_to || ""));
@@ -24,7 +24,7 @@ export default function ReportsTable({ reports, defects, onOpen }) {
           )}
           {sorted.map((r) => {
             const ds = defects.filter((d) => d.report_id === r.id);
-            const open = ds.filter((d) => OPEN_STATUSES.includes(d.status || "new")).length;
+            const remaining = ds.filter((d) => d.status !== "closed").length;
             const overdue = ds.filter(isDefectOverdue).length;
             const days = r.next_revision_date ? daysUntil(r.next_revision_date) : null;
             const nextTone = days === null ? "" : days < 0 ? "text-red-700 font-semibold" : days <= 90 ? "text-amber-700 font-semibold" : "";
@@ -44,8 +44,13 @@ export default function ReportsTable({ reports, defects, onOpen }) {
                 <td className={`p-3 whitespace-nowrap ${nextTone}`}>{fmtDate(r.next_revision_date)}</td>
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-800">{ds.length} celkem</Badge>
-                    {open > 0 && <Badge variant="outline" className="bg-amber-100 text-amber-800">{open} otevřené</Badge>}
+                    {ds.length === 0 ? (
+                      <Badge variant="outline" className="bg-slate-50 text-slate-500">Bez závad</Badge>
+                    ) : remaining === 0 ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 gap-1"><Check className="w-3 h-3" /> Vše ukončeno ({ds.length})</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">Zbývá ukončit {remaining} / {ds.length}</Badge>
+                    )}
                     {overdue > 0 && <Badge className="bg-red-600 text-white">{overdue} po termínu</Badge>}
                   </div>
                 </td>
