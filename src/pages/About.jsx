@@ -3,6 +3,11 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppDocumentation from "@/components/about/AppDocumentation";
 import RevisionsModuleInfo from "@/components/about/revisions/RevisionsModuleInfo";
+import VibrationModuleInfo from "@/components/about/modules/VibrationModuleInfo";
+import DemipModuleInfo from "@/components/about/modules/DemipModuleInfo";
+import IssuesModuleInfo from "@/components/about/modules/IssuesModuleInfo";
+import WorkOrdersModuleInfo from "@/components/about/modules/WorkOrdersModuleInfo";
+import AuditLogModuleInfo from "@/components/about/modules/AuditLogModuleInfo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle,
@@ -63,10 +68,20 @@ export default function About() {
         </div>
 
         <Tabs defaultValue="overview" className="mb-8">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 h-auto flex-wrap justify-start">
             <TabsTrigger value="overview">Přehled systému</TabsTrigger>
+            <TabsTrigger value="vibration">Vibrace online</TabsTrigger>
+            <TabsTrigger value="demip">DEMIP</TabsTrigger>
+            <TabsTrigger value="issues">Správa závad</TabsTrigger>
+            <TabsTrigger value="workorders">Pracovní příkazy</TabsTrigger>
+            <TabsTrigger value="audit">Audit Log</TabsTrigger>
             <TabsTrigger value="revisions">Modul Revize</TabsTrigger>
           </TabsList>
+          <TabsContent value="vibration"><VibrationModuleInfo /></TabsContent>
+          <TabsContent value="demip"><DemipModuleInfo /></TabsContent>
+          <TabsContent value="issues"><IssuesModuleInfo /></TabsContent>
+          <TabsContent value="workorders"><WorkOrdersModuleInfo /></TabsContent>
+          <TabsContent value="audit"><AuditLogModuleInfo /></TabsContent>
           <TabsContent value="revisions">
             <RevisionsModuleInfo />
           </TabsContent>
