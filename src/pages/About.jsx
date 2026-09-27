@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppDocumentation from "@/components/about/AppDocumentation";
+import RevisionsModuleInfo from "@/components/about/revisions/RevisionsModuleInfo";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle,
   Droplet,
@@ -60,6 +62,15 @@ export default function About() {
           </p>
         </div>
 
+        <Tabs defaultValue="overview" className="mb-8">
+          <TabsList className="mb-6">
+            <TabsTrigger value="overview">Přehled systému</TabsTrigger>
+            <TabsTrigger value="revisions">Modul Revize</TabsTrigger>
+          </TabsList>
+          <TabsContent value="revisions">
+            <RevisionsModuleInfo />
+          </TabsContent>
+          <TabsContent value="overview">
         {/* Proč HCMS */}
         <Card className="mb-8 border-2 bg-gradient-to-br from-blue-50 to-white" style={{ borderColor: '#2150D8' }}>
           <CardHeader>
@@ -426,6 +437,8 @@ export default function About() {
 
         {/* Kompletní dokumentace — pouze SuperAdmin */}
         {user?.user_type === "superAdmin" && <AppDocumentation />}
+          </TabsContent>
+        </Tabs>
 
         {/* Footer s kontaktem */}
         <Card className="heistech-gradient text-white border-none">
