@@ -14,7 +14,6 @@ export default function VibrationModuleInfo() {
         <Bullets items={[
           ["Přehled strojů:", "stroje s vibračním monitoringem seskupené podle podniku a linky, s okamžitým semaforem stavu."],
           ["Stav senzoru:", "Online (data do 12 h), Nedávno (12–24 h), Offline (více než 24 h), dále baterie, teplota a síla signálu."],
-          ["Dostupnost:", "modul se zapíná pro každý podnik zvlášť; bez aktivního modulu není položka v menu ani vibrační alarmy v hlavičce."],
         ]} />
       </InfoSection>
 

@@ -18,7 +18,6 @@ export default function RevisionsModuleInfo() {
           ["Přehled:", "statistiky otevřených, po termínu a ukončených závad, seznam „Co je potřeba řešit“ a blížící se termíny revizí."],
           ["Revizní závady:", "kompletní seznam s filtrováním podle stavu, klasifikace, typu VTZ a fulltextovým vyhledáváním."],
           ["Revizní zprávy:", "evidence všech zpráv; u každé je vidět, zda jsou všechny závady ukončeny (✓ Vše ukončeno), nebo kolik jich zbývá (např. Zbývá ukončit 3 / 5)."],
-          ["Dostupnost:", "modul se zapíná pro každý podnik zvlášť v administraci podniků. Uživatelé vidí pouze data podniků, kde je modul aktivní."],
         ]} />
       </InfoSection>
 

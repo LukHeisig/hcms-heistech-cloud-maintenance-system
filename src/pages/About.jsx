@@ -474,7 +474,7 @@ export default function About() {
             </div>
             <div className="mt-6 pt-6 border-t border-blue-400">
               <p className="text-xs text-blue-200">
-                HCMS v1.2 | © 2025 Heistech s.r.o. | Vyvinuto na platformě Base44
+                HCMS v1.2 | © 2025 Heistech s.r.o.
               </p>
             </div>
           </CardContent>
