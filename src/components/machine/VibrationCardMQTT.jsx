@@ -938,7 +938,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
 
   // Trendy všech přiřazených senzorů — jedno query mimo map (Rules of Hooks)
   const { data: allSensorTrends = {} } = useQuery({
-    queryKey: ["allSensorTrends", assignedSensorIds.join(",")],
+    queryKey: ["allSensorTrends", assignedSensorIds.join(","), machine?.vibration_history_from],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return {};
       const result = {};
@@ -947,6 +947,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
           sensor_id: sid,
           limit: 10,
           trend_only: true,
+          from_date: machine?.vibration_history_from || null,
         }));
         result[sid] = res.data?.trends || {};
       }));
@@ -1509,6 +1510,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
               if (rowIdx != null) setSelectedRow(Number(rowIdx));
             }}
             selectedSensorDataId={trendSelectedSensorDataId}
+            historyFrom={machine?.vibration_history_from}
           />
         );
       })()}
@@ -1538,6 +1540,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                 bearing={bearingsById[rowAssignments[activeRowIdx]?.bearingId]}
                 temperature={getSensorById(activeSensorId)?.last_temperature}
                 machineName={machine?.name}
+                historyFrom={machine?.vibration_history_from}
                 measurementPoint={(() => { const r = schemaRows[activeRowIdx]; if (!r) return `Bod ${activeRowIdx + 1}`; const l = r.label || ""; const n = r.name || ""; return l && n && l !== n ? `${l} — ${n}` : (l || n || `Bod ${activeRowIdx + 1}`); })()}
               />
             </CardContent>

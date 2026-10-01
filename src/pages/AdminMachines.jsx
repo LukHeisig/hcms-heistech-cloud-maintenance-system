@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -255,6 +256,7 @@ export default function AdminMachines() {
         vibration_source: machine.vibration_source || "aissens",
         vibration_schema_id: machine.vibration_schema_id || null,
         alarm_delay_count: machine.alarm_delay_count || 1,
+        vibration_history_from: machine.vibration_history_from ? format(new Date(machine.vibration_history_from), "yyyy-MM-dd'T'HH:mm") : "",
         photo_url: machine.photo_url || "",
         parent_id: machine.parent_id || null,
         monitor_vibration: machine.monitor_vibration || false,
@@ -272,6 +274,7 @@ export default function AdminMachines() {
         vibration_source: "aissens",
         vibration_schema_id: null,
         alarm_delay_count: 1,
+        vibration_history_from: "",
         photo_url: "",
         parent_id: null,
         monitor_vibration: false,
@@ -310,6 +313,7 @@ export default function AdminMachines() {
       vibration_source: formData.vibration_source || "aissens",
       vibration_schema_id: formData.vibration_schema_id || null,
       alarm_delay_count: Math.max(1, parseInt(formData.alarm_delay_count) || 1),
+      vibration_history_from: formData.vibration_history_from ? new Date(formData.vibration_history_from).toISOString() : null,
       photo_url: formData.photo_url || null,
       parent_id: formData.parent_id === "none" ? null : formData.parent_id,
       monitor_vibration: formData.monitor_vibration,
@@ -742,6 +746,19 @@ export default function AdminMachines() {
                       </div>
                   </div>
               </div>
+
+              {formData.monitor_vibration && (
+                <div>
+                  <Label htmlFor="vibration_history_from">Historie snímačů od</Label>
+                  <Input
+                    id="vibration_history_from"
+                    type="datetime-local"
+                    value={formData.vibration_history_from || ""}
+                    onChange={(e) => setFormData({ ...formData, vibration_history_from: e.target.value })}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Trendy, FFT spektra a AI analýza budou brát jen měření od tohoto okamžiku (např. po přemístění snímačů). Prázdné = celá historie.</p>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="description">Popis</Label>

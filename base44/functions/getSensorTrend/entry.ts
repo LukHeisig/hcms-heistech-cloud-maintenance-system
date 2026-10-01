@@ -39,7 +39,8 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { sensor_id, days, limit = 200, is_temperature = false, trend_only = false } = await req.json();
+    const { sensor_id, days, limit = 200, is_temperature = false, trend_only = false, from_date = null } = await req.json();
+    const fromQuery = from_date ? { timestamp_unix: { $gte: Math.floor(new Date(from_date).getTime() / 1000) } } : {};
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
 
     // Uživatel smí číst trendy jen senzorů strojů svého podniku
@@ -61,7 +62,7 @@ export default async function(req) {
     // === TEPLOTA — čteme ze SensorTrendPoint ===
     if (is_temperature) {
       const allRecords = await base44.asServiceRole.entities.SensorTrendPoint.filter(
-        { sensor_id },
+        { sensor_id, ...fromQuery },
         "-timestamp_unix",
         limit
       );
@@ -90,7 +91,7 @@ export default async function(req) {
 
     // === VIBRACE — čteme ze SensorTrendPoint ===
     const allRecords = await base44.asServiceRole.entities.SensorTrendPoint.filter(
-      { sensor_id },
+      { sensor_id, ...fromQuery },
       "-timestamp_unix",
       limit
     );

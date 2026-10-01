@@ -84,7 +84,7 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 };
 
 // limits: { ab, bc, cd } — hodnoty limitů pro zobrazení v grafu (nepovinné)
-export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits }) {
+export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits, historyFrom }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
   const [yScaleMode, setYScaleMode] = useState("auto");
   const [rangeDays, setRangeDays] = useState(3); // null = vše, default = 3 dny
@@ -98,7 +98,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
   const isTemperature = metricDef.source === "SensorData";
 
   const { data: historyData = [], isLoading } = useQuery({
-    queryKey: ["sensorTrend", sensorId, metricKey, rangeDays],
+    queryKey: ["sensorTrend", sensorId, metricKey, rangeDays, historyFrom],
     queryFn: async () => {
       const limit = RANGE_LIMIT[rangeDays] ?? 2000;
       const res = await base44.functions.invoke('getSensorTrend', {
@@ -106,6 +106,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
         days: rangeDays,
         limit,
         is_temperature: isTemperature,
+        from_date: historyFrom || null,
       });
       return (res.data?.data ?? []).filter(r => metricDef.lines.some(l => r[l.key] != null));
     },

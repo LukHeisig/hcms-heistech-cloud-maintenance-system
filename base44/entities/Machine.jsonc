@@ -88,6 +88,11 @@
       "default": 1,
       "description": "Zpo\u017ed\u011bn\u00ed alarmu vibrodiagnostiky \u2014 po\u010det po sob\u011b jdouc\u00edch m\u011b\u0159en\u00ed, kter\u00e1 mus\u00ed p\u0159ekro\u010dit limit, aby se alarm aktivoval (1 = bez zpo\u017ed\u011bn\u00ed)"
     },
+    "vibration_history_from": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Od kdy zobrazovat historii p\u0159i\u0159azen\u00fdch sn\u00edma\u010d\u016f (trendy, FFT spektra, AI anal\u00fdza). Pr\u00e1zdn\u00e9 = cel\u00e1 historie."
+    },
     "photo_url": {
       "type": "string",
       "description": "URL fotografie stroje pro vibra\u010dn\u00ed kartu"

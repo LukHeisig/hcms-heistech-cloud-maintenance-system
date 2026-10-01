@@ -273,11 +273,14 @@ function renderBearingRefLines(freqLines, visibleFreqs, harmonics = false) {
 export default function SensorDSPPanel({
   sensorId, initialRecordId,
   velStandard, accStandard, tempStandard, temperature,
-  machineName, measurementPoint, bearing
+  machineName, measurementPoint, bearing, historyFrom
 }) {
   const { data: records = [], isLoading } = useQuery({
-    queryKey: ["sensorDataWithFFT", sensorId],
-    queryFn: () => base44.entities.SensorData.filter({ sensor_id: sensorId, has_fft: true }, "-created_date", 50),
+    queryKey: ["sensorDataWithFFT", sensorId, historyFrom],
+    queryFn: () => base44.entities.SensorData.filter({
+      sensor_id: sensorId, has_fft: true,
+      ...(historyFrom ? { created_date: { $gte: historyFrom } } : {}),
+    }, "-created_date", 50),
     enabled: !!sensorId,
     staleTime: 60000,
   });
