@@ -28,7 +28,8 @@ function formatTs(timestamp_unix) {
   const date = new Date(timestamp_unix * 1000);
   return date.toLocaleString("cs-CZ", {
     day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-    timeZone: "Europe/Prague"
+    // Senzory Aissens posílají místní čas (Praha) uložený jako UTC — neposouvat znovu o časové pásmo
+    timeZone: "UTC"
   }).replace(",", "");
 }
 
