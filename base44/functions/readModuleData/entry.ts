@@ -25,7 +25,22 @@ const WRITES = {
   VibrationSensorAssignment: { create: MANAGERS, update: MANAGERS },
 };
 
+// Krátká cache rozsahu na uživatele (šetří 4+ dotazy na každé volání)
+const SCOPE_TTL = 60000;
+const scopeCache = new Map();
 async function loadScope(db, user) {
+  const hit = scopeCache.get(user.id);
+  if (hit && Date.now() - hit.at < SCOPE_TTL) return hit.scope;
+  const scope = await computeScope(db, user);
+  scopeCache.set(user.id, { scope, at: Date.now() });
+  return scope;
+}
+
+// Odstraní těžká raw pole (surové vzorky) – pro přehledy nejsou potřeba
+const HEAVY = ['raw_x_json', 'raw_y_json', 'raw_z_json'];
+const lighten = (items) => items.map((r) => { const o = { ...r }; HEAVY.forEach((k) => delete o[k]); return o; });
+
+async function computeScope(db, user) {
   const allowed = allowedCompanyIds(user);
   if (!allowed.length) return { machines: [], sensors: [], units: [] };
   const companies = await db.Company.filter({ id: { $in: allowed } }, null, 1000);
@@ -65,7 +80,7 @@ export default async function (req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { entity, op = 'filter', query, sort, limit, id, data } = await req.json();
+    const { entity, op = 'filter', query, sort, limit, id, data, light, keys } = await req.json();
     const def = ENTITIES[entity];
     if (!def) return Response.json({ error: 'Unknown entity' }, { status: 400 });
     const db = base44.asServiceRole.entities;
@@ -73,12 +88,27 @@ export default async function (req) {
 
     if (op === 'filter') {
       const max = Math.min(Number(limit) || 100, 1000);
-      if (superAdmin) return Response.json({ items: await db[entity].filter(query || {}, sort || null, max) });
+      const out = (items) => Response.json({ items: light ? lighten(items) : items });
+      if (superAdmin) return out(await db[entity].filter(query || {}, sort || null, max));
       const scope = await loadScope(db, user);
       const allowedValues = scope[def.scope];
       if (!allowedValues.length) return Response.json({ items: [] });
-      const items = await db[entity].filter(scopeQuery(query, def.key, allowedValues), sort || null, max);
-      return Response.json({ items });
+      return out(await db[entity].filter(scopeQuery(query, def.key, allowedValues), sort || null, max));
+    }
+
+    // Poslední záznam pro každý klíč (např. senzor) v jednom volání
+    if (op === 'latest') {
+      let list = [...new Set(keys || [])];
+      if (!superAdmin) {
+        const allowedValues = (await loadScope(db, user))[def.scope];
+        list = list.filter((k) => allowedValues.includes(k));
+      }
+      const map = {};
+      await Promise.all(list.map(async (k) => {
+        const recs = await db[entity].filter({ ...(query || {}), [def.key]: k }, sort || '-created_date', 1);
+        if (recs[0]) map[k] = lighten(recs)[0];
+      }));
+      return Response.json({ map });
     }
 
     if (op === 'create' || op === 'update') {

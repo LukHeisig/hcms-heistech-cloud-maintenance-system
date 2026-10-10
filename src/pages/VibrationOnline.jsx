@@ -158,13 +158,7 @@ export default function VibrationOnline() {
     queryKey: ["vibrationOnlineLatestData", allAssignedSensorIds.join(",")],
     queryFn: async () => {
       if (allAssignedSensorIds.length === 0) return {};
-      const results = {};
-      await Promise.all(allAssignedSensorIds.map(async (sid) => {
-        const recs = await moduleData.filter("SensorData", { sensor_id: sid, has_fft: true }, "-created_date", 20);
-        const latest = recs.find(r => r.vel_rms_x_mm_s != null);
-        if (latest) results[sid] = latest;
-      }));
-      return results;
+      return moduleData.latestSensorData(allAssignedSensorIds);
     },
     enabled: allAssignedSensorIds.length > 0,
     staleTime: 0,

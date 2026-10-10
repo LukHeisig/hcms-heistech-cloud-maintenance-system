@@ -315,14 +315,7 @@ export default function LineDetail() {
       const sensorIds = [...new Set(lineVibrationAssignments.map(a => a.sensor_id).filter(Boolean))];
       if (sensorIds.length === 0) return {};
 
-      const result = {};
-      for (const sid of sensorIds) {
-        // Take last 20 FFT records, find first with pre-computed RMS (new DSP format) — same logic as VibrationCardMQTT
-        const recs = await moduleData.filter("SensorData", { sensor_id: sid, has_fft: true }, "-created_date", 20);
-        const rec = recs.find(r => r.vel_rms_x_mm_s != null) ?? null;
-        if (rec) result[sid] = rec;
-      }
-      return result;
+      return moduleData.latestSensorData(sensorIds);
     },
     enabled: lineVibrationAssignments.some(a => a.sensor_id),
     staleTime: 60000,

@@ -28,14 +28,7 @@ export default function VibrationOverviewCard({ machine }) {
   const sensorIds = [...new Set(assignments.map(a => a.sensor_id).filter(Boolean))];
   const { data: latest = {} } = useQuery({
     queryKey: ["vibOverviewData", sensorIds.join(",")],
-    queryFn: async () => {
-      const res = {};
-      for (const sid of sensorIds) {
-        const recs = await moduleData.filter("SensorData", { sensor_id: sid, has_fft: true }, "-created_date", 20);
-        res[sid] = recs.find(r => r.vel_rms_x_mm_s != null) || null;
-      }
-      return res;
-    },
+    queryFn: () => moduleData.latestSensorData(sensorIds),
     enabled: sensorIds.length > 0,
     refetchInterval: 60000,
   });

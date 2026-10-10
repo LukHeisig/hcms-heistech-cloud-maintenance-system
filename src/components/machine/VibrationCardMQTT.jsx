@@ -455,8 +455,8 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
   const { data: recentSensorData = [] } = useQuery({
     queryKey: ["recentSensorDataIds"],
     queryFn: async () => {
-      const records = await moduleData.list("SensorData", "-created_date", 200);
-      return [...new Set(records.map(r => r.sensor_id).filter(Boolean))].sort();
+      const res = await base44.functions.invoke("readModuleData", { entity: "SensorData", op: "filter", query: {}, sort: "-created_date", limit: 200, light: true });
+      return [...new Set(res.data.items.map(r => r.sensor_id).filter(Boolean))].sort();
     },
     enabled: open,
     staleTime: 60000,
@@ -971,12 +971,8 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
     queryKey: ["latestSensorData", assignedSensorIds.join(",")],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return [];
-      const results = await Promise.all(assignedSensorIds.map(async (sid) => {
-        // Vezmi posledních 20 záznamů s FFT a najdi první, který má vyplněné RMS (nový DSP formát)
-        const recs = await throttled(() => moduleData.filter("SensorData", { sensor_id: sid, has_fft: true }, "-created_date", 20));
-        return recs.find(r => r.vel_rms_x_mm_s != null) ?? null;
-      }));
-      return results.filter(Boolean);
+      const map = await throttled(() => moduleData.latestSensorData(assignedSensorIds));
+      return assignedSensorIds.map(sid => map[sid]).filter(Boolean);
     },
     enabled: assignedSensorIds.length > 0,
     staleTime: 30000,
