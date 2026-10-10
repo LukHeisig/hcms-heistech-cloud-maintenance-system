@@ -3,20 +3,16 @@
   "type": "object",
   "properties": {
     "sensor_id": {
-      "type": "string",
-      "description": "ID senzoru"
+      "type": "string"
     },
     "machine_id": {
-      "type": "string",
-      "description": "ID stroje"
+      "type": "string"
     },
     "machine_name": {
-      "type": "string",
-      "description": "N\u00e1zev stroje (cache)"
+      "type": "string"
     },
     "measurement_point": {
-      "type": "string",
-      "description": "N\u00e1zev m\u011b\u0159ic\u00edho m\u00edsta (label z sch\u00e9matu)"
+      "type": "string"
     },
     "alert_type": {
       "type": "string",
@@ -26,36 +22,28 @@
         "envelope",
         "temperature",
         "battery"
-      ],
-      "description": "Typ p\u0159ekro\u010den\u00e9ho limitu"
+      ]
     },
     "metric_key": {
-      "type": "string",
-      "description": "Kl\u00ed\u010d metriky (vel_rms_x_mm_s, vel_rms_y_mm_s, vel_rms_z_mm_s, rms_z_g, env_rms_z, temperature, battery_level)"
+      "type": "string"
     },
     "metric_label": {
-      "type": "string",
-      "description": "\u010citeln\u00fd popis metriky (Vel X, Vel Y, Vel Z, Acc Z, Ob\u00e1lka Z, Teplota, Baterie)"
+      "type": "string"
     },
     "metric_unit": {
-      "type": "string",
-      "description": "Jednotka metriky (mm/s, g, \u00b0C)"
+      "type": "string"
     },
     "value": {
-      "type": "number",
-      "description": "Nam\u011b\u0159en\u00e1 hodnota"
+      "type": "number"
     },
     "limit_ab": {
-      "type": "number",
-      "description": "Limit A/B"
+      "type": "number"
     },
     "limit_bc": {
-      "type": "number",
-      "description": "Limit B/C"
+      "type": "number"
     },
     "limit_cd": {
-      "type": "number",
-      "description": "Limit C/D"
+      "type": "number"
     },
     "severity": {
       "type": "string",
@@ -63,8 +51,7 @@
         "B",
         "C",
         "D"
-      ],
-      "description": "P\u00e1smo p\u0159ekro\u010den\u00ed: B=varov\u00e1n\u00ed, C=v\u00fdstraha, D=kritick\u00e9"
+      ]
     },
     "status": {
       "type": "string",
@@ -72,25 +59,20 @@
         "active",
         "acknowledged"
       ],
-      "default": "active",
-      "description": "Stav alarmu: active=aktivn\u00ed (blokuje nov\u00fd stejn\u00fd alarm), acknowledged=kvitov\u00e1no"
+      "default": "active"
     },
     "acknowledged_by": {
-      "type": "string",
-      "description": "Email u\u017eivatele, kter\u00fd alarm kvitoval"
+      "type": "string"
     },
     "acknowledged_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Datum a \u010das kvitov\u00e1n\u00ed"
+      "format": "date-time"
     },
     "acknowledge_note": {
-      "type": "string",
-      "description": "Pozn\u00e1mka k kvitov\u00e1n\u00ed"
+      "type": "string"
     },
     "sensor_data_id": {
-      "type": "string",
-      "description": "ID z\u00e1znamu SensorData, kter\u00fd alarm vyvolal"
+      "type": "string"
     }
   },
   "required": [
@@ -108,30 +90,15 @@
         "data.user_type": "superAdmin"
       }
     },
-    "read": null,
+    "read": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
     "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.user_type": "superAdmin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "manager"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "technician"
-          }
-        }
-      ]
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
     },
     "delete": {
       "user_condition": {
