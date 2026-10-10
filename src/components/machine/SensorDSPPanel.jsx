@@ -297,22 +297,22 @@ export default function SensorDSPPanel({
 
   const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
   const listRecord = records.find(r => r.id === activeRecordId) ?? null;
-  // Surové vzorky jen pro vybraný záznam
-  const { data: rawRecord } = useQuery({
-    queryKey: ["sensorDataRaw", activeRecordId],
-    queryFn: async () => (await moduleData.filter("SensorData", { id: activeRecordId, sensor_id: sensorId }, null, 1))[0] ?? null,
-    enabled: !!activeRecordId && !!listRecord?.has_raw,
-    staleTime: Infinity,
-  });
-  const activeRecord = rawRecord ?? listRecord;
-
-  const { data: fftRecords = [] } = useQuery({
+  const { data: fftRecords, isFetched: fftFetched } = useQuery({
     queryKey: ["sensorFFT", activeRecordId],
     queryFn: () => moduleData.filter("SensorFFTData", { sensor_data_id: activeRecordId, sensor_id: sensorId }, null, 1),
     enabled: !!activeRecordId,
     staleTime: 60000,
   });
-  const activeFFT = fftRecords[0];
+  const activeFFT = fftRecords?.[0];
+
+  // Celé surové vzorky jen u starších záznamů bez uloženého náhledu signálu
+  const { data: rawRecord } = useQuery({
+    queryKey: ["sensorDataRaw", activeRecordId],
+    queryFn: async () => (await moduleData.filter("SensorData", { id: activeRecordId, sensor_id: sensorId }, null, 1))[0] ?? null,
+    enabled: !!activeRecordId && !!listRecord?.has_raw && fftFetched && !activeFFT?.raw_z_preview_json,
+    staleTime: Infinity,
+  });
+  const activeRecord = rawRecord ?? listRecord;
 
   const [zoomStates, setZoomStates] = useState({
     raw: { refAreaLeft: '', refAreaRight: '', left: 'dataMin', right: 'dataMax' },
@@ -387,7 +387,11 @@ export default function SensorDSPPanel({
     if (!activeFFT) return null;
     try {
       let rawChart = [];
-      if (activeRecord?.raw_z_json) {
+      if (activeFFT.raw_z_preview_json) {
+        const { step, values } = JSON.parse(activeFFT.raw_z_preview_json);
+        values.forEach((v, k) =>
+          rawChart.push({ t: Number((k * step * (1 / 26700) * 1000).toFixed(1)), z: v / 9.80665 }));
+      } else if (activeRecord?.raw_z_json) {
         const rawZ = JSON.parse(activeRecord.raw_z_json);
         const fs = 26700, step = Math.max(1, Math.floor(rawZ.length / 500));
         for (let i = 0; i < rawZ.length; i += step)

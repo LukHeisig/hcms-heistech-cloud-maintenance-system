@@ -773,6 +773,15 @@ export default async function(req) {
         vel_y_json: JSON.stringify(parsed.vel_y ?? []),
         vel_z_json: JSON.stringify(parsed.vel_z ?? []),
         env_z_json: JSON.stringify(parsed.env_z ?? []),
+        // Zmenšený náhled časového signálu Z (cca 500 bodů, m/s²) pro rychlé zobrazení
+        raw_z_preview_json: Array.isArray(parsed.raw_z) && parsed.raw_z.length
+          ? (() => {
+              const step = Math.max(1, Math.floor(parsed.raw_z.length / 500));
+              const values = [];
+              for (let i = 0; i < parsed.raw_z.length; i += step) values.push(parsed.raw_z[i]);
+              return JSON.stringify({ step, values });
+            })()
+          : null,
       });
     } catch (e) {
       console.error("[Storage] SensorFFTData write failed:", e.message);
