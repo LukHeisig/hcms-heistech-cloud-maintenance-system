@@ -727,7 +727,13 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
     const unsubSensors = base44.entities.AissensSensor.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ["aissens_sensors_all"] });
     });
+    // Ostatní uživatelé nemají přímý přístup k datům — obnovujeme pravidelně přes server
+    const poll = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["latestSensorData"] });
+      queryClient.invalidateQueries({ queryKey: ["aissens_sensors_all"] });
+    }, 60000);
     return () => {
+      clearInterval(poll);
       unsubSensorData();
       unsubSensors();
     };
