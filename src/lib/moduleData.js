@@ -4,8 +4,8 @@ import { base44 } from "@/api/base44Client";
 const call = async (payload) => (await base44.functions.invoke("readModuleData", payload)).data;
 
 export const moduleData = {
-  filter: async (entity, query = {}, sort = null, limit = 100) =>
-    (await call({ entity, op: "filter", query, sort, limit })).items,
+  filter: async (entity, query = {}, sort = null, limit = 100, light = false) =>
+    (await call({ entity, op: "filter", query, sort, limit, light })).items,
   list: async (entity, sort = null, limit = 100) =>
     (await call({ entity, op: "filter", query: {}, sort, limit })).items,
   // Poslední záznam s předpočítanými RMS pro každý senzor – jedno volání, bez surových dat

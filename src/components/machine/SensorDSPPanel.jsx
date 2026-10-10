@@ -281,7 +281,7 @@ export default function SensorDSPPanel({
     queryFn: () => moduleData.filter("SensorData", {
       sensor_id: sensorId, has_fft: true,
       ...(historyFrom ? { created_date: { $gte: historyFrom } } : {}),
-    }, "-created_date", 50),
+    }, "-created_date", 50, true),
     enabled: !!sensorId,
     staleTime: 60000,
   });
@@ -296,11 +296,19 @@ export default function SensorDSPPanel({
   }, [initialRecordId]);
 
   const activeRecordId = manualRecordId ?? initialRecordId ?? records[0]?.id;
-  const activeRecord = records.find(r => r.id === activeRecordId) ?? null;
+  const listRecord = records.find(r => r.id === activeRecordId) ?? null;
+  // Surové vzorky jen pro vybraný záznam
+  const { data: rawRecord } = useQuery({
+    queryKey: ["sensorDataRaw", activeRecordId],
+    queryFn: async () => (await moduleData.filter("SensorData", { id: activeRecordId, sensor_id: sensorId }, null, 1))[0] ?? null,
+    enabled: !!activeRecordId && !!listRecord?.has_raw,
+    staleTime: Infinity,
+  });
+  const activeRecord = rawRecord ?? listRecord;
 
   const { data: fftRecords = [] } = useQuery({
     queryKey: ["sensorFFT", activeRecordId],
-    queryFn: () => moduleData.filter("SensorFFTData", { sensor_data_id: activeRecordId }),
+    queryFn: () => moduleData.filter("SensorFFTData", { sensor_data_id: activeRecordId, sensor_id: sensorId }, null, 1),
     enabled: !!activeRecordId,
     staleTime: 60000,
   });
