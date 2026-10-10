@@ -3,32 +3,25 @@
   "type": "object",
   "properties": {
     "machine_id": {
-      "type": "string",
-      "description": "ID stroje"
+      "type": "string"
     },
     "schema_row_index": {
-      "type": "number",
-      "description": "Index \u0159\u00e1dku ve vibra\u010dn\u00edm sch\u00e9matu (0-based)"
+      "type": "number"
     },
     "sensor_id": {
-      "type": "string",
-      "description": "ID p\u0159i\u0159azen\u00e9ho senzoru (AissensSensor)"
+      "type": "string"
     },
     "vel_standard_id": {
-      "type": "string",
-      "description": "ID normy pro rychlost vibrac\u00ed (VibrationStandard, limit_type=velocity)"
+      "type": "string"
     },
     "acc_standard_id": {
-      "type": "string",
-      "description": "ID normy pro zrychlen\u00ed (VibrationStandard, limit_type=acceleration)"
+      "type": "string"
     },
     "temp_standard_id": {
-      "type": "string",
-      "description": "ID normy pro teplotu (VibrationStandard, limit_type=temperature)"
+      "type": "string"
     },
     "bearing_id": {
-      "type": "string",
-      "description": "ID typu lo\u017eiska (BearingType) pro v\u00fdpo\u010det defektn\u00edch frekvenc\u00ed"
+      "type": "string"
     }
   },
   "required": [
@@ -37,62 +30,24 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.user_type": "superAdmin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "manager"
-          }
-        }
-      ]
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
     },
-    "read": null,
+    "read": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
     "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.user_type": "superAdmin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "manager"
-          }
-        }
-      ]
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
     },
     "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.user_type": "superAdmin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "data.user_type": "manager"
-          }
-        }
-      ]
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
     }
   }
 }
