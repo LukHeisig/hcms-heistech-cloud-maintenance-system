@@ -434,7 +434,7 @@ export default function Dashboard() {
 
 
   const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
-    ? activeCompanies
+    ? activeCompanies.filter(c => c.enable_demip === true)
     : [];
 
   const demipAllLines = (user?.user_type === "admin" || user?.user_type === "superAdmin")

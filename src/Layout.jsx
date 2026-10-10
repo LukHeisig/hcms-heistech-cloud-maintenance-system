@@ -54,6 +54,7 @@ import { cs } from "date-fns/locale";
 import { throttled } from "@/lib/requestQueue";
 import useMyRevisionTasks from "@/hooks/useMyRevisionTasks";
 import RevisionTasksBell from "@/components/revisions/RevisionTasksBell";
+import { userHasModule } from "@/lib/companyModules";
 
 function LayoutContent({ children }) {
   const location = useLocation();
@@ -428,15 +429,26 @@ function LayoutContent({ children }) {
     staleTime: 300000,
   });
 
-  const revisionsEnabled = userCompany?.enable_revisions === true ||
-    (user?.user_type === "admin" && adminCompanies.some(c =>
-      c.enable_revisions && (user.assigned_company_ids || []).includes(c.id)));
+  const moduleCtx = { userCompany, adminCompanies };
+  const revisionsEnabled = userHasModule(user, "enable_revisions", moduleCtx);
+  const vibrationEnabled = userHasModule(user, "enable_vibration", moduleCtx);
+  const maintenanceEnabled = userHasModule(user, "enable_maintenance", moduleCtx);
+  const modulesLoaded = !!user && (user.user_type === "superAdmin" || (user.user_type === "admin" ? adminCompanies.length > 0 : (!user.company_id || userCompany !== undefined)));
+  const demipEnabled = userHasModule(user, "enable_demip", moduleCtx);
+
+  // Bez modulu DEMIP není režim DEMIP dostupný
+  useEffect(() => {
+    if (modulesLoaded && !demipEnabled && viewMode === 'demip') {
+      toggleViewMode();
+      navigate(createPageUrl("Dashboard"), { replace: true });
+    }
+  }, [modulesLoaded, demipEnabled, viewMode]);
 
   const revisionTasks = useMyRevisionTasks(user, user?.user_type === "superAdmin" || revisionsEnabled);
 
   // Force DEMIP mode for technicians on mobile if configured
   useEffect(() => {
-    if (user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) {
+    if (user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile && userCompany?.enable_demip === true) {
       const checkAndForceDemip = () => {
         const isMobile = window.matchMedia('(max-width: 1024px)').matches;
         if (isMobile && viewMode !== 'demip') {
@@ -529,13 +541,13 @@ function LayoutContent({ children }) {
       url: createPageUrl("Dashboard"),
       icon: LayoutDashboard,
     },
-    {
+    ...(maintenanceEnabled ? [{
       title: "Pracovní příkazy",
       url: createPageUrl("WorkOrders"),
       icon: ClipboardList,
       badge: myWorkOrders.length > 0 && user?.user_type === "technician" ? myWorkOrders.length : 0,
-    },
-    ...(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false
+    }] : []),
+    ...(vibrationEnabled
       ? [{
           title: "Vibrace online",
           url: createPageUrl("VibrationOnline"),
@@ -675,7 +687,7 @@ function LayoutContent({ children }) {
           </div>
           <div className="flex items-center gap-2">
             <RevisionTasksBell tasks={revisionTasks} />
-            {(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false) && (
+            {(vibrationEnabled) && (
             <button
               className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
               onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
@@ -753,7 +765,7 @@ function LayoutContent({ children }) {
         <div className="lg:hidden fixed inset-0 z-40 bg-white overflow-auto">
           <div className="p-6 space-y-4 pt-24">
             {/* Hide Toggle for Technicians if forced DEMIP */}
-            {!(user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) && (
+            {demipEnabled && !(user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) && (
             <div className="mb-6">
                <Button
                  onClick={() => {
@@ -837,7 +849,7 @@ function LayoutContent({ children }) {
             </div>
           </div>
           
-          <ViewModeToggle />
+          {demipEnabled && <ViewModeToggle />}
         </div>
 
         {/* Sidebar Navigation */}
@@ -911,7 +923,7 @@ function LayoutContent({ children }) {
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
            <RevisionTasksBell tasks={revisionTasks} />
-           {(user?.user_type === "superAdmin" || userCompany?.enable_vibration !== false) && (
+           {(vibrationEnabled) && (
            <button
               className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors mr-1"
               onClick={() => navigate(createPageUrl("VibrationOnline?tab=alerts"))}
