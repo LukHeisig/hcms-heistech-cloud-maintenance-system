@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { moduleData } from "@/lib/moduleData";
+import { isModuleEnabled } from "@/lib/companyModules";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -263,9 +264,22 @@ export default function LineDetail() {
     return allResponsibilities.filter(r => machineIds.includes(r.machine_id));
   }, [allResponsibilities, machineIds]);
 
+  const modDemip = isModuleEnabled(company, "enable_demip");
+  const modMaintenance = isModuleEnabled(company, "enable_maintenance");
+  const modVibration = isModuleEnabled(company, "enable_vibration");
+  const modThermo = isModuleEnabled(company, "enable_thermo");
+  const modTribo = isModuleEnabled(company, "enable_tribo");
+
   const hasDiagnostics = useMemo(() => {
-    return machines.some(m => m.monitor_vibration || m.monitor_thermo || m.monitor_tribo);
-  }, [machines]);
+    return machines.some(m => (modVibration && m.monitor_vibration) || (modThermo && m.monitor_thermo) || (modTribo && m.monitor_tribo));
+  }, [machines, modVibration, modThermo, modTribo]);
+
+  // Pokud aktivní záložka není v podniku dostupná, přepni na Přehled
+  useEffect(() => {
+    if (!company) return;
+    const allowed = { lubrication: modDemip, prevention: modMaintenance, checklist: modMaintenance, diagnostics: hasDiagnostics };
+    if (allowed[activeTab] === false) setActiveTab("overview");
+  }, [company, activeTab, modDemip, modMaintenance, hasDiagnostics]);
 
   // Vibration monitoring machines
   const vibrationMachineIds = useMemo(() => machines.filter(m => m.monitor_vibration).map(m => m.id), [machines]);
@@ -576,6 +590,7 @@ export default function LineDetail() {
                   <p className="text-xl font-bold leading-tight">{stats.machinesCount}</p>
                 </div>
               </div>
+              {modDemip && <>
               <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
                 <Droplet className="w-4 h-4 text-blue-200" />
                 <div>
@@ -590,6 +605,8 @@ export default function LineDetail() {
                   <p className={`text-xl font-bold leading-tight ${stats.overdueCount > 0 ? 'text-red-300' : ''}`}>{stats.overdueCount}</p>
                 </div>
               </div>
+              </>}
+              {(modDemip || modMaintenance) && (
               <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
                 <AlertTriangle className="w-4 h-4 text-orange-300" />
                 <div>
@@ -597,6 +614,7 @@ export default function LineDetail() {
                   <p className={`text-xl font-bold leading-tight ${stats.issuesCount > 0 ? 'text-orange-300' : ''}`}>{stats.issuesCount}</p>
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
@@ -610,7 +628,8 @@ export default function LineDetail() {
               <span className="hidden sm:inline">Technická diagnostika</span>
               <span className="sm:hidden">Tech. diag.</span>
             </TabsTrigger>}
-            <TabsTrigger value="lubrication" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">Mazání</TabsTrigger>
+            {modDemip && <TabsTrigger value="lubrication" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">Mazání</TabsTrigger>}
+            {modMaintenance && <>
             <TabsTrigger value="prevention" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <span className="hidden sm:inline">Plán preventivní údržby</span>
               <span className="sm:hidden">Prevence</span>
@@ -619,6 +638,7 @@ export default function LineDetail() {
               <span className="hidden sm:inline">Seznam závad</span>
               <span className="sm:hidden">Závady</span>
             </TabsTrigger>
+            </>}
           </TabsList>
 
           {/* Přehled */}
@@ -660,13 +680,14 @@ export default function LineDetail() {
                               {machine.parent_id && <Badge variant="outline" className="text-xs flex-shrink-0">Podřízený</Badge>}
                           </div>
                           <p className="text-sm text-slate-500 truncate">
-                            {machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'} • {machinePoints.length} bodů
+                            {machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}{modDemip && ` • ${machinePoints.length} bodů`}
                           </p>
                         </div>
 
                         {/* Module badges */}
                         <div className="hidden sm:flex gap-3 items-center flex-shrink-0">
                           {/* DEMIP - Po termínu */}
+                          {modDemip && <>
                           <div className="flex flex-col items-center gap-1">
                             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Po termínu</span>
                             {demipOverdue > 0 ? (
@@ -694,8 +715,10 @@ export default function LineDetail() {
                             )}
                           </div>
 
+                          </>}
+
                           {/* Vibrace */}
-                          {machine.monitor_vibration && (
+                          {modVibration && machine.monitor_vibration && (
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Vibrace</span>
                               {vibroLevel <= 0 ? (
@@ -713,7 +736,7 @@ export default function LineDetail() {
                           )}
 
                           {/* Termo */}
-                          {machine.monitor_thermo && (
+                          {modThermo && machine.monitor_thermo && (
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Termo</span>
                               <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
@@ -723,7 +746,7 @@ export default function LineDetail() {
                           )}
 
                           {/* Tribo */}
-                          {machine.monitor_tribo && (
+                          {modTribo && machine.monitor_tribo && (
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Tribo</span>
                               <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
@@ -769,7 +792,7 @@ export default function LineDetail() {
                         Vibrační diagnostika
                       </div>
                     </TabsTrigger>
-                    {machines.some(m => m.monitor_thermo) && (
+                    {modThermo && machines.some(m => m.monitor_thermo) && (
                     <TabsTrigger 
                       value="thermo"
                       className="data-[state=active]:border-b-2 data-[state=active]:border-orange-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
@@ -780,7 +803,7 @@ export default function LineDetail() {
                       </div>
                     </TabsTrigger>
                     )}
-                    {machines.some(m => m.monitor_tribo) && (
+                    {modTribo && machines.some(m => m.monitor_tribo) && (
                     <TabsTrigger 
                       value="tribo"
                       className="data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
