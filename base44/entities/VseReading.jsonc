@@ -3,25 +3,20 @@
   "type": "object",
   "properties": {
     "unit_id": {
-      "type": "string",
-      "description": "Identifik\u00e1tor VSE jednotky"
+      "type": "string"
     },
     "recorded_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "\u010cas m\u011b\u0159en\u00ed (z payloadu, nebo \u010das serveru)"
+      "format": "date-time"
     },
     "values_json": {
-      "type": "string",
-      "description": "JSON pole hodnot [{node_id,name,value,unit}]"
+      "type": "string"
     },
     "values_count": {
-      "type": "number",
-      "description": "Po\u010det hodnot ve zpr\u00e1v\u011b"
+      "type": "number"
     },
     "raw_json": {
-      "type": "string",
-      "description": "P\u016fvodn\u00ed payload z OPC UA bridge"
+      "type": "string"
     }
   },
   "required": [
@@ -34,7 +29,11 @@
         "data.user_type": "superAdmin"
       }
     },
-    "read": null,
+    "read": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
     "update": {
       "user_condition": {
         "data.user_type": "superAdmin"

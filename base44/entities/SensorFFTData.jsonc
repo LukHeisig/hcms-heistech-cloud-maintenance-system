@@ -3,32 +3,25 @@
   "type": "object",
   "properties": {
     "sensor_id": {
-      "type": "string",
-      "description": "ID senzoru"
+      "type": "string"
     },
     "sensor_data_id": {
-      "type": "string",
-      "description": "ID z\u00e1znamu SensorData"
+      "type": "string"
     },
     "timestamp_unix": {
-      "type": "number",
-      "description": "UNIX timestamp z hlavi\u010dky"
+      "type": "number"
     },
     "dsp_version": {
-      "type": "number",
-      "description": "Verze DSP pipeline (1=p\u016fvodn\u00ed, 2=opraven\u00e1 normalizace)"
+      "type": "number"
     },
     "frequency_resolution": {
-      "type": "number",
-      "description": "Rozte\u010d spektr\u00e1ln\u00edch \u010dar v Hz (po zero-paddingu)"
+      "type": "number"
     },
     "true_resolution_hz": {
-      "type": "number",
-      "description": "Skute\u010dn\u00e1 rozli\u0161ovac\u00ed schopnost FFT v Hz (fs / d\u00e9lka segmentu)"
+      "type": "number"
     },
     "report_len": {
-      "type": "number",
-      "description": "D\u00e9lka spektra (po\u010det bod\u016f na osu)"
+      "type": "number"
     },
     "oa_x": {
       "type": "number"
@@ -40,36 +33,28 @@
       "type": "number"
     },
     "oa_acc_z": {
-      "type": "number",
-      "description": "RMS z acc_z spektra"
+      "type": "number"
     },
     "acc_x_json": {
-      "type": "string",
-      "description": "JSON array prvn\u00edch 512 hodnot acc X spektra"
+      "type": "string"
     },
     "acc_y_json": {
-      "type": "string",
-      "description": "JSON array prvn\u00edch 512 hodnot acc Y spektra"
+      "type": "string"
     },
     "acc_z_json": {
-      "type": "string",
-      "description": "JSON array prvn\u00edch 512 hodnot acc Z spektra"
+      "type": "string"
     },
     "vel_x_json": {
-      "type": "string",
-      "description": "JSON array prvn\u00edch 512 hodnot vel X spektra"
+      "type": "string"
     },
     "vel_y_json": {
-      "type": "string",
-      "description": "JSON array prvn\u00edch 512 hodnot vel Y spektra"
+      "type": "string"
     },
     "vel_z_json": {
-      "type": "string",
-      "description": "JSON array prvn\u00edch 512 hodnot vel Z spektra"
+      "type": "string"
     },
     "env_z_json": {
-      "type": "string",
-      "description": "JSON array spektra ob\u00e1lky"
+      "type": "string"
     }
   },
   "required": [
@@ -82,7 +67,11 @@
         "data.user_type": "superAdmin"
       }
     },
-    "read": null,
+    "read": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
     "update": {
       "user_condition": {
         "data.user_type": "superAdmin"

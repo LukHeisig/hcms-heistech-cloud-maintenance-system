@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { moduleData } from "@/lib/moduleData";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,7 @@ export default function MachineAlertsHistory({ machineId }) {
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["machineAlerts", machineId],
-    queryFn: () => base44.entities.VibrationAlert.filter({ machine_id: machineId }, "-created_date", 500),
+    queryFn: () => moduleData.filter("VibrationAlert", { machine_id: machineId }, "-created_date", 500),
     enabled: !!machineId,
     refetchInterval: 60000,
   });

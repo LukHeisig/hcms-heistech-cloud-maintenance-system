@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { moduleData } from "@/lib/moduleData";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -129,13 +130,13 @@ export default function VibrationOnline() {
 
   const { data: allSensors = [], isLoading: isLoadingSensors } = useQuery({
     queryKey: ["aissens_sensors"],
-    queryFn: () => base44.entities.AissensSensor.list("-last_seen", 500),
+    queryFn: () => moduleData.list("AissensSensor", "-last_seen", 500),
     refetchInterval: 30000,
   });
 
   const { data: assignments = [] } = useQuery({
     queryKey: ["vibrationAssignments"],
-    queryFn: () => base44.entities.VibrationSensorAssignment.list(null, 1000),
+    queryFn: () => moduleData.list("VibrationSensorAssignment", null, 1000),
     staleTime: 60000,
   });
 
@@ -159,7 +160,7 @@ export default function VibrationOnline() {
       if (allAssignedSensorIds.length === 0) return {};
       const results = {};
       await Promise.all(allAssignedSensorIds.map(async (sid) => {
-        const recs = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 20);
+        const recs = await moduleData.filter("SensorData", { sensor_id: sid, has_fft: true }, "-created_date", 20);
         const latest = recs.find(r => r.vel_rms_x_mm_s != null);
         if (latest) results[sid] = latest;
       }));
@@ -281,7 +282,7 @@ export default function VibrationOnline() {
   // Počet aktivních alarmů pro badge
   const { data: activeAlerts = [] } = useQuery({
     queryKey: ["vibrationAlerts", "active"],
-    queryFn: () => base44.entities.VibrationAlert.filter({ status: "active" }, null, 500),
+    queryFn: () => moduleData.filter("VibrationAlert", { status: "active" }, null, 500),
     enabled: !!user,
     refetchInterval: 60000,
   });

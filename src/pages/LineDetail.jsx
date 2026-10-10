@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { moduleData } from "@/lib/moduleData";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -276,7 +277,7 @@ export default function LineDetail() {
       if (vibrationMachineIds.length === 0) return [];
       const results = [];
       for (const mid of vibrationMachineIds) {
-        const assignments = await base44.entities.VibrationSensorAssignment.filter({ machine_id: mid });
+        const assignments = await moduleData.filter("VibrationSensorAssignment", { machine_id: mid });
         results.push(...assignments.map(a => ({ ...a, _machineId: mid })));
       }
       return results;
@@ -303,7 +304,7 @@ export default function LineDetail() {
       const result = {};
       for (const sid of sensorIds) {
         // Take last 20 FFT records, find first with pre-computed RMS (new DSP format) — same logic as VibrationCardMQTT
-        const recs = await base44.entities.SensorData.filter({ sensor_id: sid, has_fft: true }, "-created_date", 20);
+        const recs = await moduleData.filter("SensorData", { sensor_id: sid, has_fft: true }, "-created_date", 20);
         const rec = recs.find(r => r.vel_rms_x_mm_s != null) ?? null;
         if (rec) result[sid] = rec;
       }

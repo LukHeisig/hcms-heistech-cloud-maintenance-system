@@ -55,6 +55,7 @@ import { throttled } from "@/lib/requestQueue";
 import useMyRevisionTasks from "@/hooks/useMyRevisionTasks";
 import RevisionTasksBell from "@/components/revisions/RevisionTasksBell";
 import { userHasModule } from "@/lib/companyModules";
+import { moduleData } from "@/lib/moduleData";
 
 function LayoutContent({ children }) {
   const location = useLocation();
@@ -388,7 +389,7 @@ function LayoutContent({ children }) {
 
   const { data: activeVibrationAlerts = [] } = useQuery({
     queryKey: ["activeVibrationAlerts"],
-    queryFn: () => throttled(() => base44.entities.VibrationAlert.filter({ status: "active" })),
+    queryFn: () => throttled(() => moduleData.filter("VibrationAlert", { status: "active" }, null, 500)),
     enabled: !!user,
     staleTime: 120000,
     refetchInterval: 300000,

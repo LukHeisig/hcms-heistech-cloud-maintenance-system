@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { moduleData } from "@/lib/moduleData";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -277,7 +278,7 @@ export default function SensorDSPPanel({
 }) {
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId, historyFrom],
-    queryFn: () => base44.entities.SensorData.filter({
+    queryFn: () => moduleData.filter("SensorData", {
       sensor_id: sensorId, has_fft: true,
       ...(historyFrom ? { created_date: { $gte: historyFrom } } : {}),
     }, "-created_date", 50),
@@ -299,7 +300,7 @@ export default function SensorDSPPanel({
 
   const { data: fftRecords = [] } = useQuery({
     queryKey: ["sensorFFT", activeRecordId],
-    queryFn: () => base44.entities.SensorFFTData.filter({ sensor_data_id: activeRecordId }),
+    queryFn: () => moduleData.filter("SensorFFTData", { sensor_data_id: activeRecordId }),
     enabled: !!activeRecordId,
     staleTime: 60000,
   });

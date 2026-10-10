@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { moduleData } from "@/lib/moduleData";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -26,7 +27,7 @@ export default function VibrationAlarmFrequencyChart({ user, machines = [], line
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["vibrationAlerts", "all", periodDays],
-    queryFn: () => throttled(() => base44.entities.VibrationAlert.list("-created_date", 1000)),
+    queryFn: () => throttled(() => moduleData.list("VibrationAlert", "-created_date", 1000)),
     enabled: !!user,
     staleTime: 120000,
   });

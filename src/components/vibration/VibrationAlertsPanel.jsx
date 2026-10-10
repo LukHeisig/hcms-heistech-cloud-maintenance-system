@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { moduleData } from "@/lib/moduleData";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -152,8 +153,8 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
   const { data: alerts = [], isLoading, refetch } = useQuery({
     queryKey: ["vibrationAlerts", filterStatus],
     queryFn: () => {
-      if (filterStatus === "all") return base44.entities.VibrationAlert.list("-created_date", 200);
-      return base44.entities.VibrationAlert.filter({ status: filterStatus }, "-created_date", 200);
+      if (filterStatus === "all") return moduleData.list("VibrationAlert", "-created_date", 200);
+      return moduleData.filter("VibrationAlert", { status: filterStatus }, "-created_date", 200);
     },
     enabled: !!user,
     refetchInterval: 60000,
@@ -172,7 +173,7 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
   const handleAcknowledge = async () => {
     if (!ackDialog) return;
     setAckLoading(true);
-    await base44.entities.VibrationAlert.update(ackDialog.id, {
+    await moduleData.update("VibrationAlert", ackDialog.id, {
       status: "acknowledged",
       acknowledged_by: user?.email || user?.full_name || "neznámý",
       acknowledged_at: new Date().toISOString(),

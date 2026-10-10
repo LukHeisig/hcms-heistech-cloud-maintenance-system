@@ -3,24 +3,19 @@
   "type": "object",
   "properties": {
     "topic": {
-      "type": "string",
-      "description": "MQTT topic (nap\u0159. S9IMP600001265H/report)"
+      "type": "string"
     },
     "sensor_id": {
-      "type": "string",
-      "description": "ID senzoru extrahovan\u00e9 z topicu"
+      "type": "string"
     },
     "payload_hex": {
-      "type": "string",
-      "description": "Raw HEX payload (u Type 0 se neukl\u00e1d\u00e1 \u2014 p\u0159\u00edli\u0161 velk\u00fd)"
+      "type": "string"
     },
     "report_type": {
-      "type": "number",
-      "description": "Typ reportu (0=Raw, 1=FFT, 2=Feature, 3=Battery, 4=Status, 9=OA, 12=HeartBeat)"
+      "type": "number"
     },
     "payload_size": {
-      "type": "number",
-      "description": "Velikost payloadu v bytech"
+      "type": "number"
     }
   },
   "required": [
@@ -33,7 +28,11 @@
         "data.user_type": "superAdmin"
       }
     },
-    "read": null,
+    "read": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
     "update": {
       "user_condition": {
         "data.user_type": "superAdmin"

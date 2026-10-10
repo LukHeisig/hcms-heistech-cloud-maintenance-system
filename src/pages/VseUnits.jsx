@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { moduleData } from "@/lib/moduleData";
 import { throttled } from "@/lib/requestQueue";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ export default function VseUnits() {
 
   const { data: units = [], isLoading } = useQuery({
     queryKey: ["vseUnits"],
-    queryFn: () => throttled(() => base44.entities.VseUnit.list("-last_seen", 200)),
+    queryFn: () => throttled(() => moduleData.list("VseUnit", "-last_seen", 200)),
     refetchInterval: 60000,
   });
 
@@ -29,7 +30,7 @@ export default function VseUnits() {
 
   const { data: readings = [], isLoading: readingsLoading } = useQuery({
     queryKey: ["vseReadings", selected?.unit_id],
-    queryFn: () => throttled(() => base44.entities.VseReading.filter({ unit_id: selected.unit_id }, "-recorded_at", 50)),
+    queryFn: () => throttled(() => moduleData.filter("VseReading", { unit_id: selected.unit_id }, "-recorded_at", 50)),
     enabled: !!selected,
     refetchInterval: 60000,
   });

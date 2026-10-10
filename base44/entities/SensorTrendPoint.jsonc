@@ -3,44 +3,34 @@
   "type": "object",
   "properties": {
     "sensor_id": {
-      "type": "string",
-      "description": "ID senzoru"
+      "type": "string"
     },
     "sensor_data_id": {
-      "type": "string",
-      "description": "ID z\u00e1znamu SensorData (reference)"
+      "type": "string"
     },
     "timestamp_unix": {
-      "type": "number",
-      "description": "UNIX timestamp m\u011b\u0159en\u00ed"
+      "type": "number"
     },
     "dsp_version": {
-      "type": "number",
-      "description": "Verze DSP pipeline (1=p\u016fvodn\u00ed, 2=opraven\u00e1 normalizace)"
+      "type": "number"
     },
     "vel_rms_x_mm_s": {
-      "type": "number",
-      "description": "Velocity RMS X [mm/s]"
+      "type": "number"
     },
     "vel_rms_y_mm_s": {
-      "type": "number",
-      "description": "Velocity RMS Y [mm/s]"
+      "type": "number"
     },
     "vel_rms_z_mm_s": {
-      "type": "number",
-      "description": "Velocity RMS Z [mm/s]"
+      "type": "number"
     },
     "rms_z_g": {
-      "type": "number",
-      "description": "Acceleration RMS Z [g]"
+      "type": "number"
     },
     "env_rms_z": {
-      "type": "number",
-      "description": "Envelope RMS Z"
+      "type": "number"
     },
     "temperature": {
-      "type": "number",
-      "description": "Teplota [\u00b0C]"
+      "type": "number"
     }
   },
   "required": [
@@ -52,7 +42,11 @@
         "data.user_type": "superAdmin"
       }
     },
-    "read": null,
+    "read": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
     "update": {
       "user_condition": {
         "data.user_type": "superAdmin"
