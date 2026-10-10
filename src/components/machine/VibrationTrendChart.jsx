@@ -98,7 +98,8 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
   const isTemperature = metricDef.source === "SensorData";
 
   const { data: historyData = [], isLoading } = useQuery({
-    queryKey: ["sensorTrend", sensorId, metricKey, rangeDays, historyFrom],
+    // Stejná data pro všechny vibrační metriky — přepnutí metriky nestahuje znovu
+    queryKey: ["sensorTrend", sensorId, isTemperature, rangeDays, historyFrom],
     queryFn: async () => {
       const limit = RANGE_LIMIT[rangeDays] ?? 2000;
       const res = await base44.functions.invoke('getSensorTrend', {
@@ -108,10 +109,11 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
         is_temperature: isTemperature,
         from_date: historyFrom || null,
       });
-      return (res.data?.data ?? []).filter(r => metricDef.lines.some(l => r[l.key] != null));
+      return res.data?.data ?? [];
     },
+    select: (rows) => rows.filter(r => metricDef.lines.some(l => r[l.key] != null)),
     enabled: !!sensorId,
-    staleTime: 30000,
+    staleTime: 120000,
   });
 
   const allChartData = useMemo(() => {

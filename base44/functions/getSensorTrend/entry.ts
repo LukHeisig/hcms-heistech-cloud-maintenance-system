@@ -41,32 +41,27 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { sensor_id, days, limit = 200, is_temperature = false, trend_only = false, from_date = null } = await req.json();
-    const fromQuery = from_date ? { timestamp_unix: { $gte: Math.floor(new Date(from_date).getTime() / 1000) } } : {};
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
-
-    // Uživatel smí číst trendy jen senzorů strojů svého podniku
-    if (!(await canAccessSensor(base44, user, sensor_id))) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Načteme práh trendu z nastavení (default 20%)
-    let thresholdPct = 20;
-    try {
-      const mqttSettings = await base44.asServiceRole.entities.MqttSettings.list(null, 1);
-      if (mqttSettings[0]?.trend_threshold_percent != null) {
-        thresholdPct = mqttSettings[0].trend_threshold_percent;
-      }
-    } catch (_) { /* použijeme default */ }
-
     const cutoffSec = days != null ? (Date.now() / 1000) - (days * 86400) : null;
+    // Spodní mez času přímo v dotazu (od data historie i rozsah dní)
+    const fromSec = Math.max(
+      from_date ? Math.floor(new Date(from_date).getTime() / 1000) : 0,
+      cutoffSec != null ? Math.floor(cutoffSec) : 0,
+    );
+    const fromQuery = fromSec > 0 ? { timestamp_unix: { $gte: fromSec } } : {};
 
-    // === TEPLOTA — čteme ze SensorTrendPoint ===
+    // Kontrola přístupu, nastavení a data paralelně
+    const [allowed, mqttSettings, allRecords] = await Promise.all([
+      canAccessSensor(base44, user, sensor_id),
+      base44.asServiceRole.entities.MqttSettings.list(null, 1).catch(() => []),
+      base44.asServiceRole.entities.SensorTrendPoint.filter({ sensor_id, ...fromQuery }, "-timestamp_unix", limit),
+    ]);
+    // Uživatel smí číst trendy jen senzorů strojů svého podniku
+    if (!allowed) return Response.json({ error: 'Forbidden' }, { status: 403 });
+    const thresholdPct = mqttSettings[0]?.trend_threshold_percent ?? 20;
+
+    // === TEPLOTA ===
     if (is_temperature) {
-      const allRecords = await base44.asServiceRole.entities.SensorTrendPoint.filter(
-        { sensor_id, ...fromQuery },
-        "-timestamp_unix",
-        limit
-      );
 
       const records = allRecords
         .filter(r => r.temperature != null && r.temperature !== 28.0 && r.temperature > 0)
@@ -91,12 +86,6 @@ export default async function(req) {
     }
 
     // === VIBRACE — čteme ze SensorTrendPoint ===
-    const allRecords = await base44.asServiceRole.entities.SensorTrendPoint.filter(
-      { sensor_id, ...fromQuery },
-      "-timestamp_unix",
-      limit
-    );
-
     const records = allRecords
       // Filtrujeme záznamy kde alespoň jedna RMS hodnota je platná a nenulová
       .filter(r =>
