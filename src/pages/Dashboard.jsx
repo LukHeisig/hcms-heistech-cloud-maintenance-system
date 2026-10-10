@@ -32,6 +32,7 @@ import ControlPointDetail from "../components/dashboard/ControlPointDetail";
 import VibrationAlarmFrequencyChart from "../components/dashboard/VibrationAlarmFrequencyChart";
 import { getEffectiveHoursSince, getNextDueDate } from "@/lib/intervalCalculations";
 import { throttled } from "@/lib/requestQueue";
+import { userHasModule } from "@/lib/companyModules";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -433,6 +434,11 @@ export default function Dashboard() {
 
 
 
+  const moduleCtx = { userCompany, adminCompanies: allCompanies };
+  const modDemip = userHasModule(user, "enable_demip", moduleCtx);
+  const modMaintenance = userHasModule(user, "enable_maintenance", moduleCtx);
+  const modVibration = userHasModule(user, "enable_vibration", moduleCtx);
+
   const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
     ? activeCompanies.filter(c => c.enable_demip === true)
     : [];
@@ -638,7 +644,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-shadow">
+              <Card className={`border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
@@ -652,7 +658,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-xl transition-shadow">
+              <Card className={`border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
@@ -666,7 +672,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-shadow">
+              <Card className={`border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
@@ -682,12 +688,12 @@ export default function Dashboard() {
             </div>
 
             <div className="mb-6">
-              <VibrationAlarmFrequencyChart
+              {modVibration && <VibrationAlarmFrequencyChart
                 user={user}
                 machines={allMachines}
                 lines={allLines}
                 companies={allCompanies}
-              />
+              />}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -869,7 +875,7 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-6">
-                <Card className="border-none shadow-lg">
+                <Card className={`border-none shadow-lg ${modDemip ? "" : "hidden"}`}>
                   <CardHeader className="border-b border-slate-100">
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <Activity className="w-5 h-5 text-slate-600" />
@@ -907,7 +913,7 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {activeIssues.length > 0 && (
+                {(modDemip || modMaintenance) && activeIssues.length > 0 && (
                   <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                     <CardHeader className="border-b border-slate-100">
                       <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
@@ -975,7 +981,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-shadow">
+            <Card className={`border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
@@ -989,7 +995,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-xl transition-shadow">
+            <Card className={`border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
@@ -1003,7 +1009,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-shadow">
+            <Card className={`border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
@@ -1019,12 +1025,12 @@ export default function Dashboard() {
           </div>
 
           <div className="mb-6">
-            <VibrationAlarmFrequencyChart
+            {modVibration && <VibrationAlarmFrequencyChart
               user={user}
               machines={machines}
               lines={lines}
               companies={userCompany ? [userCompany] : []}
-            />
+            />}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1110,7 +1116,7 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-6">
-              <Card className="border-none shadow-lg">
+              <Card className={`border-none shadow-lg ${modDemip ? "" : "hidden"}`}>
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Activity className="w-5 h-5 text-slate-600" />
@@ -1148,7 +1154,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {issues.length > 0 && user?.user_type !== "technician" && (
+              {(modDemip || modMaintenance) && issues.length > 0 && user?.user_type !== "technician" && (
                 <Card className="border-none shadow-lg border-l-4 border-l-orange-500">
                   <CardHeader className="border-b border-slate-100">
                     <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
