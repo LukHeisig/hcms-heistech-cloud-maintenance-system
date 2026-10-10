@@ -59,6 +59,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { throttled } from "@/lib/requestQueue";
+import { isModuleEnabled } from "@/lib/companyModules";
 
 export default function Machine() {
   const navigate = useNavigate();
@@ -412,13 +413,27 @@ export default function Machine() {
   const vibrationTabAlertLevelResolved = (!machine?.monitor_vibration || !machineId) ? -1 : (() => { try { return parseInt(localStorage.getItem(`vibro_tab_alert_${machineId}`) || "-1", 10); } catch { return -1; } })();
 
   // Visibility Logic
-  const showDemip = company?.enable_demip !== false && controlPoints.length > 0;
-  const showMaintenance = company?.enable_maintenance !== false && (maintenanceRecords.length > 0 || plannedMaintenance.length > 0);
-  const showParts = company?.enable_parts !== false && spareParts.length > 0;
-  const showVibration = company?.enable_vibration !== false && (machine?.monitor_vibration || vibrationMeasurements.length > 0 || vibrationJobs.length > 0);
-  const showThermo = company?.enable_thermo !== false && (machine?.monitor_thermo || thermoJobs.length > 0);
-  const showTribo = company?.enable_tribo !== false && machine?.monitor_tribo;
-  const showPredictive = company?.enable_predictive === true;
+  const showDemip = isModuleEnabled(company, "enable_demip") && controlPoints.length > 0;
+  const showMaintenance = isModuleEnabled(company, "enable_maintenance") && (maintenanceRecords.length > 0 || plannedMaintenance.length > 0);
+  const showParts = isModuleEnabled(company, "enable_parts") && spareParts.length > 0;
+  const showVibration = isModuleEnabled(company, "enable_vibration") && (machine?.monitor_vibration || vibrationMeasurements.length > 0 || vibrationJobs.length > 0);
+  const showThermo = isModuleEnabled(company, "enable_thermo") && (machine?.monitor_thermo || thermoJobs.length > 0);
+  const showTribo = isModuleEnabled(company, "enable_tribo") && machine?.monitor_tribo;
+  const showPredictive = isModuleEnabled(company, "enable_predictive");
+
+  // Záložka z URL se otevře jen, pokud je její modul dostupný
+  const requestedTab =
+    window.location.hash === "#vibration" ? "vibro-diag" :
+    window.location.hash === "#thermo" ? "thermo" :
+    window.location.hash === "#tribo" ? "tribo" :
+    window.location.hash === "#maintenance" ? "maintenance" :
+    urlParams.get("tab") || "overview";
+  const tabAllowed = {
+    "control-points": showDemip, "maintenance": showMaintenance, "spare-parts": showParts,
+    "vibro-diag": showVibration, "alerts-history": showVibration, "thermo": showThermo,
+    "tribo": showTribo, "predictive": showPredictive,
+  };
+  const initialTab = tabAllowed[requestedTab] === false ? "overview" : requestedTab;
 
   const maintenanceTypeData = [
     { name: "Preventivní", value: maintenanceRecords.filter(r => r.maintenance_type === "preventive").length, color: "#10b981" },
@@ -720,13 +735,7 @@ export default function Machine() {
 
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
         {/* Záložky */}
-        <Tabs defaultValue={
-          window.location.hash === "#vibration" ? "vibro-diag" :
-          window.location.hash === "#thermo" ? "thermo" :
-          window.location.hash === "#tribo" ? "tribo" :
-          window.location.hash === "#maintenance" ? "maintenance" :
-          urlParams.get("tab") || "overview"
-        } className="space-y-6">
+        <Tabs key={initialTab} defaultValue={initialTab} className="space-y-6">
           <TabsList className="flex flex-wrap w-full bg-white shadow-md p-1 h-auto gap-1">
             <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <LayoutDashboard className="w-4 h-4" />
