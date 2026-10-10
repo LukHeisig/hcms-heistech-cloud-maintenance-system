@@ -25,7 +25,7 @@ export default async function(req) {
     if (!sd) return Response.json({ error: 'SensorData not found' }, { status: 404 });
 
     // Uživatel smí analyzovat jen senzory strojů svého podniku
-    if (!(await canAccessSensor(base44, user, sd.sensor_id))) {
+    if (!(await canAccessSensor(base44, user, sd.sensor_id, ['enable_vibration', 'enable_predictive']))) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 

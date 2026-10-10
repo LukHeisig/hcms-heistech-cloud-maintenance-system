@@ -39,10 +39,20 @@ async function resolveSensorCompanyId(db, sensorId) {
 }
 
 // Smí uživatel číst data daného senzoru? (superAdmin/servis vždy; ostatní jen svůj podnik)
-export async function canAccessSensor(base44, user, sensorId) {
+// requiredModules: příznaky modulů podniku, které musí být výslovně zapnuté (např. ['enable_vibration']).
+export async function canAccessSensor(base44, user, sensorId, requiredModules = ['enable_vibration']) {
   const allowed = allowedCompanyIds(user);
   if (allowed === null) return true;
   if (!sensorId || allowed.length === 0) return false;
-  const companyId = await resolveSensorCompanyId(base44.asServiceRole.entities, sensorId);
-  return !!companyId && allowed.includes(companyId);
+  const db = base44.asServiceRole.entities;
+  const companyId = await resolveSensorCompanyId(db, sensorId);
+  if (!companyId || !allowed.includes(companyId)) return false;
+  return companyHasModules(db, companyId, requiredModules);
+}
+
+// Má podnik všechny uvedené moduly výslovně zapnuté?
+export async function companyHasModules(db, companyId, modules) {
+  if (!modules.length) return true;
+  const company = (await db.Company.filter({ id: companyId }, null, 1))[0];
+  return !!company && modules.every((m) => company[m] === true);
 }
