@@ -60,6 +60,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { throttled } from "@/lib/requestQueue";
 import { isModuleEnabled } from "@/lib/companyModules";
+import VibrationOverviewCard from "@/components/machine/VibrationOverviewCard";
 
 export default function Machine() {
   const navigate = useNavigate();
@@ -825,6 +826,10 @@ export default function Machine() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
+            {isModuleEnabled(company, "enable_vibration") && machine?.monitor_vibration && machine?.vibration_source !== "vse" && (
+              <VibrationOverviewCard machine={machine} />
+            )}
+            {(isModuleEnabled(company, "enable_demip") || isModuleEnabled(company, "enable_maintenance")) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Nejbližší plánované úkony */}
               <Card className="shadow-lg">
@@ -1042,8 +1047,9 @@ export default function Machine() {
                 </CardContent>
               </Card>
             </div>
+            )}
 
-            {records.length > 0 && (
+            {isModuleEnabled(company, "enable_demip") && records.length > 0 && (
               <Card className="border-none shadow-lg">
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2">
