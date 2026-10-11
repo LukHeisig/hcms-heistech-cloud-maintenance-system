@@ -91,7 +91,7 @@ function AlertDot({ level, size = "w-2.5 h-2.5" }) {
   const style = level <= 1
     ? "bg-green-500 shadow-[0_0_4px_1px_rgba(34,197,94,0.3)]"
     : level === 2
-    ? "bg-yellow-500 shadow-[0_0_4px_1px_rgba(234,179,8,0.4)]"
+    ? "bg-orange-500 shadow-[0_0_4px_1px_rgba(249,115,22,0.4)]"
     : "bg-red-600 shadow-[0_0_5px_2px_rgba(220,38,38,0.5)] animate-pulse";
   const title = level <= 1 ? "Vibrace OK" : level === 2 ? "Upozornění — pásmo C" : "Výstraha — pásmo D";
   return <div className={`${size} rounded-full flex-shrink-0 ${style}`} title={title} />;
