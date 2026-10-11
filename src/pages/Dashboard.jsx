@@ -657,19 +657,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className={`border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-purple-100 text-sm font-medium mb-1">Celkem linek</p>
-                      <p className="text-4xl font-bold">{totalLinesCount}</p>
-                    </div>
-                    <div className="p-3 bg-white/20 rounded-xl">
-                      <Activity className="w-6 h-6" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+
 
               <Card className={`border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
                 <CardContent className="p-6">
@@ -981,20 +969,8 @@ export default function Dashboard() {
 
           {modVibration && <VibrationKpiCards data={vib} />}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-            <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm font-medium mb-1">Celkem linek</p>
-                    <p className="text-4xl font-bold">{totalLinesCount}</p>
-                  </div>
-                  <div className="p-3 bg-white/20 rounded-xl">
-                    <Activity className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 ${modDemip ? "" : "hidden"}`}>
+
 
             <Card className={`border-none shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-shadow ${modDemip ? "" : "hidden"}`}>
               <CardContent className="p-6">
