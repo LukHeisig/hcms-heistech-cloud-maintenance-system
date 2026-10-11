@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, Filter, CheckCircle2, AlertTriangle, Thermometer, Battery, Activity, X } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -32,7 +33,7 @@ const STATUS_CONFIG = {
 export default function MachineAlertsHistory({ machineId }) {
   const [filterType, setFilterType] = useState("all");
   const [filterSeverity, setFilterSeverity] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
 
@@ -61,12 +62,11 @@ export default function MachineAlertsHistory({ machineId }) {
     });
   }, [alerts, filterType, filterSeverity, filterStatus, filterDateFrom, filterDateTo]);
 
-  const hasFilters = filterType !== "all" || filterSeverity !== "all" || filterStatus !== "all" || filterDateFrom || filterDateTo;
+  const hasFilters = filterType !== "all" || filterSeverity !== "all" || filterDateFrom || filterDateTo;
 
   const clearFilters = () => {
     setFilterType("all");
     setFilterSeverity("all");
-    setFilterStatus("all");
     setFilterDateFrom("");
     setFilterDateTo("");
   };
@@ -110,6 +110,17 @@ export default function MachineAlertsHistory({ machineId }) {
         </div>
       </div>
 
+      <Tabs value={filterStatus} onValueChange={setFilterStatus}>
+        <TabsList>
+          <TabsTrigger value="active" className="gap-2">
+            <AlertTriangle className="w-4 h-4" /> Aktivní ({stats.active})
+          </TabsTrigger>
+          <TabsTrigger value="acknowledged" className="gap-2">
+            <CheckCircle2 className="w-4 h-4" /> Kvitované ({stats.total - stats.active})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Filters */}
       <Card className="border border-slate-200 shadow-sm">
         <CardHeader className="py-3 px-4 border-b border-slate-100">
@@ -127,7 +138,7 @@ export default function MachineAlertsHistory({ machineId }) {
           </div>
         </CardHeader>
         <CardContent className="p-3">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Typ alarmu" />
@@ -154,16 +165,6 @@ export default function MachineAlertsHistory({ machineId }) {
               </SelectContent>
             </Select>
 
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Stav" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Všechny stavy</SelectItem>
-                <SelectItem value="active">Aktivní</SelectItem>
-                <SelectItem value="acknowledged">Kvitováno</SelectItem>
-              </SelectContent>
-            </Select>
 
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] text-slate-400 pl-1">Od</label>
