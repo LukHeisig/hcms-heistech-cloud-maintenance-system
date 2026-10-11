@@ -21,7 +21,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
   const on = enabled && ids.length > 0;
   const q = { machine_id: { $in: ids } };
 
-  const { data: assignments = [] } = useQuery({
+  const { data: assignments = [], isLoading: loadingAssignments } = useQuery({
     queryKey: ["dashVibAssign", ids],
     queryFn: () => moduleData.filter("VibrationSensorAssignment", q, null, 1000),
     enabled: on, staleTime: 300000,
@@ -33,12 +33,12 @@ export default function useVibrationDashboard(machineIds, enabled) {
     queryFn: () => moduleData.filter("AissensSensor", { sensor_id: { $in: sensorIds } }, null, 1000),
     enabled: on && sensorIds.length > 0, staleTime: 120000,
   });
-  const { data: latest = {} } = useQuery({
+  const { data: latest = {}, isLoading: loadingLatest } = useQuery({
     queryKey: ["dashVibLatest", sensorIds],
     queryFn: () => moduleData.latestSensorData(sensorIds),
     enabled: on && sensorIds.length > 0, staleTime: 300000,
   });
-  const { data: standards = [] } = useQuery({
+  const { data: standards = [], isLoading: loadingStandards } = useQuery({
     queryKey: ["vibStandards"],
     queryFn: () => base44.entities.VibrationStandard.list(null, 500),
     enabled: on, staleTime: 600000,
@@ -74,6 +74,16 @@ export default function useVibrationDashboard(machineIds, enabled) {
         if (vs) m.zone = worse(m.zone, zoneOf(v, vs.limit_ab, vs.limit_bc, vs.limit_cd));
         const as = stdById[a.acc_standard_id];
         if (as && d.rms_z_g != null) m.zone = worse(m.zone, zoneOf(d.rms_z_g, as.acc_limit_ab, as.acc_limit_bc, as.acc_limit_cd));
+        if (vs) {
+          [d.vel_rms_x_mm_s, d.vel_rms_y_mm_s, d.vel_rms_z_mm_s].forEach(value => {
+            m.velocityZone = worse(m.velocityZone, zoneOf(value, vs.limit_ab, vs.limit_bc, vs.limit_cd));
+          });
+        }
+        if (as) {
+          [d.rms_z_g ?? d.oa_acc_z, d.env_rms_z].forEach(value => {
+            m.bearingZone = worse(m.bearingZone, zoneOf(value, as.acc_limit_ab, as.acc_limit_bc, as.acc_limit_cd));
+          });
+        }
       }
       const seen = sensorById[a.sensor_id]?.last_seen;
       if (seen && (!m.lastSeen || seen > m.lastSeen)) m.lastSeen = seen;
@@ -93,6 +103,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
       lowBatteryCount: lowBattery.length,
       byMachine,
       recentAlerts,
+      isLoading: on && (loadingAssignments || loadingStandards || (sensorIds.length > 0 && loadingLatest)),
     };
-  }, [assignments, sensors, latest, activeAlerts, recentAlerts, sensorIds, standards]);
+  }, [assignments, sensors, latest, activeAlerts, recentAlerts, sensorIds, standards, on, loadingAssignments, loadingStandards, loadingLatest]);
 }

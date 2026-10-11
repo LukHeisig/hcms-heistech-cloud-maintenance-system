@@ -443,8 +443,13 @@ export default function Dashboard() {
   const modMaintenance = userHasModule(user, "enable_maintenance", moduleCtx);
   const modVibration = userHasModule(user, "enable_vibration", moduleCtx);
   const isCompanyUser = !!user && user.user_type !== "admin" && user.user_type !== "superAdmin";
-  const vibMachineIds = useMemo(() => machines.map(m => m.id), [machines]);
-  const vib = useVibrationDashboard(vibMachineIds, modVibration && isCompanyUser);
+  const vibMachineIds = useMemo(() => {
+    if (isCompanyUser) return machines.map(m => m.id);
+    const companyIds = activeCompanies.filter(c => c.enable_vibration === true).map(c => c.id);
+    const lineIds = allLines.filter(l => companyIds.includes(l.company_id)).map(l => l.id);
+    return machines.filter(m => lineIds.includes(m.line_id)).map(m => m.id);
+  }, [machines, isCompanyUser, activeCompanies, allLines]);
+  const vib = useVibrationDashboard(vibMachineIds, modVibration);
   const machinesLabel = (n) => `${n} ${n === 1 ? "stroj" : n >= 2 && n <= 4 ? "stroje" : "strojů"}`;
 
   const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
@@ -866,6 +871,7 @@ export default function Dashboard() {
                                             </div>
                                             <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" />
                                           </div>
+                                          {company.enable_vibration === true && <VibrationLineMachines machines={lineMachines} byMachine={vib.byMachine} loading={vib.isLoading} />}
                                         </CardContent>
                                       </Card>
                                     </div>
@@ -1117,7 +1123,7 @@ export default function Dashboard() {
                                   <div className={`w-3 h-3 rounded-full ${dotColor}`} />
                                 </div>
                               </div>
-                              {modVibration && <VibrationLineMachines machines={lineMachines} byMachine={vib.byMachine} />}
+                              {modVibration && <VibrationLineMachines machines={lineMachines} byMachine={vib.byMachine} loading={vib.isLoading} />}
                             </CardContent>
                           </Card>
                         </div>
