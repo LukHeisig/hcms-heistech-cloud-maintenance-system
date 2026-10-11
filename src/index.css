@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root, .dark {
+  --sb-bg: #f8fafc; --sb-ink: #0f172a; --sb-muted: #64748b;
+  --sb-surface: #ffffff; --sb-border: #cbd5e1; --sb-primary: #2563eb;
+  --sb-hover: #1d4ed8; --sb-pressed: #1e40af; --sb-tint: #eff6ff;
+  --sb-soft-border: #dbeafe; --sb-neutral: #e2e8f0; --sb-secondary: #334155;
+  --sb-green: #22c55e; --sb-green-light: #86efac; --sb-green-bg: #dcfce7;
+  --sb-green-ink: #15803d; --sb-battery: #16a34a; --sb-yellow: #eab308;
+  --sb-yellow-light: #fde047; --sb-red: #dc2626; --sb-red-light: #fecaca;
+  --sb-red-bg: #fee2e2; --sb-red-ink: #b91c1c; --sb-orange: #f97316;
+  --sb-perforation: #93c5fd; --sb-alert-border: #fcd34d; --sb-alert-bg: #fffbeb;
+  --sb-amber: #f59e0b; --sb-amber-bg: #fef3c7; --sb-amber-ink: #92400e;
+  --sb-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 
 /* :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;

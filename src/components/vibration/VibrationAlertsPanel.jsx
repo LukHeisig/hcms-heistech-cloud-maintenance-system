@@ -1,4 +1,5 @@
 import AcknowledgedInfo from "@/components/vibration/AcknowledgedInfo";
+import ServiceBoardAlertCard from "@/components/vibration/ServiceBoardAlertCard";
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { moduleData } from "@/lib/moduleData";
@@ -37,7 +38,7 @@ const STATUS_CONFIG = {
   acknowledged: { label: "Kvitováno", badge: "bg-slate-100 text-slate-500 border-slate-300" },
 };
 
-function AlertCard({ alert, onAcknowledge }) {
+function AlertCard({ alert, onAcknowledge, serviceBoard }) {
   const navigate = useNavigate();
   const sev = SEVERITY_CONFIG[alert.severity] || SEVERITY_CONFIG.B;
   const typeConf = ALERT_TYPE_CONFIG[alert.alert_type] || ALERT_TYPE_CONFIG.velocity;
@@ -57,6 +58,7 @@ function AlertCard({ alert, onAcknowledge }) {
     return parts.join(" · ");
   };
 
+  if (serviceBoard) return <ServiceBoardAlertCard alert={alert} severityLabel={sev.label} typeLabel={typeConf.label} limitInfo={limitInfo()} formatValue={formatValue} onAcknowledge={onAcknowledge} onOpen={() => navigate(createPageUrl(`Machine?id=${alert.machine_id}&open_trend=${alert.metric_key}#vibration`))} />;
   return (
     <div className={`rounded-xl border ${sev.border} ${isActive ? sev.bg : "bg-slate-50"} p-4 transition-all`}>
       <div className="flex items-start gap-3">
@@ -139,7 +141,7 @@ function AlertCard({ alert, onAcknowledge }) {
   );
 }
 
-export default function VibrationAlertsPanel({ user, visibleMachineIds = null }) {
+export default function VibrationAlertsPanel({ user, visibleMachineIds = null, serviceBoard = false }) {
   const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState("active");
   const [ackDialog, setAckDialog] = useState(null); // alert object
@@ -192,7 +194,7 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
   return (
     <div className="space-y-4">
       {/* Hlavička panelu */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className={serviceBoard ? "sb-alert-heading" : "flex items-center justify-between flex-wrap gap-3"}>
         <div className="flex items-center gap-2">
           <Bell className="w-5 h-5 text-slate-700" />
           <h2 className="text-lg font-bold text-slate-900">Alarmy vibrací</h2>
@@ -202,11 +204,11 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
         </div>
         <div className="flex items-center gap-2">
           {/* Filtr stavu */}
-          <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+          <div className={serviceBoard ? "sb-alert-filters" : "flex rounded-lg border border-slate-200 overflow-hidden text-xs"}>
             {["active", "acknowledged", "all"].map(s => (
               <button
                 key={s}
-                className={`px-3 py-1.5 font-medium transition-colors ${
+                className={serviceBoard ? `sb-filter ${filterStatus === s ? "on" : ""}` : `px-3 py-1.5 font-medium transition-colors ${
                   filterStatus === s ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
                 onClick={() => setFilterStatus(s)}
@@ -218,11 +220,11 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
           <Button
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0"
+            className={serviceBoard ? "sb-filter" : "h-8 w-8 p-0"}
             onClick={() => refetch()}
             title="Obnovit"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            {serviceBoard ? "Obnovit" : <RefreshCw className="w-3.5 h-3.5" />}
           </Button>
         </div>
       </div>
@@ -252,11 +254,12 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
           <p className="text-sm text-slate-400 mt-1">Vibrační senzory jsou v pořádku.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className={serviceBoard ? "sb-alert-list" : "space-y-2"}>
           {sortedAlerts.map(alert => (
             <AlertCard
               key={alert.id}
               alert={alert}
+              serviceBoard={serviceBoard}
               onAcknowledge={["superAdmin", "admin", "manager"].includes(user?.user_type) ? (a) => { setAckDialog(a); setAckNote(""); } : null}
             />
           ))}
@@ -265,7 +268,7 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
 
       {/* Dialog kvitování */}
       <Dialog open={!!ackDialog} onOpenChange={open => !open && setAckDialog(null)}>
-        <DialogContent>
+        <DialogContent className={serviceBoard ? "service-board-dialog" : undefined}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-green-700">
               <CheckCircle2 className="w-5 h-5" /> Kvitovat alarm
@@ -293,9 +296,9 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAckDialog(null)}>Zrušit</Button>
+            <Button variant="outline" className={serviceBoard ? "sb-outline" : undefined} onClick={() => setAckDialog(null)}>Zrušit</Button>
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white gap-2"
+              className={serviceBoard ? "sb-outline primary" : "bg-green-600 hover:bg-green-700 text-white gap-2"}
               onClick={handleAcknowledge}
               disabled={ackLoading}
             >
