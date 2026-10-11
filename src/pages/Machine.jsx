@@ -426,6 +426,7 @@ export default function Machine() {
   // Záložka z URL se otevře jen, pokud je její modul dostupný
   const requestedTab =
     window.location.hash === "#vibration" ? "vibro-diag" :
+    window.location.hash === "#alerts" ? "alerts-history" :
     window.location.hash === "#thermo" ? "thermo" :
     window.location.hash === "#tribo" ? "tribo" :
     window.location.hash === "#maintenance" ? "maintenance" :

@@ -23,7 +23,7 @@ export default function RecentVibrationAlerts({ alerts }) {
         ) : (
           <div className="space-y-2">
             {alerts.map(a => (
-              <Link key={a.id} to={createPageUrl(`Machine?id=${a.machine_id}#vibration`)}
+              <Link key={a.id} to={createPageUrl(`Machine?id=${a.machine_id}#alerts`)}
                 className="block p-3 rounded-lg border border-slate-100 hover:bg-slate-50">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${SEV[a.severity] || SEV.B}`}>{a.severity}</span>
