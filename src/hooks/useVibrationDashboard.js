@@ -43,7 +43,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
     const now = Date.now();
     const sensorById = Object.fromEntries(sensors.map(s => [s.sensor_id, s]));
     const offline = sensors.filter(s => !s.last_seen || now - new Date(s.last_seen).getTime() > OFFLINE_MS);
-    const lowBattery = sensors.filter(s => s.last_battery_level != null && s.last_battery_level < 20);
+    const lowBattery = sensors.filter(s => s.last_battery_level != null && s.last_battery_level <= 1);
 
     const byMachine = {};
     assignments.forEach(a => {
