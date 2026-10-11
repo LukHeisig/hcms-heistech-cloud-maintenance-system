@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AcknowledgeAlertDialog from "@/components/machine/AcknowledgeAlertDialog";
 import { Bell, Filter, CheckCircle2, AlertTriangle, Thermometer, Battery, Activity, X } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -36,6 +37,7 @@ export default function MachineAlertsHistory({ machineId }) {
   const [filterStatus, setFilterStatus] = useState("active");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
+  const [ackAlert, setAckAlert] = useState(null);
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["machineAlerts", machineId],
@@ -244,12 +246,18 @@ export default function MachineAlertsHistory({ machineId }) {
                 <div className="text-right flex-shrink-0">
                   <p className="text-xs text-slate-500">{format(new Date(alert.created_date), "d.M.yyyy", { locale: cs })}</p>
                   <p className="text-[10px] text-slate-400">{format(new Date(alert.created_date), "HH:mm", { locale: cs })}</p>
+                  {alert.status === "active" && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs mt-2 gap-1" onClick={() => setAckAlert(alert)}>
+                      <CheckCircle2 className="w-3 h-3" /> Kvitovat
+                    </Button>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       )}
+      <AcknowledgeAlertDialog alert={ackAlert} onClose={() => setAckAlert(null)} />
     </div>
   );
 }
