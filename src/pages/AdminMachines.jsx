@@ -542,11 +542,6 @@ export default function AdminMachines() {
                               Podřízený
                             </Badge>
                           )}
-                          <div className="flex gap-1 ml-2">
-                              {machine.monitor_vibration && <Badge variant="outline" className="text-[10px] px-1 h-4 border-blue-200 text-blue-700">VIB</Badge>}
-                              {machine.monitor_thermo && <Badge variant="outline" className="text-[10px] px-1 h-4 border-orange-200 text-orange-700">TER</Badge>}
-                              {machine.monitor_tribo && <Badge variant="outline" className="text-[10px] px-1 h-4 border-purple-200 text-purple-700">TRI</Badge>}
-                          </div>
                         </div>
                         {machine.inventory_number && (
                           <p className="text-sm text-slate-600">
@@ -717,37 +712,7 @@ export default function AdminMachines() {
                 </div>
               </div>
 
-              <div className="border p-3 rounded-md bg-slate-50 space-y-2">
-                  <Label className="mb-2 block">Aplikovaná diagnostika</Label>
-                  <div className="flex gap-6">
-                      <div className="flex items-center space-x-2">
-                          <Checkbox 
-                              id="monitor_vibration" 
-                              checked={!!formData.monitor_vibration}
-                              onCheckedChange={(checked) => setFormData({...formData, monitor_vibration: checked})}
-                          />
-                          <Label htmlFor="monitor_vibration" className="cursor-pointer font-normal">Vibrace</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                          <Checkbox 
-                              id="monitor_thermo" 
-                              checked={!!formData.monitor_thermo}
-                              onCheckedChange={(checked) => setFormData({...formData, monitor_thermo: checked})}
-                          />
-                          <Label htmlFor="monitor_thermo" className="cursor-pointer font-normal">Termo</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                          <Checkbox 
-                              id="monitor_tribo" 
-                              checked={!!formData.monitor_tribo}
-                              onCheckedChange={(checked) => setFormData({...formData, monitor_tribo: checked})}
-                          />
-                          <Label htmlFor="monitor_tribo" className="cursor-pointer font-normal">Tribo</Label>
-                      </div>
-                  </div>
-              </div>
-
-              {formData.monitor_vibration && user?.user_type === "superAdmin" && (
+              {user?.user_type === "superAdmin" && (
                 <div>
                   <Label htmlFor="vibration_history_from">Historie snímačů od</Label>
                   <Input
