@@ -50,6 +50,7 @@
 .service-board .sb-legend{font-size:12px}
 .service-board .sb-company-bar h2{font-size:16px;font-weight:700}
 .service-board .sb-company-bar>span{font-size:14px}
+@media(min-width:1301px){.service-board .sb-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .service-board .sb-machine-head h3{font-size:14px;font-weight:600;line-height:1.4}
 .service-board .sb-org,.service-board .sb-label,.service-board .sb-axes,.service-board .sb-sensor-id,.service-board .sb-seen,.service-board .sb-metrics,.service-board .sb-value small,.service-board .sb-alert-value,.service-board .sb-limits,.service-board .sb-alert-date,.service-board .sb-alert-name em{font-size:12px}
 .service-board .sb-status,.service-board .sb-bands span,.service-board .sb-tag,.service-board .sb-alarm-badge{font-size:10px}
