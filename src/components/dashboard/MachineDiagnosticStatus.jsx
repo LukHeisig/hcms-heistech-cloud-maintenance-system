@@ -23,18 +23,18 @@ const BEARING_DETAILS = {
 export default function MachineDiagnosticStatus({ status, loading }) {
   const rows = [["Vibrace", status?.velocityZone, VIBRATION_DETAILS], ["Ložiska", status?.bearingZone, BEARING_DETAILS]];
   return (
-    <div className="mt-2 rounded-lg border border-border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-xs font-semibold">
-        <Activity className="h-3.5 w-3.5 text-primary" />Stav měřených ložisek
+    <div className="mt-1 rounded-md border border-border bg-card text-card-foreground">
+      <div className="flex items-center gap-1.5 border-b border-border px-2 py-1 text-[11px] font-semibold">
+        <Activity className="h-3 w-3 text-primary" />Stav měřených ložisek
       </div>
-      <div className="space-y-1.5 p-2">
+      <div className="grid grid-cols-1 gap-1 p-1 sm:grid-cols-2">
         {rows.map(([name, zone, details]) => (
-          <div key={name} className={`rounded-md border px-3 py-1.5 ${TONES[zone] || "bg-muted border-border text-muted-foreground"}`}>
-            <div className="flex items-center gap-2 text-xs font-medium">
+          <div key={name} className={`rounded border px-2 py-1 ${TONES[zone] || "bg-muted border-border text-muted-foreground"}`}>
+            <div className="flex items-center gap-1.5 text-[11px] font-medium">
               <span className="h-2 w-2 shrink-0 rounded-full bg-current" />
               {loading ? `${name} — načítání…` : zone ? `${name} — ${zone} ${zone === "D" ? "Výstraha" : zone === "C" ? "Upozornění" : "OK"}` : `Stav ${name === "Vibrace" ? "vibrací" : "ložisek"} neznámý`}
             </div>
-            <p className="pl-4 text-[11px] opacity-75">{loading ? "Načítám poslední měření." : details[zone] || `Není přiřazena norma pro ${name === "Vibrace" ? "rychlost" : "zrychlení"} nebo zatím nejsou data.`}</p>
+            <p className="pl-3.5 text-[10px] leading-tight opacity-75">{loading ? "Načítám poslední měření." : details[zone] || `Není přiřazena norma pro ${name === "Vibrace" ? "rychlost" : "zrychlení"} nebo zatím nejsou data.`}</p>
           </div>
         ))}
       </div>
