@@ -849,6 +849,7 @@ export default function Dashboard() {
                                               <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
                                                   <h4 className="font-semibold text-slate-900 text-sm">{line.name}</h4>
+                                                  <span className="text-xs text-muted-foreground whitespace-nowrap">{machinesLabel(lineMachines.length)}</span>
                                                   {lineOverdue > 0 && (
                                                     <Badge variant="destructive" className="gap-1 text-xs">
                                                       <AlertTriangle className="w-3 h-3" />
@@ -862,11 +863,9 @@ export default function Dashboard() {
                                                     </Badge>
                                                   )}
                                                 </div>
-                                                <div className="flex items-center gap-3 text-xs text-slate-600">
-                                                  <span>{lineMachines.length} strojů</span>
-                                                  {modDemip && <><span>·</span>
-                                                  <span>{linePoints.length} bodů</span></>}
-                                                </div>
+                                                {modDemip && (
+                                                  <div className="text-xs text-slate-600">{linePoints.length} bodů</div>
+                                                )}
                                               </div>
                                             </div>
                                             <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" />
@@ -1093,6 +1092,7 @@ export default function Dashboard() {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
                                     <h3 className="text-lg font-bold text-slate-900">{line.name}</h3>
+                                    <span className="text-sm text-muted-foreground whitespace-nowrap">{machinesLabel(lineMachines.length)}</span>
                                     {lineOverdue > 0 && (
                                       <Badge variant="destructive" className="gap-1">
                                         <AlertTriangle className="w-3 h-3" />
@@ -1106,18 +1106,12 @@ export default function Dashboard() {
                                       </Badge>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-4 text-sm text-slate-600">
-                                    <span className="flex items-center gap-1">
-                                      <Activity className="w-4 h-4" />
-                                      {machinesLabel(lineMachines.length)}
-                                    </span>
-                                    {modDemip && (
-                                    <span className="flex items-center gap-1">
+                                  {modDemip && (
+                                    <div className="flex items-center gap-1 text-sm text-slate-600">
                                       <Droplet className="w-4 h-4" />
                                       {linePoints.length} bodů
-                                    </span>
-                                    )}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-shrink-0">
                                   <div className={`w-3 h-3 rounded-full ${dotColor}`} />
