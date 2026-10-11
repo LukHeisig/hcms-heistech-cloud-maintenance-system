@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AlertRecipients from "@/pages/AlertRecipients";
 import SchemaList from "@/components/vibration/SchemaList";
 import VseSchemaDialog from "@/components/vibration/VseSchemaDialog";
 import { describeVseDefinition } from "@/components/vibration/vseTemplates";
@@ -352,12 +353,7 @@ export default function AdminVibrations() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Zpět na administraci
           </Button>
           <h1 className="text-3xl font-bold text-slate-900">Nastavení vibrodiagnostiky</h1>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <p className="text-slate-600 mt-1">Správa norem a měřících schémat</p>
-            <Button variant="outline" onClick={() => navigate(createPageUrl("AlertRecipients"))} className="gap-2">
-              <Bell className="w-4 h-4 text-red-500" /> Notifikace alarmů
-            </Button>
-          </div>
+          <p className="text-slate-600 mt-1">Správa norem a měřících schémat</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -370,6 +366,9 @@ export default function AdminVibrations() {
             </TabsTrigger>
             <TabsTrigger value="templates" className="gap-2">
               <FileText className="w-4 h-4" /> Šablony textů
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="gap-2">
+              <Bell className="w-4 h-4" /> Notifikace alarmů
             </TabsTrigger>
           </TabsList>
 
@@ -466,6 +465,10 @@ export default function AdminVibrations() {
           </TabsContent>
 
           {/* TEMPLATES TAB */}
+          <TabsContent value="alerts">
+            <AlertRecipients embedded />
+          </TabsContent>
+
           <TabsContent value="templates">
             <div className="flex justify-end mb-4">
               <Button onClick={() => openTemplateDialog()} className="bg-blue-600 hover:bg-blue-700">

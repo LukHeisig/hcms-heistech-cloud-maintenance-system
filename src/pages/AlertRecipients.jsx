@@ -42,7 +42,7 @@ const SCOPE_LABELS = {
   all: { label: "Vše", icon: Building2, color: "bg-slate-100 text-slate-600" },
 };
 
-export default function AlertRecipients() {
+export default function AlertRecipients({ embedded = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showDialog, setShowDialog] = useState(false);
@@ -158,13 +158,15 @@ export default function AlertRecipients() {
   const getLabel = (id, list, field = "name") => list.find(i => i.id === id)?.[field] || id;
 
   return (
-    <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-5xl mx-auto">
+    <div className={embedded ? "" : "p-4 md:p-8 bg-slate-50 min-h-screen"}>
+      <div className={embedded ? "" : "max-w-5xl mx-auto"}>
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
+          {!embedded && (
           <Button variant="ghost" size="icon" onClick={() => navigate(createPageUrl("Settings"))}>
             <ChevronLeft className="w-5 h-5" />
           </Button>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Notifikace alarmů vibrací</h1>
             <p className="text-sm text-slate-500">Správa příjemců e-mailových upozornění při překročení limitů</p>
