@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { moduleData } from "@/lib/moduleData";
 
-const OFFLINE_MS = 6 * 3600 * 1000;
+const OFFLINE_MS = 12 * 3600 * 1000;
 const SEV_RANK = { D: 3, C: 2, B: 1 };
 
 // Data pro vibrační přehled na dashboardu (omezeno na zadané stroje)

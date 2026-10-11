@@ -30,7 +30,7 @@ export default function VibrationKpiCards({ data }) {
       <Kpi title="Aktivní alarmy" value={totalAlerts} sub={`D: ${data.alertsD} · C: ${data.alertsC}`} icon={Bell}
         gradient={data.alertsD > 0 ? "from-red-500 to-red-600" : totalAlerts > 0 ? "from-orange-500 to-orange-600" : "from-green-500 to-green-600"}
         to={createPageUrl("VibrationOnline?tab=alerts")} />
-      <Kpi title="Senzory offline" value={data.offlineCount} sub="bez dat déle než 6 h" icon={WifiOff}
+      <Kpi title="Senzory offline" value={data.offlineCount} sub="bez dat déle než 12 h" icon={WifiOff}
         gradient={data.offlineCount > 0 ? "from-slate-600 to-slate-700" : "from-slate-400 to-slate-500"} />
       <Kpi title="Slabá baterie" value={data.lowBatteryCount} sub="úroveň 1/4 a méně" icon={BatteryLow}
         gradient={data.lowBatteryCount > 0 ? "from-amber-500 to-amber-600" : "from-slate-400 to-slate-500"} />
