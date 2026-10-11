@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Pencil, Trash2, Activity, FileSpreadsheet, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Activity, FileSpreadsheet, FileText, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
@@ -352,7 +352,12 @@ export default function AdminVibrations() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Zpět na administraci
           </Button>
           <h1 className="text-3xl font-bold text-slate-900">Nastavení vibrodiagnostiky</h1>
-          <p className="text-slate-600 mt-1">Správa norem a měřících schémat</p>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <p className="text-slate-600 mt-1">Správa norem a měřících schémat</p>
+            <Button variant="outline" onClick={() => navigate(createPageUrl("AlertRecipients"))} className="gap-2">
+              <Bell className="w-4 h-4 text-red-500" /> Notifikace alarmů
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
