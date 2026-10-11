@@ -747,7 +747,7 @@ export default function AdminMachines() {
                   </div>
               </div>
 
-              {formData.monitor_vibration && (
+              {formData.monitor_vibration && user?.user_type === "superAdmin" && (
                 <div>
                   <Label htmlFor="vibration_history_from">Historie snímačů od</Label>
                   <Input
@@ -789,7 +789,7 @@ export default function AdminMachines() {
                 </div>
                 </div>
 
-                <div className="border-t pt-4 mt-4">
+                <div className={`border-t pt-4 mt-4 ${user?.user_type === "superAdmin" ? "" : "hidden"}`}>
                 <h4 className="font-semibold mb-3 text-slate-800">Nastavení vibrodiagnostiky</h4>
                 <div className="space-y-4">
                   <div>
