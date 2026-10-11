@@ -33,6 +33,10 @@ import VibrationAlarmFrequencyChart from "../components/dashboard/VibrationAlarm
 import { getEffectiveHoursSince, getNextDueDate } from "@/lib/intervalCalculations";
 import { throttled } from "@/lib/requestQueue";
 import { userHasModule } from "@/lib/companyModules";
+import useVibrationDashboard from "@/hooks/useVibrationDashboard";
+import VibrationKpiCards from "@/components/dashboard/VibrationKpiCards";
+import VibrationLineMachines from "@/components/dashboard/VibrationLineMachines";
+import RecentVibrationAlerts from "@/components/dashboard/RecentVibrationAlerts";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -438,6 +442,10 @@ export default function Dashboard() {
   const modDemip = userHasModule(user, "enable_demip", moduleCtx);
   const modMaintenance = userHasModule(user, "enable_maintenance", moduleCtx);
   const modVibration = userHasModule(user, "enable_vibration", moduleCtx);
+  const isCompanyUser = !!user && user.user_type !== "admin" && user.user_type !== "superAdmin";
+  const vibMachineIds = useMemo(() => machines.map(m => m.id), [machines]);
+  const vib = useVibrationDashboard(vibMachineIds, modVibration && isCompanyUser);
+  const machinesLabel = (n) => `${n} ${n === 1 ? "stroj" : n >= 2 && n <= 4 ? "stroje" : "strojů"}`;
 
   const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
     ? activeCompanies.filter(c => c.enable_demip === true)
@@ -963,8 +971,10 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
-            <p className="text-slate-600">Přehled stavu mazacích a inspekčních plánů</p>
+            <p className="text-slate-600">{modDemip ? "Přehled stavu mazacích a inspekčních plánů" : modVibration ? "Přehled stavu vibrodiagnostiky" : "Přehled podniku"}</p>
           </div>
+
+          {modVibration && <VibrationKpiCards data={vib} />}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-shadow">
@@ -1093,7 +1103,7 @@ export default function Dashboard() {
                                   <div className="flex items-center gap-4 text-sm text-slate-600">
                                     <span className="flex items-center gap-1">
                                       <Activity className="w-4 h-4" />
-                                      {lineMachines.length} strojů
+                                      {machinesLabel(lineMachines.length)}
                                     </span>
                                     {modDemip && (
                                     <span className="flex items-center gap-1">
@@ -1107,6 +1117,7 @@ export default function Dashboard() {
                                   <div className={`w-3 h-3 rounded-full ${dotColor}`} />
                                 </div>
                               </div>
+                              {modVibration && <VibrationLineMachines machines={lineMachines} byMachine={vib.byMachine} />}
                             </CardContent>
                           </Card>
                         </div>
@@ -1118,6 +1129,7 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-6">
+              {modVibration && <RecentVibrationAlerts alerts={vib.recentAlerts} />}
               <Card className={`border-none shadow-lg ${modDemip ? "" : "hidden"}`}>
                 <CardHeader className="border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-lg">
