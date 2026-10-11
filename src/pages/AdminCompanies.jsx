@@ -461,6 +461,7 @@ export default function AdminCompanies() {
               </div>
               )}
 
+              {formData.enable_demip && (<>
               <div className="border p-4 rounded-lg bg-slate-50 space-y-4">
                 <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                     <CheckSquare className="w-4 h-4" />
@@ -556,6 +557,7 @@ export default function AdminCompanies() {
                     )}
                 </div>
               </div>
+              </>)}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowDialog(false)}>
