@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 import { Bell } from "lucide-react";
 
-const DOT = { D: "bg-red-500", C: "bg-orange-500", B: "bg-yellow-400", A: "bg-green-500" };
+const DOT = { D: "bg-red-500", C: "bg-orange-500", B: "bg-green-500", A: "bg-green-500" };
 
 export default function VibrationLineMachines({ machines, byMachine }) {
   const navigate = useNavigate();
