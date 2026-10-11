@@ -468,8 +468,10 @@ export default function AdminLines() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4 text-sm text-slate-600">
                             <span>{lineMachines.length} strojů</span>
+                            {company?.enable_demip !== false && (<>
                             <span>·</span>
                             <span>{linePoints.length} kontrolních bodů</span>
+                            </>)}
                           </div>
                           <Button
                             variant="outline"
@@ -548,6 +550,7 @@ export default function AdminLines() {
                   </SelectContent>
                 </Select>
               </div>
+              {company?.enable_demip !== false && (
               <div>
                 <Label>Dny započítávané do intervalů (DEMIP)</Label>
                 <p className="text-xs text-slate-500 mb-2">
@@ -580,6 +583,7 @@ export default function AdminLines() {
                   })}
                 </div>
               </div>
+              )}
               </div>
             <DialogFooter>
               <Button
