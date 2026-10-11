@@ -32,7 +32,7 @@ export default function VibrationLineMachines({ machines, byMachine, loading }) 
               </span>
             )}
             <span className="ml-auto text-xs text-slate-400 text-right" title="Poslední příjem dat">
-              Poslední příjem dat: {s.lastSeen ? formatDistanceToNow(new Date(s.lastSeen), { addSuffix: true, locale: cs }) : "bez dat"}
+              {s.lastSeen ? formatDistanceToNow(new Date(s.lastSeen), { addSuffix: true, locale: cs }) : "bez dat"}
             </span>
             </div>
             </div>
