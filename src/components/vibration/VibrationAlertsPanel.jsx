@@ -122,7 +122,7 @@ function AlertCard({ alert, onAcknowledge }) {
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
-          {isActive && (
+          {isActive && onAcknowledge && (
             <Button
               variant="ghost"
               size="sm"
@@ -257,7 +257,7 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null })
             <AlertCard
               key={alert.id}
               alert={alert}
-              onAcknowledge={(a) => { setAckDialog(a); setAckNote(""); }}
+              onAcknowledge={["superAdmin", "admin", "manager"].includes(user?.user_type) ? (a) => { setAckDialog(a); setAckNote(""); } : null}
             />
           ))}
         </div>
