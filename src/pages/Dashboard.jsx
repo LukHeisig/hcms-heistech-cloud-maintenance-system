@@ -851,8 +851,8 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="flex items-center gap-3 text-xs text-slate-600">
                                                   <span>{lineMachines.length} strojů</span>
-                                                  <span>·</span>
-                                                  <span>{linePoints.length} bodů</span>
+                                                  {modDemip && <><span>·</span>
+                                                  <span>{linePoints.length} bodů</span></>}
                                                 </div>
                                               </div>
                                             </div>
@@ -1095,10 +1095,12 @@ export default function Dashboard() {
                                       <Activity className="w-4 h-4" />
                                       {lineMachines.length} strojů
                                     </span>
+                                    {modDemip && (
                                     <span className="flex items-center gap-1">
                                       <Droplet className="w-4 h-4" />
                                       {linePoints.length} bodů
                                     </span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0">
