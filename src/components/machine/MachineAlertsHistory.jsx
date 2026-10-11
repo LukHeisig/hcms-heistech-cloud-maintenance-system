@@ -38,6 +38,8 @@ export default function MachineAlertsHistory({ machineId }) {
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [ackAlert, setAckAlert] = useState(null);
+  const { data: currentUser } = useQuery({ queryKey: ["currentUser"], queryFn: () => base44.auth.me(), staleTime: 300000 });
+  const canAcknowledge = ["superAdmin", "admin", "manager"].includes(currentUser?.user_type);
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["machineAlerts", machineId],
@@ -246,7 +248,7 @@ export default function MachineAlertsHistory({ machineId }) {
                 <div className="text-right flex-shrink-0">
                   <p className="text-xs text-slate-500">{format(new Date(alert.created_date), "d.M.yyyy", { locale: cs })}</p>
                   <p className="text-[10px] text-slate-400">{format(new Date(alert.created_date), "HH:mm", { locale: cs })}</p>
-                  {alert.status === "active" && (
+                  {alert.status === "active" && canAcknowledge && (
                     <Button size="sm" variant="outline" className="h-7 text-xs mt-2 gap-1" onClick={() => setAckAlert(alert)}>
                       <CheckCircle2 className="w-3 h-3" /> Kvitovat
                     </Button>

@@ -21,7 +21,7 @@ const ENTITIES = {
 // Povolené zápisy přes bránu: entita → operace → role
 const MANAGERS = ['admin', 'manager'];
 const WRITES = {
-  VibrationAlert: { update: ['admin', 'manager', 'technician'] },
+  VibrationAlert: { update: ['admin', 'manager'] },
   VibrationSensorAssignment: { create: MANAGERS, update: MANAGERS },
 };
 
