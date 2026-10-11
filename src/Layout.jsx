@@ -565,12 +565,12 @@ function LayoutContent({ children }) {
       : []),
     ...(user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin"
       ? [
-          {
+          ...(user?.user_type === "superAdmin" || demipEnabled ? [{
             title: "Správa závad",
             url: createPageUrl("IssueApproval"),
             icon: AlertTriangle,
             badge: pendingIssuesCount,
-          },
+          }] : []),
           {
             title: "Audit Log",
             url: createPageUrl("AuditLog"),
