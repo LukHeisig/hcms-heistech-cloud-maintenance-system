@@ -31,9 +31,8 @@ export default function VibrationLineMachines({ machines, byMachine, loading }) 
                 <Bell className="w-3.5 h-3.5" />{s.alerts}
               </span>
             )}
-            <span className="font-mono text-slate-700 w-24 text-right ml-auto">{s.vel != null ? `${s.vel.toFixed(2)} mm/s` : "—"}</span>
-            <span className="text-xs text-slate-400 w-28 text-right">
-              {s.lastSeen ? formatDistanceToNow(new Date(s.lastSeen), { addSuffix: true, locale: cs }) : "bez dat"}
+            <span className="ml-auto text-xs text-slate-400 text-right" title="Poslední příjem dat">
+              Poslední příjem dat: {s.lastSeen ? formatDistanceToNow(new Date(s.lastSeen), { addSuffix: true, locale: cs }) : "bez dat"}
             </span>
             </div>
             </div>
