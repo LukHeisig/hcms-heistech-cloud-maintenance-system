@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 import { Bell } from "lucide-react";
 
-const DOT = { D: "bg-red-500", C: "bg-orange-500", B: "bg-yellow-400" };
+const DOT = { D: "bg-red-500", C: "bg-orange-500", B: "bg-yellow-400", A: "bg-green-500" };
 
 export default function VibrationLineMachines({ machines, byMachine }) {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export default function VibrationLineMachines({ machines, byMachine }) {
           <div key={m.id}
             onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`Machine?id=${m.id}#vibration`)); }}
             className="flex items-center gap-3 py-2 px-1 text-sm hover:bg-slate-50 rounded cursor-pointer">
-            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[s.severity] || "bg-green-500"}`} />
+            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[s.zone] || "bg-slate-300"}`} title={s.zone ? `Aktuální pásmo ${s.zone}` : "Bez vyhodnocení"} />
             <span className="font-medium text-slate-800 flex-1 truncate">{m.name}</span>
             {s.alerts > 0 && (
               <span className="flex items-center gap-1 text-xs text-red-600 font-semibold">
