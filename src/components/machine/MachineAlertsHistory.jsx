@@ -238,11 +238,15 @@ export default function MachineAlertsHistory({ machineId }) {
                       <span className="text-slate-500">Limit D: {alert.limit_cd} {alert.metric_unit}</span>
                     )}
                   </div>
-                  {alert.status === "acknowledged" && alert.acknowledged_at && (
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Kvitoval: {alert.acknowledged_by} — {format(new Date(alert.acknowledged_at), "d.M.yyyy HH:mm", { locale: cs })}
-                      {alert.acknowledge_note && ` — "${alert.acknowledge_note}"`}
-                    </p>
+                  {alert.status === "acknowledged" && (
+                    <div className="mt-2 flex items-start gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span>Kvitoval <span className="font-semibold">{alert.acknowledged_by || "neznámý"}</span></span>
+                        {alert.acknowledged_at && <span> · {format(new Date(alert.acknowledged_at), "d.M.yyyy HH:mm", { locale: cs })}</span>}
+                        {alert.acknowledge_note && <p className="italic text-slate-500">„{alert.acknowledge_note}“</p>}
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div className="text-right flex-shrink-0">
