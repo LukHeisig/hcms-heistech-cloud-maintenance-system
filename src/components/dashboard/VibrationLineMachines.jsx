@@ -22,7 +22,9 @@ export default function VibrationLineMachines({ machines, byMachine }) {
             <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[s.zone] || "bg-slate-300"}`} title={s.zone ? `Aktuální pásmo ${s.zone}` : "Bez vyhodnocení"} />
             <span className="font-medium text-slate-800 flex-1 truncate">{m.name}</span>
             {s.alerts > 0 && (
-              <span className="flex items-center gap-1 text-xs text-red-600 font-semibold">
+              <span title="Zobrazit alarmy"
+                onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`Machine?id=${m.id}#alerts`)); }}
+                className="flex items-center gap-1 text-xs text-red-600 font-semibold px-1.5 py-0.5 rounded hover:bg-red-50">
                 <Bell className="w-3.5 h-3.5" />{s.alerts}
               </span>
             )}
