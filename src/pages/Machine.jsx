@@ -742,33 +742,7 @@ export default function Machine() {
               <LayoutDashboard className="w-4 h-4" />
               <span className="hidden md:inline">Přehled</span>
             </TabsTrigger>
-            
-            {showDemip && (
-              <TabsTrigger value="control-points" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
-                <Droplet className="w-4 h-4" />
-                <span className="hidden md:inline">DEMIP</span>
-              </TabsTrigger>
-            )}
-            
-            <TabsTrigger value="documentation" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white">
-              <ImageIcon className="w-4 h-4" />
-              <span className="hidden md:inline">Dokumentace</span>
-            </TabsTrigger>
-            
-            {showMaintenance && (
-              <TabsTrigger value="maintenance" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-700 data-[state=active]:text-white">
-                <Wrench className="w-4 h-4" />
-                <span className="hidden md:inline">Údržba</span>
-              </TabsTrigger>
-            )}
-            
-            {showParts && (
-              <TabsTrigger value="spare-parts" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-700 data-[state=active]:text-white">
-                <Package className="w-4 h-4" />
-                <span className="hidden md:inline">Díly</span>
-              </TabsTrigger>
-            )}
-            
+
             {showVibration && (
               <TabsTrigger value="vibro-diag" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
                 <Activity className="w-4 h-4" />
@@ -797,6 +771,28 @@ export default function Machine() {
                 <span className="hidden md:inline">Alarmy</span>
               </TabsTrigger>
             )}
+            
+            {showDemip && (
+              <TabsTrigger value="control-points" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
+                <Droplet className="w-4 h-4" />
+                <span className="hidden md:inline">DEMIP</span>
+              </TabsTrigger>
+            )}
+            
+            {showMaintenance && (
+              <TabsTrigger value="maintenance" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-700 data-[state=active]:text-white">
+                <Wrench className="w-4 h-4" />
+                <span className="hidden md:inline">Údržba</span>
+              </TabsTrigger>
+            )}
+            
+            {showParts && (
+              <TabsTrigger value="spare-parts" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-700 data-[state=active]:text-white">
+                <Package className="w-4 h-4" />
+                <span className="hidden md:inline">Díly</span>
+              </TabsTrigger>
+            )}
+            
 
             {showThermo && (
               <TabsTrigger value="thermo" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-600 data-[state=active]:to-amber-700 data-[state=active]:text-white">
@@ -822,6 +818,10 @@ export default function Machine() {
                 <span className="hidden md:inline">AI Predikce</span>
               </TabsTrigger>
             )}
+            <TabsTrigger value="documentation" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white">
+              <ImageIcon className="w-4 h-4" />
+              <span className="hidden md:inline">Dokumentace</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Přehled */}
