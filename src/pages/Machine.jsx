@@ -410,16 +410,17 @@ export default function Machine() {
   const lubricatorsStatus = getGroupStatus(lubricatorPoints);
   const preventionStatus = getGroupStatus(preventionPoints);
 
+  const showVibrationModule = isModuleEnabled(company, "enable_vibration");
   const lowStockParts = spareParts.filter(p => p.quantity_in_stock <= (p.minimum_stock || 0));
-  const vibrationTabAlertLevelResolved = (!machine?.monitor_vibration || !machineId) ? -1 : (() => { try { return parseInt(localStorage.getItem(`vibro_tab_alert_${machineId}`) || "-1", 10); } catch { return -1; } })();
+  const vibrationTabAlertLevelResolved = (!showVibrationModule || !machineId) ? -1 : (() => { try { return parseInt(localStorage.getItem(`vibro_tab_alert_${machineId}`) || "-1", 10); } catch { return -1; } })();
 
   // Visibility Logic
   const showDemip = isModuleEnabled(company, "enable_demip") && controlPoints.length > 0;
   const showMaintenance = isModuleEnabled(company, "enable_maintenance") && (maintenanceRecords.length > 0 || plannedMaintenance.length > 0);
   const showParts = isModuleEnabled(company, "enable_parts") && spareParts.length > 0;
-  const showVibration = isModuleEnabled(company, "enable_vibration") && (machine?.monitor_vibration || vibrationMeasurements.length > 0 || vibrationJobs.length > 0);
-  const showThermo = isModuleEnabled(company, "enable_thermo") && (machine?.monitor_thermo || thermoJobs.length > 0);
-  const showTribo = isModuleEnabled(company, "enable_tribo") && machine?.monitor_tribo;
+  const showVibration = isModuleEnabled(company, "enable_vibration");
+  const showThermo = isModuleEnabled(company, "enable_thermo");
+  const showTribo = isModuleEnabled(company, "enable_tribo");
   const showPredictive = isModuleEnabled(company, "enable_predictive");
 
   // Záložka z URL se otevře jen, pokud je její modul dostupný
@@ -826,7 +827,7 @@ export default function Machine() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
-            {isModuleEnabled(company, "enable_vibration") && machine?.monitor_vibration && machine?.vibration_source !== "vse" && (
+            {isModuleEnabled(company, "enable_vibration") && machine?.vibration_source !== "vse" && (
               <VibrationOverviewCard machine={machine} />
             )}
             {(isModuleEnabled(company, "enable_demip") || isModuleEnabled(company, "enable_maintenance")) && (

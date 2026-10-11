@@ -194,7 +194,6 @@ export default function VibrationOnline() {
   const vibrationMachines = useMemo(() => {
     return allMachines.filter(m =>
       visibleLineIds.includes(m.line_id) &&
-      m.monitor_vibration === true &&
       assignedMachineIds.has(m.id)
     );
   }, [allMachines, visibleLineIds, assignedMachineIds]);

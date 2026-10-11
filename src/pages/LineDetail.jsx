@@ -271,7 +271,7 @@ export default function LineDetail() {
   const modTribo = isModuleEnabled(company, "enable_tribo");
 
   const hasDiagnostics = useMemo(() => {
-    return machines.some(m => (modVibration && m.monitor_vibration) || (modThermo && m.monitor_thermo) || (modTribo && m.monitor_tribo));
+    return machines.some(m => (modVibration && m.vibration_schema_id) || (modThermo && true) || (modTribo && true));
   }, [machines, modVibration, modThermo, modTribo]);
 
   // Pokud aktivní záložka není v podniku dostupná, přepni na Přehled
@@ -282,7 +282,7 @@ export default function LineDetail() {
   }, [company, activeTab, modDemip, modMaintenance, hasDiagnostics]);
 
   // Vibration monitoring machines
-  const vibrationMachineIds = useMemo(() => machines.filter(m => m.monitor_vibration).map(m => m.id), [machines]);
+  const vibrationMachineIds = useMemo(() => machines.filter(m => m.vibration_schema_id).map(m => m.id), [machines]);
 
   // Load VibrationSensorAssignments for vibration machines (includes sensor + standard IDs)
   const { data: lineVibrationAssignments = [] } = useQuery({
@@ -711,7 +711,7 @@ export default function LineDetail() {
                           </>}
 
                           {/* Vibrace */}
-                          {modVibration && machine.monitor_vibration && (
+                          {modVibration && machine.vibration_schema_id && (
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Vibrace</span>
                               {vibroLevel <= 0 ? (
@@ -729,7 +729,7 @@ export default function LineDetail() {
                           )}
 
                           {/* Termo */}
-                          {modThermo && machine.monitor_thermo && (
+                          {modThermo && (
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Termo</span>
                               <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
@@ -739,7 +739,7 @@ export default function LineDetail() {
                           )}
 
                           {/* Tribo */}
-                          {modTribo && machine.monitor_tribo && (
+                          {modTribo && (
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Tribo</span>
                               <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
@@ -785,7 +785,7 @@ export default function LineDetail() {
                         Vibrační diagnostika
                       </div>
                     </TabsTrigger>
-                    {modThermo && machines.some(m => m.monitor_thermo) && (
+                    {modThermo && machines.some(m => true) && (
                     <TabsTrigger 
                       value="thermo"
                       className="data-[state=active]:border-b-2 data-[state=active]:border-orange-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
@@ -796,7 +796,7 @@ export default function LineDetail() {
                       </div>
                     </TabsTrigger>
                     )}
-                    {modTribo && machines.some(m => m.monitor_tribo) && (
+                    {modTribo && machines.some(m => true) && (
                     <TabsTrigger 
                       value="tribo"
                       className="data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:shadow-none rounded-none px-0 py-2 bg-transparent"
@@ -810,11 +810,11 @@ export default function LineDetail() {
                   </TabsList>
 
                   <TabsContent value="vibration" className="mt-0">
-                    {machines.filter(m => m.monitor_vibration).length === 0 ? (
+                    {machines.filter(m => m.vibration_schema_id).length === 0 ? (
                       <p className="text-center text-slate-500 py-8">Žádné stroje s aktivní vibrační diagnostikou</p>
                     ) : (
                       <div className="space-y-2">
-                        {machines.filter(m => m.monitor_vibration).map((machine) => {
+                        {machines.filter(m => m.vibration_schema_id).map((machine) => {
                            const vibroBgText = getVibroBgText(machine.id);
                            return (
                              <div
@@ -843,11 +843,11 @@ export default function LineDetail() {
                   </TabsContent>
 
                   <TabsContent value="thermo" className="mt-0">
-                    {machines.filter(m => m.monitor_thermo).length === 0 ? (
+                    {machines.filter(m => true).length === 0 ? (
                       <p className="text-center text-slate-500 py-8">Žádné stroje/rozvaděče s aktivní termodiagnostikou</p>
                     ) : (
                       <div className="space-y-2">
-                        {machines.filter(m => m.monitor_thermo).map((machine) => {
+                        {machines.filter(m => true).map((machine) => {
                              const styles = getMachineStatusStyles(machine.id);
                              return (
                                <div
@@ -875,11 +875,11 @@ export default function LineDetail() {
                   </TabsContent>
 
                   <TabsContent value="tribo" className="mt-0">
-                    {machines.filter(m => m.monitor_tribo).length === 0 ? (
+                    {machines.filter(m => true).length === 0 ? (
                       <p className="text-center text-slate-500 py-8">Žádné stroje s aktivní tribodiagnostikou</p>
                     ) : (
                       <div className="space-y-2">
-                        {machines.filter(m => m.monitor_tribo).map((machine) => {
+                        {machines.filter(m => true).map((machine) => {
                              const styles = getMachineStatusStyles(machine.id);
                              return (
                                <div
