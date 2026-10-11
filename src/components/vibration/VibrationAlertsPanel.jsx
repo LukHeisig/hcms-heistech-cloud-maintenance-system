@@ -1,3 +1,4 @@
+import AcknowledgedInfo from "@/components/vibration/AcknowledgedInfo";
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { moduleData } from "@/lib/moduleData";
@@ -106,13 +107,8 @@ function AlertCard({ alert, onAcknowledge }) {
                 { addSuffix: true, locale: cs }
               )}
             </span>
-            {alert.acknowledged_by && (
-              <span className="text-slate-400">
-                Kvitoval: <span className="font-medium">{alert.acknowledged_by}</span>
-                {alert.acknowledge_note && <span> — {alert.acknowledge_note}</span>}
-              </span>
-            )}
           </div>
+          <AcknowledgedInfo alert={alert} />
         </div>
 
         {/* Akce */}
