@@ -9,9 +9,9 @@ export const moduleData = {
   list: async (entity, sort = null, limit = 100) =>
     (await call({ entity, op: "filter", query: {}, sort, limit })).items,
   // Poslední záznam s předpočítanými RMS pro každý senzor – jedno volání, bez surových dat
-  latestSensorData: async (sensorIds) =>
+  latestSensorData: async (sensorIds, fields) =>
     sensorIds.length === 0 ? {} : (await call({
-      entity: "SensorData", op: "latest", keys: sensorIds,
+      entity: "SensorData", op: "latest", keys: sensorIds, fields,
       query: { has_fft: true, vel_rms_x_mm_s: { $ne: null } }, sort: "-created_date",
     })).map,
   create: async (entity, data) => (await call({ entity, op: "create", data })).record,

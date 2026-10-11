@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { moduleData } from "@/lib/moduleData";
+import { useAuth } from "@/lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -99,45 +100,46 @@ function AlertDot({ level, size = "w-2.5 h-2.5" }) {
 
 export default function VibrationOnline() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const urlParams = new URLSearchParams(window.location.search);
   const [activeTab, setActiveTab] = useState(urlParams.get("tab") === "alerts" ? "alerts" : "sensors");
   const [search, setSearch] = useState("");
   const [expandedCompanies, setExpandedCompanies] = useState({});
 
-  useEffect(() => {
-    base44.auth.me().then(setUser);
-  }, []);
-
-  const { data: allCompanies = [] } = useQuery({
+  const { data: allCompanies = [], isPending: loadingCompanies, error: companiesError } = useQuery({
     queryKey: ["companies"],
     queryFn: () => base44.entities.Company.list("name", 1000),
     enabled: !!user,
     staleTime: 300000,
   });
 
-  const { data: allLines = [] } = useQuery({
+  const { data: allLines = [], isPending: loadingLines, error: linesError } = useQuery({
     queryKey: ["allLines"],
     queryFn: () => base44.entities.Line.list("order_index", 1000),
+    enabled: !!user,
     staleTime: 300000,
   });
 
-  const { data: allMachines = [], isLoading: isLoadingMachines } = useQuery({
+  const { data: allMachines = [], isPending: isLoadingMachines, error: machinesError } = useQuery({
     queryKey: ["allMachines"],
     queryFn: () => base44.entities.Machine.list("order_index", 1000),
+    enabled: !!user,
     staleTime: 300000,
   });
 
-  const { data: allSensors = [], isLoading: isLoadingSensors } = useQuery({
+  const { data: allSensors = [], isPending: isLoadingSensors, error: sensorsError } = useQuery({
     queryKey: ["aissens_sensors"],
     queryFn: () => moduleData.list("AissensSensor", "-last_seen", 500),
-    refetchInterval: 30000,
+    enabled: !!user,
+    staleTime: 30000,
+    refetchInterval: activeTab === "sensors" ? 30000 : false,
   });
 
-  const { data: assignments = [] } = useQuery({
+  const { data: assignments = [], isPending: loadingAssignments, error: assignmentsError } = useQuery({
     queryKey: ["vibrationAssignments"],
     queryFn: () => moduleData.list("VibrationSensorAssignment", null, 1000),
-    staleTime: 60000,
+    enabled: !!user,
+    staleTime: 300000,
   });
 
   // Všechna ID přiřazených senzorů (pro hromadné načtení dat)
@@ -148,9 +150,10 @@ export default function VibrationOnline() {
 
   // Normy pro výpočet pásem
   const { data: allStandards = [] } = useQuery({
-    queryKey: ["vibrationStandards"],
+    queryKey: ["vibStandards"],
     queryFn: () => base44.entities.VibrationStandard.list(null, 500),
-    staleTime: 120000,
+    enabled: !!user && activeTab === "sensors",
+    staleTime: 600000,
   });
 
   // Poslední SensorData s RMS hodnotami pro všechny přiřazené senzory
@@ -158,11 +161,14 @@ export default function VibrationOnline() {
     queryKey: ["vibrationOnlineLatestData", allAssignedSensorIds.join(",")],
     queryFn: async () => {
       if (allAssignedSensorIds.length === 0) return {};
-      return moduleData.latestSensorData(allAssignedSensorIds);
+      return moduleData.latestSensorData(allAssignedSensorIds, [
+        "sensor_id", "vel_rms_x_mm_s", "vel_rms_y_mm_s", "vel_rms_z_mm_s",
+        "rms_z_g", "oa_acc_z", "env_rms_z",
+      ]);
     },
-    enabled: allAssignedSensorIds.length > 0,
-    staleTime: 0,
-    refetchInterval: 30000,
+    enabled: !!user && activeTab === "sensors" && allAssignedSensorIds.length > 0,
+    staleTime: 30000,
+    refetchInterval: activeTab === "sensors" ? 30000 : false,
   });
 
   // Určit viditelné společnosti dle role
@@ -268,7 +274,8 @@ export default function VibrationOnline() {
     setExpandedCompanies(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const isLoading = isLoadingMachines || isLoadingSensors || !user;
+  const loadError = companiesError || linesError || machinesError || sensorsError || assignmentsError;
+  const isLoading = !user || loadingCompanies || loadingLines || isLoadingMachines || isLoadingSensors || loadingAssignments;
 
   const isSuperOrAdmin = user?.user_type === "superAdmin" || user?.user_type === "admin";
 
@@ -277,6 +284,7 @@ export default function VibrationOnline() {
     queryKey: ["vibrationAlerts", "active"],
     queryFn: () => moduleData.filter("VibrationAlert", { status: "active" }, null, 500),
     enabled: !!user,
+    staleTime: 60000,
     refetchInterval: 60000,
   });
 
@@ -348,7 +356,12 @@ export default function VibrationOnline() {
         </div>
 
         {/* Panel alarmů */}
-        {activeTab === "alerts" && (
+        {activeTab === "alerts" && (loadError || isLoading) && (
+          <div className="flex items-center justify-center py-24 text-muted-foreground" role={loadError ? "alert" : "status"}>
+            {loadError ? "Data se nepodařilo načíst. Obnovte stránku a zkuste to znovu." : <><Loader2 className="w-8 h-8 animate-spin mr-3" />Načítám data...</>}
+          </div>
+        )}
+        {activeTab === "alerts" && !isLoading && !loadError && (
           <Card className="border-none shadow-sm">
             <CardContent className="p-6">
               <VibrationAlertsPanel user={user} visibleMachineIds={visibleMachineIdSet} />
@@ -387,7 +400,11 @@ export default function VibrationOnline() {
           </div>
         </div>
 
-        {isLoading ? (
+        {loadError ? (
+          <div className="text-center py-24 text-destructive" role="alert">
+            Data se nepodařilo načíst. Obnovte stránku a zkuste to znovu.
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-24 text-slate-400">
             <Loader2 className="w-8 h-8 animate-spin mr-3" />
             Načítám data...

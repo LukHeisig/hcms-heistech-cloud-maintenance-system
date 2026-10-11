@@ -28,12 +28,17 @@ const WRITES = {
 // Krátká cache rozsahu na uživatele (šetří 4+ dotazy na každé volání)
 const SCOPE_TTL = 60000;
 const scopeCache = new Map();
+const pendingScopes = new Map();
 async function loadScope(db, user) {
   const hit = scopeCache.get(user.id);
   if (hit && Date.now() - hit.at < SCOPE_TTL) return hit.scope;
-  const scope = await computeScope(db, user);
-  scopeCache.set(user.id, { scope, at: Date.now() });
-  return scope;
+  if (pendingScopes.has(user.id)) return pendingScopes.get(user.id);
+  const pending = computeScope(db, user).then((scope) => {
+    scopeCache.set(user.id, { scope, at: Date.now() });
+    return scope;
+  }).finally(() => pendingScopes.delete(user.id));
+  pendingScopes.set(user.id, pending);
+  return pending;
 }
 
 // Odstraní těžká raw pole (surové vzorky) – pro přehledy nejsou potřeba
@@ -80,7 +85,7 @@ export default async function (req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { entity, op = 'filter', query, sort, limit, id, data, light, keys } = await req.json();
+    const { entity, op = 'filter', query, sort, limit, id, data, light, keys, fields } = await req.json();
     const def = ENTITIES[entity];
     if (!def) return Response.json({ error: 'Unknown entity' }, { status: 400 });
     const db = base44.asServiceRole.entities;
@@ -104,10 +109,18 @@ export default async function (req) {
         list = list.filter((k) => allowedValues.includes(k));
       }
       const map = {};
-      await Promise.all(list.map(async (k) => {
-        const recs = await db[entity].filter({ ...(query || {}), [def.key]: k }, sort || '-created_date', 1);
-        if (recs[0]) map[k] = lighten(recs)[0];
-      }));
+      const selectedFields = Array.isArray(fields)
+        ? fields.filter((field) => typeof field === 'string' && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field))
+        : [];
+      for (let offset = 0; offset < list.length; offset += 6) {
+        await Promise.all(list.slice(offset, offset + 6).map(async (k) => {
+          const filter = { ...(query || {}), [def.key]: k };
+          const recs = selectedFields.length
+            ? (await db[entity].filter(filter, { sort: sort || '-created_date', limit: 1, fields: selectedFields })).items
+            : await db[entity].filter(filter, sort || '-created_date', 1);
+          if (recs[0]) map[k] = lighten(recs)[0];
+        }));
+      }
       return Response.json({ map });
     }
 
