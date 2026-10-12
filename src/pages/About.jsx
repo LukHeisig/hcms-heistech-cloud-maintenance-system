@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppDocumentation from "@/components/about/AppDocumentation";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/about/demipAbout.css";
 import RevisionsModuleInfo from "@/components/about/revisions/RevisionsModuleInfo";
 import VibrationModuleInfo from "@/components/about/modules/VibrationModuleInfo";
 import DemipModuleInfo from "@/components/about/modules/DemipModuleInfo";
@@ -33,6 +35,7 @@ import {
 } from "lucide-react";
 
 export default function About() {
+  const { viewMode } = useViewMode();
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export default function About() {
   }, []);
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={`${viewMode === "demip" ? "demip-about " : ""}p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <style>{`
         .heistech-gradient {
           background: linear-gradient(135deg, #2150D8 0%, #1a40b0 100%);

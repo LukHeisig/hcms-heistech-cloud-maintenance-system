@@ -1,0 +1,35 @@
+@media (max-width: 767px) {
+  .demip-about { padding: 12px; font-size: 12px; line-height: 1.5; }
+  .demip-about :where(div, section) { min-width: 0; }
+  .demip-about :where(p, li, code) { overflow-wrap: anywhere; }
+  .demip-about :where(p, .text-sm) { font-size: 12px; line-height: 1.5; }
+  .demip-about :where(h2, .text-2xl, .text-xl) { font-size: 14px; line-height: 1.4; }
+  .demip-about :where(h3, h4) { font-size: 13px; line-height: 1.4; }
+  .demip-about h1 { font-size: 22px; line-height: 1.3; }
+  .demip-about :where(.mb-8, .mb-6, .mb-12) { margin-bottom: 12px; }
+  .demip-about :where(.mb-4, .mb-3) { margin-bottom: 6px; }
+  .demip-about .mb-2 { margin-bottom: 4px; }
+  .demip-about :where(.mt-6, .mt-8) { margin-top: 12px; }
+  .demip-about :where(.p-8, .p-6, .p-5, .p-4) { padding: 10px; }
+  .demip-about :where(.pt-6, .pt-8) { padding-top: 10px; }
+  .demip-about .pt-0 { padding-top: 0; }
+  .demip-about :where(.gap-6, .gap-4) { gap: 10px; }
+  .demip-about .gap-3 { gap: 6px; }
+  .demip-about :where(.space-y-8, .space-y-6, .space-y-4, .space-y-3) > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+  .demip-about .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 5px; }
+  .demip-about .w-20.h-20 { width: 40px; height: 40px; margin-bottom: 8px; }
+  .demip-about .w-20.h-20 span { font-size: 22px; }
+  .demip-about :where(.w-16.h-16, .w-12.h-12, .w-10.h-10) { width: 28px; height: 28px; flex-shrink: 0; }
+  .demip-about :where(svg.w-8, svg.w-6, svg.w-5) { width: 16px; height: 16px; flex-shrink: 0; }
+  .demip-about [role="tablist"] { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 4px; }
+  .demip-about [role="tab"] { min-height: 34px; padding: 5px 6px; font-size: 11px; white-space: normal; line-height: 1.3; }
+  .demip-about [role="tabpanel"] { margin-top: 10px; }
+  .demip-about .grid > .text-center.p-4 { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 8px; text-align: left; padding: 6px 0; }
+  .demip-about .grid > .text-center.p-4 > div { grid-row: span 2; margin: 0; }
+  .demip-about .grid > .text-center.p-4 > h3 { margin: 0; }
+  .demip-about .rounded-md { font-size: 10px; padding: 1px 5px; }
+  .demip-about button:not([role="tab"]) { font-size: 12px; min-height: 34px; }
+  .demip-about table { font-size: 11px; }
+  .demip-about th, .demip-about td { padding: 6px; }
+  .demip-about pre { overflow-x: auto; max-width: 100%; }
+}
