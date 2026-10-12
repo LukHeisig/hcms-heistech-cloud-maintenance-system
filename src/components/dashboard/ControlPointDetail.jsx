@@ -129,6 +129,7 @@ export default function ControlPointDetail({
         (old || []).map(r => r.id.startsWith("optimistic-") ? savedRecord : r)
       );
       queryClient.invalidateQueries({ queryKey: ["allRecords"] });
+      queryClient.invalidateQueries({ queryKey: ["records"] });
       setIsConfirmingControl(false);
       setConfirmSuccess(true);
 

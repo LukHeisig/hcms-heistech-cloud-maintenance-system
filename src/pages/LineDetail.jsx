@@ -124,11 +124,7 @@ export default function LineDetail() {
     staleTime: 300000, // 5 minutes
   });
 
-  const { data: allRecords = [] } = useQuery({
-    queryKey: ["allRecords"],
-    queryFn: () => base44.entities.ControlRecord.list("-performed_at", 5000),
-    staleTime: 300000,
-  });
+
 
 
 
@@ -214,12 +210,19 @@ export default function LineDetail() {
     );
   }, [machines, controlPoints]);
 
-  const records = useMemo(() => {
-    const pointIds = controlPoints.map(cp => cp.id);
-    return allRecords.filter(r => pointIds.includes(r.control_point_id));
-  }, [allRecords, controlPoints]);
-
   const pointIds = useMemo(() => controlPoints.map(point => point.id), [controlPoints]);
+  const { data: latestChecks = {}, isPending: latestChecksLoading } = useQuery({
+    queryKey: ["records", "lineLatest", lineId, pointIds],
+    queryFn: async () => {
+      const result = await base44.entities.ControlRecord.aggregate({
+        query: { control_point_id: { $in: pointIds } },
+        groupBy: "control_point_id", max: "performed_at", limit: 1000,
+      });
+      return Object.fromEntries(result.rows.map(row => [row.control_point_id, row.max_performed_at]));
+    },
+    enabled: pointIds.length > 0,
+    staleTime: 60000,
+  });
   const activeIssueQuery = useMemo(() => ({
     status: { $in: ["reported", "work_order_created"] },
     $or: [{ machine_id: { $in: machineIds } }, { control_point_id: { $in: pointIds } }],
@@ -425,21 +428,20 @@ export default function LineDetail() {
   };
 
   const getPointStatus = (point) => {
-    const pointRecords = records
-      .filter((r) => r.control_point_id === point.id)
-      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
+    if (latestChecksLoading) return "loading";
+    const latestPerformedAt = latestChecks[point.id];
     
     const vizType = company?.overdue_visualization_type || "two_colors";
     const tolerance = company?.overdue_tolerance_percent || 4;
     const interval = point.interval_hours || 0;
 
     let lastPerformed;
-    if (pointRecords.length > 0 && point.first_confirmation_date) {
-      const lastRecordDate = new Date(pointRecords[0].performed_at);
+    if (latestPerformedAt && point.first_confirmation_date) {
+      const lastRecordDate = new Date(latestPerformedAt);
       const firstConfirmDate = new Date(point.first_confirmation_date);
       lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
-    } else if (pointRecords.length > 0) {
-      lastPerformed = new Date(pointRecords[0].performed_at);
+    } else if (latestPerformedAt) {
+      lastPerformed = new Date(latestPerformedAt);
     } else if (point.first_confirmation_date) {
       lastPerformed = new Date(point.first_confirmation_date);
     } else {
@@ -465,7 +467,7 @@ export default function LineDetail() {
 
   const overduePoints = useMemo(() => {
     return controlPoints.filter(p => ["warning", "critical"].includes(getPointStatus(p)));
-  }, [controlPoints, records]);
+  }, [controlPoints, latestChecks, latestChecksLoading, company, line?.excluded_days]);
 
   const stats = useMemo(() => {
     const thisMonth = maintenanceRecords.filter(m => {
@@ -662,7 +664,7 @@ export default function LineDetail() {
                   const status = styles.text.includes('red') ? 'critical' : styles.text.includes('orange') ? 'warning' : 'ok';
                   return <DashboardMachineRow key={machine.id} machine={machine} status={status}
                     pointCount={machinePoints.length} showPoints={modDemip} showIndicators
-                    overdueCount={machinePoints.filter(point => ["warning", "critical"].includes(getPointStatus(point))).length}
+                    overdueCount={latestChecksLoading ? undefined : machinePoints.filter(point => ["warning", "critical"].includes(getPointStatus(point))).length}
                     issueCount={issueCounts ? (issueCounts[machine.id] || 0) : undefined} />;
                 })}
                 {machines.length === 0 && (
