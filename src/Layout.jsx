@@ -675,9 +675,9 @@ function LayoutContent({ children }) {
         }
       `}</style>
 
-      <LeftMobileNavigation items={navigationItems} pathname={location.pathname} onOpen={() => setMobileOpen(true)} />
+      {viewMode !== 'demip' && <LeftMobileNavigation items={navigationItems} pathname={location.pathname} onOpen={() => setMobileOpen(true)} />}
       {/* Mobile Header */}
-      <header className="lg:hidden ml-14 bg-white border-b border-slate-200 px-3 py-3 sticky top-0 z-40">
+      <header className={`lg:hidden ${viewMode === 'demip' ? '' : 'ml-14'} bg-white border-b border-slate-200 px-3 py-3 sticky top-0 z-40`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
@@ -756,7 +756,7 @@ function LayoutContent({ children }) {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-[60] bg-foreground/30" onClick={() => setMobileOpen(false)}>
+        <div className={`${viewMode === 'demip' ? '' : 'lg:hidden'} fixed inset-0 z-[60] bg-foreground/30`} onClick={() => setMobileOpen(false)}>
           <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-card overflow-y-auto p-4 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between"><span className="font-bold text-lg">HCMS</span><button aria-label="Zavřít menu" onClick={() => setMobileOpen(false)} className="p-3"><X className="w-5 h-5" /></button></div>
             {/* Hide Toggle for Technicians if forced DEMIP */}
@@ -831,7 +831,7 @@ function LayoutContent({ children }) {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex fixed inset-y-0 left-0 z-30 w-72 flex-col bg-white border-r border-slate-200">
+      <div className={`${viewMode === 'demip' ? 'hidden' : 'hidden lg:flex'} fixed inset-y-0 left-0 z-30 w-72 flex-col bg-white border-r border-slate-200`}>
         {/* Sidebar Header */}
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-3 mb-6">
@@ -914,7 +914,7 @@ function LayoutContent({ children }) {
       </div>
 
       {/* Main Content Wrapper */}
-      <div className="pl-14 lg:pl-72">
+      <div className={viewMode === 'demip' ? '' : 'pl-14 lg:pl-72'}>
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
            <RevisionTasksBell tasks={revisionTasks} />
@@ -980,13 +980,13 @@ function LayoutContent({ children }) {
         </div>
 
         {/* Page Content */}
-        <main className={`p-0 ${viewMode === 'demip' ? 'pb-20 lg:pb-0' : ''}`}>
+        <main className={`p-0 ${viewMode === 'demip' ? 'pb-20' : ''}`}>
           {children}
         </main>
 
         {/* Mobile Bottom Bar - DEMIP Mode Only */}
         {viewMode === 'demip' && (
-          <div className="lg:hidden fixed bottom-0 left-14 right-0 bg-white border-t border-slate-200 px-2 py-3 grid grid-cols-5 gap-1 items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 grid grid-cols-5 gap-1 items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             {nfcSupported ? (
               <button 
                 className="flex flex-col items-center gap-1 text-blue-600 hover:text-blue-700 active:scale-95 transition-transform"
