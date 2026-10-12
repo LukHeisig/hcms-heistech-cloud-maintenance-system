@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Activity, Bell, WifiOff, BatteryLow, Loader2 } from "lucide-react";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
-import VibrationLineMachines from "@/components/dashboard/VibrationLineMachines";
+import DashboardVibrationCompany from "@/components/dashboard/DashboardVibrationCompany";
 import RecentVibrationAlerts from "@/components/dashboard/RecentVibrationAlerts";
 import VibrationAlarmFrequencyChart from "@/components/dashboard/VibrationAlarmFrequencyChart";
 import OfflineSensorsDialog from "@/components/dashboard/OfflineSensorsDialog";
@@ -30,10 +30,7 @@ export default function DashboardVibration({ user, companies, lines, machines, v
           {loading || vib.isLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" aria-label="Načítání vibrací" /> : monitored.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">Zatím nejsou žádné sledované stroje.</p> : companies.map(company => {
             const companyLines = lines.filter(line => line.company_id === company.id && monitored.some(machine => machine.line_id === line.id));
             if (!companyLines.length) return null;
-            return <section key={company.id}><h3 className="text-lg font-bold break-words mb-3">{company.name}</h3>{companyLines.map(line => <div key={line.id} className="mb-4">
-              <h4 className="text-sm font-semibold break-words">{line.name}</h4>
-              <VibrationLineMachines machines={monitored.filter(machine => machine.line_id === line.id)} byMachine={vib.byMachine} loading={vib.isLoading} />
-            </div>)}</section>;
+            return <DashboardVibrationCompany key={company.id} company={company} lines={companyLines} machines={monitored} byMachine={vib.byMachine} loading={vib.isLoading} />;
           })}
         </div>
       </section>
