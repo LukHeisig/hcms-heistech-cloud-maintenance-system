@@ -1,0 +1,22 @@
+@media (max-width: 639px) {
+  .demip-work-order-detail { padding: 10px; }
+  .demip-work-order-detail h3 { font-size: 13px; line-height: 1.35; }
+  .demip-work-order-detail .work-order-badges { margin-top: 6px; gap: 4px; }
+  .demip-work-order-detail .work-order-description { margin-top: 6px; font-size: 12px; line-height: 1.45; }
+  .demip-work-order-detail dl { margin-top: 8px; column-gap: 10px; row-gap: 6px; }
+  .demip-work-order-detail dt { font-size: 10px; }
+  .demip-work-order-detail dd { font-size: 11px; line-height: 1.4; }
+  .demip-work-order-detail .work-order-notes { margin-top: 6px; padding: 6px; font-size: 11px; line-height: 1.4; }
+  .demip-work-order-detail .work-order-actions { margin-top: 8px; gap: 6px; }
+  .demip-work-order-detail .work-order-actions > button { min-height: 40px; padding: 6px 10px; font-size: 11px; }
+  .demip-work-order-confirm { gap: 10px; padding: 12px; overflow-wrap: anywhere; }
+  .demip-work-order-confirm h2 { padding-right: 24px; font-size: 15px; line-height: 1.35; }
+  .demip-work-order-confirm [id$="description"] { font-size: 12px; line-height: 1.4; }
+  .demip-work-order-confirm .work-order-completion-fields { padding-block: 4px; }
+  .demip-work-order-confirm .work-order-completion-fields > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+  .demip-work-order-confirm label { font-size: 11px; }
+  .demip-work-order-confirm input { min-height: 40px; }
+  .demip-work-order-confirm textarea { min-height: 72px; height: 80px; }
+  .demip-work-order-confirm .work-order-completion-actions { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .demip-work-order-confirm .work-order-completion-actions > button { flex: 1; min-height: 40px; margin: 0; padding-inline: 8px; font-size: 11px; white-space: normal; }
+}

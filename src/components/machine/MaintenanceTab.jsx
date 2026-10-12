@@ -23,6 +23,7 @@ import { createPageUrl } from "@/utils";
 import MaintenanceSectionTabs from "@/components/machine/MaintenanceSectionTabs";
 import PlannedMaintenanceCard from "@/components/machine/PlannedMaintenanceCard";
 import MaintenanceHistoryRow from "@/components/machine/MaintenanceHistoryRow";
+import { useViewMode } from "@/components/ViewModeContext";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar
@@ -44,6 +45,7 @@ export default function MaintenanceTab({
 }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { viewMode } = useViewMode();
 
   const [showAddPlannedMaintenanceDialog, setShowAddPlannedMaintenanceDialog] = useState(false);
   const [showCompleteMaintenanceDialog, setShowCompleteMaintenanceDialog] = useState(false);
@@ -431,14 +433,14 @@ export default function MaintenanceTab({
 
       {/* Dialog pro potvrzení provedení */}
       <Dialog open={showCompleteMaintenanceDialog} onOpenChange={setShowCompleteMaintenanceDialog}>
-        <DialogContent className="max-h-[85dvh] max-w-[calc(100vw-2rem)] overflow-y-auto p-3 text-sm [overflow-wrap:anywhere] md:max-w-lg md:p-6 [&_input]:text-sm [&_label]:text-xs [&_textarea]:text-sm [&_h2]:text-base">
+        <DialogContent className={`${viewMode === 'demip' ? 'demip-work-order-confirm' : ''} max-h-[85dvh] max-w-[calc(100vw-2rem)] overflow-y-auto p-3 text-sm [overflow-wrap:anywhere] md:max-w-lg md:p-6 [&_input]:text-sm [&_label]:text-xs [&_textarea]:text-sm [&_h2]:text-base`}>
           <DialogHeader><DialogTitle>Potvrdit provedení údržby</DialogTitle><DialogDescription>Vyplňte skutečné údaje o provedené údržbě: {selectedPlannedTask?.title}</DialogDescription></DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="work-order-completion-fields space-y-4 py-4">
             <div><Label>Skutečná doba trvání (hodiny) *</Label><Input type="number" step="0.5" value={completionForm.duration_hours || ""} onChange={(e) => setCompletionForm({ ...completionForm, duration_hours: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Např. 2.5" /></div>
             <div><Label>Skutečné náklady (Kč)</Label><Input type="number" value={completionForm.cost || ""} onChange={(e) => setCompletionForm({ ...completionForm, cost: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Např. 5000" /></div>
             <div><Label>Poznámky k provedení *</Label><Textarea value={completionForm.notes} onChange={(e) => setCompletionForm({ ...completionForm, notes: e.target.value })} rows={4} /></div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="work-order-completion-actions">
             <Button variant="outline" onClick={() => setShowCompleteMaintenanceDialog(false)}>Zrušit</Button>
             <Button onClick={() => completeMaintenanceMutation.mutateAsync({ taskId: selectedPlannedTask.id, task: selectedPlannedTask, completionData: completionForm })} disabled={!completionForm.duration_hours || !completionForm.notes || completeMaintenanceMutation.isPending} className="bg-gradient-to-r from-green-600 to-green-700">
               {completeMaintenanceMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Dokončuji...</> : <><CheckCircle className="w-4 h-4 mr-2" />Potvrdit provedení</>}
