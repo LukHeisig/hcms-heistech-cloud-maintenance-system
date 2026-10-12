@@ -824,19 +824,12 @@ export default function LineDetail() {
                 {lubricationMachines.length === 0 ? (
                   <p className="text-center text-slate-500 py-8">Žádné stroje v kategorii mazání</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div>
                     {lubricationMachines.map((machine) => {
                       const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && ['lubrication', 'inspection', 'auto_lubricator'].includes(p.type));
                       const warningPoints = machinePoints.filter(p => getPointStatus(p) === "warning").length;
                       const criticalPoints = machinePoints.filter(p => getPointStatus(p) === "critical").length;
-                      const overdueCount = warningPoints + criticalPoints;
-
-                      const issueCount = issues.filter(i => 
-                        (i.machine_id === machine.id) ||
-                        (i.control_point_id && machinePoints.some(p => p.id === i.control_point_id))
-                      ).length;
-                      
-                      const statusColor = criticalPoints > 0 ? "border-l-red-500" : warningPoints > 0 ? "border-l-yellow-500" : "border-l-green-500";
+                      const status = criticalPoints > 0 ? "critical" : warningPoints > 0 ? "warning" : "ok";
 
                       let targetSubtab = "lubrication";
                       if (machinePoints.some(p => p.type === "lubrication")) targetSubtab = "lubrication";
@@ -844,37 +837,9 @@ export default function LineDetail() {
                       else if (machinePoints.some(p => p.type === "auto_lubricator")) targetSubtab = "lubricators";
 
                       return (
-                        <div
-                          key={machine.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border border-l-4 hover:bg-slate-50 cursor-pointer transition-colors ${statusColor}`}
-                          onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}&tab=control-points&subtab=${targetSubtab}`))}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Droplet className="w-5 h-5 text-blue-600" />
-                            <div>
-                              <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
-                              <p className="text-xs text-slate-500">{machinePoints.length} bodů</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {criticalPoints > 0 && (
-                              <Badge variant="destructive" className="text-xs">
-                                {criticalPoints}
-                              </Badge>
-                            )}
-                            {warningPoints > 0 && (
-                              <Badge className="bg-yellow-500 text-white text-xs hover:bg-yellow-600">
-                                {warningPoints}
-                              </Badge>
-                            )}
-                            {issueCount > 0 && (
-                              <Badge className="bg-orange-500 text-white text-xs">
-                                {issueCount}
-                              </Badge>
-                            )}
-                            <ChevronRight className="w-5 h-5 text-slate-400" />
-                          </div>
-                        </div>
+                        <DashboardMachineRow key={machine.id} machine={machine} status={status}
+                          pointCount={machinePoints.length}
+                          targetUrl={`/Machine?id=${machine.id}&tab=control-points&subtab=${targetSubtab}`} />
                       );
                     })}
                   </div>
