@@ -38,6 +38,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/admin/demipAdmin.css";
 import "@/components/admin/demipAdminStructure.css";
 
 export default function AdminCompanies({ embedded = false }) {
@@ -199,7 +200,7 @@ export default function AdminCompanies({ embedded = false }) {
   }
 
   return (
-    <div className={embedded ? "" : "p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen"}>
+    <div className={embedded ? "" : `${viewMode === "demip" ? "demip-admin admin-structure " : ""}p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
