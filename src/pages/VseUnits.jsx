@@ -16,7 +16,7 @@ import VseValuesTable from "@/components/vse/VseValuesTable";
 import VseReadingsHistory from "@/components/vse/VseReadingsHistory";
 import VseTrendChart from "@/components/vse/VseTrendChart";
 
-export default function VseUnits() {
+export default function VseUnits({ embedded = false }) {
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState(null);
 
@@ -36,11 +36,11 @@ export default function VseUnits() {
   });
 
   return (
-    <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
+    <div className={embedded ? "" : "p-4 md:p-8 bg-slate-50 min-h-screen"}>
       <div className="max-w-7xl mx-auto">
-        <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(createPageUrl("Settings"))}>
+        {!embedded && <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(createPageUrl("Settings"))}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Nastavení
-        </Button>
+        </Button>}
         <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
           <Cpu className="w-8 h-8 text-teal-600" /> VSE jednotky
         </h1>

@@ -32,7 +32,7 @@ import SchemaList from "@/components/vibration/SchemaList";
 import VseSchemaDialog from "@/components/vibration/VseSchemaDialog";
 import { describeVseDefinition } from "@/components/vibration/vseTemplates";
 
-export default function AdminVibrations() {
+export default function AdminVibrations({ embedded = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("standards");
@@ -346,12 +346,12 @@ export default function AdminVibrations() {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={embedded ? "" : "p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen"}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <Button variant="ghost" onClick={() => navigate(createPageUrl("Admin"))} className="mb-4">
+          {!embedded && <Button variant="ghost" onClick={() => navigate(createPageUrl("Admin"))} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" /> Zpět na administraci
-          </Button>
+          </Button>}
           <h1 className="text-3xl font-bold text-slate-900">Nastavení vibrodiagnostiky</h1>
           <p className="text-slate-600 mt-1">Správa norem a měřících schémat</p>
         </div>

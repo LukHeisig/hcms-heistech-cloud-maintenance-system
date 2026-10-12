@@ -335,7 +335,7 @@ function MqttSettingsPanel() {
   );
 }
 
-export default function MqttSensors() {
+export default function MqttSensors({ embedded = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editSensor, setEditSensor] = useState(null);
@@ -400,7 +400,7 @@ export default function MqttSensors() {
   const totalMessages = sensors.reduce((sum, s) => sum + (s.messages_total || 0), 0);
 
   return (
-    <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
+    <div className={embedded ? "" : "p-4 md:p-8 bg-slate-50 min-h-screen"}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

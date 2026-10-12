@@ -12,7 +12,7 @@ import { createPageUrl } from "@/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 
-export default function AdminThermo() {
+export default function AdminThermo({ embedded = false }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -177,11 +177,11 @@ export default function AdminThermo() {
   const canSelectCompany = user.user_type === "superAdmin" || (user.user_type === "admin" && companies.length > 0);
 
   return (
-    <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
+    <div className={embedded ? "" : "p-4 md:p-8 bg-slate-50 min-h-screen"}>
       <div className="max-w-3xl mx-auto">
-        <Button variant="ghost" onClick={() => navigate(createPageUrl("Settings"))} className="mb-4">
+        {!embedded && <Button variant="ghost" onClick={() => navigate(createPageUrl("Settings"))} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" /> Zpět na nastavení
-        </Button>
+        </Button>}
 
         <h1 className="text-3xl font-bold text-slate-900 mb-6">Nastavení Termodiagnostiky</h1>
 

@@ -38,7 +38,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function AdminCompanies() {
+export default function AdminCompanies({ embedded = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState(null);
@@ -196,18 +196,18 @@ export default function AdminCompanies() {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={embedded ? "" : "p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen"}>
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <Button
+            {!embedded && <Button
               variant="ghost"
               onClick={() => navigate(createPageUrl("Admin"))}
               className="mb-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Zpět na administraci
-            </Button>
+            </Button>}
             <h1 className="text-3xl font-bold text-slate-900">Správa podniků</h1>
             <p className="text-slate-600 mt-1">
               {companies.length} {currentUser?.user_type === "superAdmin" ? "podniků" : "přiřazených podniků"}

@@ -46,7 +46,7 @@ import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
-export default function Users() {
+export default function Users({ embedded = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
@@ -301,17 +301,17 @@ export default function Users() {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={embedded ? "" : "p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen"}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <Button
+          {!embedded && <Button
             variant="ghost"
             onClick={() => navigate(createPageUrl("Admin"))}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Zpět na administraci
-          </Button>
+          </Button>}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900">Správa uživatelů</h1>

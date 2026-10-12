@@ -151,7 +151,7 @@ function BearingForm({ initial, onSave, onCancel, saving }) {
 
 const fmt = (v) => (v == null ? "—" : Number(v).toFixed(3));
 
-export default function AdminBearings() {
+export default function AdminBearings({ embedded = false }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [dialog, setDialog] = useState(null);
@@ -195,7 +195,7 @@ export default function AdminBearings() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className={embedded ? "space-y-6" : "p-6 max-w-5xl mx-auto space-y-6"}>
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">

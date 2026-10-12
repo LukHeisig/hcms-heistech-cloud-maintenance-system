@@ -6,7 +6,7 @@ import { Loader2, Download, ArrowLeft, Database, FileSpreadsheet } from "lucide-
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function AdminExport() {
+export default function AdminExport({ embedded = false }) {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -46,11 +46,11 @@ export default function AdminExport() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8">
+        <div className={embedded ? "" : "min-h-screen bg-slate-50 p-8"}>
             <div className="max-w-3xl mx-auto">
-                <Button variant="ghost" onClick={() => navigate(createPageUrl("Admin"))} className="mb-6">
+                {!embedded && <Button variant="ghost" onClick={() => navigate(createPageUrl("Admin"))} className="mb-6">
                     <ArrowLeft className="w-4 h-4 mr-2" /> Zpět do administrace
-                </Button>
+                </Button>}
                 
                 <Card className="border-blue-200 shadow-lg">
                     <CardHeader className="bg-blue-50 border-b border-blue-100 rounded-t-xl">

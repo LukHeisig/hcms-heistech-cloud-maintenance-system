@@ -6,7 +6,7 @@ import { Loader2, Trash2, ArrowLeft, CheckCircle, AlertTriangle } from "lucide-r
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function AdminCleanup() {
+export default function AdminCleanup({ embedded = false }) {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const navigate = useNavigate();
@@ -26,11 +26,11 @@ export default function AdminCleanup() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8">
+        <div className={embedded ? "" : "min-h-screen bg-slate-50 p-8"}>
             <div className="max-w-3xl mx-auto">
-                <Button variant="ghost" onClick={() => navigate(createPageUrl("Admin"))} className="mb-6">
+                {!embedded && <Button variant="ghost" onClick={() => navigate(createPageUrl("Admin"))} className="mb-6">
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
-                </Button>
+                </Button>}
                 
                 <Card className="border-red-200 shadow-lg">
                     <CardHeader className="bg-red-50 border-b border-red-100 rounded-t-xl">

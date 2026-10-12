@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Factory, FileText, Users, Wrench, Building2, Settings, Activity, Database, Loader2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { Users as UsersIcon, Wrench, Building2, Database, Loader2 } from "lucide-react";
+import SectionTabs from "@/components/SectionTabs";
+import AdminCompanies from "@/pages/AdminCompanies";
+import Users from "@/pages/Users";
+import AdminCleanup from "@/pages/AdminCleanup";
+import AdminExport from "@/pages/AdminExport";
 import { base44 } from "@/api/base44Client";
 
 export default function Admin() {
@@ -33,85 +35,14 @@ export default function Admin() {
 
   if (!user) return null;
 
-  const isAdmin = user.user_type === "admin" || user.user_type === "superAdmin";
-  const isManagerOrAdmin = user.user_type === "manager" || user.user_type === "admin" || user.user_type === "superAdmin";
-
-  return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">Administrace</h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {user?.user_type === "superAdmin" && (
-            <>
-              <Link to={createPageUrl("AdminCleanup")}>
-            <Card className="hover:shadow-lg transition-all cursor-pointer border-red-200 bg-red-50/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-700">
-                  <Wrench className="w-5 h-5" />
-                  Čištění dat
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600">
-                  Nástroj pro odstranění osiřelých záznamů (SuperAdmin only)
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-              <Link to={createPageUrl("AdminExport")}>
-                <Card className="hover:shadow-lg transition-all cursor-pointer border-blue-200 bg-blue-50/30">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-700">
-                      <Database className="w-5 h-5" />
-                      Export Dat
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-600">
-                      Kompletní záloha databáze do CSV
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            </>
-          )}
-          <Link to={createPageUrl("AdminCompanies")}>
-            <Card className="hover:shadow-lg transition-all cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-red-600" />
-                  Správa podniků
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600">
-                  Spravovat podniky, linky, stroje a kontrolní body
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {isManagerOrAdmin && (
-            <Link to={createPageUrl("Users")}>
-              <Card className="hover:shadow-lg transition-all cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-red-600" />
-                    Uživatelé
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-slate-600">
-                    Správa uživatelských účtů a oprávnění
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  const isManagerOrAdmin = ["manager", "admin", "superAdmin"].includes(user.user_type);
+  const sections = [
+    { value: "companies", label: "Správa podniků", icon: Building2, component: AdminCompanies },
+    ...(isManagerOrAdmin ? [{ value: "users", label: "Uživatelé", icon: UsersIcon, component: Users }] : []),
+    ...(user.user_type === "superAdmin" ? [
+      { value: "cleanup", label: "Čištění dat", icon: Wrench, component: AdminCleanup },
+      { value: "export", label: "Export Dat", icon: Database, component: AdminExport },
+    ] : []),
+  ];
+  return <SectionTabs title="Administrace" sections={sections} />;
 }
