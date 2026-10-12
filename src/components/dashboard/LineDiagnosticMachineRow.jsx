@@ -11,7 +11,7 @@ const zoneOf = (value, ab, bc, cd) => {
 };
 const worse = (a, b) => zones.indexOf(b) > zones.indexOf(a) ? b : a;
 
-export default function LineDiagnosticMachineRow({ machine, type, assignments = [], latest = {}, standards = {}, loading = false }) {
+export default function LineDiagnosticMachineRow({ machine, type, assignments = [], latest = {}, standards = {}, loading = false, ...rowProps }) {
   const status = { velocityZone: null, bearingZone: null };
   if (type === "vibration") assignments.forEach(assignment => {
     if (assignment.machine_id !== machine.id) return;
@@ -30,7 +30,7 @@ export default function LineDiagnosticMachineRow({ machine, type, assignments = 
   const dot = loading || !worst ? undefined : worst === "D" ? "critical" : worst === "C" ? "warning" : "ok";
   return (
     <DashboardMachineRow machine={machine} status={dot} showPoints={false} targetUrl={`/Machine?id=${machine.id}#${type}`}
-      statusDescription={loading ? "Načítání diagnostiky" : worst ? `Diagnostika: pásmo ${worst}` : "Diagnostický stav není vyhodnocen"}>
+      statusDescription={loading ? "Načítání diagnostiky" : worst ? `Diagnostika: pásmo ${worst}` : "Diagnostický stav není vyhodnocen"} {...rowProps}>
       {type === "vibration" && <MachineDiagnosticStatus status={status} loading={loading} />}
     </DashboardMachineRow>
   );

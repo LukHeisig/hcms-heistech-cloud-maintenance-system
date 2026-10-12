@@ -617,11 +617,21 @@ export default function LineDetail() {
           <TabsContent value="overview" className="space-y-6">
              <div className="rounded-lg border border-border bg-card px-4 pb-3">
                 {machines.map(machine => {
-                  const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
-                  const styles = getMachineStatusStyles(machine.id);
-                  const status = styles.text.includes('red') ? 'critical' : styles.text.includes('orange') ? 'warning' : 'ok';
-                  return <DashboardMachineRow key={machine.id} machine={machine} status={status}
-                    pointCount={machinePoints.length} showPoints={modDemip} showIndicators
+                  const machinePoints = controlPoints.filter(p => p.machine_id === machine.id && p.is_active !== false);
+                  const hasDemipPoints = modDemip && machinePoints.length > 0;
+                  const critical = machinePoints.some(point => getPointStatus(point) === "critical");
+                  const warning = machinePoints.some(point => getPointStatus(point) === "warning");
+                  const hasVibration = modVibration && !!machine.vibration_schema_id;
+                  const Row = hasVibration ? LineDiagnosticMachineRow : DashboardMachineRow;
+                  const rowProps = hasVibration ? {
+                    type: "vibration", assignments: lineVibrationAssignments, latest: lineVibroData,
+                    standards: standardsById, loading: assignmentsLoading || vibrationDataLoading || standardsLoading,
+                  } : {
+                    status: hasDemipPoints ? (critical ? "critical" : warning ? "warning" : "ok") : undefined,
+                    statusDescription: hasDemipPoints ? undefined : "Bez aktivních kontrolních bodů",
+                  };
+                  return <Row key={machine.id} machine={machine} {...rowProps} targetUrl={`/Machine?id=${machine.id}`}
+                    pointCount={machinePoints.length} showPoints={hasDemipPoints} showIndicators showOverdue={hasDemipPoints}
                     overdueCount={latestChecksLoading ? undefined : machinePoints.filter(point => ["warning", "critical"].includes(getPointStatus(point))).length}
                     issueCount={issueCounts ? (issueCounts[machine.id] || 0) : undefined} />;
                 })}

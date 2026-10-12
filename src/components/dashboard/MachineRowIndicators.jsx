@@ -1,9 +1,9 @@
 import React from "react";
 import { CheckCircle2 } from "lucide-react";
 
-export default function MachineRowIndicators({ overdueCount, issueCount }) {
+export default function MachineRowIndicators({ overdueCount, issueCount, showOverdue = true }) {
   return <span className="flex shrink-0 items-center gap-3 md:gap-5">
-    {[{ label: "Po termínu", count: overdueCount, color: "text-status-danger" }, { label: "Závady", count: issueCount, color: "text-status-warning" }].map(({ label, count, color }) => (
+    {[{ label: "Po termínu", count: overdueCount, color: "text-status-danger" }, { label: "Závady", count: issueCount, color: "text-status-warning" }].filter(item => showOverdue || item.label !== "Po termínu").map(({ label, count, color }) => (
       <span key={label} className="flex flex-col items-center gap-1 text-xs">
         <span className="text-muted-foreground">{label}</span>
         {count == null ? <span className="text-muted-foreground">–</span> : count > 0 ?
