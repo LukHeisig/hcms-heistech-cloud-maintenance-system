@@ -230,9 +230,9 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
   };
 
   return (
-    <div className="space-y-6">
+    <div className="audit-control-statistics space-y-6">
       {/* Filtry */}
-      <Card className="shadow-lg">
+      <Card className="audit-check-filters shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Filter className="w-5 h-5" />
@@ -348,7 +348,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
               <CheckCircle className="w-5 h-5 text-green-600" />
               Potvrzené kontroly
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="audit-check-actions flex items-center gap-2">
               <Badge variant="outline" className="text-base">{filteredRecords.length} záznamů</Badge>
               <Button variant="outline" size="icon" onClick={handleExport} title="Exportovat do CSV (Excel)" disabled={filteredRecords.length === 0}>
                 <Download className="w-4 h-4" />
@@ -380,7 +380,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
                 const typeInfo = RECORD_TYPE_LABELS[record.record_type] || { label: record.record_type, color: "bg-slate-100 text-slate-700" };
 
                 return (
-                  <div key={record.id} className="flex items-start gap-4 p-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                  <div key={record.id} className="audit-check-row flex items-start gap-4 p-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
                     <div className="flex-shrink-0 mt-1">
                       <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
                         <CheckCircle className="w-5 h-5 text-green-600" />
