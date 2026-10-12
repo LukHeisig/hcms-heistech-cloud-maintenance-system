@@ -52,4 +52,28 @@
   .demip-audit-log [class~="text-base"][class~="rounded-md"] { font-size: 11px; }
   .demip-audit-log table { font-size: 12px; }
   .demip-audit-log th, .demip-audit-log td { padding: 8px; }
+  .demip-audit-log .audit-user-statistics .audit-statistics-filters {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%; gap: 6px; justify-content: stretch;
+  }
+  .demip-audit-log .audit-statistics-filters > div { gap: 4px; }
+  .demip-audit-log .audit-statistics-filters button[role="combobox"] {
+    width: 100%; min-width: 0; flex: 1;
+  }
+  .demip-audit-log .audit-statistics-filters > div > svg {
+    width: 14px; height: 14px; flex-shrink: 0;
+  }
+  .demip-audit-log .audit-statistics-filters > button {
+    width: 32px; height: 32px; justify-self: end; grid-column: 1 / -1;
+  }
+  .demip-audit-log .audit-statistics-chart { height: 230px; margin-bottom: 12px; }
+  .demip-audit-log .audit-statistics-chart .recharts-legend-wrapper { font-size: 10px; }
+  .demip-audit-log .audit-statistics-table { max-width: 100%; overflow-x: auto; }
+  .demip-audit-log .audit-statistics-table table { font-size: 11px; }
+  .demip-audit-log .audit-statistics-table th,
+  .demip-audit-log .audit-statistics-table td { padding: 6px; }
+  .demip-audit-log .audit-statistics-table th { height: auto; line-height: 1.3; }
+  .demip-audit-log .audit-statistics-table td:first-child { min-width: 125px; overflow-wrap: anywhere; }
+  .demip-audit-log .audit-statistics-table td .text-xs { font-size: 10px; }
+  .demip-audit-log .audit-statistics-table td .rounded-md { padding: 2px 4px; font-size: 10px; white-space: nowrap; }
 }

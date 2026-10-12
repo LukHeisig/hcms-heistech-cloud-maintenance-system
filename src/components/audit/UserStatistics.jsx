@@ -220,7 +220,7 @@ export function UserStatistics({ users, allLogs, companies }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="audit-user-statistics space-y-6">
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -229,7 +229,7 @@ export function UserStatistics({ users, allLogs, companies }) {
               Statistiky aktivity ({getTimeRangeLabel()})
             </CardTitle>
             
-            <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="audit-statistics-filters flex items-center gap-2 flex-wrap justify-end">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-slate-500" />
                 <Select value={companyFilter} onValueChange={setCompanyFilter}>
@@ -268,7 +268,7 @@ export function UserStatistics({ users, allLogs, companies }) {
         </CardHeader>
         <CardContent>
            {/* Chart */}
-           <div className="h-[300px] w-full mb-8">
+           <div className="audit-statistics-chart h-[300px] w-full mb-8">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
@@ -295,7 +295,7 @@ export function UserStatistics({ users, allLogs, companies }) {
            </div>
 
            {/* Table */}
-           <div className="border rounded-md">
+           <div className="audit-statistics-table border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
