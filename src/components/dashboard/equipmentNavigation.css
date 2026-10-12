@@ -1,0 +1,25 @@
+@media (min-width: 768px) {
+  .equipment-navigation .equipment-selection-panel { max-width: 1536px; }
+  .equipment-navigation .equipment-selection-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .equipment-navigation .equipment-selection-list > * { margin-top: 0; min-width: 0; }
+  .equipment-navigation .equipment-selection-list > button { padding: 20px; min-height: 96px; gap: 16px; }
+  .equipment-navigation .equipment-selection-list > button .text-sm.font-semibold { font-size: 18px; }
+  .equipment-navigation .equipment-selection-list > button .text-xs { font-size: 14px; }
+  .equipment-navigation .equipment-selection-list > button > svg { width: 20px; height: 20px; }
+  .equipment-navigation .equipment-selection-list > button > [role="img"] { width: 12px; height: 12px; }
+  .equipment-navigation .equipment-selection-title { font-size: 30px; margin-bottom: 20px; }
+  .equipment-navigation .equipment-selection-description { font-size: 16px; margin-bottom: 24px; }
+  .equipment-line-detail .equipment-machine-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .equipment-line-detail .equipment-machine-list > * { margin-top: 0; min-width: 0; }
+}
+@media (min-width: 1280px) {
+  .equipment-navigation .equipment-selection-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .equipment-navigation.demip-equipment-navigation { padding: 12px; }
+  .demip-equipment-navigation .equipment-selection-list > div > div { padding: 10px; }
+  .demip-equipment-navigation .equipment-selection-list h3 { font-size: 13px; }
+  .demip-equipment-navigation .equipment-selection-list .text-sm { font-size: 11px; }
+  .demip-equipment-navigation .equipment-selection-list .gap-4 { gap: 8px; }
+  .demip-equipment-navigation .equipment-selection-title { font-size: 20px; margin-bottom: 12px; }
+}

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import DemipLineRow from "@/components/dashboard/DemipLineRow";
+import "@/components/dashboard/equipmentNavigation.css";
 
 export default function LineSelection({
   user,
@@ -19,7 +20,7 @@ export default function LineSelection({
   const navigate = useNavigate();
 
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className="equipment-navigation equipment-selection-panel mx-auto w-full max-w-xl md:max-w-screen-2xl">
       {(user?.user_type === "admin" || user?.user_type === "superAdmin") && (
         <Button
           variant="ghost"
@@ -30,9 +31,9 @@ export default function LineSelection({
           Zpět na podniky
         </Button>
       )}
-      <h1 className="mb-2 text-xl font-bold text-foreground">Výběr linky - DEMIP</h1>
-      {currentCompany && <p className="mb-4 text-sm text-muted-foreground">{currentCompany.name}</p>}
-      <div className="space-y-2">
+      <h1 className="equipment-selection-title mb-2 text-xl font-bold text-foreground">Výběr linky - DEMIP</h1>
+      {currentCompany && <p className="equipment-selection-description mb-4 text-sm text-muted-foreground">{currentCompany.name}</p>}
+      <div className="equipment-selection-list space-y-2">
         {companyLines.map(line => (
           <DemipLineRow key={line.id} line={line} machines={demipMachines} points={demipControlPoints}
             getPointStatus={getPointStatus}

@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
+import "@/components/dashboard/equipmentNavigation.css";
 
 export default function LineDetail() {
   const [user, setUser] = useState(null);
@@ -547,9 +548,9 @@ export default function LineDetail() {
   const canManage = user && (user.user_type === "manager" || user.user_type === "admin" || user.user_type === "superAdmin");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="equipment-line-detail min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto p-6">
+        <div className="max-w-screen-2xl mx-auto p-6">
           <Button
             variant="ghost"
             size="sm"
@@ -613,7 +614,7 @@ export default function LineDetail() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="max-w-screen-2xl mx-auto p-6 space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex flex-wrap w-full bg-white shadow-md p-1 h-auto gap-1">
             <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">Přehled</TabsTrigger>
@@ -636,7 +637,7 @@ export default function LineDetail() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
-             <div className="space-y-3">
+             <div className="equipment-machine-list space-y-3">
                 {machines.map(machine => {
                   const styles = getMachineStatusStyles(machine.id);
                   const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);

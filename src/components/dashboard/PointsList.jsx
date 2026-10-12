@@ -4,6 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import DemipPointRow from "@/components/dashboard/DemipPointRow";
+import "@/components/dashboard/equipmentNavigation.css";
 
 export default function PointsList({
   selectedCompany,
@@ -41,7 +42,7 @@ export default function PointsList({
       const displayPoints = getDisplayPoints();
 
       return (
-      <div className="mx-auto w-full min-w-0 max-w-xl">
+      <div className="equipment-navigation equipment-selection-panel mx-auto w-full min-w-0 max-w-xl md:max-w-screen-2xl">
       <Button
         variant="ghost"
         onClick={() => {
@@ -57,7 +58,7 @@ export default function PointsList({
         Zpět na stroje
       </Button>
 
-      <h1 className="mb-2 text-xl font-bold text-foreground [overflow-wrap:anywhere]">
+      <h1 className="equipment-selection-title mb-2 text-xl font-bold text-foreground [overflow-wrap:anywhere]">
         {currentMachine?.name || "Stroj"}
       </h1>
       <p className="mb-4 text-sm text-muted-foreground [overflow-wrap:anywhere]">{currentLine?.name || "Linka"}</p>
@@ -67,7 +68,7 @@ export default function PointsList({
           <Button
             onClick={() => setActiveTab("prevention")}
             variant={activeTab === "prevention" ? "default" : "outline"}
-            className={`col-span-3 min-w-0 px-1 text-xs ${activeTab === "prevention" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
+            className={`col-span-3 min-w-0 px-1 text-xs md:px-4 md:text-sm md:h-10 ${activeTab === "prevention" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
           >
             Prevence ({preventionPoints.length})
           </Button>
@@ -76,21 +77,21 @@ export default function PointsList({
             <Button
               onClick={() => setActiveTab("lubrication")}
               variant={activeTab === "lubrication" ? "default" : "outline"}
-              className={`min-w-0 px-1 text-xs ${activeTab === "lubrication" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
+              className={`min-w-0 px-1 text-xs md:px-4 md:text-sm md:h-10 ${activeTab === "lubrication" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
             >
               Mazání ({lubricationPoints.length})
             </Button>
             <Button
               onClick={() => setActiveTab("inspection")}
               variant={activeTab === "inspection" ? "default" : "outline"}
-              className={`min-w-0 px-1 text-xs ${activeTab === "inspection" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
+              className={`min-w-0 px-1 text-xs md:px-4 md:text-sm md:h-10 ${activeTab === "inspection" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
             >
               Inspekce ({inspectionPoints.length})
             </Button>
             <Button
               onClick={() => setActiveTab("lubricator")}
               variant={activeTab === "lubricator" ? "default" : "outline"}
-              className={`min-w-0 px-1 text-xs ${activeTab === "lubricator" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
+              className={`min-w-0 px-1 text-xs md:px-4 md:text-sm md:h-10 ${activeTab === "lubricator" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
             >
               Maznice ({lubricatorPoints.length})
             </Button>
@@ -102,7 +103,7 @@ export default function PointsList({
           {displayPoints.length === 0 ? (
             <p className="rounded-lg border border-border bg-card p-4 text-center text-sm text-muted-foreground">Žádné body v této kategorii</p>
           ) : (
-            <div className="space-y-2">
+            <div className="equipment-selection-list space-y-2">
               {displayPoints.map((point) => {
                 const pointRecords = records
                   .filter(r => r.control_point_id === point.id)

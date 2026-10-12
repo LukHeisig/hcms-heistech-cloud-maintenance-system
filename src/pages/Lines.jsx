@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/dashboard/equipmentNavigation.css";
 import {
   Factory,
   Droplet,
@@ -152,10 +153,10 @@ export default function Lines() {
   // Admin - výběr podniku
   if ((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) {
     return (
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-4xl mx-auto">
+      <div className={`equipment-navigation ${viewMode === 'demip' ? 'demip-equipment-navigation' : ''} p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
+        <div className="equipment-selection-panel max-w-screen-2xl mx-auto">
           <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku</h1>
-          <div className="space-y-2">
+          <div className="equipment-selection-list space-y-2">
             {companies.map((company) => {
               // Použít allLines místo lines
               const companyLines = allLines.filter((l) => l.company_id === company.id);
@@ -262,8 +263,8 @@ export default function Lines() {
     const currentCompany = companies.find((c) => c.id === selectedCompany);
     
     return (
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-4xl mx-auto">
+      <div className={`equipment-navigation ${viewMode === 'demip' ? 'demip-equipment-navigation' : ''} p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
+        <div className="equipment-selection-panel max-w-screen-2xl mx-auto">
           {(user?.user_type === "admin" || user?.user_type === "superAdmin") && (
             <Button
               variant="ghost"
@@ -278,7 +279,7 @@ export default function Lines() {
             <p className="text-slate-600 mb-6">{currentCompany.name}</p>
           )}
 
-          <div className="space-y-2">
+          <div className="equipment-selection-list space-y-2">
             {lines.map((line) => {
               const lineMachines = allMachines.filter((m) => m.line_id === line.id);
               const lineMachineIds = lineMachines.map(m => m.id);
@@ -372,7 +373,7 @@ export default function Lines() {
   const currentCompany = companies.find((c) => c.id === selectedCompany);
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={`equipment-navigation ${viewMode === 'demip' ? 'demip-equipment-navigation' : ''} p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -431,7 +432,7 @@ export default function Lines() {
         </div>
 
         {/* Stroje - miniaturní zobrazení */}
-        <div className="space-y-2">
+        <div className="equipment-selection-list space-y-2">
           {filteredMachines.map((machine) => {
             const machinePoints = controlPoints.filter(
               (p) => p.machine_id === machine.id

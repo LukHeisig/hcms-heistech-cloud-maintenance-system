@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import DemipMachineRow from "@/components/dashboard/DemipMachineRow";
+import "@/components/dashboard/equipmentNavigation.css";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Droplet, ClipboardCheck } from "lucide-react";
@@ -36,7 +37,7 @@ export default function MachineSelection({
   }, [lineMachines, demipControlPoints, maintenanceFilter]);
 
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className="equipment-navigation equipment-selection-panel mx-auto w-full max-w-xl md:max-w-screen-2xl">
       <Button
         variant="ghost"
         onClick={() => {
@@ -50,8 +51,8 @@ export default function MachineSelection({
         <ArrowLeft className="w-4 h-4 mr-2" />
         Zpět na linky
       </Button>
-      <h1 className="mb-2 text-xl font-bold text-foreground">Výběr stroje - DEMIP</h1>
-      {currentLine && <p className="mb-4 text-sm text-muted-foreground">{currentLine.name}</p>}
+      <h1 className="equipment-selection-title mb-2 text-xl font-bold text-foreground">Výběr stroje - DEMIP</h1>
+      {currentLine && <p className="equipment-selection-description mb-4 text-sm text-muted-foreground">{currentLine.name}</p>}
       
       <Tabs value={maintenanceFilter} onValueChange={setMaintenanceFilter} className="mb-4">
         <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -65,7 +66,7 @@ export default function MachineSelection({
           </TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="space-y-2">
+      <div className="equipment-selection-list space-y-2">
         {filteredMachines.length === 0 ? (
           <p className="rounded-lg border border-border bg-card p-4 text-center text-sm text-muted-foreground">
             Žádné stroje v kategorii "{maintenanceFilter === "lubrication" ? "Mazání" : "Prevence"}"
