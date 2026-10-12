@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ArrowRight } from "lucide-react";
+import DashboardMachineRow from "@/components/dashboard/DashboardMachineRow";
 
 const dot = { ok: "bg-status-success", warning: "bg-dashboard-warning", critical: "bg-status-danger" };
 const label = { ok: "Termíny splněny", warning: "Termín překročen", critical: "Kritické překročení termínu" };
@@ -22,11 +23,7 @@ export default function DashboardDemipLine({ line, machines, points, getPointSta
       {machines.map(machine => {
         const machinePoints = points.filter(p => p.machine_id === machine.id);
         const machineStatus = worst(machinePoints.map(getPointStatus));
-        return <Link key={machine.id} to={`/Machine?id=${machine.id}`} className="flex items-center gap-3 py-3 border-b border-border hover:text-dashboard-accent">
-          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dot[machineStatus]}`} title={label[machineStatus]} aria-label={label[machineStatus]} role="img" />
-          <span className="text-sm font-medium flex-1 min-w-0 break-words">{machine.name}</span>
-          <span className="text-xs text-muted-foreground shrink-0">{machinePoints.length} bodů</span>
-        </Link>;
+        return <DashboardMachineRow key={machine.id} machine={machine} status={machineStatus} pointCount={machinePoints.length} />;
       })}
       <Link to={`/LineDetail?id=${line.id}&company=${line.company_id}`} className="flex items-center justify-end gap-2 text-sm font-medium text-dashboard-accent pt-3">Otevřít linku<ArrowRight className="w-4 h-4" /></Link>
     </div>

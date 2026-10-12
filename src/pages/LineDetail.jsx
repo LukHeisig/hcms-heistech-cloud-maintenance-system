@@ -62,6 +62,7 @@ import {
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cs } from "date-fns/locale";
 import "@/components/dashboard/equipmentNavigation.css";
+import DashboardMachineRow from "@/components/dashboard/DashboardMachineRow";
 
 export default function LineDetail() {
   const [user, setUser] = useState(null);
@@ -637,123 +638,13 @@ export default function LineDetail() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
-             <div className="equipment-machine-list space-y-3">
+             <div className="rounded-lg border border-border bg-card px-4 pb-3">
                 {machines.map(machine => {
-                  const styles = getMachineStatusStyles(machine.id);
                   const machinePoints = controlPoints.filter(p => p.machine_id === machine.id);
-                  const borderClass = styles.text.includes('red') ? 'border-l-red-500' : 
-                                    styles.text.includes('orange') ? 'border-l-orange-500' : 
-                                    'border-l-green-500';
-
-                  // DEMIP badge counts
-                  const demipPoints = controlPoints.filter(p => p.machine_id === machine.id);
-                  const demipOverdue = demipPoints.filter(p => ["warning", "critical"].includes(getPointStatus(p))).length;
-                  const demipIssues = issues.filter(i =>
-                    (i.machine_id === machine.id) ||
-                    (i.control_point_id && demipPoints.some(p => p.id === i.control_point_id))
-                  ).length;
-                  const demipBadge = demipOverdue + demipIssues;
-
-                  // Vibration badge
-                  const vibroLevel = getVibroAlertLevel(machine.id);
-
-                  return (
-                    <Card 
-                      key={machine.id} 
-                      className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${borderClass}`}
-                      onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}`))}
-                    >
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <div className={`p-2 rounded-lg flex-shrink-0 ${styles.bg} ${styles.text}`}>
-                           {machine.machine_type === 'switchboard' ? <Settings className="w-6 h-6" /> : <Factory className="w-6 h-6" />}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                              <h3 className="font-bold text-lg text-slate-900 truncate">{formatMachineName(machine)}</h3>
-                              {machine.parent_id && <Badge variant="outline" className="text-xs flex-shrink-0">Podřízený</Badge>}
-                          </div>
-                          <p className="text-sm text-slate-500 truncate">
-                            {machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}{modDemip && ` • ${machinePoints.length} bodů`}
-                          </p>
-                        </div>
-
-                        {/* Module badges */}
-                        <div className="hidden sm:flex gap-3 items-center flex-shrink-0">
-                          {/* DEMIP - Po termínu */}
-                          {modDemip && <>
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Po termínu</span>
-                            {demipOverdue > 0 ? (
-                              <span className="min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                                {demipOverdue}
-                              </span>
-                            ) : (
-                              <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                                <span className="text-white text-[9px] font-bold">✓</span>
-                              </span>
-                            )}
-                          </div>
-
-                          {/* DEMIP - Závady */}
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Závady</span>
-                            {demipIssues > 0 ? (
-                              <span className="min-w-[20px] h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
-                                {demipIssues}
-                              </span>
-                            ) : (
-                              <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                                <span className="text-white text-[9px] font-bold">✓</span>
-                              </span>
-                            )}
-                          </div>
-
-                          </>}
-
-                          {/* Vibrace */}
-                          {modVibration && machine.vibration_schema_id && (
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Vibrace</span>
-                              {vibroLevel <= 0 ? (
-                                <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                                  <span className="text-white text-[9px] font-bold">✓</span>
-                                </span>
-                              ) : (
-                                <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{
-                                  backgroundColor: vibroLevel === 1 ? '#eab308' : vibroLevel === 2 ? '#f97316' : '#dc2626'
-                                }}>
-                                  <span className="text-white text-[9px] font-bold">!</span>
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Termo */}
-                          {modThermo && (
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Termo</span>
-                              <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
-                                <span className="text-white text-[9px]">–</span>
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Tribo */}
-                          {modTribo && (
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Tribo</span>
-                              <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center">
-                                <span className="text-white text-[9px]">–</span>
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" />
-                      </CardContent>
-                    </Card>
-                  );
+                  const styles = getMachineStatusStyles(machine.id);
+                  const status = styles.text.includes('red') ? 'critical' : styles.text.includes('orange') ? 'warning' : 'ok';
+                  return <DashboardMachineRow key={machine.id} machine={machine} status={status}
+                    pointCount={machinePoints.length} showPoints={modDemip} />;
                 })}
                 {machines.length === 0 && (
                   <div className="text-center py-12 bg-white rounded-lg border border-dashed">
