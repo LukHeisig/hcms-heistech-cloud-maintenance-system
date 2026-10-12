@@ -181,9 +181,14 @@ export default function AdminControlPoints() {
   });
 
   const deletePointMutation = useMutation({
-    mutationFn: (id) => base44.entities.ControlPoint.delete(id),
+    mutationFn: async (id) => {
+      const { data } = await base44.functions.invoke("deleteStructure", { type: "controlPoint", id });
+      if (!data.success) throw new Error(data.error || "Kontrolní bod se nepodařilo smazat.");
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["controlPoints"] });
+      queryClient.invalidateQueries({ queryKey: ["auditLogs"] });
       setDeletePointId(null);
     },
   });
@@ -782,23 +787,25 @@ export default function AdminControlPoints() {
 
         <AlertDialog
           open={!!deletePointId}
-          onOpenChange={() => setDeletePointId(null)}
+          onOpenChange={(open) => { if (!open && !deletePointMutation.isPending) { setDeletePointId(null); deletePointMutation.reset(); } }}
         >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Opravdu smazat kontrolní bod?</AlertDialogTitle>
               <AlertDialogDescription>
-                Tato akce je nevratná. Budou smazány také všechny záznamy a
-                závady spojené s tímto bodem.
+                Kontrolní bod bude smazán. Do auditu se uloží jeho název,
+                vazba na stroj a podnik i informace o tom, kdo a kdy bod smazal.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {deletePointMutation.isError && <p role="alert" className="text-sm text-destructive">{deletePointMutation.error?.response?.data?.error || deletePointMutation.error.message}</p>}
             <AlertDialogFooter>
-              <AlertDialogCancel>Zrušit</AlertDialogCancel>
+              <AlertDialogCancel disabled={deletePointMutation.isPending}>Zrušit</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => deletePointMutation.mutate(deletePointId)}
+                disabled={deletePointMutation.isPending}
+                onClick={(event) => { event.preventDefault(); deletePointMutation.mutate(deletePointId); }}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Smazat
+                {deletePointMutation.isPending ? "Mažu a ukládám do auditu…" : "Smazat"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

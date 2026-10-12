@@ -40,7 +40,58 @@
     },
     "company_id": {
       "type": "string",
-      "description": "ID podniku u\u017eivatele (pro filtrov\u00e1n\u00ed podle hierarchie)"
+      "description": "ID podniku, ke kter\u00e9mu se zm\u011bna vztahuje"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "N\u00e1zev podniku v dob\u011b zm\u011bny"
+    },
+    "line_id": {
+      "type": "string"
+    },
+    "line_name": {
+      "type": "string"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "P\u016fvodn\u00ed ID stroje, zachov\u00e1no i po smaz\u00e1n\u00ed"
+    },
+    "machine_name": {
+      "type": "string",
+      "description": "N\u00e1zev stroje v dob\u011b zm\u011bny"
+    },
+    "point_name": {
+      "type": "string"
+    },
+    "point_type": {
+      "type": "string"
+    },
+    "point_number": {
+      "type": "string"
+    },
+    "first_confirmation_date": {
+      "type": "string",
+      "description": "P\u016fvodn\u00ed datum prvn\u00edho potvrzen\u00ed bodu"
+    },
+    "action": {
+      "type": "string",
+      "description": "Operace, nap\u0159. delete"
+    },
+    "operation_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed"
+      ]
+    },
+    "deletion_source": {
+      "type": "string",
+      "description": "Ru\u010dn\u00ed maz\u00e1n\u00ed, maz\u00e1n\u00ed stroje/linky nebo \u00faklid osi\u0159el\u00fdch bod\u016f"
+    },
+    "deleted_at": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

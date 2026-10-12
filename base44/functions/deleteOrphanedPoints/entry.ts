@@ -1,4 +1,5 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { deleteControlPointWithAudit } from '../../shared/controlPointDeletion.ts';
 
 export default async function(req) {
     try {
@@ -6,7 +7,7 @@ export default async function(req) {
         const user = await base44.auth.me();
 
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-        if (user.user_type !== 'admin' && user.user_type !== 'superAdmin') {
+        if (user.role !== 'admin' || (user.user_type !== 'admin' && user.user_type !== 'superAdmin')) {
              return Response.json({ error: 'Forbidden' }, { status: 403 });
         }
 
@@ -55,6 +56,9 @@ export default async function(req) {
         }
 
         log.push(`Found ${idsToDelete.length} orphaned points to delete`);
+        const { dry_run = false } = await req.json();
+        if (dry_run) return Response.json({ success: true, dry_run: true, candidateCount: idsToDelete.length, log });
+        const pointMap = new Map(points.map(point => [point.id, point]));
 
         // 3. Delete in batches to avoid rate limits
         let deletedCount = 0;
@@ -63,7 +67,7 @@ export default async function(req) {
         for (let i = 0; i < idsToDelete.length; i += batchSize) {
             const batch = idsToDelete.slice(i, i + batchSize);
             const results = await Promise.all(batch.map(item => 
-                base44.asServiceRole.entities.ControlPoint.delete(item.id)
+                deleteControlPointWithAudit(base44.asServiceRole, pointMap.get(item.id), user, `Úklid osiřelých bodů: ${item.reason}`)
                     .then(() => {
                         log.push(`Deleted point ${item.id}: ${item.reason}`);
                         return true;
