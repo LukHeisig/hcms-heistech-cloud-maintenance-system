@@ -674,18 +674,18 @@ export default function Machine() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* NOVÝ HEADER - menší verze jako u LineDetail */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto p-4">
+        <div className="mx-auto min-w-0 max-w-7xl p-3 [overflow-wrap:anywhere] md:p-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate(createPageUrl(`LineDetail?id=${line?.id}${company?.id ? `&company=${company.id}` : ''}`))}
-            className="text-white hover:bg-white/20 mb-3"
+            className="mb-2 h-auto min-h-9 max-w-full whitespace-normal text-left text-xs text-white hover:bg-white/20 md:mb-3 md:text-sm"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Zpět na {line?.name || "linku"}
           </Button>
 
-          <div className="flex items-center gap-2 text-sm mb-3 opacity-90">
+          <div className="mb-2 flex min-w-0 flex-wrap items-center gap-1 text-xs opacity-90 md:mb-3 md:gap-2 md:text-sm [&>svg]:shrink-0">
             <Building2 className="w-4 h-4" />
             <span>{company?.name || "Podnik"}</span>
             <ChevronRight className="w-4 h-4" />
@@ -696,7 +696,7 @@ export default function Machine() {
 
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold mb-1">{formatMachineName(machine)}</h1>
+              <h1 className="mb-1 text-xl font-bold leading-snug md:text-2xl">{formatMachineName(machine)}</h1>
               {machine.description && (
                 <p className="text-blue-100 text-sm">{machine.description}</p>
               )}
@@ -736,19 +736,19 @@ export default function Machine() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+      <div className="mx-auto min-w-0 max-w-7xl space-y-3 p-3 md:space-y-6 md:p-6">
         {/* Záložky */}
-        <Tabs key={initialTab} defaultValue={initialTab} className="space-y-6">
-          <TabsList className="flex flex-wrap w-full bg-white shadow-md p-1 h-auto gap-1">
-            <TabsTrigger value="overview" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
+        <Tabs key={initialTab} defaultValue={initialTab} className="min-w-0 space-y-3 md:space-y-6">
+          <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 gap-1 bg-card p-1 shadow-sm md:flex md:flex-wrap md:shadow-md">
+            <TabsTrigger value="overview" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden md:inline">Přehled</span>
+              <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Přehled</span>
             </TabsTrigger>
 
             {showVibration && (
-              <TabsTrigger value="vibro-diag" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
+              <TabsTrigger value="vibro-diag" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
                 <Activity className="w-4 h-4" />
-                <span className="hidden md:inline">Vibrace</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Vibrace</span>
                 {vibrationTabAlertLevelResolved >= 0 && (
                   <div className={`w-2.5 h-2.5 rounded-full ml-1 flex-shrink-0 ${
                     vibrationTabAlertLevelResolved === 0 ? "bg-green-500" :
@@ -768,61 +768,61 @@ export default function Machine() {
             )}
 
             {showVibration && (
-              <TabsTrigger value="alerts-history" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
+              <TabsTrigger value="alerts-history" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4" />
-                <span className="hidden md:inline">Alarmy</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Alarmy</span>
               </TabsTrigger>
             )}
             
             {showDemip && (
-              <TabsTrigger value="control-points" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
+              <TabsTrigger value="control-points" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
                 <Droplet className="w-4 h-4" />
-                <span className="hidden md:inline">DEMIP</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">DEMIP</span>
               </TabsTrigger>
             )}
             
             {showMaintenance && (
-              <TabsTrigger value="maintenance" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-700 data-[state=active]:text-white">
+              <TabsTrigger value="maintenance" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-700 data-[state=active]:text-white">
                 <Wrench className="w-4 h-4" />
-                <span className="hidden md:inline">Údržba</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Údržba</span>
               </TabsTrigger>
             )}
             
             {showParts && (
-              <TabsTrigger value="spare-parts" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-700 data-[state=active]:text-white">
+              <TabsTrigger value="spare-parts" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-700 data-[state=active]:text-white">
                 <Package className="w-4 h-4" />
-                <span className="hidden md:inline">Díly</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Díly</span>
               </TabsTrigger>
             )}
             
 
             {showThermo && (
-              <TabsTrigger value="thermo" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-600 data-[state=active]:to-amber-700 data-[state=active]:text-white">
+              <TabsTrigger value="thermo" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-600 data-[state=active]:to-amber-700 data-[state=active]:text-white">
                 <Activity className="w-4 h-4" />
-                <span className="hidden md:inline">Termo</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Termo</span>
               </TabsTrigger>
             )}
 
             {showTribo && (
-              <TabsTrigger value="tribo" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
+              <TabsTrigger value="tribo" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white">
                 <Droplet className="w-4 h-4" />
-                <span className="hidden md:inline">Tribo</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Tribo</span>
               </TabsTrigger>
             )}
             
-            <TabsTrigger value="statistics" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-pink-700 data-[state=active]:text-white">
+            <TabsTrigger value="statistics" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-pink-700 data-[state=active]:text-white">
               <BarChart2 className="w-4 h-4" />
-              <span className="hidden md:inline">Statistiky</span>
+              <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Statistiky</span>
             </TabsTrigger>
             {showPredictive && (
-              <TabsTrigger value="predictive" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-cyan-700 data-[state=active]:text-white">
+              <TabsTrigger value="predictive" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-cyan-700 data-[state=active]:text-white">
                 <Brain className="w-4 h-4" />
-                <span className="hidden md:inline">AI Predikce</span>
+                <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">AI Predikce</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="documentation" className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white">
+            <TabsTrigger value="documentation" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-700 data-[state=active]:text-white">
               <ImageIcon className="w-4 h-4" />
-              <span className="hidden md:inline">Dokumentace</span>
+              <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Dokumentace</span>
             </TabsTrigger>
           </TabsList>
 

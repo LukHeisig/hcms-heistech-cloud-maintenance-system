@@ -20,6 +20,8 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import MaintenanceSectionTabs from "@/components/machine/MaintenanceSectionTabs";
+import PlannedMaintenanceCard from "@/components/machine/PlannedMaintenanceCard";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar
@@ -162,48 +164,27 @@ export default function MaintenanceTab({
 
   return (
     <>
-      <Tabs defaultValue="planned" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm">
-          <TabsTrigger value="planned" className="gap-2">
-            <Calendar className="w-4 h-4" />
-            Plánovaná údržba ({activePlannedTasks.length})
-          </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2">
-            <Wrench className="w-4 h-4" />
-            Historie údržby
-          </TabsTrigger>
-          <TabsTrigger value="active-issues" className="gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Aktivní závady ({issues.length})
-          </TabsTrigger>
-          <TabsTrigger value="inspections" className="gap-2">
-            <ClipboardCheck className="w-4 h-4" />
-            Inspekce ({inspectionRecords.length})
-          </TabsTrigger>
-          <TabsTrigger value="costs" className="gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Náklady
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="planned" className="min-w-0 space-y-3 text-sm [overflow-wrap:anywhere] md:space-y-6">
+        <MaintenanceSectionTabs taskCount={activePlannedTasks.length} issueCount={issues.length} inspectionCount={inspectionRecords.length} />
 
         {/* Plánovaná údržba */}
         <TabsContent value="planned">
-          <Card className="border-none shadow-lg">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+          <Card className="min-w-0 rounded-lg border border-border shadow-none md:border-none md:shadow-lg">
+            <CardHeader className="min-w-0 border-b border-border p-3 md:p-6">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-snug md:text-2xl [&>svg]:shrink-0">
                   <Calendar className="w-5 h-5 text-blue-600" />
                   Plánovaná údržba
                 </CardTitle>
                 {canManagePlannedMaintenance && (
-                  <Button onClick={() => setShowAddPlannedMaintenanceDialog(true)} className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700">
+                  <Button onClick={() => setShowAddPlannedMaintenanceDialog(true)} className="h-auto min-h-9 max-w-full gap-2 whitespace-normal bg-demip-brand px-3 py-2 text-xs text-demip-brand-foreground md:text-sm">
                     <Plus className="w-4 h-4" />
                     Přidat plánovaný úkol
                   </Button>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="min-w-0 p-3 md:p-6">
               {activePlannedTasks.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -211,39 +192,14 @@ export default function MaintenanceTab({
                   {canManagePlannedMaintenance && <p className="text-sm text-slate-400">Klikněte na "Přidat plánovaný úkol" pro vytvoření nového</p>}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="min-w-0 space-y-2 md:space-y-3">
                   {activePlannedTasks.map((task) => {
                     const isOverdue = new Date(task.planned_date) < new Date() && task.status === "planned";
                     const isAssigned = task.status === "assigned";
                     const canComplete = isAssigned && (currentUser?.email === task.assigned_to || canManagePlannedMaintenance);
                     return (
-                      <Card key={task.id} className={`border-l-4 ${isOverdue ? "border-l-red-500 bg-red-50/30" : isAssigned ? "border-l-blue-500 bg-blue-50/30" : "border-l-green-500 bg-green-50/30"}`}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                <h3 className="font-bold text-slate-900 text-lg">{task.title}</h3>
-                                <Badge className={task.maintenance_type === "preventive" ? "bg-green-100 text-green-800" : task.maintenance_type === "corrective" ? "bg-orange-100 text-orange-800" : task.maintenance_type === "predictive" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"}>
-                                  {task.maintenance_type === "preventive" ? "Preventivní" : task.maintenance_type === "corrective" ? "Korektivní" : task.maintenance_type === "predictive" ? "Prediktivní" : "Inspekce"}
-                                </Badge>
-                                {task.priority === "high" && <Badge variant="destructive">Vysoká priorita</Badge>}
-                                {isOverdue && <Badge className="bg-red-500 text-white">Po termínu</Badge>}
-                                {isAssigned && <Badge className="bg-blue-500 text-white">Pracovní příkaz vytvořen</Badge>}
-                              </div>
-                              {task.description && <p className="text-sm text-slate-600 mb-3">{task.description}</p>}
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                <div className="bg-white rounded-lg p-2 border border-slate-200">
-                                  <p className="text-xs text-slate-500">Plánované datum</p>
-                                  <p className={`text-sm font-medium ${isOverdue ? "text-red-700" : "text-slate-900"}`}>{format(new Date(task.planned_date), "d. M. yyyy", { locale: cs })}</p>
-                                </div>
-                                {task.assigned_to && <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-xs text-slate-500">Přiřazeno</p><p className="text-sm font-medium text-slate-900">{getUserDisplayName(task.assigned_to)}</p></div>}
-                                {task.estimated_duration_hours && <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-xs text-slate-500">Odhad. čas</p><p className="text-sm font-medium text-slate-900">{task.estimated_duration_hours}h</p></div>}
-                                {task.estimated_cost && <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-xs text-slate-500">Odhad. náklady</p><p className="text-sm font-medium text-slate-900">{task.estimated_cost.toLocaleString()} Kč</p></div>}
-                              </div>
-                              {task.notes && <p className="text-xs text-slate-500 italic bg-slate-50 p-2 rounded">{task.notes}</p>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-wrap">
+                      <PlannedMaintenanceCard key={task.id} task={task} isOverdue={isOverdue} isAssigned={isAssigned}
+                        assignedName={task.assigned_to ? getUserDisplayName(task.assigned_to) : null}>
                             {canManagePlannedMaintenance && !isAssigned && (
                               <Button size="sm" onClick={() => handleCreateWorkOrder(task)} className="gap-2 bg-blue-600 hover:bg-blue-700" disabled={!task.assigned_to || createWorkOrderMutation.isPending}>
                                 {createWorkOrderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -260,9 +216,7 @@ export default function MaintenanceTab({
                                 <X className="w-4 h-4" /> Zrušit
                               </Button>
                             )}
-                          </div>
-                        </CardContent>
-                      </Card>
+                      </PlannedMaintenanceCard>
                     );
                   })}
                 </div>
@@ -273,29 +227,29 @@ export default function MaintenanceTab({
 
         {/* Historie */}
         <TabsContent value="history">
-          <Card className="border-none shadow-lg">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5 text-green-600" />Historie pracovních příkazů (WO)</CardTitle>
+          <Card className="min-w-0 rounded-lg border border-border shadow-none md:border-none md:shadow-lg">
+            <CardHeader className="min-w-0 border-b border-border p-3 md:p-6">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-snug md:text-2xl [&>svg]:shrink-0"><Wrench className="w-5 h-5 text-green-600" />Historie pracovních příkazů (WO)</CardTitle>
                 <Badge variant="outline" className="text-sm">{maintenanceRecords.length} záznamů</Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="min-w-0 p-3 md:p-6">
               {maintenanceRecords.length === 0 ? (
                 <div className="text-center py-12"><Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" /><p className="text-slate-500 mb-2">Zatím nejsou záznamy o údržbě</p></div>
               ) : (
-                <div className="space-y-3">
+                <div className="min-w-0 space-y-2 md:space-y-3">
                   {maintenanceRecords.map((record) => (
                     <Card key={record.id} className="border border-slate-200">
-                      <CardContent className="p-4">
+                      <CardContent className="min-w-0 p-3 md:p-4">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <Badge className={record.maintenance_type === "preventive" ? "bg-green-100 text-green-800" : record.maintenance_type === "corrective" ? "bg-orange-100 text-orange-800" : record.maintenance_type === "predictive" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"}>
                             {record.maintenance_type === "preventive" ? "Preventivní" : record.maintenance_type === "corrective" ? "Korektivní" : record.maintenance_type === "predictive" ? "Prediktivní" : "Inspekce"}
                           </Badge>
-                          <h3 className="font-bold text-slate-900">{record.title}</h3>
+                          <h3 className="min-w-0 text-sm font-semibold text-foreground md:text-base md:font-bold">{record.title}</h3>
                         </div>
                         <p className="text-sm text-slate-600 mb-2">{record.description}</p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4 md:gap-3 [&>div]:min-w-0">
                           <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-500">Datum</p><p className="text-sm font-medium text-slate-900">{format(new Date(record.performed_at), "d.M. yyyy HH:mm", { locale: cs })}</p></div>
                           {record.duration_hours && <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-500">Doba</p><p className="text-sm font-medium text-slate-900">{record.duration_hours}h</p></div>}
                           {record.technician && <div className="bg-slate-50 rounded-lg p-2"><p className="text-xs text-slate-500">Technik</p><p className="text-sm font-medium text-slate-900">{getUserDisplayName(record.technician)}</p></div>}
@@ -313,24 +267,24 @@ export default function MaintenanceTab({
 
         {/* Aktivní závady */}
         <TabsContent value="active-issues">
-          <Card className="border-none shadow-lg">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-orange-600" />Aktuální otevřené závady / WO</CardTitle>
+          <Card className="min-w-0 rounded-lg border border-border shadow-none md:border-none md:shadow-lg">
+            <CardHeader className="min-w-0 border-b border-border p-3 md:p-6">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-snug md:text-2xl [&>svg]:shrink-0"><AlertTriangle className="w-5 h-5 text-orange-600" />Aktuální otevřené závady / WO</CardTitle>
                 {issues.length > 0 && <Badge variant="destructive">{issues.length} aktivních</Badge>}
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="min-w-0 p-3 md:p-6">
               {issues.length === 0 ? (
                 <div className="text-center py-12"><CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-900 mb-2">Žádné aktivní závady</h3></div>
               ) : (
-                <div className="space-y-3">
+                <div className="min-w-0 space-y-2 md:space-y-3">
                   {issues.map((issue) => {
                     const point = controlPoints.find(p => p.id === issue.control_point_id);
                     return (
                       <Card key={issue.id} className="border-l-4 border-l-orange-500 bg-orange-50/30">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4 text-orange-600" /><h3 className="font-bold text-slate-900">{point?.name || "Neznámý bod"}</h3><Badge className="bg-orange-500 text-white">Aktivní</Badge></div>
+                        <CardContent className="min-w-0 p-3 md:p-4">
+                          <div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4 text-orange-600" /><h3 className="min-w-0 text-sm font-semibold text-foreground md:text-base md:font-bold">{point?.name || "Neznámý bod"}</h3><Badge className="bg-orange-500 text-white">Aktivní</Badge></div>
                           <p className="text-sm text-slate-700 bg-white p-3 rounded-lg border border-orange-200 mb-2">{issue.description}</p>
                           <div className="flex items-center gap-3 text-xs text-slate-500">
                             <span>Nahlášeno: {format(new Date(issue.created_date), "d. M. yyyy HH:mm", { locale: cs })}</span>
@@ -348,14 +302,14 @@ export default function MaintenanceTab({
 
         {/* Inspekce */}
         <TabsContent value="inspections">
-          <Card className="border-none shadow-lg">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2"><ClipboardCheck className="w-5 h-5 text-purple-600" />Záznamy o kontrolách a inspekcích</CardTitle>
+          <Card className="min-w-0 rounded-lg border border-border shadow-none md:border-none md:shadow-lg">
+            <CardHeader className="min-w-0 border-b border-border p-3 md:p-6">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-snug md:text-2xl [&>svg]:shrink-0"><ClipboardCheck className="w-5 h-5 text-purple-600" />Záznamy o kontrolách a inspekcích</CardTitle>
                 <Badge variant="outline">{inspectionRecords.length} záznamů</Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="min-w-0 p-3 md:p-6">
               {inspectionRecords.length === 0 ? (
                 <div className="text-center py-12"><ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" /><p className="text-slate-500">Zatím nebyly provedeny žádné inspekce</p></div>
               ) : (
@@ -383,15 +337,15 @@ export default function MaintenanceTab({
         {/* Náklady */}
         <TabsContent value="costs" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white"><CardContent className="p-6"><p className="text-green-100 text-sm font-medium mb-1">Celkové náklady</p><p className="text-3xl font-bold">{totalMaintenanceCost.toLocaleString()} Kč</p></CardContent></Card>
-            <Card className="border-none shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white"><CardContent className="p-6"><p className="text-emerald-100 text-sm font-medium mb-1">Preventivní</p><p className="text-2xl font-bold">{costByType.preventive.toLocaleString()} Kč</p></CardContent></Card>
-            <Card className="border-none shadow-lg bg-gradient-to-br from-amber-500 to-amber-600 text-white"><CardContent className="p-6"><p className="text-amber-100 text-sm font-medium mb-1">Korektivní</p><p className="text-2xl font-bold">{costByType.corrective.toLocaleString()} Kč</p></CardContent></Card>
-            <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white"><CardContent className="p-6"><p className="text-blue-100 text-sm font-medium mb-1">Průměrné náklady</p><p className="text-2xl font-bold">{maintenanceRecords.length > 0 ? Math.round(totalMaintenanceCost / maintenanceRecords.length).toLocaleString() : 0} Kč</p></CardContent></Card>
+            <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white"><CardContent className="min-w-0 p-3 md:p-6"><p className="text-green-100 text-sm font-medium mb-1">Celkové náklady</p><p className="text-3xl font-bold">{totalMaintenanceCost.toLocaleString()} Kč</p></CardContent></Card>
+            <Card className="border-none shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white"><CardContent className="min-w-0 p-3 md:p-6"><p className="text-emerald-100 text-sm font-medium mb-1">Preventivní</p><p className="text-2xl font-bold">{costByType.preventive.toLocaleString()} Kč</p></CardContent></Card>
+            <Card className="border-none shadow-lg bg-gradient-to-br from-amber-500 to-amber-600 text-white"><CardContent className="min-w-0 p-3 md:p-6"><p className="text-amber-100 text-sm font-medium mb-1">Korektivní</p><p className="text-2xl font-bold">{costByType.corrective.toLocaleString()} Kč</p></CardContent></Card>
+            <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white"><CardContent className="min-w-0 p-3 md:p-6"><p className="text-blue-100 text-sm font-medium mb-1">Průměrné náklady</p><p className="text-2xl font-bold">{maintenanceRecords.length > 0 ? Math.round(totalMaintenanceCost / maintenanceRecords.length).toLocaleString() : 0} Kč</p></CardContent></Card>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-none shadow-lg">
-              <CardHeader className="border-b border-slate-100"><CardTitle className="flex items-center gap-2"><BarChart2 className="w-5 h-5 text-green-600" />Náklady podle typu údržby</CardTitle></CardHeader>
-              <CardContent className="p-6">
+            <Card className="min-w-0 rounded-lg border border-border shadow-none md:border-none md:shadow-lg">
+              <CardHeader className="min-w-0 border-b border-border p-3 md:p-6"><CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-snug md:text-2xl [&>svg]:shrink-0"><BarChart2 className="w-5 h-5 text-green-600" />Náklady podle typu údržby</CardTitle></CardHeader>
+              <CardContent className="min-w-0 p-3 md:p-6">
                 {costByTypeData.length === 0 ? <p className="text-center text-slate-500 py-8">Zatím nejsou data o nákladech</p> : (
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart><Pie data={costByTypeData} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name}: ${value.toLocaleString()} Kč`} outerRadius={80} dataKey="value">{costByTypeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}</Pie><Tooltip formatter={(value) => `${value.toLocaleString()} Kč`} /></PieChart>
@@ -399,9 +353,9 @@ export default function MaintenanceTab({
                 )}
               </CardContent>
             </Card>
-            <Card className="border-none shadow-lg">
-              <CardHeader className="border-b border-slate-100"><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-blue-600" />Vývoj nákladů v čase</CardTitle></CardHeader>
-              <CardContent className="p-6">
+            <Card className="min-w-0 rounded-lg border border-border shadow-none md:border-none md:shadow-lg">
+              <CardHeader className="min-w-0 border-b border-border p-3 md:p-6"><CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-snug md:text-2xl [&>svg]:shrink-0"><TrendingUp className="w-5 h-5 text-blue-600" />Vývoj nákladů v čase</CardTitle></CardHeader>
+              <CardContent className="min-w-0 p-3 md:p-6">
                 {costByMonthData.length === 0 || costByMonthData.every(d => d.cost === 0) ? <p className="text-center text-slate-500 py-8">Zatím nejsou data o nákladech</p> : (
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={costByMonthData}><CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" /><XAxis dataKey="month" stroke="#64748b" /><YAxis stroke="#64748b" /><Tooltip formatter={(value) => `${value.toLocaleString()} Kč`} /><Bar dataKey="cost" fill="#10b981" name="Náklady (Kč)" /></BarChart>
@@ -415,12 +369,12 @@ export default function MaintenanceTab({
 
       {/* Dialog pro přidání plánované údržby */}
       <Dialog open={showAddPlannedMaintenanceDialog} onOpenChange={setShowAddPlannedMaintenanceDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[85dvh] max-w-[calc(100vw-2rem)] overflow-y-auto p-3 text-sm [overflow-wrap:anywhere] md:max-w-2xl md:p-6 [&_input]:min-w-0 [&_input]:text-sm [&_label]:text-xs [&_textarea]:text-sm [&_h2]:text-base [&_button]:whitespace-normal">
           <DialogHeader><DialogTitle>Přidat plánovaný úkol údržby</DialogTitle><DialogDescription>Vytvořte nový plánovaný úkol údržby pro stroj {machine?.name}</DialogDescription></DialogHeader>
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div><Label>Název úkolu *</Label><Input value={plannedMaintenanceForm.title} onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, title: e.target.value })} placeholder="Např. Výměna oleje, Kontrola ložisek..." /></div>
             <div><Label>Popis</Label><Textarea value={plannedMaintenanceForm.description} onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, description: e.target.value })} rows={3} /></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 [&>div]:min-w-0">
               <div><Label>Typ údržby *</Label>
                 <Select value={plannedMaintenanceForm.maintenance_type} onValueChange={(value) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, maintenance_type: value })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -439,7 +393,7 @@ export default function MaintenanceTab({
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 [&>div]:min-w-0">
               <div><Label>Plánované datum *</Label><Input type="date" value={plannedMaintenanceForm.planned_date} onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, planned_date: e.target.value })} /></div>
               <div><Label>Přiřadit technikovi</Label>
                 <Select value={plannedMaintenanceForm.assigned_to} onValueChange={(value) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, assigned_to: value })}>
@@ -456,7 +410,7 @@ export default function MaintenanceTab({
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 [&>div]:min-w-0">
               <div><Label>Odhadovaná doba (hodiny)</Label><Input type="number" step="0.5" value={plannedMaintenanceForm.estimated_duration_hours || ""} onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, estimated_duration_hours: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Např. 2" /></div>
               <div><Label>Odhadované náklady (Kč)</Label><Input type="number" value={plannedMaintenanceForm.estimated_cost || ""} onChange={(e) => setPlannedMaintenanceForm({ ...plannedMaintenanceForm, estimated_cost: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Např. 5000" /></div>
             </div>
@@ -473,7 +427,7 @@ export default function MaintenanceTab({
 
       {/* Dialog pro potvrzení provedení */}
       <Dialog open={showCompleteMaintenanceDialog} onOpenChange={setShowCompleteMaintenanceDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] max-w-[calc(100vw-2rem)] overflow-y-auto p-3 text-sm [overflow-wrap:anywhere] md:max-w-lg md:p-6 [&_input]:text-sm [&_label]:text-xs [&_textarea]:text-sm [&_h2]:text-base">
           <DialogHeader><DialogTitle>Potvrdit provedení údržby</DialogTitle><DialogDescription>Vyplňte skutečné údaje o provedené údržbě: {selectedPlannedTask?.title}</DialogDescription></DialogHeader>
           <div className="space-y-4 py-4">
             <div><Label>Skutečná doba trvání (hodiny) *</Label><Input type="number" step="0.5" value={completionForm.duration_hours || ""} onChange={(e) => setCompletionForm({ ...completionForm, duration_hours: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Např. 2.5" /></div>
