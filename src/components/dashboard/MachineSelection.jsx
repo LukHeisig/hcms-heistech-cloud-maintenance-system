@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { formatMachineName } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import DemipMachineRow from "@/components/dashboard/DemipMachineRow";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, Clock, ChevronRight, ArrowLeft, Droplet, ClipboardCheck, Factory } from "lucide-react";
+import { ArrowLeft, Droplet, ClipboardCheck } from "lucide-react";
 
 export default function MachineSelection({
   selectedCompany,
@@ -38,7 +36,7 @@ export default function MachineSelection({
   }, [lineMachines, demipControlPoints, maintenanceFilter]);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="mx-auto w-full max-w-xl">
       <Button
         variant="ghost"
         onClick={() => {
@@ -47,15 +45,15 @@ export default function MachineSelection({
             : "Dashboard";
           navigate(createPageUrl(url));
         }}
-        className="mb-4"
+        className="mb-3 h-9 px-2 text-sm"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Zpět na linky
       </Button>
-      <h1 className="text-3xl font-bold text-slate-900 mb-2">Výběr stroje - DEMIP</h1>
-      {currentLine && <p className="text-slate-600 mb-4">{currentLine.name}</p>}
+      <h1 className="mb-2 text-xl font-bold text-foreground">Výběr stroje - DEMIP</h1>
+      {currentLine && <p className="mb-4 text-sm text-muted-foreground">{currentLine.name}</p>}
       
-      <Tabs value={maintenanceFilter} onValueChange={setMaintenanceFilter} className="mb-6">
+      <Tabs value={maintenanceFilter} onValueChange={setMaintenanceFilter} className="mb-4">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="lubrication" className="gap-2">
             <Droplet className="w-4 h-4" />
@@ -69,73 +67,20 @@ export default function MachineSelection({
       </Tabs>
       <div className="space-y-2">
         {filteredMachines.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Factory className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">
-                Žádné stroje v kategorii "{maintenanceFilter === "lubrication" ? "Mazání" : "Prevence"}"
-              </p>
-            </CardContent>
-          </Card>
+          <p className="rounded-lg border border-border bg-card p-4 text-center text-sm text-muted-foreground">
+            Žádné stroje v kategorii "{maintenanceFilter === "lubrication" ? "Mazání" : "Prevence"}"
+          </p>
         ) : (
-          filteredMachines.map((machine) => {
-            const machinePoints = demipControlPoints.filter(p => p.machine_id === machine.id);
-            const machineOverdue = machinePoints.filter(p => {
-              const s = getPointStatus(p);
-              return s === "overdue" || s === "critical";
-            }).length;
-            const machineWarning = machinePoints.filter(p => getPointStatus(p) === "warning").length;
-
-            let iconBg = "from-green-500 to-green-600";
-            let statusBadge = null;
-
-            if (machineOverdue > 0) {
-              iconBg = "from-red-500 to-red-600";
-              statusBadge = (
-                <div className="flex items-center justify-center px-2 py-1 bg-red-100 rounded-full">
-                  <span className="text-xs font-bold text-red-600">{machineOverdue} !</span>
-                </div>
-              );
-            } else if (machineWarning > 0) {
-              iconBg = "from-yellow-500 to-yellow-600";
-              statusBadge = (
-                <div className="flex items-center justify-center px-2 py-1 bg-yellow-100 rounded-full">
-                  <span className="text-xs font-bold text-yellow-700">{machineWarning}</span>
-                </div>
-              );
-            }
-
-            return (
-              <div
-                key={machine.id}
-                className="group relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all cursor-pointer"
-                onClick={() => {
-                  const url = selectedCompany
-                    ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${machine.id}&category=${maintenanceFilter}`
-                    : `Dashboard?line=${selectedLine}&machine=${machine.id}&category=${maintenanceFilter}`;
-                  navigate(createPageUrl(url));
-                }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${iconBg} flex items-center justify-center shadow-lg text-white`}>
-                    {maintenanceFilter === "lubrication" ? (
-                      <Droplet className="w-6 h-6" />
-                    ) : (
-                      <ClipboardCheck className="w-6 h-6" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-bold text-slate-900 text-lg">{formatMachineName(machine)}</h3>
-                      {statusBadge}
-                    </div>
-                    <p className="text-sm text-slate-500 font-medium">{currentLine?.name || "Linka"}</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
-                </div>
-              </div>
-            );
-        })
+          filteredMachines.map(machine => (
+            <DemipMachineRow key={machine.id} machine={machine} lineName={currentLine?.name}
+              points={demipControlPoints} getPointStatus={getPointStatus}
+              onSelect={id => {
+                const url = selectedCompany
+                  ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${id}&category=${maintenanceFilter}`
+                  : `Dashboard?line=${selectedLine}&machine=${id}&category=${maintenanceFilter}`;
+                navigate(createPageUrl(url));
+              }} />
+          ))
         )}
       </div>
     </div>
