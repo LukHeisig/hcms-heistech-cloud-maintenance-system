@@ -25,9 +25,12 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/issues/demipIssueDetail.css";
 
 export default function IssueDetail() {
   const navigate = useNavigate();
+  const { viewMode } = useViewMode();
   const urlParams = new URLSearchParams(window.location.search);
   const issueId = urlParams.get("id");
   const [user, setUser] = useState(null);
@@ -183,16 +186,16 @@ export default function IssueDetail() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
+    <div className={`${viewMode === "demip" ? "demip-issue-detail" : ""} min-h-screen bg-slate-50 pb-12`}>
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+      <div className="issue-detail-header bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4 mb-4">
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Zpět
             </Button>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="issue-detail-breadcrumb flex items-center gap-2 text-sm text-slate-500">
                <Building2 className="w-3 h-3" />
                <span>{company?.name}</span>
                <ChevronRight className="w-3 h-3" />
@@ -230,14 +233,14 @@ export default function IssueDetail() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+      <div className="issue-detail-main max-w-5xl mx-auto px-4 py-8 space-y-8">
         
         {/* 1. Detail závady */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="issue-detail-grid grid grid-cols-1 md:grid-cols-3 gap-6">
            {/* Left Column: Image & Basic Info */}
-           <div className="md:col-span-1 space-y-6">
-              <Card>
-                 <CardContent className="p-4">
+           <div className="issue-detail-column md:col-span-1 space-y-6">
+              <Card className="issue-detail-card">
+                 <CardContent className="issue-detail-summary p-4">
                     {issue.photo_url ? (
                        <div className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 mb-4 cursor-pointer" onClick={() => window.open(issue.photo_url, '_blank')}>
                           <img src={issue.photo_url} alt="Závada" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
@@ -279,25 +282,25 @@ export default function IssueDetail() {
            </div>
 
            {/* Right Column: Workflow & Description */}
-           <div className="md:col-span-2 space-y-6">
+           <div className="issue-detail-column md:col-span-2 space-y-6">
               {/* Workflow Visualization */}
-              <Card>
-                 <CardHeader className="pb-4">
+              <Card className="issue-detail-card">
+                 <CardHeader className="issue-detail-card-header pb-4">
                     <CardTitle className="text-lg">Průběh řešení</CardTitle>
                  </CardHeader>
-                 <CardContent>
+                 <CardContent className="issue-detail-card-content">
                     <div className="relative">
                        {/* Connecting Line */}
-                       <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-slate-200"></div>
+                       <div className="issue-detail-timeline-line absolute left-6 top-6 bottom-6 w-0.5 bg-slate-200"></div>
                        
-                       <div className="space-y-8 relative">
+                       <div className="issue-detail-timeline space-y-8 relative">
                           {steps.map((step, index) => {
                              const isCompleted = step.status === 'completed';
                              const isInProgress = step.status === 'in_progress';
                              const isPending = step.status === 'pending';
                              
                              return (
-                                <div key={step.id} className="flex gap-4 group">
+                                <div key={step.id} className="issue-detail-step flex gap-4 group">
                                    {/* Icon */}
                                    <div className={`
                                       w-12 h-12 rounded-full flex items-center justify-center border-4 z-10 transition-colors duration-300
@@ -365,11 +368,11 @@ export default function IssueDetail() {
               </Card>
 
               {/* Description Card */}
-              <Card>
-                 <CardHeader>
+              <Card className="issue-detail-card">
+                 <CardHeader className="issue-detail-card-header">
                     <CardTitle className="text-lg">Popis problému</CardTitle>
                  </CardHeader>
-                 <CardContent>
+                 <CardContent className="issue-detail-card-content">
                     <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
                        {issue.description}
                     </p>
@@ -377,7 +380,7 @@ export default function IssueDetail() {
               </Card>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3">
+              <div className="issue-detail-actions flex justify-end gap-3">
                   {issue.status !== 'resolved' && !workOrder && (user?.user_type === 'manager' || user?.user_type === 'admin' || user?.user_type === 'superAdmin') && (
                      <Button onClick={() => navigate(createPageUrl(`IssueApproval?issue=${issue.id}&action=create_wo`))} className="bg-blue-600 hover:bg-blue-700">
                         <FileText className="w-4 h-4 mr-2" />

@@ -1,0 +1,46 @@
+@media (max-width: 639px) {
+  .demip-issue-detail { padding-bottom: 12px; font-size: 12px; overflow-wrap: anywhere; }
+  .demip-issue-detail .issue-detail-header { position: static; }
+  .demip-issue-detail .issue-detail-header > div { padding: 8px 10px; }
+  .demip-issue-detail .issue-detail-header > div > div:first-child { flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .demip-issue-detail .issue-detail-breadcrumb { flex-wrap: wrap; gap: 4px; font-size: 11px; min-width: 0; }
+  .demip-issue-detail .issue-detail-breadcrumb svg { flex-shrink: 0; }
+  .demip-issue-detail .issue-detail-header > div > div:last-child { gap: 6px; }
+  .demip-issue-detail h1 { font-size: 16px; line-height: 1.35; gap: 6px; }
+  .demip-issue-detail h1 svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .demip-issue-detail h1 + p { font-size: 10px; }
+  .demip-issue-detail .issue-detail-header [data-slot],
+  .demip-issue-detail .issue-detail-header .rounded-full { font-size: 11px; padding: 2px 8px; }
+  .demip-issue-detail .issue-detail-main { padding: 10px 8px; }
+  .demip-issue-detail .issue-detail-grid { gap: 10px; }
+  .demip-issue-detail .issue-detail-column > :not([hidden]) ~ :not([hidden]) { margin-top: 10px; }
+  .demip-issue-detail .issue-detail-card { min-width: 0; border-radius: 8px; }
+  .demip-issue-detail .issue-detail-card-header { padding: 10px 10px 6px; }
+  .demip-issue-detail .issue-detail-card-header > div { font-size: 14px; line-height: 1.4; }
+  .demip-issue-detail .issue-detail-card-content { padding: 0 10px 10px; }
+  .demip-issue-detail .issue-detail-summary { display: flex; align-items: flex-start; gap: 10px; padding: 10px; }
+  .demip-issue-detail .issue-detail-summary > div:first-child { width: 88px; height: 88px; flex-shrink: 0; margin-bottom: 0; }
+  .demip-issue-detail .issue-detail-summary > div:first-child svg { width: 24px; height: 24px; margin-bottom: 4px; }
+  .demip-issue-detail .issue-detail-summary > div:first-child span { font-size: 10px; }
+  .demip-issue-detail .issue-detail-summary > div:last-child { flex: 1; min-width: 0; }
+  .demip-issue-detail .issue-detail-summary > div:last-child > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
+  .demip-issue-detail .issue-detail-summary p { font-size: 10px; }
+  .demip-issue-detail .issue-detail-summary span,
+  .demip-issue-detail .issue-detail-summary p.font-medium { font-size: 11px; }
+  .demip-issue-detail .issue-detail-summary svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .demip-issue-detail .issue-detail-timeline > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+  .demip-issue-detail .issue-detail-timeline-line { left: 14px; top: 14px; bottom: 14px; }
+  .demip-issue-detail .issue-detail-step { gap: 10px; }
+  .demip-issue-detail .issue-detail-step > div:first-child { width: 28px; height: 28px; border-width: 2px; flex-shrink: 0; }
+  .demip-issue-detail .issue-detail-step > div:first-child svg { width: 14px; height: 14px; }
+  .demip-issue-detail .issue-detail-step > div:last-child { min-width: 0; padding-top: 0; }
+  .demip-issue-detail .issue-detail-step h3 { font-size: 12px; line-height: 1.4; }
+  .demip-issue-detail .issue-detail-step p { font-size: 11px; line-height: 1.4; }
+  .demip-issue-detail .issue-detail-step span { font-size: 10px; }
+  .demip-issue-detail .issue-detail-step .mt-3 { margin-top: 6px; padding: 8px; }
+  .demip-issue-detail .issue-detail-step .mt-3 > div { flex-wrap: wrap; gap: 4px; }
+  .demip-issue-detail .issue-detail-card-content > p { font-size: 12px; line-height: 1.5; }
+  .demip-issue-detail .issue-detail-actions { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+  .demip-issue-detail .issue-detail-actions button { font-size: 11px; padding-inline: 10px; min-height: 40px; max-width: 100%; white-space: normal; }
+  .demip-issue-detail .issue-detail-actions button svg { margin-right: 0; }
+}
