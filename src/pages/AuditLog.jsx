@@ -35,8 +35,11 @@ import { UserStatistics } from "@/components/audit/UserStatistics";
 import ControlChecksStats from "@/components/audit/ControlChecksStats";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/audit/demipAuditLog.css";
 
 export default function AuditLog() {
+  const { viewMode } = useViewMode();
   const [user, setUser] = useState(null);
   const [entityTypeFilter, setEntityTypeFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
@@ -235,7 +238,7 @@ export default function AuditLog() {
 
   if (user && user.user_type === "technician") {
     return (
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+      <div className={`${viewMode === "demip" ? "demip-audit-log " : ""}p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
         <div className="max-w-7xl mx-auto">
           <Card className="border-orange-200 bg-orange-50">
             <CardContent className="p-12 text-center">
@@ -289,7 +292,7 @@ export default function AuditLog() {
   const canAccessChecks = canAccessMonitoring;
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={`${viewMode === "demip" ? "demip-audit-log " : ""}p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Audit Log</h1>
@@ -318,7 +321,7 @@ export default function AuditLog() {
         </Card>
 
         <Tabs defaultValue="history" className="space-y-6">
-          <TabsList className={`bg-white shadow-sm ${canAccessMonitoring ? 'grid w-full grid-cols-4' : 'grid w-full grid-cols-1'}`}>
+          <TabsList className={`audit-navigation-tabs bg-white shadow-sm ${canAccessMonitoring ? 'grid w-full grid-cols-4' : 'grid w-full grid-cols-1'}`}>
             <TabsTrigger value="history" className="gap-2">
               <Activity className="w-4 h-4" />
               Historie aktivit
