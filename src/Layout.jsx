@@ -57,6 +57,7 @@ import RevisionTasksBell from "@/components/revisions/RevisionTasksBell";
 import { userHasModule } from "@/lib/companyModules";
 import { moduleData } from "@/lib/moduleData";
 import LeftMobileNavigation from "@/components/dashboard/LeftMobileNavigation";
+import DemipBottomNavigation from "@/components/dashboard/DemipBottomNavigation";
 
 function LayoutContent({ children }) {
   const location = useLocation();
@@ -792,6 +793,11 @@ function LayoutContent({ children }) {
                </Button>
             </div>
             )}
+            {viewMode === 'demip' && nfcSupported && (
+              <Button variant="outline" className="w-full justify-start gap-3" onClick={() => { setMobileOpen(false); handleNfcQuickScan(); }}>
+                <Activity className="h-4 w-4" />Skenovat NFC
+              </Button>
+            )}
             {navigationItems.map((item) => (
               <Link
                 key={item.title}
@@ -986,53 +992,11 @@ function LayoutContent({ children }) {
 
         {/* Mobile Bottom Bar - DEMIP Mode Only */}
         {viewMode === 'demip' && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 grid grid-cols-5 gap-1 items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            {nfcSupported ? (
-              <button 
-                className="flex flex-col items-center gap-1 text-blue-600 hover:text-blue-700 active:scale-95 transition-transform"
-                onClick={handleNfcQuickScan}
-              >
-                <div className="w-6 h-6 flex items-center justify-center bg-blue-50 rounded-full border border-blue-200">
-                    <Activity className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-medium truncate w-full text-center">Skenovat</span>
-              </button>
-            ) : (
-                <div className="w-full"></div> // Placeholder if NFC not supported
-            )}
-
-            <button 
-              className={`flex flex-col items-center gap-1 ${location.pathname.includes('Dashboard') ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
-              onClick={() => navigate(createPageUrl("Dashboard"))}
-            >
-              <div className="w-6 h-6"><ClipboardList className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Přehled</span>
-            </button>
-
-            <button 
-              className={`flex flex-col items-center gap-1 ${location.pathname.includes('MobileHome') && location.search.includes('tab=orders') ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}
-              onClick={() => navigate(createPageUrl("MobileHome?tab=orders"))}
-            >
-              <div className="w-6 h-6"><Wrench className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Příkazy</span>
-            </button>
-            
-            <button 
-              className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600"
-              onClick={() => setMobileOpen(true)}
-            >
-              <div className="w-6 h-6"><Menu className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Menu</span>
-            </button>
-
-            <button 
-              className="flex flex-col items-center gap-1 text-slate-400 hover:text-red-600"
-              onClick={handleLogout}
-            >
-              <div className="w-6 h-6"><LogOut className="w-6 h-6" /></div>
-              <span className="text-[10px] font-medium truncate w-full text-center">Odhlásit</span>
-            </button>
-          </div>
+          <DemipBottomNavigation pathname={location.pathname} search={location.search}
+            onOverview={() => navigate(createPageUrl("Dashboard"))}
+            onMenu={() => setMobileOpen(true)}
+            onOrders={() => navigate(createPageUrl("MobileHome?tab=orders"))}
+            onBack={() => navigate(-1)} />
         )}
 
         <Dialog open={showNfcScanDialog} onOpenChange={setShowNfcScanDialog}>
