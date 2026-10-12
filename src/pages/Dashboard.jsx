@@ -30,7 +30,8 @@ import MachineSelection from "../components/dashboard/MachineSelection";
 import PointsList from "../components/dashboard/PointsList";
 import ControlPointDetail from "../components/dashboard/ControlPointDetail";
 import VibrationAlarmFrequencyChart from "../components/dashboard/VibrationAlarmFrequencyChart";
-import { getEffectiveHoursSince, getNextDueDate } from "@/lib/intervalCalculations";
+import { getControlPointStatus, getControlPointDueDate } from "@/lib/controlPointIntervals";
+import useLatestControlChecks from "@/hooks/useLatestControlChecks";
 import { throttled } from "@/lib/requestQueue";
 import { userHasModule } from "@/lib/companyModules";
 import useVibrationDashboard from "@/hooks/useVibrationDashboard";
@@ -176,6 +177,9 @@ export default function Dashboard() {
     return allControlPoints.filter(cp => userMachineIds.includes(cp.machine_id));
   }, [user, allControlPoints, machines]);
 
+  const intervalPointIds = useMemo(() => controlPoints.map(point => point.id), [controlPoints]);
+  const { latestChecks, loading: latestChecksLoading } = useLatestControlChecks(intervalPointIds, user?.id);
+
   const { data: allRecords = [] } = useQuery({
     queryKey: ["allRecords", user?.id],
     queryFn: () => throttled(() => base44.entities.ControlRecord.list("-performed_at", 5000)),
@@ -277,83 +281,24 @@ export default function Dashboard() {
   }, [selectedMachine, allMachines, urlParams, controlPoints]);
 
   const getPointStatus = useCallback((point) => {
-    const pointRecords = records
-      .filter((r) => r.control_point_id === point.id)
-      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-    
-    // Check company settings
+    if (latestChecksLoading) return "loading";
     const machine = allMachines.find(m => m.id === point.machine_id);
     const line = allLines.find(l => l.id === machine?.line_id);
     const company = allCompanies.find(c => c.id === line?.company_id) || (line?.company_id === userCompany?.id ? userCompany : null);
-    
-    const vizType = company?.overdue_visualization_type || "two_colors";
-    const tolerance = company?.overdue_tolerance_percent || 4;
-
-    const interval = point.interval_hours || 0;
-
-    let lastPerformed;
-    if (pointRecords.length > 0 && point.first_confirmation_date) {
-        const lastRecordDate = new Date(pointRecords[0].performed_at);
-        const firstConfirmDate = new Date(point.first_confirmation_date);
-        lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
-    } else if (pointRecords.length > 0) {
-        lastPerformed = new Date(pointRecords[0].performed_at);
-    } else if (point.first_confirmation_date) {
-        lastPerformed = new Date(point.first_confirmation_date);
-    } else {
-        return vizType === "traffic_light" ? "critical" : "warning"; 
-    }
-
-    const now = new Date();
-    const hoursSince = getEffectiveHoursSince(lastPerformed, now, line?.excluded_days);
-
-    if (hoursSince <= interval) return "ok";
-    
-    if (vizType === "two_colors") {
-        return "warning"; // Yellow for overdue
-    } else {
-        // traffic_light
-        const overdueHours = hoursSince - interval;
-        const minYellowHours = (company?.min_yellow_window_minutes || 0) / 60;
-        
-        // Minimum time window overrides percentage for short intervals
-        if (overdueHours <= minYellowHours) {
-            return "warning"; // Yellow: within minimum window
-        }
-        
-        const overduePercent = (overdueHours / interval) * 100;
-        if (overduePercent <= tolerance) {
-            return "warning"; // Yellow: within percentage tolerance
-        } else {
-            return "critical"; // Red
-        }
-    }
-  }, [records, allMachines, allLines, allCompanies, userCompany]);
+    return getControlPointStatus(point, latestChecks[point.id], company, line?.excluded_days);
+  }, [latestChecks, latestChecksLoading, allMachines, allLines, allCompanies, userCompany]);
 
   const getNextControlDate = useCallback((point, overrideRecords) => {
-    // Prioritně použít overrideRecords (detailní pohled), jinak globální records
-    const sourceRecords = overrideRecords || records;
-    const pointRecords = sourceRecords
-      .filter(r => r.control_point_id === point.id)
-      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-    if (!point.interval_hours) return null;
-
-    let lastPerformed;
-    if (pointRecords.length > 0) {
-        // Máme záznamy - vzít nejnovější záznam (ignorujeme first_confirmation_date, protože záznamy mají vyšší prioritu)
-        lastPerformed = new Date(pointRecords[0].performed_at);
-    } else if (point.first_confirmation_date) {
-        // Žádné záznamy, ale máme datum prvního potvrzení
-        lastPerformed = new Date(point.first_confirmation_date);
-    } else {
-        // Nic nemáme - nezobrazovat
-        return null;
-    }
-
+    if (latestChecksLoading) return null;
+    const overrideLatest = overrideRecords
+      ?.filter(record => record.control_point_id === point.id)
+      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at))[0]?.performed_at;
+    const storedLatest = latestChecks[point.id];
+    const latest = overrideLatest && (!storedLatest || new Date(overrideLatest) > new Date(storedLatest)) ? overrideLatest : storedLatest;
     const machine = allMachines.find(m => m.id === point.machine_id);
     const line = allLines.find(l => l.id === machine?.line_id);
-    return getNextDueDate(lastPerformed, point.interval_hours, line?.excluded_days);
-  }, [records, allMachines, allLines]);
+    return getControlPointDueDate(point, latest, line?.excluded_days);
+  }, [latestChecks, latestChecksLoading, allMachines, allLines]);
 
   const activeCompanies = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
@@ -471,6 +416,10 @@ export default function Dashboard() {
   const demipIssues = (user?.user_type === "admin" || user?.user_type === "superAdmin")
     ? activeIssues
     : issues; // Use the useMemo 'issues' which is already filtered correctly by role.
+
+  if (viewMode === 'demip' && latestChecksLoading) {
+    return <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Načítání intervalů"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
 
   if (viewMode === 'demip') {
     if (selectedPoint) {
@@ -612,7 +561,7 @@ export default function Dashboard() {
         machines, points: admin ? activeControlPoints : controlPoints,
         records: admin ? activeRecords : records, issues: user?.user_type === "technician" ? [] : admin ? activeIssues : issues,
         getPointStatus, getUserDisplayName, overdue: overduePointsCount, monthlyRecords: totalRecordsThisMonthCount,
-        admin, superAdmin: user?.user_type === "superAdmin", loading: isLoadingAllLines || isLoadingLines || isLoadingMachines || isLoadingControlPoints,
+        admin, superAdmin: user?.user_type === "superAdmin", loading: isLoadingAllLines || isLoadingLines || isLoadingMachines || isLoadingControlPoints || latestChecksLoading,
       }}
       vibration={{ user, companies: vibrationCompanies, lines: vibrationLines, machines: vibrationMachines, vib, loading: isLoadingMachines || isLoadingAllLines || isLoadingLines }}
     />;

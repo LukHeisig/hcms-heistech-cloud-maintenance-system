@@ -6,7 +6,8 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tansta
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatMachineName } from "@/lib/utils";
-import { getEffectiveHoursSince } from "@/lib/intervalCalculations";
+import { getControlPointStatus } from "@/lib/controlPointIntervals";
+import useLatestControlChecks from "@/hooks/useLatestControlChecks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -211,18 +212,7 @@ export default function LineDetail() {
   }, [machines, controlPoints]);
 
   const pointIds = useMemo(() => controlPoints.map(point => point.id), [controlPoints]);
-  const { data: latestChecks = {}, isPending: latestChecksLoading } = useQuery({
-    queryKey: ["records", "lineLatest", lineId, pointIds],
-    queryFn: async () => {
-      const result = await base44.entities.ControlRecord.aggregate({
-        query: { control_point_id: { $in: pointIds } },
-        groupBy: "control_point_id", max: "performed_at", limit: 1000,
-      });
-      return Object.fromEntries(result.rows.map(row => [row.control_point_id, row.max_performed_at]));
-    },
-    enabled: pointIds.length > 0,
-    staleTime: 60000,
-  });
+  const { latestChecks, loading: latestChecksLoading } = useLatestControlChecks(pointIds, lineId);
   const activeIssueQuery = useMemo(() => ({
     status: { $in: ["reported", "work_order_created"] },
     $or: [{ machine_id: { $in: machineIds } }, { control_point_id: { $in: pointIds } }],
@@ -429,40 +419,7 @@ export default function LineDetail() {
 
   const getPointStatus = (point) => {
     if (latestChecksLoading) return "loading";
-    const latestPerformedAt = latestChecks[point.id];
-    
-    const vizType = company?.overdue_visualization_type || "two_colors";
-    const tolerance = company?.overdue_tolerance_percent || 4;
-    const interval = point.interval_hours || 0;
-
-    let lastPerformed;
-    if (latestPerformedAt && point.first_confirmation_date) {
-      const lastRecordDate = new Date(latestPerformedAt);
-      const firstConfirmDate = new Date(point.first_confirmation_date);
-      lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
-    } else if (latestPerformedAt) {
-      lastPerformed = new Date(latestPerformedAt);
-    } else if (point.first_confirmation_date) {
-      lastPerformed = new Date(point.first_confirmation_date);
-    } else {
-      return vizType === "traffic_light" ? "critical" : "warning";
-    }
-
-    const now = new Date();
-    const hoursSince = getEffectiveHoursSince(lastPerformed, now, line?.excluded_days);
-
-    if (hoursSince <= interval) return "ok";
-
-    if (vizType === "two_colors") {
-      return "warning";
-    } else {
-      const overduePercent = ((hoursSince - interval) / interval) * 100;
-      if (overduePercent <= tolerance) {
-        return "warning";
-      } else {
-        return "critical";
-      }
-    }
+    return getControlPointStatus(point, latestChecks[point.id], company, line?.excluded_days);
   };
 
   const overduePoints = useMemo(() => {

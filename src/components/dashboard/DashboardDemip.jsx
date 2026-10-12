@@ -9,7 +9,7 @@ export default function DashboardDemip({ companies, lines, machines, points, rec
   const summaries = [
     ...(admin ? [{ label: "Aktivní podniky", value: companies.length, icon: Building2 }] : []),
     { label: "Kontrolní body", value: points.length, icon: Droplet },
-    { label: "Po termínu", value: overdue, icon: AlertTriangle, danger: overdue > 0 },
+    { label: "Po termínu", value: loading ? "–" : overdue, icon: AlertTriangle, danger: !loading && overdue > 0 },
     { label: "Záznamů tento měsíc", value: monthlyRecords, icon: ClipboardCheck },
   ];
   return <>
