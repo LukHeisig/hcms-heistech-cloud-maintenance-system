@@ -8,8 +8,11 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { Sparkles, Wrench, Zap, Megaphone, Calendar } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/changelog/demipChangelog.css";
 
 export default function ChangelogPage() {
+  const { viewMode } = useViewMode();
   const { data: changelogs = [], isLoading } = useQuery({
     queryKey: ["changelogs"],
     queryFn: () => base44.entities.Changelog.list("-release_date", 100),
@@ -46,7 +49,7 @@ export default function ChangelogPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className={`${viewMode === "demip" ? "demip-changelog " : ""}max-w-4xl mx-auto p-6 space-y-8`}>
       <div className="text-center space-y-4 mb-12">
         <h1 className="text-4xl font-bold tracking-tight text-slate-900">Novinky a aktualizace</h1>
         <p className="text-lg text-slate-600">Sledujte, co je nového v aplikaci HCMS</p>
