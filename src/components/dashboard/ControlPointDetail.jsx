@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import DemipPointDetailHeader from "@/components/dashboard/DemipPointDetailHeader";
+import ControlPointActiveIssues from "@/components/dashboard/ControlPointActiveIssues";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertTriangle, ClipboardCheck, Activity, ArrowLeft, ChevronRight,
   FileText, Image as ImageIcon, Camera, Upload, X, Loader2, Pencil, CheckCircle2,
@@ -247,6 +249,13 @@ export default function ControlPointDetail({
         onEdit={() => { setEditingPoint(currentPoint); setNfcChipId(currentPoint.nfc_chip_id || ""); setShowEditPointDialog(true); }} />
 
       <div className="mx-auto w-full min-w-0 max-w-xl space-y-3 p-3">
+        <Tabs key={currentPoint.id} defaultValue="description" className="min-w-0 space-y-3">
+          <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 gap-1 bg-card p-1">
+            <TabsTrigger value="description" className="min-h-9 min-w-0 whitespace-normal px-2 text-xs">Popis</TabsTrigger>
+            <TabsTrigger value="history" className="min-h-9 min-w-0 whitespace-normal px-2 text-xs">Historie</TabsTrigger>
+            <TabsTrigger value="documentation" className="min-h-9 min-w-0 whitespace-normal px-2 text-xs">Dokumentace</TabsTrigger>
+          </TabsList>
+          <TabsContent value="description" className="min-w-0 space-y-3">
         <Card className="min-w-0 rounded-lg shadow-none">
           <CardContent className="min-w-0 space-y-1 p-3">
             {currentPoint.type === "lubrication" && (
@@ -302,6 +311,10 @@ export default function ControlPointDetail({
                 {isOverdue && <Badge className="bg-destructive px-1.5 text-xs text-destructive-foreground">Po termínu</Badge>}
               </div>
             </div>
+            <div className="min-w-0 border-t border-border py-2">
+              <p className="mb-1 text-xs leading-relaxed text-muted-foreground">Popis:</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{currentPoint.description || "Popis není vyplněn."}</p>
+            </div>
           </CardContent>
         </Card>
 
@@ -324,7 +337,12 @@ export default function ControlPointDetail({
             )}
           </Button>
         )}
-
+        <Button onClick={() => setShowIssueDialog(true)} className="h-auto min-h-11 w-full whitespace-normal bg-status-warning px-3 py-2 text-sm text-demip-brand-foreground shadow-none hover:bg-status-warning/90">
+          <AlertTriangle className="h-4 w-4 shrink-0" />Nahlásit závadu
+        </Button>
+        <ControlPointActiveIssues issues={pointIssues} getUserDisplayName={getUserDisplayName} />
+          </TabsContent>
+          <TabsContent value="history" className="min-w-0">
         <Card className="min-w-0 rounded-lg shadow-none">
           <CardHeader className="min-w-0 p-3 pb-2">
             <CardTitle className="text-sm font-semibold">
@@ -359,27 +377,8 @@ export default function ControlPointDetail({
           </CardContent>
         </Card>
 
-        {pointIssues.length > 0 && (
-          <Card className="min-w-0 rounded-lg border-status-warning/40 bg-status-warning/5 shadow-none">
-            <CardHeader className="min-w-0 p-3 pb-2">
-              <CardTitle className="flex flex-wrap items-center gap-2 text-sm font-semibold text-status-warning">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                Aktivní závady ({pointIssues.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 space-y-2">
-              {pointIssues.map((issue) => (
-                <div key={issue.id} className="bg-white p-3 rounded-lg border border-orange-200">
-                  <p className="text-sm text-slate-900 mb-1">{issue.description}</p>
-                  {issue.photo_url && <div className="mt-2"><img src={issue.photo_url} alt="Závada" className="max-h-24 object-contain rounded-md" /></div>}
-                  <p className="text-xs text-slate-500 mt-2">
-                    {format(new Date(issue.created_date), "d.M.yyyy HH:mm", { locale: cs })} • {getUserDisplayName(issue.created_by)}
-                  </p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+          </TabsContent>
+          <TabsContent value="documentation" className="min-w-0">
 
         <Card className="min-w-0 rounded-lg shadow-none">
           <CardHeader className="min-w-0 p-3 pb-2">
@@ -426,10 +425,8 @@ export default function ControlPointDetail({
           </CardContent>
         </Card>
 
-        <Button onClick={() => setShowIssueDialog(true)} className="h-auto min-h-11 w-full whitespace-normal bg-status-warning px-3 py-2 text-sm text-demip-brand-foreground shadow-none hover:bg-status-warning/90">
-          <AlertTriangle className="w-5 h-5 mr-2" />
-          Nahlásit závadu
-        </Button>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Dialogs */}

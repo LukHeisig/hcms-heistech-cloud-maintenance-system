@@ -22,7 +22,6 @@ export default function DemipPointDetailHeader({ point, machine, line, status, c
             <ChevronRight className="h-3 w-3 shrink-0" aria-hidden="true" />
             <span className="min-w-0">{machine ? formatMachineName(machine) : "Neznámý stroj"}</span>
           </div>
-          {point.description && <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">{point.description}</p>}
         </div>
         {canEdit && <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Upravit kontrolní bod" className="h-8 w-8 shrink-0"><Pencil className="h-4 w-4" /></Button>}
       </div>
