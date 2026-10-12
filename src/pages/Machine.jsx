@@ -421,8 +421,8 @@ export default function Machine() {
   const showMaintenance = isModuleEnabled(company, "enable_maintenance") && (maintenanceRecords.length > 0 || plannedMaintenance.length > 0);
   const showParts = isModuleEnabled(company, "enable_parts") && spareParts.length > 0;
   const showVibration = showVibrationModule && (viewMode === "demip" || !!machine?.vibration_schema_id);
-  const showThermo = isModuleEnabled(company, "enable_thermo");
-  const showTribo = isModuleEnabled(company, "enable_tribo");
+  const showThermo = isModuleEnabled(company, "enable_thermo") && machine?.monitor_thermo === true;
+  const showTribo = isModuleEnabled(company, "enable_tribo") && machine?.monitor_tribo === true;
   const showPredictive = isModuleEnabled(company, "enable_predictive");
 
   // Záložka z URL se otevře jen, pokud je její modul dostupný
@@ -1389,7 +1389,7 @@ export default function Machine() {
           </TabsContent>}
 
           {/* Termodiagnostika */}
-          <TabsContent value="thermo" className="space-y-6">
+          {showThermo && <TabsContent value="thermo" className="space-y-6">
              <div className="flex justify-end mb-4">
                  <Button 
                      onClick={() => { setEditingThermoJob(null); setShowThermoDialog(true); }} 
@@ -1404,17 +1404,17 @@ export default function Machine() {
                 jobs={thermoJobs} 
                 onEdit={(job) => { setEditingThermoJob(job); setShowThermoDialog(true); }}
              />
-          </TabsContent>
+          </TabsContent>}
 
           {/* Tribodiagnostika Placeholder */}
-          <TabsContent value="tribo" className="space-y-6">
+          {showTribo && <TabsContent value="tribo" className="space-y-6">
             <Card>
                 <CardContent className="p-12 text-center">
                     <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500">Modul Tribodiagnostika je aktivní, ale zatím nejsou data.</p>
                 </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>}
 
           {/* AI Prediktivní údržba */}
           <TabsContent value="predictive" className="space-y-6">
