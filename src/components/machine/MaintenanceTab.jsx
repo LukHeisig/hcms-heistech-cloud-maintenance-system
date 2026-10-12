@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import MaintenanceSectionTabs from "@/components/machine/MaintenanceSectionTabs";
 import PlannedMaintenanceCard from "@/components/machine/PlannedMaintenanceCard";
+import MaintenanceHistoryRow from "@/components/machine/MaintenanceHistoryRow";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar
@@ -231,16 +232,18 @@ export default function MaintenanceTab({
             <CardHeader className="min-w-0 border-b border-border p-3 md:p-6">
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                 <CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-snug md:text-2xl [&>svg]:shrink-0"><Wrench className="w-5 h-5 text-green-600" />Historie pracovních příkazů (WO)</CardTitle>
-                <Badge variant="outline" className="text-sm">{maintenanceRecords.length} záznamů</Badge>
+                <Badge variant="outline" className="shrink-0 px-1.5 text-[10px] md:px-2.5 md:text-sm">{maintenanceRecords.length} záznamů</Badge>
               </div>
             </CardHeader>
             <CardContent className="min-w-0 p-3 md:p-6">
               {maintenanceRecords.length === 0 ? (
-                <div className="text-center py-12"><Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" /><p className="text-slate-500 mb-2">Zatím nejsou záznamy o údržbě</p></div>
+                <div className="py-6 text-center md:py-12"><Wrench className="mx-auto mb-2 h-6 w-6 text-muted-foreground md:mb-4 md:h-16 md:w-16" /><p className="mb-2 text-xs text-muted-foreground md:text-sm">Zatím nejsou záznamy o údržbě</p></div>
               ) : (
                 <div className="min-w-0 space-y-2 md:space-y-3">
                   {maintenanceRecords.map((record) => (
-                    <Card key={record.id} className="border border-slate-200">
+                    <React.Fragment key={record.id}>
+                    <MaintenanceHistoryRow record={record} technicianName={getUserDisplayName(record.technician)} />
+                    <Card className="hidden border border-slate-200 md:block">
                       <CardContent className="min-w-0 p-3 md:p-4">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <Badge className={record.maintenance_type === "preventive" ? "bg-green-100 text-green-800" : record.maintenance_type === "corrective" ? "bg-orange-100 text-orange-800" : record.maintenance_type === "predictive" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"}>
@@ -258,6 +261,7 @@ export default function MaintenanceTab({
                         {record.notes && <p className="text-xs text-slate-500 mt-2 italic bg-slate-50 p-2 rounded">{record.notes}</p>}
                       </CardContent>
                     </Card>
+                    </React.Fragment>
                   ))}
                 </div>
               )}
