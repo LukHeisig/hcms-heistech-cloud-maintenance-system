@@ -1,12 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Droplet, ClipboardCheck, AlertTriangle, ArrowLeft } from "lucide-react";
-import { format } from "date-fns";
-import { cs } from "date-fns/locale";
+import { ArrowLeft } from "lucide-react";
+import DemipPointRow from "@/components/dashboard/DemipPointRow";
 
 export default function PointsList({
   selectedCompany,
@@ -44,7 +41,7 @@ export default function PointsList({
       const displayPoints = getDisplayPoints();
 
       return (
-      <div className="max-w-5xl mx-auto">
+      <div className="mx-auto w-full min-w-0 max-w-xl">
       <Button
         variant="ghost"
         onClick={() => {
@@ -54,23 +51,23 @@ export default function PointsList({
             : `Dashboard?line=${selectedLine}&category=${category}`;
           navigate(createPageUrl(url));
         }}
-        className="mb-4"
+        className="mb-3 h-9 px-2 text-sm"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Zpět na stroje
       </Button>
 
-      <h1 className="text-3xl font-bold text-slate-900 mb-2">
+      <h1 className="mb-2 text-xl font-bold text-foreground [overflow-wrap:anywhere]">
         {currentMachine?.name || "Stroj"}
       </h1>
-      <p className="text-slate-600 mb-6">{currentLine?.name || "Linka"}</p>
+      <p className="mb-4 text-sm text-muted-foreground [overflow-wrap:anywhere]">{currentLine?.name || "Linka"}</p>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto">
+      <div className="mb-4 grid min-w-0 grid-cols-3 gap-1">
         {categoryParam === "prevention" ? (
           <Button
             onClick={() => setActiveTab("prevention")}
             variant={activeTab === "prevention" ? "default" : "outline"}
-            className={activeTab === "prevention" ? "bg-blue-600 text-white" : ""}
+            className={`col-span-3 min-w-0 px-1 text-xs ${activeTab === "prevention" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
           >
             Prevence ({preventionPoints.length})
           </Button>
@@ -79,21 +76,21 @@ export default function PointsList({
             <Button
               onClick={() => setActiveTab("lubrication")}
               variant={activeTab === "lubrication" ? "default" : "outline"}
-              className={activeTab === "lubrication" ? "bg-blue-600 text-white" : ""}
+              className={`min-w-0 px-1 text-xs ${activeTab === "lubrication" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
             >
               Mazání ({lubricationPoints.length})
             </Button>
             <Button
               onClick={() => setActiveTab("inspection")}
               variant={activeTab === "inspection" ? "default" : "outline"}
-              className={activeTab === "inspection" ? "bg-blue-600 text-white" : ""}
+              className={`min-w-0 px-1 text-xs ${activeTab === "inspection" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
             >
               Inspekce ({inspectionPoints.length})
             </Button>
             <Button
               onClick={() => setActiveTab("lubricator")}
               variant={activeTab === "lubricator" ? "default" : "outline"}
-              className={activeTab === "lubricator" ? "bg-blue-600 text-white" : ""}
+              className={`min-w-0 px-1 text-xs ${activeTab === "lubricator" ? "bg-demip-brand text-demip-brand-foreground" : ""}`}
             >
               Maznice ({lubricatorPoints.length})
             </Button>
@@ -101,15 +98,11 @@ export default function PointsList({
         )}
       </div>
 
-      <Card className="shadow-lg">
-        <CardContent className="p-0">
+      <div className="min-w-0">
           {displayPoints.length === 0 ? (
-            <div className="p-12 text-center">
-              <Droplet className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">Žádné body v této kategorii</p>
-            </div>
+            <p className="rounded-lg border border-border bg-card p-4 text-center text-sm text-muted-foreground">Žádné body v této kategorii</p>
           ) : (
-            <div className="divide-y divide-slate-200">
+            <div className="space-y-2">
               {displayPoints.map((point) => {
                 const pointRecords = records
                   .filter(r => r.control_point_id === point.id)
@@ -118,98 +111,21 @@ export default function PointsList({
 
                 const status = getPointStatus(point);
                 const nextDate = getNextControlDate(point, pointRecords);
-                const isWarning = status === "warning";
-                const isCritical = status === "critical" || status === "overdue";
                 const pointIssues = demipIssues.filter(i => i.control_point_id === point.id);
-
-                let bgClass = "";
-                if (isCritical) bgClass = "bg-red-50/50";
-                else if (isWarning) bgClass = "bg-yellow-50/50";
-
-                let iconBgClass = "bg-green-100";
-                if (isCritical) iconBgClass = "bg-red-100";
-                else if (isWarning) iconBgClass = "bg-yellow-100";
-
-                let iconColorClass = "text-green-700";
-                if (isCritical) iconColorClass = "text-red-700";
-                else if (isWarning) iconColorClass = "text-yellow-700";
-
-                let dotClass = "bg-green-500";
-                if (isCritical) dotClass = "bg-red-500";
-                else if (isWarning) dotClass = "bg-yellow-500";
-
-                let textClass = "text-green-700";
-                if (isCritical) textClass = "text-red-700";
-                else if (isWarning) textClass = "text-yellow-700";
-
                 return (
-                  <div
-                    key={point.id}
-                    className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${bgClass}`}
-                    onClick={() => {
+                  <DemipPointRow key={point.id} point={point} lastRecord={lastRecord} nextDate={nextDate}
+                    status={status} hasIssues={pointIssues.length > 0}
+                    onSelect={id => {
                       const url = selectedCompany
-                        ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&point=${point.id}&category=${categoryParam}`
-                        : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&point=${point.id}&category=${categoryParam}`;
+                        ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&point=${id}&category=${categoryParam}`
+                        : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&point=${id}&category=${categoryParam}`;
                       navigate(createPageUrl(url));
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBgClass}`}>
-                          {point.type === "inspection" || point.type === "prevention" ? (
-                            <ClipboardCheck className={`w-4 h-4 ${iconColorClass}`} />
-                          ) : (
-                            <Droplet className={`w-4 h-4 ${iconColorClass}`} />
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-slate-900 text-sm">
-                              {point.number && `${point.number} - `}{point.name}
-                            </h3>
-                            {pointIssues.length > 0 && (
-                              <Badge className="bg-orange-500 text-white text-xs">
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                Závada
-                              </Badge>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-4 text-xs text-slate-600">
-                            {point.interval_hours && (
-                              <span>Interval: {point.interval_hours}h</span>
-                            )}
-                            {lastRecord && (
-                              <>
-                                <span>·</span>
-                                <span>Poslední: {format(new Date(lastRecord.performed_at), "d.M. HH:mm", { locale: cs })}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {nextDate && (
-                          <div className="text-right">
-                            <p className="text-xs text-slate-500 mb-1">Následující kontrola</p>
-                            <p className={`text-sm font-bold ${textClass}`}>
-                              {format(nextDate, "d.M. yyyy", { locale: cs })}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${dotClass}`} />
-                      </div>
-                    </div>
-                  </div>
+                    }} />
                 );
-              })}
+                })}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }
