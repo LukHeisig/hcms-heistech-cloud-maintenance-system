@@ -53,8 +53,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/admin/demipAdmin.css";
+import "@/components/admin/demipAdminStructure.css";
 
 export default function AdminMachines() {
+  const { viewMode } = useViewMode();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
@@ -421,7 +425,7 @@ export default function AdminMachines() {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={`${viewMode === "demip" ? "demip-admin admin-structure " : ""}p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <Button
@@ -434,7 +438,7 @@ export default function AdminMachines() {
           </Button>
 
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
+          <div className="admin-structure-breadcrumb flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
             <Building2 className="w-4 h-4" />
             <button
               onClick={() => navigate(createPageUrl("AdminCompanies"))}
@@ -502,7 +506,7 @@ export default function AdminMachines() {
                   key={machine.id}
                   className="hover:shadow-lg transition-all border-2 border-slate-200 hover:border-slate-300"
                 >
-                  <CardContent className="p-6">
+                  <CardContent className="admin-machine-entry p-6">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-1 flex flex-col gap-1">
                         <Button
@@ -609,7 +613,7 @@ export default function AdminMachines() {
               )}
 
         <Dialog open={showMachineDialog} onOpenChange={setShowMachineDialog}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className={`max-w-2xl ${viewMode === "demip" ? "demip-admin-structure-dialog" : ""}`}>
             <DialogHeader>
               <DialogTitle>
                 {editingMachine ? "Upravit stroj" : "Nový stroj"}
@@ -836,7 +840,7 @@ export default function AdminMachines() {
 
         {/* Dialog pro kopírování stroje */}
         <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
-          <DialogContent>
+          <DialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <DialogHeader>
               <DialogTitle>Kopírovat stroj</DialogTitle>
               <DialogDescription>

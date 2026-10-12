@@ -1,0 +1,44 @@
+/* Extend the Administration compact style for its line and machine pages. */
+@media (max-width: 767px) {
+  .demip-admin.admin-structure { padding: 12px; }
+  .demip-admin.admin-structure > div { padding: 0; }
+  .demip-admin .admin-structure-breadcrumb { flex-wrap: wrap; gap: 4px; margin-top: 8px; font-size: 12px; }
+  .demip-admin .admin-structure-breadcrumb svg { flex-shrink: 0; width: 14px; height: 14px; }
+  .demip-admin .admin-structure-breadcrumb button:not([role="tab"]):not([role="switch"]):not([role="checkbox"]) {
+    min-height: 24px; padding: 0; text-align: left;
+  }
+  .demip-admin .admin-line-entry > .flex,
+  .demip-admin .admin-machine-entry > .flex {
+    display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px;
+  }
+  .demip-admin :is(.admin-line-entry, .admin-machine-entry) > .flex > div:first-child { margin-top: 0; }
+  .demip-admin :is(.admin-line-entry, .admin-machine-entry) button[class~="w-6"] { width: 30px; height: 34px; }
+  .demip-admin :is(.admin-line-entry, .admin-machine-entry) button[class~="w-9"] { width: 34px; height: 34px; }
+  .demip-admin .admin-line-entry .flex[class~="justify-between"] { align-items: flex-start; gap: 6px; }
+  .demip-admin .admin-line-entry .flex[class~="mb-3"] { margin-bottom: 8px; }
+  .demip-admin .admin-line-entry .flex[class~="text-sm"] { flex-wrap: wrap; font-size: 12px; gap: 4px 8px; }
+  .demip-admin .admin-line-entry .flex[class~="justify-between"] > .flex[class~="gap-2"] { gap: 2px; margin-left: auto; }
+  .demip-admin .admin-machine-entry > .flex > div:first-child { grid-row: 1 / span 2; }
+  .demip-admin .admin-machine-entry > .flex > div:nth-child(2) { grid-column: 2; }
+  .demip-admin .admin-machine-entry > .flex > div:nth-child(2) > .flex { flex-wrap: wrap; gap: 4px; }
+  .demip-admin .admin-machine-entry > .flex > div:last-child {
+    grid-column: 2; flex-wrap: wrap; justify-content: flex-end; gap: 2px;
+  }
+  .demip-admin .admin-machine-entry .text-xs[class~="border"] { font-size: 10px; padding: 2px 5px; }
+  .demip-admin .admin-machine-entry p[class~="mb-3"] { margin-bottom: 6px; }
+  .demip-admin-structure-dialog {
+    width: calc(100% - 24px); max-height: 90dvh; overflow-y: auto; padding: 16px; gap: 12px;
+  }
+  .demip-admin-structure-dialog :where(div) { min-width: 0; }
+  .demip-admin-structure-dialog h2 { font-size: 18px; line-height: 1.3; }
+  .demip-admin-structure-dialog p, .demip-admin-structure-dialog label,
+  .demip-admin-structure-dialog li { font-size: 12px; line-height: 1.4; }
+  .demip-admin-structure-dialog input, .demip-admin-structure-dialog textarea { font-size: 16px; }
+  .demip-admin-structure-dialog input { min-width: 0; height: 36px; }
+  .demip-admin-structure-dialog [class~="grid-cols-2"] { grid-template-columns: minmax(0, 1fr); }
+  .demip-admin-structure-dialog [class~="gap-4"] { gap: 8px; }
+  .demip-admin-structure-dialog [class~="space-y-4"] > :not([hidden]) ~ :not([hidden]) { margin-top: 10px; }
+  .demip-admin-structure-dialog [class~="py-4"] { padding-top: 8px; padding-bottom: 8px; }
+  .demip-admin-structure-dialog [class~="p-4"] { padding: 10px; }
+  .demip-admin-structure-dialog button:not([role="checkbox"]) { font-size: 12px; white-space: normal; }
+}

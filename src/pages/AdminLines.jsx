@@ -48,6 +48,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/admin/demipAdmin.css";
+import "@/components/admin/demipAdminStructure.css";
 
 const WEEK_DAYS = [
   { value: 1, label: "Po" },
@@ -60,6 +63,7 @@ const WEEK_DAYS = [
 ];
 
 export default function AdminLines() {
+  const { viewMode } = useViewMode();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
@@ -327,7 +331,7 @@ export default function AdminLines() {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={`${viewMode === "demip" ? "demip-admin admin-structure " : ""}p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <Button
@@ -340,7 +344,7 @@ export default function AdminLines() {
           </Button>
 
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 mt-4">
+          <div className="admin-structure-breadcrumb flex items-center gap-2 text-sm text-slate-600 mb-4 mt-4">
             <Building2 className="w-4 h-4" />
             <button
               onClick={() => navigate(createPageUrl("AdminCompanies"))}
@@ -402,7 +406,7 @@ export default function AdminLines() {
                   key={line.id}
                   className="hover:shadow-lg transition-all border-2 border-slate-200 hover:border-slate-300"
                 >
-                  <CardContent className="p-6">
+                  <CardContent className="admin-line-entry p-6">
                     <div className="flex items-start gap-4">
                       <div className="flex-shrink-0 mt-1 flex flex-col gap-1">
                         <Button
@@ -494,7 +498,7 @@ export default function AdminLines() {
 
         {/* Dialog pro vytvoření/editaci linky */}
         <Dialog open={showLineDialog} onOpenChange={setShowLineDialog}>
-          <DialogContent>
+          <DialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <DialogHeader>
               <DialogTitle>
                 {editingLine ? "Upravit linku" : "Nová linka"}
@@ -605,7 +609,7 @@ export default function AdminLines() {
 
         {/* Dialog pro kopírování linky */}
         <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
-          <DialogContent>
+          <DialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <DialogHeader>
               <DialogTitle>Kopírovat linku</DialogTitle>
               <DialogDescription>
