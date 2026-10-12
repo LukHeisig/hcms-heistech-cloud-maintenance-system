@@ -435,7 +435,7 @@ export default function Machine() {
     urlParams.get("tab") || "overview";
   const tabAllowed = {
     "control-points": showDemip, "maintenance": showMaintenance, "spare-parts": showParts,
-    "vibro-diag": showVibration, "alerts-history": showVibrationModule, "thermo": showThermo,
+    "vibro-diag": showVibration, "alerts-history": showVibration, "thermo": showThermo,
     "tribo": showTribo, "predictive": showPredictive,
   };
   const initialTab = tabAllowed[requestedTab] === false ? "overview" : requestedTab;
@@ -769,7 +769,7 @@ export default function Machine() {
               </TabsTrigger>
             )}
 
-            {showVibrationModule && (
+            {showVibration && (
               <TabsTrigger value="alerts-history" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4" />
                 <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Alarmy</span>
@@ -1658,9 +1658,9 @@ export default function Machine() {
           </TabsContent>
 
           {/* Historie alarmů */}
-          <TabsContent value="alerts-history" className="space-y-4">
+          {showVibration && <TabsContent value="alerts-history" className="space-y-4">
             <MachineAlertsHistory machineId={machineId} />
-          </TabsContent>
+          </TabsContent>}
 
           {/* Statistiky */}
           <TabsContent value="statistics" className="space-y-6">
