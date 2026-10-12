@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import DemipPointRow from "@/components/dashboard/DemipPointRow";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
@@ -559,7 +560,7 @@ export default function Machine() {
     }
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-2 md:space-y-0 md:rounded-lg md:border md:border-border md:bg-card md:px-4 md:pb-3">
         {points.map((point) => {
           const status = getPointStatus(point);
           const pointRecords = records
@@ -568,90 +569,11 @@ export default function Machine() {
           const pointIssues = issues.filter(i => i.control_point_id === point.id && i.status === "reported");
           const nextDate = getNextControlDate(point);
 
-          const isCritical = status === "critical";
-          const isWarning = status === "warning" || status === "overdue";
-          
           return (
-            <Card
-              key={point.id}
-              className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
-                isCritical ? "border-l-red-500 bg-red-50/50" :
-                isWarning ? "border-l-yellow-500 bg-yellow-50/50" :
-                "border-l-green-500 bg-green-50/50"
-              }`}
-              onClick={() => navigate(createPageUrl(`ControlPoint?id=${point.id}`))}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      isCritical ? "bg-red-100" :
-                      isWarning ? "bg-yellow-100" : "bg-green-100"
-                    }`}>
-                      {type === "lubrication" ? (
-                        <Droplet className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
-                      ) : type === "inspection" || type === "prevention" ? (
-                        <ClipboardCheck className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
-                      ) : (
-                        <Droplet className={`w-5 h-5 ${isCritical ? "text-red-700" : isWarning ? "text-yellow-700" : "text-green-700"}`} />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-slate-900 text-base">
-                          {point.number && `${point.number} - `}{point.name}
-                        </h3>
-                        {isWarning && (
-                          <Badge variant="outline" className="gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Po termínu
-                          </Badge>
-                        )}
-                        {isCritical && (
-                          <Badge variant="outline" className="gap-1 bg-red-100 text-red-800 border-red-300">
-                            <Clock className="w-3 h-3 mr-1" />
-                            KRITICKÉ
-                          </Badge>
-                        )}
-                        {pointIssues.length > 0 && (
-                          <Badge className="bg-orange-500 text-white">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            {pointIssues.length}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-1 text-sm text-slate-600">
-                        <div className="flex items-center gap-4 flex-wrap">
-                          {point.interval_hours && (
-                            <span>Interval: {point.interval_hours}h</span>
-                          )}
-                          {pointRecords.length > 0 && (
-                            <>
-                              <span className="hidden sm:inline">·</span>
-                              <span>
-                                Poslední: {format(new Date(pointRecords[0].performed_at), "d.M. HH:mm", { locale: cs })}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        {nextDate && (
-                          <span className={isCritical ? "text-red-700 font-medium" : isWarning ? "text-yellow-700 font-medium" : "text-slate-600"}>
-                            Následující: {format(nextDate, "d.M. yyyy", { locale: cs })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      isCritical ? "bg-red-500" :
-                      isWarning ? "bg-yellow-500" : "bg-green-500"
-                    }`} />
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <DemipPointRow key={point.id} point={point} status={status}
+              lastRecord={pointRecords[0]} nextDate={nextDate}
+              hasIssues={pointIssues.length > 0} issueCount={pointIssues.length}
+              onSelect={id => navigate(createPageUrl(`ControlPoint?id=${id}`))} />
           );
         })}
       </div>

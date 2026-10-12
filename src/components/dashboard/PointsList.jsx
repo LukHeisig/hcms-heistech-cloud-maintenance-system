@@ -103,7 +103,7 @@ export default function PointsList({
           {displayPoints.length === 0 ? (
             <p className="rounded-lg border border-border bg-card p-4 text-center text-sm text-muted-foreground">Žádné body v této kategorii</p>
           ) : (
-            <div className="equipment-selection-list space-y-2">
+            <div className="space-y-2 md:space-y-0 md:rounded-lg md:border md:border-border md:bg-card md:px-4 md:pb-3">
               {displayPoints.map((point) => {
                 const pointRecords = records
                   .filter(r => r.control_point_id === point.id)
