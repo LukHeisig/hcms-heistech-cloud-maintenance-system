@@ -423,7 +423,7 @@ export default function Machine() {
   const showVibration = showVibrationModule && (viewMode === "demip" || !!machine?.vibration_schema_id);
   const showThermo = isModuleEnabled(company, "enable_thermo") && machine?.monitor_thermo === true;
   const showTribo = isModuleEnabled(company, "enable_tribo") && machine?.monitor_tribo === true;
-  const showPredictive = isModuleEnabled(company, "enable_predictive");
+  const showPredictive = isModuleEnabled(company, "enable_predictive") && showVibration;
 
   // Záložka z URL se otevře jen, pokud je její modul dostupný
   const requestedTab =
@@ -1417,7 +1417,7 @@ export default function Machine() {
           </TabsContent>}
 
           {/* AI Prediktivní údržba */}
-          <TabsContent value="predictive" className="space-y-6">
+          {showPredictive && <TabsContent value="predictive" className="space-y-6">
             <Card className="border-none shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-32 bg-cyan-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
                 <div className="absolute bottom-0 left-0 p-32 bg-purple-500/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
@@ -1655,7 +1655,7 @@ export default function Machine() {
                     </CardContent>
                 </Card>
             )}
-          </TabsContent>
+          </TabsContent>}
 
           {/* Historie alarmů */}
           {showVibration && <TabsContent value="alerts-history" className="space-y-4">
