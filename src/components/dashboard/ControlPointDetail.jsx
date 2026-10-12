@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { formatMachineName } from "@/lib/utils";
+import DemipPointDetailHeader from "@/components/dashboard/DemipPointDetailHeader";
 import {
   AlertTriangle, ClipboardCheck, Activity, ArrowLeft, ChevronRight,
   FileText, Image as ImageIcon, Camera, Upload, X, Loader2, Pencil, CheckCircle2,
@@ -234,58 +234,30 @@ export default function ControlPointDetail({
   const lastRecord = pointRecords[0];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
-        <div className="max-w-5xl mx-auto p-4">
-          <Button
-            variant="ghost" size="sm"
-            onClick={() => {
-              const category = urlParams.get('category') || activeTab;
-              const url = selectedCompany
-                ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&category=${category}`
-                : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&category=${category}`;
-              navigate(createPageUrl(url));
-            }}
-            className="text-white hover:bg-white/20 mb-3"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Zpět na kontrolní body
-          </Button>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-xl font-bold leading-tight mb-1">
-                {currentPoint.number && `${currentPoint.number} - `}{currentPoint.name}
-              </h1>
-              <div className="flex items-center gap-2 text-xs text-blue-100 mt-1 mb-2 opacity-90">
-                <span>{currentLineForPoint?.name || "Neznámá linka"}</span>
-                <ChevronRight className="w-3 h-3" />
-                <span>{currentMachineForPoint ? formatMachineName(currentMachineForPoint) : "Neznámý stroj"}</span>
-              </div>
-              {currentPoint.description && (
-                <p className="text-sm text-blue-100 opacity-90">{currentPoint.description}</p>
-              )}
-            </div>
-            {canEdit && (
-              <Button variant="ghost" size="icon" onClick={() => { setEditingPoint(currentPoint); setNfcChipId(currentPoint.nfc_chip_id || ""); setShowEditPointDialog(true); }} className="text-white hover:bg-white/20 flex-shrink-0">
-                <Pencil className="w-5 h-5" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className="w-full min-w-0 text-sm text-foreground [overflow-wrap:anywhere]">
+      <DemipPointDetailHeader point={currentPoint} machine={currentMachineForPoint} line={currentLineForPoint}
+        status={status} canEdit={canEdit}
+        onBack={() => {
+          const category = urlParams.get('category') || activeTab;
+          const url = selectedCompany
+            ? `Dashboard?company=${selectedCompany}&line=${selectedLine}&machine=${selectedMachine}&category=${category}`
+            : `Dashboard?line=${selectedLine}&machine=${selectedMachine}&category=${category}`;
+          navigate(createPageUrl(url));
+        }}
+        onEdit={() => { setEditingPoint(currentPoint); setNfcChipId(currentPoint.nfc_chip_id || ""); setShowEditPointDialog(true); }} />
 
-      <div className="max-w-5xl mx-auto p-3 md:p-6 space-y-3 md:space-y-4">
-        <Card className="shadow-lg">
-          <CardContent className="p-3 md:p-6 space-y-2">
+      <div className="mx-auto w-full min-w-0 max-w-xl space-y-3 p-3">
+        <Card className="min-w-0 rounded-lg shadow-none">
+          <CardContent className="min-w-0 space-y-1 p-3">
             {currentPoint.type === "lubrication" && (
               <>
-                <div className="flex items-center justify-between py-2 border-b border-slate-200">
-                  <span className="text-sm text-slate-600">Typ maziva:</span>
-                  <span className="font-semibold text-slate-900">{currentPoint.lubricant_type || "-"}</span>
+                <div className="grid min-w-0 grid-cols-2 items-start gap-3 border-b border-border py-2">
+                  <span className="text-xs leading-relaxed text-muted-foreground">Typ maziva:</span>
+                  <span className="min-w-0 text-right text-sm font-semibold text-foreground">{currentPoint.lubricant_type || "-"}</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-slate-200">
-                  <span className="text-sm text-slate-600">Množství pro doplnění:</span>
-                  <span className="font-semibold text-slate-900">{currentPoint.lubricant_amount ? `${currentPoint.lubricant_amount} g` : "-"}</span>
+                <div className="grid min-w-0 grid-cols-2 items-start gap-3 border-b border-border py-2">
+                  <span className="text-xs leading-relaxed text-muted-foreground">Množství pro doplnění:</span>
+                  <span className="min-w-0 text-right text-sm font-semibold text-foreground">{currentPoint.lubricant_amount ? `${currentPoint.lubricant_amount} g` : "-"}</span>
                 </div>
               </>
             )}
@@ -303,31 +275,31 @@ export default function ControlPointDetail({
                     <p className="text-sm text-slate-900 whitespace-pre-wrap">{currentPoint.inspection_tasks}</p>
                   </div>
                 )}
-                <div className="flex items-center justify-between py-2 border-b border-slate-200">
-                  <span className="text-sm text-slate-600">Časový interval:</span>
-                  <span className="font-semibold text-slate-900">{formatInterval(currentPoint.interval_hours)}</span>
+                <div className="grid min-w-0 grid-cols-2 items-start gap-3 border-b border-border py-2">
+                  <span className="text-xs leading-relaxed text-muted-foreground">Časový interval:</span>
+                  <span className="min-w-0 text-right text-sm font-semibold text-foreground">{formatInterval(currentPoint.interval_hours)}</span>
                 </div>
               </>
             )}
-            <div className="flex items-center justify-between py-2 border-b border-slate-200">
-              <span className="text-sm text-slate-600">
+            <div className="grid min-w-0 grid-cols-2 items-start gap-3 border-b border-border py-2">
+              <span className="text-xs leading-relaxed text-muted-foreground">
                 Naposledy {currentPoint.type === "lubrication" ? "mazáno" : "kontrolováno"}:
               </span>
-              <span className="font-semibold text-slate-900 text-right">
+              <span className="min-w-0 text-right text-sm font-semibold text-foreground">
                 {lastRecord ? format(new Date(lastRecord.performed_at), "d.M.yyyy HH:mm", { locale: cs }) : "Dosud neprovedeno"}
               </span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-slate-200">
-              <span className="text-sm text-slate-600">Interval:</span>
-              <span className="font-semibold text-slate-900">{formatInterval(currentPoint.interval_hours)}</span>
+            <div className="grid min-w-0 grid-cols-2 items-start gap-3 border-b border-border py-2">
+              <span className="text-xs leading-relaxed text-muted-foreground">Interval:</span>
+              <span className="min-w-0 text-right text-sm font-semibold text-foreground">{formatInterval(currentPoint.interval_hours)}</span>
             </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm text-slate-600">Datum další kontroly:</span>
-              <div className="text-right">
-                <span className={`font-bold text-lg ${isOverdue ? "text-red-600" : "text-green-600"}`}>
+            <div className="grid min-w-0 grid-cols-2 items-start gap-3 py-2">
+              <span className="text-xs leading-relaxed text-muted-foreground">Datum další kontroly:</span>
+              <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 text-right">
+                <span className={`text-sm font-semibold ${isOverdue ? "text-status-danger" : "text-status-success"}`}>
                   {nextDate ? format(nextDate, "d.M.yyyy", { locale: cs }) : "-"}
                 </span>
-                {isOverdue && <Badge className="ml-2 bg-red-600 text-white text-xs">Po termínu</Badge>}
+                {isOverdue && <Badge className="bg-destructive px-1.5 text-xs text-destructive-foreground">Po termínu</Badge>}
               </div>
             </div>
           </CardContent>
@@ -335,27 +307,27 @@ export default function ControlPointDetail({
 
         {/* Confirm button */}
         {confirmSuccess ? (
-          <div className="w-full h-14 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-xl text-lg font-semibold rounded-md flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-status-success px-3 py-2 text-sm font-semibold text-demip-brand-foreground">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             Potvrzeno a uloženo
           </div>
         ) : shouldShowConfirmButton && (
           <Button
             onClick={handleConfirmControl}
             disabled={isConfirmingControl}
-            className="w-full h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-xl text-lg font-semibold"
+            className="h-auto min-h-11 w-full whitespace-normal bg-status-success px-3 py-2 text-sm font-semibold text-demip-brand-foreground shadow-none hover:bg-status-success/90"
           >
             {isConfirmingControl ? (
-              <><Loader2 className="w-6 h-6 mr-2 animate-spin" />Ukládání...</>
+              <><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Ukládání...</>
             ) : (
-              <><ClipboardCheck className="w-6 h-6 mr-2" />Potvrdit kontrolu</>
+              <><ClipboardCheck className="h-4 w-4 shrink-0" />Potvrdit kontrolu</>
             )}
           </Button>
         )}
 
-        <Card className="shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base md:text-lg">
+        <Card className="min-w-0 rounded-lg shadow-none">
+          <CardHeader className="min-w-0 p-3 pb-2">
+            <CardTitle className="text-sm font-semibold">
               Historie {currentPoint.type === "lubrication" ? "mazání" : "kontrol"}
             </CardTitle>
           </CardHeader>
@@ -366,11 +338,11 @@ export default function ControlPointDetail({
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {pointRecords.map((record) => (
                   <div key={record.id} className={`p-3 rounded-lg transition-all ${record.id?.startsWith('optimistic-') ? 'bg-green-50 border border-green-200' : 'bg-slate-50'}`}>
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="mb-1 flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1">
                       <span className="font-semibold text-slate-900 text-sm">
                         {format(new Date(record.performed_at), "d.M.yyyy HH:mm", { locale: cs })}
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
                         {record.id?.startsWith('optimistic-') && (
                           <span className="text-xs text-green-600 font-medium flex items-center gap-1">
                             <Loader2 className="w-3 h-3 animate-spin" /> Ukládám...
@@ -379,7 +351,7 @@ export default function ControlPointDetail({
                         <span className="text-xs text-slate-600">{getUserDisplayName(record.created_by)}</span>
                       </div>
                     </div>
-                    {record.note && <p className="text-sm text-slate-600">{record.note}</p>}
+                    {record.note && <p className="text-xs leading-relaxed text-muted-foreground">{record.note}</p>}
                   </div>
                 ))}
               </div>
@@ -388,10 +360,10 @@ export default function ControlPointDetail({
         </Card>
 
         {pointIssues.length > 0 && (
-          <Card className="shadow-lg border-2 border-orange-300 bg-orange-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base md:text-lg text-orange-900 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 md:w-5 md:h-5" />
+          <Card className="min-w-0 rounded-lg border-status-warning/40 bg-status-warning/5 shadow-none">
+            <CardHeader className="min-w-0 p-3 pb-2">
+              <CardTitle className="flex flex-wrap items-center gap-2 text-sm font-semibold text-status-warning">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
                 Aktivní závady ({pointIssues.length})
               </CardTitle>
             </CardHeader>
@@ -409,11 +381,11 @@ export default function ControlPointDetail({
           </Card>
         )}
 
-        <Card className="shadow-lg">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base md:text-lg flex items-center gap-2">
-                <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+        <Card className="min-w-0 rounded-lg shadow-none">
+          <CardHeader className="min-w-0 p-3 pb-2">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+              <CardTitle className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                <FileText className="h-4 w-4 shrink-0 text-demip-brand" />
                 Dokumentace
               </CardTitle>
               <div className="flex gap-2">
@@ -429,7 +401,7 @@ export default function ControlPointDetail({
             </div>
           </CardHeader>
           <CardContent className="p-3">
-            {isUploading && <div className="flex items-center justify-center py-6 bg-slate-50 rounded-lg mb-3"><Loader2 className="w-5 h-5 animate-spin text-slate-400 mr-2" /><span className="text-sm text-slate-600">Nahrávání...</span></div>}
+            {isUploading && <div className="flex items-center justify-center py-6 bg-slate-50 rounded-lg mb-3"><Loader2 className="w-5 h-5 animate-spin text-slate-400 mr-2" /><span className="text-xs leading-relaxed text-muted-foreground">Nahrávání...</span></div>}
             {documentation.length === 0 && !isUploading ? (
               <div className="text-center py-8 bg-slate-50 rounded-lg">
                 <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-2" />
@@ -454,7 +426,7 @@ export default function ControlPointDetail({
           </CardContent>
         </Card>
 
-        <Button onClick={() => setShowIssueDialog(true)} className="w-full h-12 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-lg">
+        <Button onClick={() => setShowIssueDialog(true)} className="h-auto min-h-11 w-full whitespace-normal bg-status-warning px-3 py-2 text-sm text-demip-brand-foreground shadow-none hover:bg-status-warning/90">
           <AlertTriangle className="w-5 h-5 mr-2" />
           Nahlásit závadu
         </Button>
@@ -462,7 +434,7 @@ export default function ControlPointDetail({
 
       {/* Dialogs */}
       <Dialog open={showDocPreviewDialog} onOpenChange={setShowDocPreviewDialog}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+        <DialogContent className="flex h-[90vh] max-w-[calc(100vw-2rem)] flex-col p-0 text-sm [overflow-wrap:anywhere] sm:max-w-4xl">
           <DialogHeader className="p-4 border-b">
             <DialogTitle>{selectedDocPreview?.file_name}</DialogTitle>
             <DialogDescription>
@@ -502,16 +474,16 @@ export default function ControlPointDetail({
       </AlertDialog>
 
       <Dialog open={showEditPointDialog} onOpenChange={setShowEditPointDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-[calc(100vw-2rem)] text-sm [overflow-wrap:anywhere] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Pencil className="w-5 h-5 text-blue-600" />Upravit kontrolní bod</DialogTitle>
+            <DialogTitle className="flex min-w-0 flex-wrap items-center gap-2"><Pencil className="w-5 h-5 text-blue-600" />Upravit kontrolní bod</DialogTitle>
             <DialogDescription>{editingPoint?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="nfc_chip_id">NFC čip ID</Label>
               <div className="flex gap-2 mt-2">
-                <Input id="nfc_chip_id" value={nfcChipId} onChange={(e) => setNfcChipId(e.target.value)} placeholder="Zadejte nebo naskenujte ID čipu" className="flex-1" />
+                <Input id="nfc_chip_id" value={nfcChipId} onChange={(e) => setNfcChipId(e.target.value)} placeholder="Zadejte nebo naskenujte ID čipu" className="min-w-0 flex-1 text-sm" />
                 <Button onClick={handleNfcScan} disabled={isScanning || !nfcSupported} variant="outline" className="flex-shrink-0">
                   {isScanning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Skenování...</> : <><Activity className="w-4 h-4 mr-2" />Skenovat</>}
                 </Button>
@@ -529,7 +501,7 @@ export default function ControlPointDetail({
       </Dialog>
 
       <Dialog open={showIssueDialog} onOpenChange={(isOpen) => { setShowIssueDialog(isOpen); if (!isOpen) { setIssueDescription(""); setIssueDepartment(""); setIssuePhoto(null); } }}>
-        <DialogContent>
+        <DialogContent className="max-w-[calc(100vw-2rem)] text-sm [overflow-wrap:anywhere] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-orange-700"><AlertTriangle className="w-5 h-5" />Nahlásit závadu</DialogTitle>
             <DialogDescription>Popište zjištěnou závadu na kontrolním bodě</DialogDescription>
@@ -544,8 +516,8 @@ export default function ControlPointDetail({
               <Label>Fotografie závady (volitelné)</Label>
               <div className="flex gap-2 mt-2">
                 <input ref={issuePhotoInputRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) setIssuePhoto(f); }} className="hidden" />
-                <Button type="button" variant="outline" onClick={() => issuePhotoInputRef.current?.click()} className="flex-1">
-                  <Upload className="w-4 h-4 mr-2" />{issuePhoto ? issuePhoto.name : "Nahrát fotku"}
+                <Button type="button" variant="outline" onClick={() => issuePhotoInputRef.current?.click()} className="min-w-0 flex-1 text-sm">
+                  <Upload className="h-4 w-4 shrink-0" /><span className="min-w-0 truncate">{issuePhoto ? issuePhoto.name : "Nahrát fotku"}</span>
                 </Button>
                 <input ref={issueCameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => { const f = e.target.files?.[0]; if (f) setIssuePhoto(f); }} className="hidden" />
                 <Button type="button" variant="outline" onClick={() => issueCameraInputRef.current?.click()}><Camera className="w-4 h-4" /></Button>
