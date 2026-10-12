@@ -1,0 +1,63 @@
+@media (max-width: 767px) {
+  .service-board.demip-service-board { padding: 12px 8px; min-width: 0; overflow-wrap: anywhere; }
+  .demip-service-board .sb-top { gap: 12px; margin-bottom: 16px; }
+  .demip-service-board .sb-left { gap: 10px; }
+  .demip-service-board .sb-title h1 { font-size: 20px; line-height: 1.25; letter-spacing: 0; }
+  .demip-service-board .sb-sub { font-size: 11px; line-height: 1.4; }
+  .demip-service-board .sb-search { height: 40px; padding: 0 10px; gap: 8px; font-size: 12px; }
+  .demip-service-board .sb-search svg { width: 16px; height: 16px; }
+  .demip-service-board .sb-right { min-width: 0; gap: 8px; }
+  .demip-service-board .sb-legend { width: 100%; gap: 6px; padding: 8px; font-size: 10px; letter-spacing: 0; }
+  .demip-service-board .sb-legend div { gap: 6px; }
+  .demip-service-board .sb-dot { width: 8px; height: 8px; }
+  .demip-service-board .sb-square { width: 10px; height: 10px; border-width: 2px; }
+  .demip-service-board .sb-tabs { width: 100%; min-width: 0; }
+  .demip-service-board .sb-tab { flex: 1; min-width: 0; min-height: 40px; padding: 8px; font-size: 12px; letter-spacing: 0; }
+  .demip-service-board .sb-alarm-badge { font-size: 9px; margin-left: 4px; padding: 2px 4px; }
+  .demip-service-board .sb-company { margin-bottom: 16px; }
+  .demip-service-board .sb-company-bar { margin: 4px 0 10px; padding-bottom: 8px; gap: 8px; border-bottom-width: 2px; }
+  .demip-service-board .sb-company-bar h2 { font-size: 14px; line-height: 1.4; letter-spacing: 0; }
+  .demip-service-board .sb-company-bar span { font-size: 11px; }
+  .demip-service-board .sb-grid { gap: 10px; }
+  .demip-service-board .sb-sheet { border-radius: 8px; box-shadow: none; }
+  .demip-service-board .sb-machine-head { padding: 10px; gap: 8px; border-left-width: 4px; }
+  .demip-service-board .sb-machine-head > div { flex: 1; min-width: 0; }
+  .demip-service-board .sb-machine-head h3 { font-size: 14px; font-weight: 600; line-height: 1.35; letter-spacing: 0; text-transform: none; }
+  .demip-service-board .sb-org { margin-top: 4px; font-size: 10px; line-height: 1.4; letter-spacing: 0; }
+  .demip-service-board .sb-status { flex-shrink: 0; padding: 3px 6px; font-size: 9px; letter-spacing: 0; }
+  .demip-service-board .sb-diagnostics { grid-template-columns: repeat(2,minmax(0,1fr)); padding: 10px; gap: 8px; }
+  .demip-service-board .sb-cell { padding: 8px; border-radius: 6px; }
+  .demip-service-board .sb-label { font-size: 11px; letter-spacing: .03em; }
+  .demip-service-board .sb-bands { gap: 4px; margin: 6px 0; }
+  .demip-service-board .sb-bands span { min-width: 0; font-size: 10px; padding: 3px 0; }
+  .demip-service-board .sb-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px; font-size: 20px; font-weight: 700; line-height: 1.25; }
+  .demip-service-board .sb-value small { font-size: 10px; margin-left: 0; }
+  .demip-service-board .sb-axes { font-size: 10px; margin-top: 4px; line-height: 1.4; }
+  .demip-service-board .sb-perforation { margin: 0 10px; border-top-width: 2px; }
+  .demip-service-board .sb-sensors { padding: 4px 10px; }
+  .demip-service-board .sb-sensor-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr); padding: 8px 0; gap: 4px 8px; }
+  .demip-service-board .sb-sensor-id { font-size: 11px; }
+  .demip-service-board .sb-seen { font-size: 10px; line-height: 1.4; }
+  .demip-service-board .sb-metrics { font-size: 11px; gap: 10px; }
+  .demip-service-board .sb-metrics span { gap: 4px; }
+  .demip-service-board .sb-metrics svg { width: 14px; height: 14px; }
+  .demip-service-board .sb-open { margin: 6px 10px 10px; height: 40px; font-size: 12px; letter-spacing: .03em; gap: 6px; border-radius: 6px; }
+  .demip-service-board .sb-open svg { width: 16px; height: 16px; }
+  .demip-service-board .sb-alerts { padding: 10px; margin-top: 12px; }
+  .demip-service-board .sb-alert-heading { gap: 8px; }
+  .demip-service-board .sb-alert-heading h2 { font-size: 16px; letter-spacing: 0; }
+  .demip-service-board .sb-filter { min-height: 40px; padding: 8px; font-size: 11px; letter-spacing: 0; }
+  .demip-service-board .sb-alert-list { gap: 10px; margin-top: 10px; }
+  .demip-service-board .sb-alert-card { padding: 10px; border-left-width: 4px; gap: 8px; min-width: 0; }
+  .demip-service-board .sb-alert-title { gap: 6px; }
+  .demip-service-board .sb-alert-name { font-size: 13px; letter-spacing: 0; }
+  .demip-service-board .sb-alert-name em { font-size: 11px; }
+  .demip-service-board .sb-tag { padding: 3px 6px; font-size: 9px; letter-spacing: 0; }
+  .demip-service-board .sb-alert-value,.demip-service-board .sb-limits { font-size: 12px; }
+  .demip-service-board .sb-alert-value b { font-size: 20px; margin-left: 4px; }
+  .demip-service-board .sb-alert-date { font-size: 10px; }
+  .demip-service-board .sb-cta { gap: 6px; }
+  .demip-service-board .sb-outline { min-height: 40px; padding: 8px 10px; font-size: 11px; letter-spacing: 0; }
+  .demip-service-board .sb-message { margin-top: 12px; padding: 16px; font-size: 13px; }
+  .demip-service-board .sb-message small { font-size: 11px; }
+}
