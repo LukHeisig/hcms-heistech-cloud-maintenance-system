@@ -56,6 +56,7 @@ import useMyRevisionTasks from "@/hooks/useMyRevisionTasks";
 import RevisionTasksBell from "@/components/revisions/RevisionTasksBell";
 import { userHasModule } from "@/lib/companyModules";
 import { moduleData } from "@/lib/moduleData";
+import LeftMobileNavigation from "@/components/dashboard/LeftMobileNavigation";
 
 function LayoutContent({ children }) {
   const location = useLocation();
@@ -674,8 +675,9 @@ function LayoutContent({ children }) {
         }
       `}</style>
 
+      <LeftMobileNavigation items={navigationItems} pathname={location.pathname} onOpen={() => setMobileOpen(true)} />
       {/* Mobile Header */}
-      <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
+      <header className="lg:hidden ml-14 bg-white border-b border-slate-200 px-3 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
@@ -683,7 +685,7 @@ function LayoutContent({ children }) {
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-900">HCMS</h1>
-              <p className="text-xs text-slate-500">Heistech Cloud Maintenance System</p>
+              <p className="hidden sm:block text-xs text-slate-500">Heistech Cloud Maintenance System</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -747,24 +749,16 @@ function LayoutContent({ children }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="p-2 rounded-lg hover:bg-slate-100"
-            >
-              {mobileOpen ? (
-                <X className="w-6 h-6 text-slate-600" />
-              ) : (
-                <Menu className="w-6 h-6 text-slate-600" />
-              )}
-            </button>
+
           </div>
         </div>
       </header>
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-white overflow-auto">
-          <div className="p-6 space-y-4 pt-24">
+        <div className="lg:hidden fixed inset-0 z-[60] bg-foreground/30" onClick={() => setMobileOpen(false)}>
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-card overflow-y-auto p-4 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between"><span className="font-bold text-lg">HCMS</span><button aria-label="Zavřít menu" onClick={() => setMobileOpen(false)} className="p-3"><X className="w-5 h-5" /></button></div>
             {/* Hide Toggle for Technicians if forced DEMIP */}
             {demipEnabled && !(user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) && (
             <div className="mb-6">
@@ -920,7 +914,7 @@ function LayoutContent({ children }) {
       </div>
 
       {/* Main Content Wrapper */}
-      <div className="lg:pl-72">
+      <div className="pl-14 lg:pl-72">
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
            <RevisionTasksBell tasks={revisionTasks} />
@@ -992,7 +986,7 @@ function LayoutContent({ children }) {
 
         {/* Mobile Bottom Bar - DEMIP Mode Only */}
         {viewMode === 'demip' && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 grid grid-cols-5 gap-1 items-center z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div className="lg:hidden fixed bottom-0 left-14 right-0 bg-white border-t border-slate-200 px-2 py-3 grid grid-cols-5 gap-1 items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             {nfcSupported ? (
               <button 
                 className="flex flex-col items-center gap-1 text-blue-600 hover:text-blue-700 active:scale-95 transition-transform"

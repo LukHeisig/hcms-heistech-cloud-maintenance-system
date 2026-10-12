@@ -22,7 +22,7 @@ export default function VibrationLineMachines({ machines, byMachine, loading }) 
             className="py-2 px-1 text-sm hover:bg-slate-50 rounded cursor-pointer">
             <div className="flex flex-wrap items-center gap-3">
              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[s.zone] || "bg-slate-300"}`} title={s.zone ? `Aktuální pásmo ${s.zone}` : "Bez vyhodnocení"} />
-            <span className="font-medium text-slate-800 truncate">{m.name}</span>
+            <span className="font-medium text-slate-800 min-w-0 break-words">{m.name}</span>
             <MachineDiagnosticStatus status={s} loading={loading} />
             {s.alerts > 0 && (
               <span title="Zobrazit alarmy"

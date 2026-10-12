@@ -10,6 +10,9 @@ module.exports = {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+            'dashboard-background': 'hsl(var(--dashboard-background))',
+            'dashboard-accent': 'hsl(var(--dashboard-accent))',
+            'dashboard-warning': 'hsl(var(--dashboard-warning))',
             'status-success': 'hsl(var(--status-success))',
             'status-warning': 'hsl(var(--status-warning))',
             'status-danger': 'hsl(var(--status-danger))',

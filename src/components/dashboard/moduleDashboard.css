@@ -1,0 +1,9 @@
+.module-dashboard { overflow-wrap: anywhere; }
+.dashboard-line > summary::-webkit-details-marker { display: none; }
+.dashboard-line[open] .dashboard-line-chevron { transform: rotate(180deg); }
+.module-dashboard :is(button, summary, a):focus-visible { outline: 2px solid hsl(var(--dashboard-accent)); outline-offset: 3px; }
+.module-dashboard > div > section > div > .border-none { border: 1px solid hsl(var(--border)); box-shadow: 0 1px 2px hsl(var(--foreground) / 0.05); }
+@media (max-width: 639px) {
+  .module-dashboard { padding: 1rem 0.75rem; }
+  .module-dashboard .dashboard-line > summary { padding: 0.875rem 0.75rem; }
+}
