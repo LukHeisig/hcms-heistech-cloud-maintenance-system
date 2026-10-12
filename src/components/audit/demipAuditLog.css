@@ -15,4 +15,41 @@
   .demip-audit-log .audit-navigation-tabs [role="tab"] svg {
     width: 14px; height: 14px; flex-shrink: 0;
   }
+  .demip-audit-log { padding: 12px; font-size: 13px; min-width: 0; }
+  .demip-audit-log :where(div, section) { min-width: 0; }
+  .demip-audit-log h1 { font-size: 20px; line-height: 1.3; }
+  .demip-audit-log h3 { font-size: 14px; line-height: 1.4; }
+  .demip-audit-log p { font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+  .demip-audit-log [class~="mb-8"],
+  .demip-audit-log [class~="mb-6"] { margin-bottom: 12px; }
+  .demip-audit-log [class~="mb-4"] { margin-bottom: 8px; }
+  .demip-audit-log [class~="space-y-6"] > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+  .demip-audit-log [class~="space-y-3"] > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+  .demip-audit-log [class~="p-6"],
+  .demip-audit-log [class~="p-4"] { padding: 12px; }
+  .demip-audit-log [class~="pt-0"] { padding-top: 0; }
+  .demip-audit-log [class~="py-12"] { padding-top: 20px; padding-bottom: 20px; }
+  .demip-audit-log [class~="shadow-lg"] { box-shadow: none; border-radius: 8px; }
+  .demip-audit-log [class~="tracking-tight"][class~="font-semibold"] { font-size: 14px; line-height: 1.4; }
+  .demip-audit-log [class~="gap-4"] { gap: 8px; }
+  .demip-audit-log .flex[class~="justify-between"] { flex-wrap: wrap; gap: 8px; }
+  .demip-audit-log .audit-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .demip-audit-log label { display: block; font-size: 11px; line-height: 1.4; margin-bottom: 3px; }
+  .demip-audit-log button:not([role="tab"]) { font-size: 12px; }
+  .demip-audit-log button[role="combobox"] {
+    height: auto; min-height: 34px; padding: 6px 8px; text-align: left;
+  }
+  .demip-audit-log button[role="combobox"] > span { min-width: 0; overflow-wrap: anywhere; }
+  .demip-audit-log button[role="combobox"] > span > .flex { gap: 4px; }
+  .demip-audit-log button[role="combobox"] svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .demip-audit-log input { height: 34px; min-width: 0; font-size: 16px; }
+  .demip-audit-log .flex[class~="text-xs"] { flex-wrap: wrap; gap: 4px 8px; overflow-wrap: anywhere; }
+  .demip-audit-log .flex[class~="text-xs"] > span { min-width: 0; }
+  .demip-audit-log .flex[class~="text-xs"] svg { flex-shrink: 0; }
+  .demip-audit-log [class~="rounded-full"][class~="w-10"],
+  .demip-audit-log [class~="rounded-full"][class~="w-9"] { width: 28px; height: 28px; }
+  .demip-audit-log [class~="rounded-full"][class~="w-14"] { width: 36px; height: 36px; font-size: 14px; }
+  .demip-audit-log [class~="text-base"][class~="rounded-md"] { font-size: 11px; }
+  .demip-audit-log table { font-size: 12px; }
+  .demip-audit-log th, .demip-audit-log td { padding: 8px; }
 }

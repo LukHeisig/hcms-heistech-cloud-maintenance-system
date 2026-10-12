@@ -240,7 +240,7 @@ export default function ControlChecksStats({ visibleUsers, getUserDisplayName, c
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="audit-filter-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* Linka */}
             <div>
               <Label>Linka</Label>
