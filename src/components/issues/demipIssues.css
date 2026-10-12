@@ -1,0 +1,32 @@
+@media (max-width: 639px) {
+  .demip-issues { padding: 8px; }
+  .demip-issues .demip-issue-company { padding-inline: 8px; }
+  .demip-issues .demip-issue-list { gap: 8px; }
+  .demip-issues .demip-issue-card { min-width: 0; border-radius: 8px; }
+  .demip-issues .demip-issue-header { padding: 10px 10px 6px; }
+  .demip-issues .demip-issue-header > div { flex-direction: column; gap: 6px; }
+  .demip-issues .demip-issue-header > div > div:first-child { width: 100%; }
+  .demip-issues .demip-issue-heading { gap: 4px; margin-bottom: 4px; }
+  .demip-issues .demip-issue-heading > svg { width: 16px; height: 16px; }
+  .demip-issues .demip-issue-heading > div:first-of-type { font-size: 14px; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+  .demip-issues .demip-issue-heading > div:not(:first-of-type),
+  .demip-issues .demip-issue-location > div { font-size: 10px; line-height: 1.4; padding: 1px 6px; }
+  .demip-issues .demip-issue-location { gap: 4px; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+  .demip-issues .demip-issue-actions { flex-direction: row; flex-wrap: wrap; gap: 4px; width: 100%; }
+  .demip-issues .demip-issue-actions:empty { display: none; }
+  .demip-issues .demip-issue-actions button { font-size: 11px; padding-inline: 8px; }
+  .demip-issues .demip-issue-actions button svg { margin-right: 0; }
+  .demip-issues .demip-issue-content { padding: 0 10px 10px; }
+  .demip-issues .demip-issue-body { flex-direction: row; gap: 8px; align-items: flex-start; }
+  .demip-issues .demip-issue-body > div:first-child > img { width: 56px; height: 56px; border-radius: 6px; }
+  .demip-issues .demip-issue-details { min-width: 0; }
+  .demip-issues .demip-issue-details > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
+  .demip-issues .demip-issue-details > div:first-child > p { padding: 6px 8px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+  .demip-issues .demip-issue-details > div:nth-child(2) { gap: 4px 8px; font-size: 10px; line-height: 1.4; }
+  .demip-issues .demip-issue-details > div:nth-child(2) > span { display: none; }
+  .demip-issues .demip-issue-details > div:nth-child(2) > div { min-width: 0; overflow-wrap: anywhere; }
+  .demip-issues .demip-issue-details > div:nth-child(2) > div > span:last-child { overflow-wrap: anywhere; }
+  .demip-issues .demip-issue-details > div:nth-child(3) { font-size: 11px; gap: 4px; }
+  .demip-issues .demip-issue-details > div:nth-child(3) p { font-size: 12px; padding: 6px 8px; }
+  .demip-issues .demip-issue-details > div:nth-child(3) > div:last-child { flex-wrap: wrap; gap: 4px 8px; }
+}

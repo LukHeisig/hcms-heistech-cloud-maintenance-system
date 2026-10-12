@@ -60,10 +60,13 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import IssueDepartmentFilter from "@/components/issues/IssueDepartmentFilter";
 import IssueEditDialog from "@/components/issues/IssueEditDialog";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/issues/demipIssues.css";
 import { ISSUE_DEPARTMENT_LABELS } from "@/components/issues/IssueDepartmentSelect";
 
 export default function IssueApproval() {
   const navigate = useNavigate();
+  const { viewMode } = useViewMode();
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [selectedIssue, setSelectedIssue] = useState(null);
@@ -477,7 +480,7 @@ export default function IssueApproval() {
       <Card
         key={issue.id}
         id={`issue-${issue.id}`}
-        className={`border-l-4 transition-all cursor-pointer hover:shadow-md ${
+        className={`demip-issue-card border-l-4 transition-all cursor-pointer hover:shadow-md ${
           isResolved 
             ? "border-l-green-500 bg-green-50/30" 
             : hasWorkOrder 
@@ -492,10 +495,10 @@ export default function IssueApproval() {
            navigate(createPageUrl(`IssueDetail?id=${issue.id}`));
         }}
       >
-        <CardHeader className="pb-3">
+        <CardHeader className="demip-issue-header pb-3">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="demip-issue-heading flex items-center gap-2 mb-2 flex-wrap">
                 {isResolved ? (
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                 ) : hasWorkOrder ? (
@@ -527,7 +530,7 @@ export default function IssueApproval() {
                 )}
               </div>
               
-              <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
+              <div className="demip-issue-location flex items-center gap-2 text-sm text-slate-600 flex-wrap">
                 {issueInfo.companyName && (
                   <>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -547,7 +550,7 @@ export default function IssueApproval() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 flex-shrink-0 flex-col sm:flex-row">
+            <div className="demip-issue-actions flex gap-2 flex-shrink-0 flex-col sm:flex-row">
               {canResolveIssues && (
                 <Button
                   onClick={() => setEditIssue(issue)}
@@ -604,8 +607,8 @@ export default function IssueApproval() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
+        <CardContent className="demip-issue-content">
+          <div className="demip-issue-body flex flex-col sm:flex-row gap-4">
             {/* Left side - Photo */}
             {issue.photo_url && (
               <div className="flex-shrink-0">
@@ -619,7 +622,7 @@ export default function IssueApproval() {
             )}
 
             {/* Right side - Details */}
-            <div className="flex-1 space-y-3">
+            <div className="demip-issue-details flex-1 space-y-3">
               <div>
                 <p className="text-sm text-slate-900 bg-white p-3 rounded-lg border border-slate-200 whitespace-pre-wrap">
                   {issue.description}
@@ -679,7 +682,7 @@ export default function IssueApproval() {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={`${viewMode === "demip" ? "demip-issues" : ""} p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Správa závad</h1>
@@ -733,7 +736,7 @@ export default function IssueApproval() {
                 {user?.user_type !== 'manager' ? (
                    <Accordion type="multiple" className="space-y-4">
                      {Object.entries(groupedReportedIssues).map(([companyId, data]) => (
-                       <AccordionItem key={companyId} value={companyId} className="bg-white border rounded-lg px-4">
+                       <AccordionItem key={companyId} value={companyId} className="demip-issue-company bg-white border rounded-lg px-4">
                          <AccordionTrigger className="hover:no-underline py-4">
                            <div className="flex items-center gap-3 w-full">
                              <div className="flex items-center gap-2">
@@ -759,7 +762,7 @@ export default function IssueApproval() {
                                           <Activity className="w-4 h-4 text-green-600" />}
                                          {category} ({issues.length})
                                       </h4>
-                                      <div className="grid gap-4">
+                                      <div className="demip-issue-list grid gap-4">
                                          {issues.map(issue => renderIssueCard(issue, false))}
                                       </div>
                                    </div>
@@ -787,7 +790,7 @@ export default function IssueApproval() {
                                            {category}
                                            <Badge variant="secondary" className="ml-2">{issues.length}</Badge>
                                         </h4>
-                                        <div className="grid gap-4">
+                                        <div className="demip-issue-list grid gap-4">
                                            {issues.map(issue => renderIssueCard(issue, false))}
                                         </div>
                                      </div>
@@ -815,7 +818,7 @@ export default function IssueApproval() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4">
+              <div className="demip-issue-list grid gap-4">
                 {resolvedIssues.map((issue) => renderIssueCard(issue, true))}
               </div>
             )}
