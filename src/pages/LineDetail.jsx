@@ -5,7 +5,8 @@ import { cachedRecord } from "@/components/data/cachedRecord";
 import { moduleData } from "@/lib/moduleData";
 import { isModuleEnabled } from "@/lib/companyModules";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
+import LineLoadState from "@/components/dashboard/LineLoadState";
 import { createPageUrl } from "@/utils";
 import { formatMachineName } from "@/lib/utils";
 import { getControlPointStatus } from "@/lib/controlPointIntervals";
@@ -94,10 +95,10 @@ export default function LineDetail() {
 
 
 
-  const { data: line } = useQuery({
+  const { data: line, isPending: lineLoading, isError: lineFailed, fetchStatus: lineFetchStatus, refetch: reloadLine } = useQuery({
     queryKey: ["line", lineId],
     ...cachedRecord(queryClient, lineId, [["allLines"], ["lines"]]),
-    queryFn: () => base44.entities.Line.filter({ id: lineId }).then(res => res[0]),
+    queryFn: () => base44.entities.Line.filter({ id: lineId }).then(res => res[0] || null),
     enabled: !!lineId,
     staleTime: 60000,
   });
@@ -120,6 +121,7 @@ export default function LineDetail() {
   const { data: allControlPoints = [] } = useQuery({
     queryKey: ["allControlPoints"],
     queryFn: () => base44.entities.ControlPoint.list(null, 2000),
+    enabled: !!lineId,
     staleTime: 300000, // 5 minutes
   });
 
@@ -462,12 +464,12 @@ export default function LineDetail() {
     await createCheckRecordMutation.mutateAsync(data);
   };
 
+  // A detail route without a selected line cannot load anything.
+  if (!lineId) return <Navigate to="/" replace />;
+
   if (!line) {
-    return (
-      <div className="p-8 flex items-center justify-center min-h-screen">
-        <p>Načítání...</p>
-      </div>
-    );
+    return <LineLoadState loading={lineLoading} paused={lineFetchStatus === "paused"}
+      failed={lineFailed} onRetry={() => reloadLine()} />;
   }
 
   const handleBackClick = () => {
