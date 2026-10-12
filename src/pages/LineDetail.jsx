@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { moduleData } from "@/lib/moduleData";
 import { isModuleEnabled } from "@/lib/companyModules";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatMachineName } from "@/lib/utils";
@@ -130,11 +130,7 @@ export default function LineDetail() {
     staleTime: 300000,
   });
 
-  const { data: allIssues = [] } = useQuery({
-    queryKey: ["allIssues"],
-    queryFn: () => base44.entities.Issue.filter({ status: "reported" }),
-    staleTime: 300000, // 5 minutes
-  });
+
 
   const { data: allMaintenance = [] } = useQuery({
     queryKey: ["allMaintenance"],
@@ -223,25 +219,45 @@ export default function LineDetail() {
     return allRecords.filter(r => pointIds.includes(r.control_point_id));
   }, [allRecords, controlPoints]);
 
-  const issues = useMemo(() => {
-    const pointIds = controlPoints.map(cp => cp.id);
-    return allIssues.filter(i => 
-      (i.control_point_id && pointIds.includes(i.control_point_id)) ||
-      (i.machine_id && machineIds.includes(i.machine_id))
-    );
-  }, [allIssues, controlPoints, machineIds]);
+  const pointIds = useMemo(() => controlPoints.map(point => point.id), [controlPoints]);
+  const activeIssueQuery = useMemo(() => ({
+    status: { $in: ["reported", "work_order_created"] },
+    $or: [{ machine_id: { $in: machineIds } }, { control_point_id: { $in: pointIds } }],
+  }), [machineIds, pointIds]);
+  const { data: issuePages, isPending: issuesLoading, hasNextPage: hasMoreIssues, fetchNextPage: loadMoreIssues, isFetchingNextPage: loadingMoreIssues } = useInfiniteQuery({
+    queryKey: ["lineActiveIssues", lineId, activeIssueQuery],
+    queryFn: ({ pageParam }) => base44.entities.Issue.filter(activeIssueQuery, { sort: "-created_date", limit: 50, ...(pageParam ? { cursor: pageParam } : {}) }),
+    initialPageParam: undefined,
+    getNextPageParam: page => page.has_more ? page.next_cursor : undefined,
+    enabled: machineIds.length > 0,
+    staleTime: 60000,
+  });
+  const issues = useMemo(() => issuePages?.pages.flatMap(page => page.items) || [], [issuePages]);
+  const { data: issueCounts } = useQuery({
+    queryKey: ["lineActiveIssueCounts", lineId, machineIds, pointIds],
+    queryFn: async () => {
+      const [byMachine, byPoint] = await Promise.all([
+        base44.entities.Issue.aggregate({ query: { status: activeIssueQuery.status, machine_id: { $in: machineIds } }, groupBy: "machine_id", limit: 1000 }),
+        base44.entities.Issue.aggregate({ query: { status: activeIssueQuery.status, machine_id: { $nin: machineIds }, control_point_id: { $in: pointIds } }, groupBy: "control_point_id", limit: 1000 }),
+      ]);
+      const counts = {};
+      for (const row of byMachine.rows) counts[row.machine_id] = row.count;
+      for (const row of byPoint.rows) {
+        const machineId = controlPoints.find(point => point.id === row.control_point_id)?.machine_id;
+        if (machineId) counts[machineId] = (counts[machineId] || 0) + row.count;
+      }
+      return counts;
+    },
+    enabled: machineIds.length > 0,
+    staleTime: 60000,
+  });
 
-  const preventionIssuesByYearAndDate = useMemo(() => {
-    const filtered = issues.filter(issue => {
-      if (!issue.control_point_id) return false;
-      const cp = controlPoints.find(p => p.id === issue.control_point_id);
-      return cp && cp.type === 'prevention';
-    });
+  const activeIssuesByYearAndDate = useMemo(() => {
     
     // Group by Year -> Date
     const grouped = {};
     
-    filtered.forEach(issue => {
+    issues.forEach(issue => {
         const dateObj = new Date(issue.created_date);
         const year = dateObj.getFullYear();
         const dateKey = format(dateObj, "yyyy-MM-dd");
@@ -464,12 +480,12 @@ export default function LineDetail() {
       machinesCount: machines.length,
       pointsCount: controlPoints.length,
       overdueCount: overduePoints.length,
-      issuesCount: issues.length,
+      issuesCount: Object.values(issueCounts || {}).reduce((total, count) => total + count, 0),
       maintenanceThisMonth: thisMonth.length,
       totalCostThisMonth: totalCost,
       plannedCount: plannedMaintenance.filter(pm => pm.status !== 'completed' && pm.status !== 'cancelled').length,
     };
-  }, [machines, controlPoints, overduePoints, issues, maintenanceRecords, plannedMaintenance]);
+  }, [machines, controlPoints, overduePoints, issueCounts, maintenanceRecords, plannedMaintenance]);
 
   const toggleSection = (sectionId) => {
     setExpandedSections(prev => ({
@@ -645,7 +661,9 @@ export default function LineDetail() {
                   const styles = getMachineStatusStyles(machine.id);
                   const status = styles.text.includes('red') ? 'critical' : styles.text.includes('orange') ? 'warning' : 'ok';
                   return <DashboardMachineRow key={machine.id} machine={machine} status={status}
-                    pointCount={machinePoints.length} showPoints={modDemip} />;
+                    pointCount={machinePoints.length} showPoints={modDemip} showIndicators
+                    overdueCount={machinePoints.filter(point => ["warning", "critical"].includes(getPointStatus(point))).length}
+                    issueCount={issueCounts ? (issueCounts[machine.id] || 0) : undefined} />;
                 })}
                 {machines.length === 0 && (
                   <div className="text-center py-12 bg-white rounded-lg border border-dashed">
@@ -899,14 +917,14 @@ export default function LineDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {Object.keys(preventionIssuesByYearAndDate).length === 0 ? (
+                {Object.keys(activeIssuesByYearAndDate).length === 0 ? (
                   <div className="text-center py-12">
                      <CheckSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                     <p className="text-slate-500">Zatím žádné závady z preventivních kontrol</p>
+                     <p className="text-slate-500">Na této lince nejsou žádné aktivní závady</p>
                   </div>
                 ) : (
                   <div className="space-y-8">
-                    {Object.entries(preventionIssuesByYearAndDate).sort((a, b) => b[0] - a[0]).map(([year, dates]) => (
+                    {Object.entries(activeIssuesByYearAndDate).sort((a, b) => b[0] - a[0]).map(([year, dates]) => (
                       <div key={year} className="space-y-4">
                         <h3 className="text-xl font-bold text-slate-800 border-b border-slate-200 pb-2">{year}</h3>
                         <div className="space-y-6">
@@ -919,11 +937,11 @@ export default function LineDetail() {
                               <div className="space-y-1 md:space-y-0">
                                 {dayIssues.map(issue => {
                                   const point = controlPoints.find(p => p.id === issue.control_point_id);
-                                  const machine = machines.find(m => m.id === point?.machine_id);
+                                  const machine = machines.find(m => m.id === (issue.machine_id || point?.machine_id));
                                   return (
                                     <LineIssueRow key={issue.id} issue={issue}
                                       machineName={machine ? formatMachineName(machine) : "Neznámý stroj"}
-                                      pointName={point?.name || "Neznámý bod"}
+                                      pointName={point?.name || "Závada stroje"}
                                       reporterName={getUserDisplayName(issue.created_by)}
                                       onOpen={() => navigate(createPageUrl(`IssueDetail?id=${issue.id}`))} />
                                   );
@@ -936,6 +954,9 @@ export default function LineDetail() {
                     ))}
                   </div>
                 )}
+                {hasMoreIssues && <Button variant="outline" className="mt-4" disabled={loadingMoreIssues} onClick={() => loadMoreIssues()}>
+                  {loadingMoreIssues ? "Načítání…" : "Načíst další závady"}
+                </Button>}
               </CardContent>
             </Card>
           </TabsContent>

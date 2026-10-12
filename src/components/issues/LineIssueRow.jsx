@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function LineIssueRow({ issue, machineName, pointName, reporterName, onOpen }) {
   const resolved = issue.status === "resolved";
-  const statusLabel = resolved ? "Vyřešeno" : "Nahlášeno";
+  const statusLabel = resolved ? "Vyřešeno" : issue.status === "work_order_created" ? "Pracovní příkaz vytvořen" : "Nahlášeno";
   return (
     <div role="link" tabIndex={0} onClick={onOpen} onKeyDown={event => {
       if (event.key === "Enter") onOpen();
