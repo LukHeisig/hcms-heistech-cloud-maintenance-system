@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatMachineName } from "@/lib/utils";
+import DemipWorkOrderRow from "@/components/dashboard/DemipWorkOrderRow";
 import {
   Card,
   CardContent,
@@ -170,21 +171,27 @@ export default function WorkOrders() {
     };
 
     return (
-      <div className="flex gap-2">
+      <span className="flex min-w-0 flex-wrap gap-1 md:gap-2">
         <Badge className={priorityColors[priority] || priorityColors.medium}>
           {priority === "high" ? "Vysoká" : priority === "medium" ? "Střední" : "Nízká"}
         </Badge>
         <Badge className={statusColors[status] || statusColors.planned}>
           {statusLabels[status] || status}
         </Badge>
-      </div>
+      </span>
     );
   };
 
   const renderWorkOrderCard = (wo) => (
+    <React.Fragment key={wo.id}>
+      <DemipWorkOrderRow order={wo} machineName={wo.machineName} showDetails dateFormat="d. M. yyyy"
+        className="md:hidden" badges={getStatusBadge(wo.status, wo.priority)}
+        assignedName={wo.assigned_to ? getUserDisplayName(wo.assigned_to) : null}
+        isOverdue={new Date(wo.planned_date) < new Date() && wo.status !== 'completed'}
+        onSelect={() => navigate(createPageUrl(`Machine?id=${wo.machine_id}#maintenance`))} />
     <Card
       key={wo.id}
-      className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500"
+      className="hidden md:block hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500"
       onClick={() => navigate(createPageUrl(`Machine?id=${wo.machine_id}#maintenance`))}
     >
       <CardContent className="p-4">
@@ -238,20 +245,21 @@ export default function WorkOrders() {
         </div>
       </CardContent>
     </Card>
+    </React.Fragment>
   );
 
   if (!currentUser) return <div className="p-8">Načítání...</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen min-w-0 bg-gradient-to-br from-slate-50 to-slate-100 p-3 [overflow-wrap:anywhere] md:p-8">
+      <div className="mx-auto max-w-7xl space-y-3 md:space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-              <ClipboardList className="w-8 h-8 text-blue-600" />
+            <h1 className="flex items-center gap-2 text-xl font-bold text-foreground md:gap-3 md:text-3xl">
+              <ClipboardList className="h-5 w-5 shrink-0 text-demip-brand md:h-8 md:w-8" />
               Pracovní příkazy
             </h1>
-            <p className="text-slate-600 mt-1">
+            <p className="mt-1 text-xs text-muted-foreground md:text-base">
               {currentUser.user_type === "technician"
                 ? "Přehled vašich přiřazených úkolů"
                 : "Správa pracovních příkazů a údržby"}
@@ -261,7 +269,7 @@ export default function WorkOrders() {
 
         {/* Technician View - Flat List */}
         {currentUser.user_type === "technician" && (
-          <div className="space-y-4">
+          <div className="space-y-2 md:space-y-4">
             {filteredWorkOrders.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-dashed border-slate-300">
                 <CheckCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -269,7 +277,7 @@ export default function WorkOrders() {
                 <p className="text-slate-500">Nemáte přiřazené žádné pracovní příkazy.</p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid min-w-0 gap-2 md:gap-4">
                 {filteredWorkOrders.map(renderWorkOrderCard)}
               </div>
             )}
@@ -278,7 +286,7 @@ export default function WorkOrders() {
 
         {/* Manager/Admin/SuperAdmin View - Grouped by Company */}
         {currentUser.user_type !== "technician" && groupedWorkOrders && (
-          <div className="space-y-6">
+          <div className="space-y-3 md:space-y-6">
             {Object.keys(groupedWorkOrders).length === 0 ? (
               <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-dashed border-slate-300">
                 <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -286,20 +294,20 @@ export default function WorkOrders() {
                 <p className="text-slate-500">V systému nejsou evidovány žádné pracovní příkazy.</p>
               </div>
             ) : (
-              <Accordion type="multiple" defaultValue={Object.keys(groupedWorkOrders)} className="space-y-4">
+              <Accordion type="multiple" defaultValue={Object.keys(groupedWorkOrders)} className="space-y-2 md:space-y-4">
                 {Object.entries(groupedWorkOrders).map(([companyId, data]) => (
-                  <AccordionItem key={companyId} value={companyId} className="bg-white border rounded-xl px-4 shadow-sm">
-                    <AccordionTrigger className="hover:no-underline py-4">
-                      <div className="flex items-center gap-3 w-full">
-                        <Building2 className="w-5 h-5 text-blue-600" />
-                        <span className="font-bold text-lg text-slate-900">{data.name}</span>
-                        <Badge variant="secondary" className="ml-auto mr-4">
+                  <AccordionItem key={companyId} value={companyId} className="min-w-0 rounded-lg border bg-card px-3 shadow-none md:rounded-xl md:px-4 md:shadow-sm">
+                    <AccordionTrigger className="min-w-0 py-3 hover:no-underline md:py-4">
+                      <div className="flex w-full min-w-0 items-center gap-2 text-left md:gap-3">
+                        <Building2 className="h-4 w-4 shrink-0 text-demip-brand md:h-5 md:w-5" />
+                        <span className="min-w-0 flex-1 text-sm font-semibold text-foreground md:text-lg md:font-bold">{data.name}</span>
+                        <Badge variant="secondary" className="ml-auto mr-2 shrink-0 px-1.5 text-[10px] md:mr-4 md:px-2.5 md:text-xs">
                           {data.orders.length} úkolů
                         </Badge>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="pt-2 pb-6">
-                      <div className="grid gap-3">
+                    <AccordionContent className="min-w-0 pb-3 pt-1 md:pb-6 md:pt-2">
+                      <div className="grid min-w-0 gap-2 md:gap-3">
                         {data.orders.length > 0 ? (
                           data.orders.map(renderWorkOrderCard)
                         ) : (

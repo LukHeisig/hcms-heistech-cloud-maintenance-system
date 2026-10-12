@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useOffline } from "@/components/OfflineProvider";
+import DemipWorkOrderRow from "@/components/dashboard/DemipWorkOrderRow";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import {
@@ -252,13 +253,13 @@ export default function MobileHome() {
           </div>
 
           {activeTab === "orders" && (
-            <div className="space-y-3">
+            <div className="mx-auto min-w-0 space-y-2 md:space-y-3">
               {myWorkOrders.length === 0 ? (
-                <Card className="bg-white border-dashed border-2 border-slate-200 shadow-none">
-                  <CardContent className="p-6 text-center">
-                    <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
-                    <p className="text-slate-600 font-medium">Vše hotovo!</p>
-                    <p className="text-xs text-slate-400">Nemáte žádné přiřazené pracovní příkazy.</p>
+                <Card className="min-w-0 rounded-lg border border-dashed border-border bg-card shadow-none">
+                  <CardContent className="p-4 text-center md:p-6">
+                    <CheckCircle className="mx-auto mb-2 h-6 w-6 text-status-success md:h-10 md:w-10" />
+                    <p className="text-sm font-medium text-foreground">Vše hotovo!</p>
+                    <p className="text-xs text-muted-foreground">Nemáte žádné přiřazené pracovní příkazy.</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -266,37 +267,9 @@ export default function MobileHome() {
                   const isOverdue = new Date(order.planned_date) < new Date();
                   const machine = machines.find(m => m.id === order.machine_id);
                   return (
-                    <Card 
-                      key={order.id} 
-                      className="bg-white border-none shadow-sm active:bg-slate-50 transition-colors cursor-pointer"
-                      onClick={() => navigate(createPageUrl(`Machine?id=${order.machine_id}#maintenance`))}
-                    >
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <div className={`w-2 h-12 rounded-full flex-shrink-0 ${isOverdue ? 'bg-red-500' : 'bg-blue-500'}`} />
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start mb-1">
-                            <h3 className="font-bold text-slate-800 truncate pr-2">{order.title}</h3>
-                            {isOverdue && <Badge variant="destructive" className="text-[10px] px-1 h-5">Po termínu</Badge>}
-                          </div>
-                          
-                          <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>{format(new Date(order.planned_date), "d.M.", { locale: cs })}</span>
-                            </div>
-                            <div className="flex items-center gap-1 truncate">
-                              <MapPin className="w-3 h-3" />
-                              <span className="truncate">{machine?.name || "Stroj..."}</span> 
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <ChevronRight className="w-5 h-5 text-slate-400" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <DemipWorkOrderRow key={order.id} order={order} machineName={machine?.name || "Stroj..."}
+                      isOverdue={isOverdue}
+                      onSelect={() => navigate(createPageUrl(`Machine?id=${order.machine_id}#maintenance`))} />
                   );
                 })
               )}
