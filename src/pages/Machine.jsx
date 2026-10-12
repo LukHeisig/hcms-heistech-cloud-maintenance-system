@@ -63,6 +63,8 @@ import { throttled } from "@/lib/requestQueue";
 import { isModuleEnabled } from "@/lib/companyModules";
 import VibrationOverviewCard from "@/components/machine/VibrationOverviewCard";
 import { useViewMode } from "@/components/ViewModeContext";
+import { getControlPointStatus, getControlPointDueDate } from "@/lib/controlPointIntervals";
+import useLatestControlChecks from "@/hooks/useLatestControlChecks";
 
 export default function Machine() {
   const navigate = useNavigate();
@@ -100,7 +102,7 @@ export default function Machine() {
     staleTime: 0,
   });
 
-  const { data: line } = useQuery({
+  const { data: line, isLoading: lineLoading } = useQuery({
     queryKey: ["line", machine?.line_id],
     queryFn: async () => {
       if (!machine?.line_id) return null;
@@ -111,7 +113,7 @@ export default function Machine() {
     staleTime: 60000,
   });
 
-  const { data: company } = useQuery({
+  const { data: company, isLoading: companyLoading } = useQuery({
     queryKey: ["company", line?.company_id],
     queryFn: async () => {
       if (!line?.company_id) return null;
@@ -143,11 +145,15 @@ export default function Machine() {
     return u ? (u.custom_display_name || u.full_name || u.email) : email;
   };
 
-  const { data: controlPoints = [] } = useQuery({
+  const { data: controlPoints = [], isLoading: controlPointsLoading } = useQuery({
     queryKey: ["controlPoints", machineId],
     queryFn: () => throttled(() => base44.entities.ControlPoint.filter({ machine_id: machineId })),
     enabled: !!machineId,
   });
+
+  const intervalPointIds = useMemo(() => controlPoints.map(point => point.id), [controlPoints]);
+  const { latestChecks, loading: latestChecksLoading } = useLatestControlChecks(intervalPointIds, machineId);
+  const intervalsLoading = controlPointsLoading || latestChecksLoading || lineLoading || companyLoading;
 
   const { data: records = [] } = useQuery({
     queryKey: ["records", machineId],
@@ -292,67 +298,13 @@ export default function Machine() {
   const totalMaintenanceCost = maintenanceRecords.reduce((sum, r) => sum + (r.cost || 0), 0);
 
   const getPointStatus = (point) => {
-    const pointRecords = records
-      .filter((r) => r.control_point_id === point.id)
-      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-    
-    const vizType = company?.overdue_visualization_type || "two_colors";
-    const tolerance = company?.overdue_tolerance_percent || 4;
-    const interval = point.interval_hours || 0;
-
-    let lastPerformed;
-    if (pointRecords.length > 0 && point.first_confirmation_date) {
-        // Oba existují - vzít novější
-        const lastRecordDate = new Date(pointRecords[0].performed_at);
-        const firstConfirmDate = new Date(point.first_confirmation_date);
-        lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
-    } else if (pointRecords.length > 0) {
-        lastPerformed = new Date(pointRecords[0].performed_at);
-    } else if (point.first_confirmation_date) {
-        lastPerformed = new Date(point.first_confirmation_date);
-    } else {
-         return vizType === "traffic_light" ? "critical" : "warning";
-    }
-
-    const now = new Date();
-    const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
-
-    if (hoursSince <= interval) return "ok";
-
-    if (vizType === "two_colors") {
-        return "warning";
-    } else {
-        const overduePercent = ((hoursSince - interval) / interval) * 100;
-        if (overduePercent <= tolerance) {
-            return "warning";
-        } else {
-            return "critical";
-        }
-    }
+    if (intervalsLoading) return "loading";
+    return getControlPointStatus(point, latestChecks[point.id], company, line?.excluded_days);
   };
 
   const getNextControlDate = (point) => {
-    const pointRecords = records
-      .filter(r => r.control_point_id === point.id)
-      .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-    if (!point.interval_hours) return null;
-
-    let lastPerformed;
-    if (pointRecords.length > 0 && point.first_confirmation_date) {
-        // Oba existují - vzít novější
-        const lastRecordDate = new Date(pointRecords[0].performed_at);
-        const firstConfirmDate = new Date(point.first_confirmation_date);
-        lastPerformed = lastRecordDate > firstConfirmDate ? lastRecordDate : firstConfirmDate;
-    } else if (pointRecords.length > 0) {
-        lastPerformed = new Date(pointRecords[0].performed_at);
-    } else if (point.first_confirmation_date) {
-        lastPerformed = new Date(point.first_confirmation_date);
-    } else {
-        return null;
-    }
-
-    const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
-    return nextDate;
+    if (intervalsLoading) return null;
+    return getControlPointDueDate(point, latestChecks[point.id], line?.excluded_days);
   };
 
   const upcomingTasks = React.useMemo(() => {
@@ -389,7 +341,7 @@ export default function Machine() {
     });
     
     return tasks.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
-  }, [controlPoints, plannedMaintenance, records]);
+  }, [controlPoints, plannedMaintenance, latestChecks, intervalsLoading, line?.excluded_days]);
 
   const lubricationPoints = controlPoints.filter(p => p.type === "lubrication").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   const inspectionPoints = controlPoints.filter(p => p.type === "inspection").sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
@@ -580,7 +532,7 @@ export default function Machine() {
     );
   };
 
-  if (!machine) {
+  if (!machine || intervalsLoading) {
     return (
       <div className="p-8">
         <div className="max-w-7xl mx-auto">
@@ -776,7 +728,7 @@ export default function Machine() {
                         if (task.type === "control_point") {
                           const point = task.point;
                           const status = getPointStatus(point);
-                          const isOverdue = status === "overdue";
+                          const isOverdue = ["warning", "critical"].includes(status);
                           
                           return (
                             <div
