@@ -65,6 +65,7 @@ import { cs } from "date-fns/locale";
 import "@/components/dashboard/equipmentNavigation.css";
 import DashboardMachineRow from "@/components/dashboard/DashboardMachineRow";
 import LineIssueRow from "@/components/issues/LineIssueRow";
+import LineDiagnosticMachineRow from "@/components/dashboard/LineDiagnosticMachineRow";
 
 export default function LineDetail() {
   const [user, setUser] = useState(null);
@@ -297,7 +298,7 @@ export default function LineDetail() {
   const vibrationMachineIds = useMemo(() => machines.filter(m => m.vibration_schema_id).map(m => m.id), [machines]);
 
   // Load VibrationSensorAssignments for vibration machines (includes sensor + standard IDs)
-  const { data: lineVibrationAssignments = [] } = useQuery({
+  const { data: lineVibrationAssignments = [], isLoading: assignmentsLoading } = useQuery({
     queryKey: ["lineVibrationAssignments", vibrationMachineIds.join(",")],
     queryFn: async () => {
       if (vibrationMachineIds.length === 0) return [];
@@ -321,7 +322,7 @@ export default function LineDetail() {
 
   // Load latest sensor data for all sensors on this line
   // Use pre-computed values from SensorData (same as VibrationCardMQTT)
-  const { data: lineVibroData = {} } = useQuery({
+  const { data: lineVibroData = {}, isLoading: vibrationDataLoading } = useQuery({
     queryKey: ["lineVibroData", lineVibrationAssignments.map(a => a.sensor_id).filter(Boolean).join(",")],
     queryFn: async () => {
       const sensorIds = [...new Set(lineVibrationAssignments.map(a => a.sensor_id).filter(Boolean))];
@@ -334,7 +335,7 @@ export default function LineDetail() {
   });
 
   // Load vibration standards for limit evaluation
-  const { data: allVibrationStandards = [] } = useQuery({
+  const { data: allVibrationStandards = [], isLoading: standardsLoading } = useQuery({
     queryKey: ["vibrationStandards"],
     queryFn: () => base44.entities.VibrationStandard.list(null, 500),
     staleTime: 300000,
@@ -683,31 +684,12 @@ export default function LineDetail() {
                     {machines.filter(m => m.vibration_schema_id).length === 0 ? (
                       <p className="text-center text-slate-500 py-8">Žádné stroje s aktivní vibrační diagnostikou</p>
                     ) : (
-                      <div className="space-y-2">
-                        {machines.filter(m => m.vibration_schema_id).map((machine) => {
-                           const vibroBgText = getVibroBgText(machine.id);
-                           return (
-                             <div
-                               key={machine.id}
-                               className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
-                               onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#vibration`))}
-                             >
-                               <div className="flex items-center gap-3">
-                                 <div className={`p-2 rounded ${vibroBgText.bg} ${vibroBgText.text}`}>
-                                   <Activity className="w-5 h-5" />
-                                 </div>
-                                 <div>
-                                   <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
-                                   <div className="flex gap-2 text-xs text-slate-500 items-center">
-                                      <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
-                                      {machine.vibration_standard_id && <span>• Norma nastavena</span>}
-                                   </div>
-                                 </div>
-                               </div>
-                               <ChevronRight className="w-5 h-5 text-slate-400" />
-                             </div>
-                           );
-                        })}
+                      <div>
+                        {machines.filter(m => m.vibration_schema_id).map(machine => (
+                          <LineDiagnosticMachineRow key={machine.id} machine={machine} type="vibration"
+                            assignments={lineVibrationAssignments} latest={lineVibroData} standards={standardsById}
+                            loading={assignmentsLoading || vibrationDataLoading || standardsLoading} />
+                        ))}
                       </div>
                     )}
                   </TabsContent>
@@ -716,30 +698,10 @@ export default function LineDetail() {
                     {machines.filter(m => true).length === 0 ? (
                       <p className="text-center text-slate-500 py-8">Žádné stroje/rozvaděče s aktivní termodiagnostikou</p>
                     ) : (
-                      <div className="space-y-2">
-                        {machines.filter(m => true).map((machine) => {
-                             const styles = getMachineStatusStyles(machine.id);
-                             return (
-                               <div
-                                 key={machine.id}
-                                 className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
-                                 onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#thermo`))}
-                               >
-                                 <div className="flex items-center gap-3">
-                                   <div className={`p-2 rounded ${styles.bg.replace('blue', 'orange')} ${styles.text.replace('blue', 'orange')}`}>
-                                     <Thermometer className="w-5 h-5" />
-                                   </div>
-                                   <div>
-                                     <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
-                                     <div className="flex gap-2 text-xs text-slate-500">
-                                        <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
-                                     </div>
-                                   </div>
-                                 </div>
-                                 <ChevronRight className="w-5 h-5 text-slate-400" />
-                               </div>
-                             );
-                        })}
+                      <div>
+                        {machines.filter(m => true).map(machine => (
+                          <LineDiagnosticMachineRow key={machine.id} machine={machine} type="thermo" />
+                        ))}
                       </div>
                     )}
                   </TabsContent>
@@ -748,30 +710,10 @@ export default function LineDetail() {
                     {machines.filter(m => true).length === 0 ? (
                       <p className="text-center text-slate-500 py-8">Žádné stroje s aktivní tribodiagnostikou</p>
                     ) : (
-                      <div className="space-y-2">
-                        {machines.filter(m => true).map((machine) => {
-                             const styles = getMachineStatusStyles(machine.id);
-                             return (
-                               <div
-                                 key={machine.id}
-                                 className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 cursor-pointer transition-colors"
-                                 onClick={() => navigate(createPageUrl(`Machine?id=${machine.id}#tribo`))}
-                               >
-                                 <div className="flex items-center gap-3">
-                                   <div className={`p-2 rounded ${styles.bg.replace('blue', 'purple')} ${styles.text.replace('blue', 'purple')}`}>
-                                     <Droplet className="w-5 h-5" />
-                                   </div>
-                                   <div>
-                                     <p className="font-medium text-slate-900">{formatMachineName(machine)}</p>
-                                     <div className="flex gap-2 text-xs text-slate-500">
-                                        <span>{machine.machine_type === 'switchboard' ? 'Rozvaděč' : 'Stroj'}</span>
-                                     </div>
-                                   </div>
-                                 </div>
-                                 <ChevronRight className="w-5 h-5 text-slate-400" />
-                               </div>
-                             );
-                        })}
+                      <div>
+                        {machines.filter(m => true).map(machine => (
+                          <LineDiagnosticMachineRow key={machine.id} machine={machine} type="tribo" />
+                        ))}
                       </div>
                     )}
                   </TabsContent>
