@@ -61,9 +61,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { throttled } from "@/lib/requestQueue";
 import { isModuleEnabled } from "@/lib/companyModules";
 import VibrationOverviewCard from "@/components/machine/VibrationOverviewCard";
+import { useViewMode } from "@/components/ViewModeContext";
 
 export default function Machine() {
   const navigate = useNavigate();
+  const { viewMode } = useViewMode();
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
   const queryClient = useQueryClient();
@@ -418,7 +420,7 @@ export default function Machine() {
   const showDemip = isModuleEnabled(company, "enable_demip") && controlPoints.length > 0;
   const showMaintenance = isModuleEnabled(company, "enable_maintenance") && (maintenanceRecords.length > 0 || plannedMaintenance.length > 0);
   const showParts = isModuleEnabled(company, "enable_parts") && spareParts.length > 0;
-  const showVibration = isModuleEnabled(company, "enable_vibration");
+  const showVibration = showVibrationModule && (viewMode === "demip" || !!machine?.vibration_schema_id);
   const showThermo = isModuleEnabled(company, "enable_thermo");
   const showTribo = isModuleEnabled(company, "enable_tribo");
   const showPredictive = isModuleEnabled(company, "enable_predictive");
@@ -433,7 +435,7 @@ export default function Machine() {
     urlParams.get("tab") || "overview";
   const tabAllowed = {
     "control-points": showDemip, "maintenance": showMaintenance, "spare-parts": showParts,
-    "vibro-diag": showVibration, "alerts-history": showVibration, "thermo": showThermo,
+    "vibro-diag": showVibration, "alerts-history": showVibrationModule, "thermo": showThermo,
     "tribo": showTribo, "predictive": showPredictive,
   };
   const initialTab = tabAllowed[requestedTab] === false ? "overview" : requestedTab;
@@ -767,7 +769,7 @@ export default function Machine() {
               </TabsTrigger>
             )}
 
-            {showVibration && (
+            {showVibrationModule && (
               <TabsTrigger value="alerts-history" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4" />
                 <span className="min-w-0 whitespace-normal text-[10px] leading-snug md:text-sm">Alarmy</span>
@@ -828,7 +830,7 @@ export default function Machine() {
 
           {/* Přehled */}
           <TabsContent value="overview" className="space-y-6">
-            {isModuleEnabled(company, "enable_vibration") && machine?.vibration_source !== "vse" && (
+            {showVibration && machine?.vibration_source !== "vse" && (
               <VibrationOverviewCard machine={machine} />
             )}
             {(isModuleEnabled(company, "enable_demip") || isModuleEnabled(company, "enable_maintenance")) && (
@@ -1378,13 +1380,13 @@ export default function Machine() {
           </TabsContent>
 
           {/* Vibrodiagnostika */}
-          <TabsContent value="vibro-diag" className="space-y-6">
+          {showVibration && <TabsContent value="vibro-diag" className="space-y-6">
             {machine?.vibration_source === "vse" ? (
               <VseVibrationCard machine={machine} canConfigure={currentUser?.user_type === "superAdmin"} />
             ) : (
               <VibrationCardMQTT machine={machine} enablePredictive={company?.enable_predictive === true} canConfigure={currentUser?.user_type === "superAdmin"} />
             )}
-          </TabsContent>
+          </TabsContent>}
 
           {/* Termodiagnostika */}
           <TabsContent value="thermo" className="space-y-6">
