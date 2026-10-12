@@ -45,8 +45,11 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/admin/demipUsers.css";
 
 export default function Users({ embedded = false }) {
+  const { viewMode } = useViewMode();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
@@ -301,7 +304,7 @@ export default function Users({ embedded = false }) {
   }
 
   return (
-    <div className={embedded ? "" : "p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen"}>
+    <div className={`${viewMode === "demip" ? "demip-users " : ""}${embedded ? "" : "users-standalone p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen"}`}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           {!embedded && <Button
@@ -659,7 +662,7 @@ export default function Users({ embedded = false }) {
 
         {/* Edit Dialog */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogContent className={`${viewMode === "demip" ? "demip-users-dialog " : ""}max-h-[90vh] flex flex-col`}>
             <DialogHeader>
               <DialogTitle>Upravit uživatele</DialogTitle>
               <DialogDescription>
@@ -928,7 +931,7 @@ export default function Users({ embedded = false }) {
 
         {/* Delete Confirmation */}
         <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className={viewMode === "demip" ? "demip-users-dialog" : ""}>
             <AlertDialogHeader>
               <AlertDialogTitle>Opravdu smazat uživatele?</AlertDialogTitle>
               <AlertDialogDescription>

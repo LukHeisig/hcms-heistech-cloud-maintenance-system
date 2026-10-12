@@ -1,0 +1,49 @@
+/* User management only, on phones in DEMIP mode. */
+@media (max-width: 767px) {
+  .demip-users.users-standalone { padding: 12px; }
+  .demip-users, .demip-users-dialog { min-width: 0; font-size: 13px; }
+  .demip-users :where(div), .demip-users-dialog :where(div) { min-width: 0; }
+  .demip-users h1 { font-size: 20px; line-height: 1.3; }
+  .demip-users [class~="tracking-tight"] { font-size: 14px; line-height: 1.4; flex-wrap: wrap; }
+  .demip-users p, .demip-users-dialog p { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+  .demip-users [class~="mb-8"], .demip-users [class~="mb-6"] { margin-bottom: 12px; }
+  .demip-users [class~="mb-4"] { margin-bottom: 8px; }
+  .demip-users [class~="p-6"], .demip-users [class~="p-4"] { padding: 10px; }
+  .demip-users [class~="pt-0"] { padding-top: 0; }
+  .demip-users [class~="gap-4"] { gap: 8px; }
+  .demip-users [class~="gap-3"] { gap: 6px; }
+  .demip-users .admin-user-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .demip-users .admin-user-stats .w-12.h-12 { width: 28px; height: 28px; flex-shrink: 0; }
+  .demip-users .admin-user-stats svg { width: 16px; height: 16px; }
+  .demip-users .admin-user-stats p.text-2xl { font-size: 20px; line-height: 1.2; }
+  .demip-users .admin-user-stats p.text-sm { font-size: 11px; }
+  .demip-users label, .demip-users-dialog label { font-size: 12px; line-height: 1.4; }
+  .demip-users label.mb-2 { margin-bottom: 4px; }
+  .demip-users button, .demip-users-dialog button:not([role="switch"]) { font-size: 12px; }
+  .demip-users button[role="combobox"], .demip-users-dialog button[role="combobox"] {
+    height: auto; min-height: 34px; padding: 6px 8px; text-align: left;
+  }
+  .demip-users button[role="combobox"] > span, .demip-users-dialog button[role="combobox"] > span {
+    min-width: 0; overflow-wrap: anywhere;
+  }
+  .demip-users .overflow-x-auto { max-width: 100%; }
+  .demip-users table { font-size: 11px; }
+  .demip-users th, .demip-users td { padding: 6px 8px; line-height: 1.4; }
+  .demip-users th { height: 32px; white-space: nowrap; }
+  .demip-users td:first-child { min-width: 140px; }
+  .demip-users td:last-child { white-space: nowrap; }
+  .demip-users table .w-10.h-10, .demip-users table .w-9.h-9 { width: 26px; height: 26px; flex-shrink: 0; font-size: 11px; }
+  .demip-users table .rounded-md { font-size: 10px; padding: 1px 5px; white-space: nowrap; }
+  .demip-users table button { min-height: 32px; padding: 4px 8px; }
+  .demip-users table .text-xs { font-size: 10px; }
+  .demip-users .py-12 { padding-top: 20px; padding-bottom: 20px; }
+  .demip-users-dialog { width: calc(100% - 24px); max-height: 90dvh; padding: 14px; gap: 10px; }
+  .demip-users-dialog h2 { font-size: 16px; line-height: 1.3; }
+  .demip-users-dialog .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 10px; }
+  .demip-users-dialog .py-4 { padding-top: 6px; padding-bottom: 6px; }
+  .demip-users-dialog .p-4 { padding: 8px; }
+  .demip-users-dialog input:not([type="checkbox"]) { height: 34px; font-size: 16px; }
+  .demip-users-dialog .text-base { font-size: 13px; }
+  .demip-users-dialog .flex-col-reverse { flex-direction: row; justify-content: flex-end; gap: 8px; }
+  .demip-users-dialog .flex-col-reverse > button { margin-top: 0; min-height: 34px; }
+}
