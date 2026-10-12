@@ -9,7 +9,7 @@ export default function DemipBottomNavigation({ pathname, search, onOverview, on
     { label: "Zpět", icon: ArrowLeft, onClick: onBack },
   ];
   return (
-    <nav aria-label="Spodní navigace DEMIP" className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-border bg-card px-2 py-2 pb-safe text-card-foreground shadow-sm">
+    <nav aria-label="Spodní navigace DEMIP" className="fixed bottom-0 left-0 right-0 z-40 grid h-[calc(3.75rem+env(safe-area-inset-bottom))] grid-cols-4 border-t border-border bg-card px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] text-card-foreground shadow-sm">
       {items.map(({ label, icon: Icon, onClick, active }) => (
         <button key={label} type="button" onClick={onClick} aria-current={active ? "page" : undefined}
           className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? "text-demip-brand" : "text-muted-foreground hover:text-demip-brand"}`}>

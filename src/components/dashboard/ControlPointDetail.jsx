@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import DemipPointDetailHeader from "@/components/dashboard/DemipPointDetailHeader";
 import ControlPointActiveIssues from "@/components/dashboard/ControlPointActiveIssues";
+import ControlPointConfirmAction from "@/components/dashboard/ControlPointConfirmAction";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertTriangle, ClipboardCheck, Activity, ArrowLeft, ChevronRight,
@@ -318,25 +319,8 @@ export default function ControlPointDetail({
           </CardContent>
         </Card>
 
-        {/* Confirm button */}
-        {confirmSuccess ? (
-          <div className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-status-success px-3 py-2 text-sm font-semibold text-demip-brand-foreground">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            Potvrzeno a uloženo
-          </div>
-        ) : shouldShowConfirmButton && (
-          <Button
-            onClick={handleConfirmControl}
-            disabled={isConfirmingControl}
-            className="h-auto min-h-11 w-full whitespace-normal bg-status-success px-3 py-2 text-sm font-semibold text-demip-brand-foreground shadow-none hover:bg-status-success/90"
-          >
-            {isConfirmingControl ? (
-              <><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Ukládání...</>
-            ) : (
-              <><ClipboardCheck className="h-4 w-4 shrink-0" />Potvrdit kontrolu</>
-            )}
-          </Button>
-        )}
+        <ControlPointConfirmAction success={confirmSuccess} visible={shouldShowConfirmButton}
+          pending={isConfirmingControl} onConfirm={handleConfirmControl} />
         <Button onClick={() => setShowIssueDialog(true)} className="h-auto min-h-11 w-full whitespace-normal bg-status-warning px-3 py-2 text-sm text-demip-brand-foreground shadow-none hover:bg-status-warning/90">
           <AlertTriangle className="h-4 w-4 shrink-0" />Nahlásit závadu
         </Button>
@@ -427,6 +411,8 @@ export default function ControlPointDetail({
 
           </TabsContent>
         </Tabs>
+        <ControlPointConfirmAction floating success={confirmSuccess} visible={shouldShowConfirmButton}
+          pending={isConfirmingControl} onConfirm={handleConfirmControl} />
       </div>
 
       {/* Dialogs */}
