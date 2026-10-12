@@ -90,6 +90,8 @@ button:focus-visible {
 
 @layer base {
   :root {
+    --demip-brand: 221 83% 53%;
+    --demip-brand-foreground: 0 0% 100%;
     --dashboard-background: 200 33% 95%;
     --dashboard-accent: 204 33% 33%;
     --dashboard-warning: 48 96% 47%;
@@ -131,6 +133,8 @@ button:focus-visible {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
+    --demip-brand: 221 83% 53%;
+    --demip-brand-foreground: 0 0% 100%;
     --dashboard-background: 204 20% 10%;
     --dashboard-accent: 204 40% 75%;
     --dashboard-warning: 48 96% 55%;

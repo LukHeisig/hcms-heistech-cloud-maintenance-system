@@ -38,6 +38,7 @@ import VibrationKpiCards from "@/components/dashboard/VibrationKpiCards";
 import VibrationLineMachines from "@/components/dashboard/VibrationLineMachines";
 import RecentVibrationAlerts from "@/components/dashboard/RecentVibrationAlerts";
 import ModuleDashboard from "@/components/dashboard/ModuleDashboard";
+import DemipCompanySelection from "@/components/dashboard/DemipCompanySelection";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -512,7 +513,8 @@ export default function Dashboard() {
     }
   }
 
-        if (viewMode === 'demip' && (selectedCompany || selectedLine || selectedMachine)) {
+        if (viewMode === 'demip') {
+    if (!user) return <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Načítání"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
     const companyId = selectedCompany || user?.company_id;
     const currentCompany = allCompanies.find(c => c.id === companyId);
@@ -528,47 +530,12 @@ export default function Dashboard() {
       <div className="relative">
         <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
           {((user?.user_type === "admin" || user?.user_type === "superAdmin") && !selectedCompany) && (
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl font-bold text-slate-900 mb-6">Výběr podniku - DEMIP</h1>
-              <div className="space-y-2">
-                {demipCompanies.map((company) => {
-                  const companyLines = demipAllLines.filter(l => l.company_id === company.id);
-                  const companyLineIds = companyLines.map(l => l.id);
-                  const companyMachines = demipMachines.filter(m => companyLineIds.includes(m.line_id));
-                  const companyMachineIds = companyMachines.map(m => m.id);
-                  const companyPoints = demipControlPoints.filter(p => companyMachineIds.includes(p.machine_id));
-                  const companyOverdue = companyPoints.filter(p => getPointStatus(p) === "overdue").length;
-
-                  return (
-                    <div
-                      key={company.id}
-                      className="group relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all cursor-pointer"
-                      onClick={() => navigate(createPageUrl(`Dashboard?company=${company.id}`))}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-blue-200 shadow-lg text-white">
-                          <Building2 className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center mb-1">
-                            <h3 className="font-bold text-slate-900 text-lg">{company.name}</h3>
-                            {companyOverdue > 0 && (
-                              <div className="flex items-center justify-center px-2 py-1 bg-red-100 rounded-full">
-                                <span className="text-xs font-bold text-red-600">{companyOverdue} !</span>
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-sm text-slate-500 font-medium">
-                            {companyLines.length} linek • {companyPoints.length} bodů
-                          </p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <DemipCompanySelection
+              companies={demipCompanies}
+              lines={demipAllLines}
+              machines={demipMachines}
+              loading={isLoadingCompanies || isLoadingAllLines || isLoadingMachines}
+            />
           )}
 
           {(!selectedLine && !(user?.user_type === "admin" || user?.user_type === "superAdmin")) && (

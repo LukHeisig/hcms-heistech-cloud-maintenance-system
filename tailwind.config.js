@@ -10,6 +10,8 @@ module.exports = {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+            'demip-brand': 'hsl(var(--demip-brand))',
+            'demip-brand-foreground': 'hsl(var(--demip-brand-foreground))',
             'dashboard-background': 'hsl(var(--dashboard-background))',
             'dashboard-accent': 'hsl(var(--dashboard-accent))',
             'dashboard-warning': 'hsl(var(--dashboard-warning))',
