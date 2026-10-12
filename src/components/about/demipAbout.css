@@ -32,4 +32,11 @@
   .demip-about table { font-size: 11px; }
   .demip-about th, .demip-about td { padding: 6px; }
   .demip-about pre { overflow-x: auto; max-width: 100%; }
+  .demip-about .about-contact > .p-8 { padding: 8px 10px; }
+  .demip-about .about-contact h2 { font-size: 13px; line-height: 1.3; margin-bottom: 3px; }
+  .demip-about .about-contact p { font-size: 11px; line-height: 1.35; }
+  .demip-about .about-contact p.mb-6 { margin-bottom: 6px; }
+  .demip-about .about-contact .flex-col { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 3px 12px; }
+  .demip-about .about-contact .mt-6.pt-6 { margin-top: 6px; padding-top: 5px; }
+  .demip-about .about-contact .text-xs { font-size: 9px; }
 }

@@ -459,7 +459,7 @@ export default function About() {
         </Tabs>
 
         {/* Footer s kontaktem */}
-        <Card className="heistech-gradient text-white border-none">
+        <Card className="about-contact heistech-gradient text-white border-none">
           <CardContent className="p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">
               Připraveni modernizovat vaši údržbu?
