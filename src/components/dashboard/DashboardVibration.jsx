@@ -1,20 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { Activity, Bell, WifiOff, BatteryLow, Loader2 } from "lucide-react";
 import DashboardSummary from "@/components/dashboard/DashboardSummary";
 import VibrationLineMachines from "@/components/dashboard/VibrationLineMachines";
 import RecentVibrationAlerts from "@/components/dashboard/RecentVibrationAlerts";
 import VibrationAlarmFrequencyChart from "@/components/dashboard/VibrationAlarmFrequencyChart";
+import OfflineSensorsDialog from "@/components/dashboard/OfflineSensorsDialog";
 
 export default function DashboardVibration({ user, companies, lines, machines, vib, loading }) {
+  const [offlineOpen, setOfflineOpen] = useState(false);
   const items = [
     { label: "Sledované stroje", value: vib.monitoredMachines, icon: Activity, note: `${vib.sensorCount} senzorů` },
     { label: "Aktivní alarmy", value: vib.alertsD + vib.alertsC, icon: Bell, danger: vib.alertsD + vib.alertsC > 0, to: "/VibrationOnline?tab=alerts", note: `D: ${vib.alertsD} · C: ${vib.alertsC}` },
-    { label: "Senzory offline", value: vib.offlineCount, icon: WifiOff, note: "bez dat déle než 12 h" },
+    { label: "Senzory offline", value: vib.offlineCount, icon: WifiOff, note: "bez dat déle než 12 h", onClick: vib.offlineCount > 0 ? () => setOfflineOpen(true) : undefined },
     { label: "Slabá baterie", value: vib.lowBatteryCount, icon: BatteryLow, note: "úroveň 1/4 a méně" },
   ];
   const monitored = machines.filter(machine => machine.vibration_source === "vse" || machine.monitor_vibration || vib.byMachine[machine.id]);
   return <>
     <DashboardSummary items={items} />
+    <OfflineSensorsDialog open={offlineOpen} onOpenChange={setOfflineOpen} sensors={vib.offlineSensors || []} machines={machines} />
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mb-6">
       <section className="lg:col-span-2 bg-card border border-border rounded-xl shadow-sm min-w-0">
         <h2 className="text-xl font-semibold p-4 md:p-6 border-b border-border">Sledované stroje</h2>

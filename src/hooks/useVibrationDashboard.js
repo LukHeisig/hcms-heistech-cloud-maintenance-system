@@ -100,6 +100,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
       alertsD: activeAlerts.filter(a => a.severity === "D").length,
       alertsC: activeAlerts.filter(a => a.severity === "C").length,
       offlineCount: offline.length,
+      offlineSensors: offline.map(sensor => ({ ...sensor, machine_id: assignments.find(assignment => assignment.sensor_id === sensor.sensor_id)?.machine_id || sensor.machine_id })),
       lowBatteryCount: lowBattery.length,
       byMachine,
       recentAlerts,
