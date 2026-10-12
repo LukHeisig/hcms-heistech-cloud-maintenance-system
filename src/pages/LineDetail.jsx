@@ -284,8 +284,8 @@ export default function LineDetail() {
   const modTribo = isModuleEnabled(company, "enable_tribo");
 
   const hasDiagnostics = useMemo(() => {
-    return machines.some(m => (modVibration && m.vibration_schema_id) || (modThermo && true) || (modTribo && true));
-  }, [machines, modVibration, modThermo, modTribo]);
+    return modVibration && machines.some(m => !!m.vibration_schema_id);
+  }, [machines, modVibration]);
 
   // Pokud aktivní záložka není v podniku dostupná, přepni na Přehled
   useEffect(() => {
