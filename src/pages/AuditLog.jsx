@@ -568,7 +568,7 @@ export default function AuditLog() {
 
           {/* Monitoring uživatelů */}
           {canAccessMonitoring && (
-            <TabsContent value="monitoring" className="space-y-6">
+            <TabsContent value="monitoring" className="audit-user-monitoring space-y-6">
               <Card className="shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -677,7 +677,7 @@ export default function AuditLog() {
                           return (
                             <Card
                               key={monitoredUser.id}
-                              className={`border-l-4 ${activityStatus.borderColor}`}
+                              className={`audit-monitoring-user border-l-4 ${activityStatus.borderColor}`}
                             >
                               <CardContent className="p-4">
                                 <div className="flex items-start gap-4">

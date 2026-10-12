@@ -89,4 +89,22 @@
   .demip-audit-log .audit-check-row .rounded-md { font-size: 10px; padding: 1px 5px; }
   .demip-audit-log .audit-check-row .text-xs { font-size: 10px; line-height: 1.4; }
   .demip-audit-log .audit-check-row .flex.text-xs { gap: 3px 6px; }
+  .demip-audit-log .audit-user-monitoring .p-6 { padding: 10px; }
+  .demip-audit-log .audit-user-monitoring .p-6.pt-0 { padding-top: 0; }
+  .demip-audit-log .audit-monitoring-user .p-4 { padding: 8px; }
+  .demip-audit-log .audit-monitoring-user .flex.items-start { gap: 6px; }
+  .demip-audit-log .audit-monitoring-user .w-14.h-14 { width: 28px; height: 28px; font-size: 12px; }
+  .demip-audit-log .audit-monitoring-user .w-14.h-14 > .absolute { width: 14px; height: 14px; }
+  .demip-audit-log .audit-monitoring-user .w-14.h-14 > .absolute svg { width: 9px; height: 9px; }
+  .demip-audit-log .audit-monitoring-user h3 { font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+  .demip-audit-log .audit-monitoring-user .flex.flex-wrap { gap: 4px; }
+  .demip-audit-log .audit-monitoring-user .rounded-md { font-size: 10px; line-height: 1.3; padding: 1px 5px; }
+  .demip-audit-log .audit-monitoring-user p { font-size: 11px; }
+  .demip-audit-log .audit-monitoring-user .text-xs { font-size: 10px; }
+  .demip-audit-log .audit-monitoring-user .p-3 { padding: 6px 8px; }
+  .demip-audit-log .audit-monitoring-user .mb-2 { margin-bottom: 4px; }
+  .demip-audit-log .audit-monitoring-user .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
+  .demip-audit-log .audit-monitoring-user .p-3 .flex { flex-wrap: wrap; gap: 4px; }
+  .demip-audit-log .audit-user-monitoring .grid.md\:grid-cols-3 { gap: 6px; }
+  .demip-audit-log .audit-user-monitoring .grid.md\:grid-cols-3 > .p-3 { padding: 8px; gap: 8px; }
 }
