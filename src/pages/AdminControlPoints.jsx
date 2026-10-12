@@ -51,6 +51,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/admin/demipAdmin.css";
+import "@/components/admin/demipAdminStructure.css";
+import "@/components/admin/demipAdminPoints.css";
 
 const formatInterval = (hours) => {
   if (!hours) return "-";
@@ -66,6 +70,7 @@ const formatInterval = (hours) => {
 };
 
 export default function AdminControlPoints() {
+  const { viewMode } = useViewMode();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
@@ -377,7 +382,7 @@ export default function AdminControlPoints() {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div className={`${viewMode === "demip" ? "demip-admin admin-structure " : ""}p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen`}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <Button
@@ -390,7 +395,7 @@ export default function AdminControlPoints() {
           </Button>
 
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
+          <div className="admin-structure-breadcrumb flex items-center gap-2 text-sm text-slate-600 mb-4 flex-wrap">
             <Building2 className="w-4 h-4" />
             <button
               onClick={() => navigate(createPageUrl("AdminCompanies"))}
@@ -459,7 +464,7 @@ export default function AdminControlPoints() {
                 key={point.id}
                 className="hover:shadow-lg transition-all border-2 border-slate-200 hover:border-slate-300"
               >
-                <CardContent className="p-6">
+                <CardContent className="admin-machine-entry admin-point-entry p-6">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-1 flex flex-col gap-1">
                       <Button
@@ -564,7 +569,7 @@ export default function AdminControlPoints() {
         )}
 
         <Dialog open={showPointDialog} onOpenChange={setShowPointDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className={`max-w-2xl max-h-[90vh] overflow-y-auto ${viewMode === "demip" ? "demip-admin-structure-dialog demip-admin-point-dialog" : ""}`}>
             <DialogHeader>
               <DialogTitle>
                 {editingPoint ? "Upravit kontrolní bod" : "Nový kontrolní bod"}
@@ -789,7 +794,7 @@ export default function AdminControlPoints() {
           open={!!deletePointId}
           onOpenChange={(open) => { if (!open && !deletePointMutation.isPending) { setDeletePointId(null); deletePointMutation.reset(); } }}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <AlertDialogHeader>
               <AlertDialogTitle>Opravdu smazat kontrolní bod?</AlertDialogTitle>
               <AlertDialogDescription>
@@ -811,7 +816,7 @@ export default function AdminControlPoints() {
           </AlertDialogContent>
         </AlertDialog>
         <Dialog open={showNfcScanDialog} onOpenChange={setShowNfcScanDialog}>
-          <DialogContent>
+          <DialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-blue-700">
                 <Activity className="w-6 h-6" />

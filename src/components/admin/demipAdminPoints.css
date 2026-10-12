@@ -1,0 +1,17 @@
+/* Point-specific additions to the shared compact administration style. */
+@media (max-width: 767px) {
+  .demip-admin .admin-point-entry [class~="grid-cols-2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; font-size: 11px;
+  }
+  .demip-admin .admin-point-entry [class~="grid-cols-2"] p { font-size: 12px; }
+  .demip-admin .admin-point-entry [class~="inline-flex"][class~="border"] {
+    font-size: 10px; padding: 2px 5px; line-height: 1.3;
+  }
+  .demip-admin .admin-point-entry [class~="mb-2"] { margin-bottom: 6px; }
+  .demip-admin-point-dialog [role="combobox"] {
+    min-height: 36px; height: auto; font-size: 12px; white-space: normal;
+  }
+  .demip-admin-point-dialog [role="combobox"][class~="w-32"] { flex-shrink: 0; width: 100px; }
+  .demip-admin-point-dialog input { min-width: 0; }
+  .demip-admin-point-dialog input[type="datetime-local"] { max-width: 100%; }
+}
