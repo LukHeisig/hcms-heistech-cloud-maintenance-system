@@ -894,7 +894,7 @@ export default function AdminMachines() {
           open={!!deleteMachineId}
           onOpenChange={() => setDeleteMachineId(null)}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <AlertDialogHeader>
               <AlertDialogTitle>Opravdu smazat stroj?</AlertDialogTitle>
               <AlertDialogDescription>

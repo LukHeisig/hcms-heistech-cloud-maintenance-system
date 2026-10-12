@@ -27,18 +27,36 @@
   .demip-admin .admin-machine-entry .text-xs[class~="border"] { font-size: 10px; padding: 2px 5px; }
   .demip-admin .admin-machine-entry p[class~="mb-3"] { margin-bottom: 6px; }
   .demip-admin-structure-dialog {
-    width: calc(100% - 24px); max-height: 90dvh; overflow-y: auto; padding: 16px; gap: 12px;
+    width: calc(100% - 24px); max-height: calc(100dvh - 32px);
+    overflow-y: auto; padding: 12px; gap: 8px; border-radius: 8px; overflow-wrap: anywhere;
   }
   .demip-admin-structure-dialog :where(div) { min-width: 0; }
-  .demip-admin-structure-dialog h2 { font-size: 18px; line-height: 1.3; }
+  .demip-admin-structure-dialog > div:first-child { text-align: left; padding-right: 24px; }
+  .demip-admin-structure-dialog h2 { font-size: 16px; line-height: 1.3; }
+  .demip-admin-structure-dialog h3, .demip-admin-structure-dialog h4 { font-size: 13px; line-height: 1.4; }
   .demip-admin-structure-dialog p, .demip-admin-structure-dialog label,
   .demip-admin-structure-dialog li { font-size: 12px; line-height: 1.4; }
-  .demip-admin-structure-dialog input, .demip-admin-structure-dialog textarea { font-size: 16px; }
-  .demip-admin-structure-dialog input { min-width: 0; height: 36px; }
-  .demip-admin-structure-dialog [class~="grid-cols-2"] { grid-template-columns: minmax(0, 1fr); }
-  .demip-admin-structure-dialog [class~="gap-4"] { gap: 8px; }
-  .demip-admin-structure-dialog [class~="space-y-4"] > :not([hidden]) ~ :not([hidden]) { margin-top: 10px; }
-  .demip-admin-structure-dialog [class~="py-4"] { padding-top: 8px; padding-bottom: 8px; }
-  .demip-admin-structure-dialog [class~="p-4"] { padding: 10px; }
+  .demip-admin-structure-dialog label { display: inline-block; margin-bottom: 3px; }
+  .demip-admin-structure-dialog input, .demip-admin-structure-dialog textarea,
+  .demip-admin-structure-dialog select { min-width: 0; max-width: 100%; font-size: 16px; padding: 6px 8px; }
+  .demip-admin-structure-dialog input, .demip-admin-structure-dialog select { height: 34px; }
+  .demip-admin-structure-dialog textarea { min-height: 60px; }
+  .demip-admin-structure-dialog [role="combobox"] {
+    min-height: 34px; height: auto; padding: 6px 8px; font-size: 12px; white-space: normal; text-align: left;
+  }
+  .demip-admin-structure-dialog [role="checkbox"] { flex-shrink: 0; }
+  .demip-admin-structure-dialog [class~="grid-cols-2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .demip-admin-structure-dialog [class~="gap-4"], .demip-admin-structure-dialog [class~="gap-2"] { gap: 6px; }
+  .demip-admin-structure-dialog [class~="space-y-4"] > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+  .demip-admin-structure-dialog [class~="py-4"] { padding-top: 4px; padding-bottom: 4px; }
+  .demip-admin-structure-dialog [class~="pt-4"] { padding-top: 8px; }
+  .demip-admin-structure-dialog [class~="mt-4"] { margin-top: 8px; }
+  .demip-admin-structure-dialog [class~="p-4"] { padding: 8px; }
+  .demip-admin-structure-dialog [class~="max-h-[60vh]"] { max-height: none; overflow-y: visible; }
   .demip-admin-structure-dialog button:not([role="checkbox"]) { font-size: 12px; white-space: normal; }
+  .demip-admin-structure-dialog button[class~="w-10"] { width: 34px; height: 34px; }
+  .demip-admin-structure-dialog [class~="flex-col-reverse"] { flex-direction: row; gap: 6px; }
+  .demip-admin-structure-dialog [class~="flex-col-reverse"] > button {
+    flex: 1; min-width: 0; min-height: 36px; height: auto; margin: 0; padding: 6px 8px;
+  }
 }

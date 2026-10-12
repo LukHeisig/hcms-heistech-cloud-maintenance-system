@@ -37,8 +37,11 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/admin/demipAdminStructure.css";
 
 export default function AdminCompanies({ embedded = false }) {
+  const { viewMode } = useViewMode();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState(null);
@@ -315,7 +318,7 @@ export default function AdminCompanies({ embedded = false }) {
         )}
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent>
+          <DialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <DialogHeader>
               <DialogTitle>
                 {editingCompany ? "Upravit podnik" : "Nový podnik"}
@@ -575,7 +578,7 @@ export default function AdminCompanies({ embedded = false }) {
         </Dialog>
 
         <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <AlertDialogHeader>
               <AlertDialogTitle>Opravdu smazat podnik?</AlertDialogTitle>
               <AlertDialogDescription>

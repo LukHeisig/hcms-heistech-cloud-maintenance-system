@@ -664,7 +664,7 @@ export default function AdminLines() {
           open={!!deleteLineId}
           onOpenChange={() => setDeleteLineId(null)}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className={viewMode === "demip" ? "demip-admin-structure-dialog" : undefined}>
             <AlertDialogHeader>
               <AlertDialogTitle>Opravdu smazat linku?</AlertDialogTitle>
               <AlertDialogDescription>
