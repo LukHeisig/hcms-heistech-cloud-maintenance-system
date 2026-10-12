@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import { cachedRecord } from "@/components/data/cachedRecord";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,8 +73,11 @@ export default function Machine() {
   const { viewMode } = useViewMode();
   const urlParams = new URLSearchParams(window.location.search);
   const machineId = urlParams.get("id");
+  const [activeContentTab, setActiveContentTab] = useState(() =>
+    window.location.hash === "#thermo" ? "thermo" : urlParams.get("tab") || "overview"
+  );
   const queryClient = useQueryClient();
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser } = useAuth();
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [uploadingCategory, setUploadingCategory] = useState("drawing");
   const [selectedUploadFile, setSelectedUploadFile] = useState(null);
@@ -88,25 +93,25 @@ export default function Machine() {
   const [showThermoDialog, setShowThermoDialog] = useState(false);
   const [editingThermoJob, setEditingThermoJob] = useState(null);
 
-  useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => setCurrentUser(null));
-  }, []);
+
 
   const { data: machine } = useQuery({
     queryKey: ["machine", machineId],
+    ...cachedRecord(queryClient, machineId, [["machines"], ["allMachines"]]),
     queryFn: async () => {
-      const machines = await throttled(() => base44.entities.Machine.filter({ id: machineId }));
+      const machines = await throttled(() => base44.entities.Machine.filter({ id: machineId }), 1);
       return machines[0];
     },
     enabled: !!machineId,
-    staleTime: 0,
+    staleTime: 60000,
   });
 
   const { data: line, isLoading: lineLoading } = useQuery({
     queryKey: ["line", machine?.line_id],
+    ...cachedRecord(queryClient, machine?.line_id, [["allLines"], ["lines"]]),
     queryFn: async () => {
       if (!machine?.line_id) return null;
-      const lines = await throttled(() => base44.entities.Line.filter({ id: machine.line_id }));
+      const lines = await throttled(() => base44.entities.Line.filter({ id: machine.line_id }), 1);
       return lines[0];
     },
     enabled: !!machine?.line_id,
@@ -115,9 +120,10 @@ export default function Machine() {
 
   const { data: company, isLoading: companyLoading } = useQuery({
     queryKey: ["company", line?.company_id],
+    ...cachedRecord(queryClient, line?.company_id, [["companies"], ["userCompany"]]),
     queryFn: async () => {
       if (!line?.company_id) return null;
-      const companies = await throttled(() => base44.entities.Company.filter({ id: line.company_id }));
+      const companies = await throttled(() => base44.entities.Company.filter({ id: line.company_id }), 1);
       return companies[0];
     },
     enabled: !!line?.company_id,
@@ -147,8 +153,9 @@ export default function Machine() {
 
   const { data: controlPoints = [], isLoading: controlPointsLoading } = useQuery({
     queryKey: ["controlPoints", machineId],
-    queryFn: () => throttled(() => base44.entities.ControlPoint.filter({ machine_id: machineId })),
+    queryFn: () => throttled(() => base44.entities.ControlPoint.filter({ machine_id: machineId }), 1),
     enabled: !!machineId,
+    staleTime: 60000,
   });
 
   const intervalPointIds = useMemo(() => controlPoints.map(point => point.id), [controlPoints]);
@@ -196,10 +203,10 @@ export default function Machine() {
     staleTime: 1000 * 60,
   });
 
-  const { data: documentation = [] } = useQuery({
+  const { data: documentation = [], isLoading: documentationLoading } = useQuery({
     queryKey: ["documentation", machineId],
     queryFn: () => throttled(() => base44.entities.Documentation.filter({ machine_id: machineId })),
-    enabled: !!machineId,
+    enabled: !!machineId && activeContentTab === "documentation",
     staleTime: 60000,
   });
 
@@ -227,31 +234,19 @@ export default function Machine() {
     staleTime: 60000,
   });
 
-  const { data: vibrationMeasurements = [] } = useQuery({
-    queryKey: ["vibrationMeasurements", machineId],
-    queryFn: () => throttled(() => base44.entities.VibrationMeasurement.filter({ machine_id: machineId }, "-measurement_date")),
-    enabled: !!machineId,
-    staleTime: 60000,
-  });
 
-  const { data: vibrationJobs = [] } = useQuery({
-    queryKey: ["vibrationJobs", machineId],
-    queryFn: () => throttled(() => base44.entities.VibrationJob.filter({ machine_id: machineId }, "-date")),
-    enabled: !!machineId,
-    staleTime: 60000,
-  });
 
-  const { data: thermoJobs = [] } = useQuery({
+  const { data: thermoJobs = [], isLoading: thermoLoading } = useQuery({
     queryKey: ["thermoJobs", machineId],
     queryFn: () => throttled(() => base44.entities.ThermoJob.filter({ machine_id: machineId }, "-measurement_date")),
-    enabled: !!machineId,
+    enabled: !!machineId && activeContentTab === "thermo",
     staleTime: 60000,
   });
 
-  const { data: predictiveAnalysis = [] } = useQuery({
+  const { data: predictiveAnalysis = [], isLoading: predictionLoading } = useQuery({
     queryKey: ["predictiveAnalysis", machineId],
     queryFn: () => throttled(() => base44.entities.PredictiveAnalysis.filter({ machine_id: machineId }, "-analysis_date")),
-    enabled: !!machineId,
+    enabled: !!machineId && activeContentTab === "predictive",
     staleTime: 60000,
   });
 
@@ -280,12 +275,7 @@ export default function Machine() {
 
   const canDeletePredictions = currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'superAdmin');
 
-  const { data: responsibilities = [] } = useQuery({
-    queryKey: ["responsibilities", machineId],
-    queryFn: () => throttled(() => base44.entities.MachineResponsibility.filter({ machine_id: machineId })),
-    enabled: !!machineId,
-    staleTime: 60000,
-  });
+
 
   const inspectionRecords = React.useMemo(() => {
     if (!controlPoints || controlPoints.length === 0) return [];
@@ -614,7 +604,7 @@ export default function Machine() {
 
       <div className="mx-auto min-w-0 max-w-7xl space-y-3 p-3 md:space-y-6 md:p-6">
         {/* Záložky */}
-        <Tabs key={initialTab} defaultValue={initialTab} className="min-w-0 space-y-3 md:space-y-6">
+        <Tabs key={initialTab} defaultValue={initialTab} onValueChange={setActiveContentTab} className="min-w-0 space-y-3 md:space-y-6">
           <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 gap-1 bg-card p-1 shadow-sm md:flex md:flex-wrap md:shadow-md">
             <TabsTrigger value="overview" className="min-w-0 flex-col gap-1 px-1 py-2 md:min-w-[100px] md:flex-1 md:flex-row md:gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white">
               <LayoutDashboard className="w-4 h-4" />
@@ -1065,7 +1055,7 @@ export default function Machine() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                {documentation.length === 0 ? (
+                {documentationLoading ? <Loader2 className="mx-auto my-8 h-6 w-6 animate-spin text-muted-foreground" aria-label="Načítání dokumentace" /> : documentation.length === 0 ? (
                   <div className="text-center py-12">
                     <ImageIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500 mb-2">Zatím nebyla přidána žádná dokumentace</p>
@@ -1273,11 +1263,11 @@ export default function Machine() {
                  </Button>
              </div>
              
-             <ThermoCard 
-                machine={machine} 
-                jobs={thermoJobs} 
+             {thermoLoading ? <Loader2 className="mx-auto my-8 h-6 w-6 animate-spin text-muted-foreground" aria-label="Načítání termodiagnostiky" /> : <ThermoCard
+                machine={machine}
+                jobs={thermoJobs}
                 onEdit={(job) => { setEditingThermoJob(job); setShowThermoDialog(true); }}
-             />
+             />}
           </TabsContent>}
 
           {/* Tribodiagnostika Placeholder */}
@@ -1329,7 +1319,7 @@ export default function Machine() {
                 </CardContent>
             </Card>
 
-            {predictiveAnalysis.length > 0 ? (
+            {predictionLoading ? <Loader2 className="mx-auto my-8 h-6 w-6 animate-spin text-muted-foreground" aria-label="Načítání predikcí" /> : predictiveAnalysis.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Latest Analysis - Main Card */}
                     <div className="lg:col-span-2 space-y-6">

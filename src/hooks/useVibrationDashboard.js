@@ -39,7 +39,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
     enabled: on && sensorIds.length > 0, staleTime: 300000,
   });
   const { data: standards = [], isLoading: loadingStandards } = useQuery({
-    queryKey: ["vibStandards"],
+    queryKey: ["vibrationStandards"],
     queryFn: () => base44.entities.VibrationStandard.list(null, 500),
     enabled: on, staleTime: 600000,
   });

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { useQuery } from '@tanstack/react-query';
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeContext";
 import { OfflineProvider } from "@/components/OfflineProvider";
@@ -62,7 +63,8 @@ import DemipBottomNavigation from "@/components/dashboard/DemipBottomNavigation"
 function LayoutContent({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user: authenticatedUser } = useAuth();
+  const [user, setUser] = useState(authenticatedUser);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasData, setHasData] = useState(true);
   const { viewMode, toggleViewMode } = useViewMode();
@@ -329,7 +331,7 @@ function LayoutContent({ children }) {
 
   const loadUser = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = authenticatedUser || await base44.auth.me();
       setUser(currentUser);
       userRef.current = currentUser; // Sync ref pro NFC callback
     } catch (error) {
@@ -338,8 +340,8 @@ function LayoutContent({ children }) {
   };
 
   const { data: allReportedIssues = [] } = useQuery({
-    queryKey: ["reportedIssues"],
-    queryFn: () => throttled(() => base44.entities.Issue.filter({ status: "reported" })),
+    queryKey: ["allIssues"],
+    queryFn: () => throttled(() => base44.entities.Issue.filter({ status: "reported" }, null, 1000)),
     enabled: !!user,
     staleTime: 300000,
   });

@@ -16,6 +16,7 @@ export default function PointsList({
   activeTab,
   setActiveTab,
   records,
+  latestChecks = {},
   demipIssues,
   getPointStatus,
   getNextControlDate,
@@ -108,7 +109,7 @@ export default function PointsList({
                 const pointRecords = records
                   .filter(r => r.control_point_id === point.id)
                   .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
-                const lastRecord = pointRecords[0];
+                const lastRecord = latestChecks[point.id] ? { performed_at: latestChecks[point.id] } : pointRecords[0];
 
                 const status = getPointStatus(point);
                 const nextDate = getNextControlDate(point, pointRecords);

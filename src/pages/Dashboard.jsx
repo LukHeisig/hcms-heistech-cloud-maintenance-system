@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useViewMode } from "@/components/ViewModeContext";
+import { useAuth } from "@/lib/AuthContext";
 import {
   AlertTriangle,
   Droplet,
@@ -55,7 +56,7 @@ const formatInterval = (hours) => {
 };
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("lubrication");
   const [expandedCompanies, setExpandedCompanies] = useState({});
   const navigate = useNavigate();
@@ -71,14 +72,7 @@ export default function Dashboard() {
   const selectedPoint = urlParams.get('point');
   const nfcScanned = urlParams.get('nfc_scanned') === 'true';
 
-  useEffect(() => {
-    loadUser();
-  }, []);
 
-  const loadUser = async () => {
-    const currentUser = await base44.auth.me();
-    setUser(currentUser);
-  };
 
   const { data: allCompanies = [], isLoading: isLoadingCompanies } = useQuery({
     queryKey: ["companies"],
@@ -180,12 +174,7 @@ export default function Dashboard() {
   const intervalPointIds = useMemo(() => controlPoints.map(point => point.id), [controlPoints]);
   const { latestChecks, loading: latestChecksLoading } = useLatestControlChecks(intervalPointIds, user?.id);
 
-  const { data: allRecords = [] } = useQuery({
-    queryKey: ["allRecords", user?.id],
-    queryFn: () => throttled(() => base44.entities.ControlRecord.list("-performed_at", 5000)),
-    enabled: !!user,
-    staleTime: 300000,
-  });
+
 
   const { data: selectedPointRecords = [] } = useQuery({
     queryKey: ["pointRecords", selectedPoint, user?.id],
@@ -193,16 +182,7 @@ export default function Dashboard() {
     enabled: !!selectedPoint,
   });
 
-  // Filtrovat záznamy podle company_id pro non-admin uživatele
-  const records = React.useMemo(() => {
-    if (!user) return [];
-    if (user.user_type === "admin" || user.user_type === "superAdmin") {
-      return allRecords;
-    }
-    // Pro manager/technician vrátit pouze záznamy z jejich bodů
-    const userPointIds = controlPoints.map(p => p.id);
-    return allRecords.filter(r => userPointIds.includes(r.control_point_id));
-  }, [user, allRecords, controlPoints]);
+
 
   const { data: allIssues = [] } = useQuery({
     queryKey: ["allIssues"],
@@ -348,23 +328,26 @@ export default function Dashboard() {
     ).length;
   }, [activeControlPoints, getPointStatus]);
 
-  const activeRecords = React.useMemo(() => {
-    if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
-      const activePointIds = activeControlPoints.map(p => p.id);
-      return allRecords.filter(r => activePointIds.includes(r.control_point_id)); // Changed from records to allRecords, as records is now filtered.
-    }
-    return records;
-  }, [user, records, activeControlPoints, allRecords]);
-
-  const totalRecordsThisMonthCount = React.useMemo(() => {
-    return activeRecords.filter((r) => {
-      const date = new Date(r.performed_at);
-      const now = new Date();
-      return (
-        date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
-      );
-    }).length;
-  }, [activeRecords]);
+  const activePointIds = useMemo(() => activeControlPoints.map(point => point.id), [activeControlPoints]);
+  const { data: records = [] } = useQuery({
+    queryKey: ["allRecords", "recent", user?.id, activePointIds],
+    queryFn: () => throttled(() => base44.entities.ControlRecord.filter(
+      { control_point_id: { $in: activePointIds } }, { sort: "-performed_at", limit: 5 }
+    )).then(page => page.items),
+    enabled: activePointIds.length > 0,
+    staleTime: 60000,
+  });
+  const activeRecords = records;
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const nextMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString();
+  const { data: totalRecordsThisMonthCount } = useQuery({
+    queryKey: ["allRecords", "monthlyCount", user?.id, activePointIds, monthStart],
+    queryFn: () => throttled(() => base44.entities.ControlRecord.count({
+      control_point_id: { $in: activePointIds }, performed_at: { $gte: monthStart, $lt: nextMonthStart },
+    })),
+    enabled: activePointIds.length > 0,
+    staleTime: 60000,
+  });
 
   const activeIssues = React.useMemo(() => {
     if (user?.user_type === "admin" || user?.user_type === "superAdmin") {
@@ -396,7 +379,7 @@ export default function Dashboard() {
     const lineIds = allLines.filter(l => companyIds.includes(l.company_id)).map(l => l.id);
     return machines.filter(m => lineIds.includes(m.line_id)).map(m => m.id);
   }, [machines, isCompanyUser, activeCompanies, allLines]);
-  const vib = useVibrationDashboard(vibMachineIds, modVibration);
+  const vib = useVibrationDashboard(vibMachineIds, modVibration && viewMode !== "demip" && (urlParams.get("module") === "vibration" || !modDemip));
   const machinesLabel = (n) => `${n} ${n === 1 ? "stroj" : n >= 2 && n <= 4 ? "stroje" : "strojů"}`;
 
   const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
@@ -533,6 +516,7 @@ export default function Dashboard() {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               records={records}
+              latestChecks={latestChecks}
               demipIssues={demipIssues}
               getPointStatus={getPointStatus}
               getNextControlDate={getNextControlDate}
@@ -560,7 +544,7 @@ export default function Dashboard() {
         companies: visibleCompanies.filter(company => company.enable_demip === true), lines: visibleLines,
         machines, points: admin ? activeControlPoints : controlPoints,
         records: admin ? activeRecords : records, issues: user?.user_type === "technician" ? [] : admin ? activeIssues : issues,
-        getPointStatus, getUserDisplayName, overdue: overduePointsCount, monthlyRecords: totalRecordsThisMonthCount,
+        getPointStatus, getUserDisplayName, overdue: overduePointsCount, monthlyRecords: activePointIds.length === 0 ? 0 : totalRecordsThisMonthCount ?? "–",
         admin, superAdmin: user?.user_type === "superAdmin", loading: isLoadingAllLines || isLoadingLines || isLoadingMachines || isLoadingControlPoints || latestChecksLoading,
       }}
       vibration={{ user, companies: vibrationCompanies, lines: vibrationLines, machines: vibrationMachines, vib, loading: isLoadingMachines || isLoadingAllLines || isLoadingLines }}

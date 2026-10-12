@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import { cachedRecord } from "@/components/data/cachedRecord";
 import { moduleData } from "@/lib/moduleData";
 import { isModuleEnabled } from "@/lib/companyModules";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -68,7 +70,7 @@ import LineIssueRow from "@/components/issues/LineIssueRow";
 import LineDiagnosticMachineRow from "@/components/dashboard/LineDiagnosticMachineRow";
 
 export default function LineDetail() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSections, setExpandedSections] = useState({});
   const [showCheckRecordDialog, setShowCheckRecordDialog] = useState(false);
@@ -90,17 +92,11 @@ export default function LineDetail() {
   const lineId = urlParams.get("id");
   const companyId = urlParams.get("company");
 
-  useEffect(() => {
-    loadUser();
-  }, []);
 
-  const loadUser = async () => {
-    const currentUser = await base44.auth.me();
-    setUser(currentUser);
-  };
 
   const { data: line } = useQuery({
     queryKey: ["line", lineId],
+    ...cachedRecord(queryClient, lineId, [["allLines"], ["lines"]]),
     queryFn: () => base44.entities.Line.filter({ id: lineId }).then(res => res[0]),
     enabled: !!lineId,
     staleTime: 60000,
@@ -108,6 +104,7 @@ export default function LineDetail() {
 
   const { data: company } = useQuery({
     queryKey: ["company", line?.company_id],
+    ...cachedRecord(queryClient, line?.company_id, [["companies"], ["userCompany"]]),
     queryFn: () => base44.entities.Company.filter({ id: line.company_id }).then(res => res[0]),
     enabled: !!line?.company_id,
     staleTime: 60000,
@@ -130,43 +127,23 @@ export default function LineDetail() {
 
 
 
-  const { data: allMaintenance = [] } = useQuery({
-    queryKey: ["allMaintenance"],
-    queryFn: () => base44.entities.MaintenanceRecord.list("-performed_at", 500),
-    staleTime: 300000, // 5 minutes
-  });
 
-  const { data: allPlannedMaintenance = [] } = useQuery({
-    queryKey: ["allPlannedMaintenance"],
-    queryFn: () => base44.entities.PlannedMaintenance.list(),
-    staleTime: 300000, // 5 minutes
-  });
-
-  const { data: allResponsibilities = [] } = useQuery({
-    queryKey: ["allResponsibilities"],
-    queryFn: () => base44.entities.MachineResponsibility.list(),
-    staleTime: 300000, // 5 minutes
-  });
 
   const { data: checkSections = [] } = useQuery({
     queryKey: ["checkSections", lineId],
     queryFn: () => base44.entities.LineCheckSection.filter({ line_id: lineId }, "order_index"),
-    enabled: !!lineId,
+    enabled: !!lineId && showCheckRecordDialog,
     staleTime: 300000, // 5 minutes
   });
 
   const { data: allCheckPoints = [] } = useQuery({
     queryKey: ["lineCheckPoints"],
     queryFn: () => base44.entities.LineCheckPoint.list("order_index"),
+    enabled: showCheckRecordDialog,
     staleTime: 300000, // 5 minutes
   });
 
-  const { data: checkRecords = [] } = useQuery({
-    queryKey: ["lineCheckRecords", lineId],
-    queryFn: () => base44.entities.LineCheckRecord.filter({ line_id: lineId }, "-created_date"),
-    enabled: !!lineId,
-    staleTime: 300000, // 5 minutes
-  });
+
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["allUsers"],
@@ -174,6 +151,7 @@ export default function LineDetail() {
       const { data } = await base44.functions.invoke("getUsers");
       return data;
     },
+    enabled: activeTab === "checklist",
     staleTime: 300000,
   });
 
@@ -223,7 +201,7 @@ export default function LineDetail() {
     queryFn: ({ pageParam }) => base44.entities.Issue.filter(activeIssueQuery, { sort: "-created_date", limit: 50, ...(pageParam ? { cursor: pageParam } : {}) }),
     initialPageParam: undefined,
     getNextPageParam: page => page.has_more ? page.next_cursor : undefined,
-    enabled: machineIds.length > 0,
+    enabled: machineIds.length > 0 && activeTab === "checklist",
     staleTime: 60000,
   });
   const issues = useMemo(() => issuePages?.pages.flatMap(page => page.items) || [], [issuePages]);
@@ -265,17 +243,7 @@ export default function LineDetail() {
     return grouped;
   }, [issues, controlPoints]);
 
-  const maintenanceRecords = useMemo(() => {
-    return allMaintenance.filter(m => machineIds.includes(m.machine_id));
-  }, [allMaintenance, machineIds]);
 
-  const plannedMaintenance = useMemo(() => {
-    return allPlannedMaintenance.filter(pm => machineIds.includes(pm.machine_id));
-  }, [allPlannedMaintenance, machineIds]);
-
-  const responsibilities = useMemo(() => {
-    return allResponsibilities.filter(r => machineIds.includes(r.machine_id));
-  }, [allResponsibilities, machineIds]);
 
   const modDemip = isModuleEnabled(company, "enable_demip");
   const modMaintenance = isModuleEnabled(company, "enable_maintenance");
@@ -301,15 +269,10 @@ export default function LineDetail() {
   const { data: lineVibrationAssignments = [], isLoading: assignmentsLoading } = useQuery({
     queryKey: ["lineVibrationAssignments", vibrationMachineIds.join(",")],
     queryFn: async () => {
-      if (vibrationMachineIds.length === 0) return [];
-      const results = [];
-      for (const mid of vibrationMachineIds) {
-        const assignments = await moduleData.filter("VibrationSensorAssignment", { machine_id: mid });
-        results.push(...assignments.map(a => ({ ...a, _machineId: mid })));
-      }
-      return results;
+      const assignments = await moduleData.filter("VibrationSensorAssignment", { machine_id: { $in: vibrationMachineIds } }, null, 1000);
+      return assignments.map(a => ({ ...a, _machineId: a.machine_id }));
     },
-    enabled: vibrationMachineIds.length > 0,
+    enabled: modVibration && vibrationMachineIds.length > 0,
     staleTime: 120000,
   });
 
@@ -338,6 +301,7 @@ export default function LineDetail() {
   const { data: allVibrationStandards = [], isLoading: standardsLoading } = useQuery({
     queryKey: ["vibrationStandards"],
     queryFn: () => base44.entities.VibrationStandard.list(null, 500),
+    enabled: modVibration && vibrationMachineIds.length > 0,
     staleTime: 300000,
   });
   const standardsById = useMemo(() => Object.fromEntries(allVibrationStandards.map(s => [s.id, s])), [allVibrationStandards]);
@@ -427,25 +391,12 @@ export default function LineDetail() {
     return controlPoints.filter(p => ["warning", "critical"].includes(getPointStatus(p)));
   }, [controlPoints, latestChecks, latestChecksLoading, company, line?.excluded_days]);
 
-  const stats = useMemo(() => {
-    const thisMonth = maintenanceRecords.filter(m => {
-      const date = new Date(m.performed_at);
-      const now = new Date();
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    });
-
-    const totalCost = thisMonth.reduce((sum, m) => sum + (m.cost || 0), 0);
-
-    return {
-      machinesCount: machines.length,
-      pointsCount: controlPoints.length,
-      overdueCount: overduePoints.length,
-      issuesCount: Object.values(issueCounts || {}).reduce((total, count) => total + count, 0),
-      maintenanceThisMonth: thisMonth.length,
-      totalCostThisMonth: totalCost,
-      plannedCount: plannedMaintenance.filter(pm => pm.status !== 'completed' && pm.status !== 'cancelled').length,
-    };
-  }, [machines, controlPoints, overduePoints, issueCounts, maintenanceRecords, plannedMaintenance]);
+  const stats = useMemo(() => ({
+    machinesCount: machines.length,
+    pointsCount: controlPoints.length,
+    overdueCount: overduePoints.length,
+    issuesCount: Object.values(issueCounts || {}).reduce((total, count) => total + count, 0),
+  }), [machines, controlPoints, overduePoints, issueCounts]);
 
   const toggleSection = (sectionId) => {
     setExpandedSections(prev => ({
@@ -828,7 +779,7 @@ export default function LineDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {Object.keys(activeIssuesByYearAndDate).length === 0 ? (
+                {issuesLoading ? <Loader2 className="mx-auto my-8 h-6 w-6 animate-spin text-muted-foreground" aria-label="Načítání závad" /> : Object.keys(activeIssuesByYearAndDate).length === 0 ? (
                   <div className="text-center py-12">
                      <CheckSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                      <p className="text-slate-500">Na této lince nejsou žádné aktivní závady</p>

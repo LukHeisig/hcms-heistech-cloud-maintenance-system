@@ -20,9 +20,10 @@ function runNext() {
     });
 }
 
-export function throttled(fn) {
+export function throttled(fn, priority = 0) {
   return new Promise((resolve, reject) => {
-    queue.push({ fn, resolve, reject });
+    queue.push({ fn, resolve, reject, priority });
+    queue.sort((a, b) => b.priority - a.priority);
     runNext();
   });
 }

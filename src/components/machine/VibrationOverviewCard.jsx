@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import cachedSubset from "@/components/data/cachedSubset";
 import { base44 } from "@/api/base44Client";
 import { moduleData } from "@/lib/moduleData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,13 +31,11 @@ const BEAR_DETAILS = [
 const lvl = (v, a, b, c) => (v == null || a == null ? -1 : v < a ? 0 : v < b ? 1 : v < c ? 2 : 3);
 
 export default function VibrationOverviewCard({ machine }) {
-  const { data: schema } = useQuery({
-    queryKey: ["vibrationSchema", machine.vibration_schema_id],
-    queryFn: () => base44.entities.VibrationSchema.filter({ id: machine.vibration_schema_id }).then(r => r[0] || null),
-    enabled: !!machine.vibration_schema_id,
-  });
+  const client = useQueryClient();
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ["vibOverviewAssignments", machine.id],
+    ...cachedSubset(client, ["lineVibrationAssignments", "dashVibAssign"], [machine.id], data => data.filter(a => a.machine_id === machine.id)),
+    staleTime: 60000,
     queryFn: () => moduleData.filter("VibrationSensorAssignment", { machine_id: machine.id }, null, 200),
   });
   const { data: standards = [] } = useQuery({
@@ -47,14 +46,14 @@ export default function VibrationOverviewCard({ machine }) {
   const sensorIds = [...new Set(assignments.map(a => a.sensor_id).filter(Boolean))];
   const { data: latest = {} } = useQuery({
     queryKey: ["vibOverviewData", sensorIds.join(",")],
+    ...cachedSubset(client, ["lineVibroData", "dashVibLatest"], sensorIds, data => Object.fromEntries(sensorIds.filter(id => id in data).map(id => [id, data[id]]))),
+    staleTime: 60000,
     queryFn: () => moduleData.latestSensorData(sensorIds),
     enabled: sensorIds.length > 0,
     refetchInterval: 60000,
   });
 
   const rows = useMemo(() => {
-    let defs = [];
-    try { defs = JSON.parse(schema?.rows_definition || "[]"); } catch { defs = []; }
     const std = Object.fromEntries(standards.map(s => [s.id, s]));
     return assignments.filter(a => a.sensor_id).sort((a, b) => a.schema_row_index - b.schema_row_index).map(a => {
       const d = latest[a.sensor_id];
@@ -70,7 +69,7 @@ export default function VibrationOverviewCard({ machine }) {
       const bearL = d ? Math.max(lvl(acc, ac?.acc_limit_ab, ac?.acc_limit_bc, ac?.acc_limit_cd), lvl(d.env_rms_z, ac?.acc_limit_ab, ac?.acc_limit_bc, ac?.acc_limit_cd)) : -1;
       return { id: a.id, velL, bearL, level };
     });
-  }, [assignments, latest, standards, schema]);
+  }, [assignments, latest, standards]);
 
   const velLevel = Math.max(-1, ...rows.map(r => r.velL));
   const bearLevel = Math.max(-1, ...rows.map(r => r.bearL));
