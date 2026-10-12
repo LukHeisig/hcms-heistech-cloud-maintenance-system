@@ -6,8 +6,11 @@ import Users from "@/pages/Users";
 import AdminCleanup from "@/pages/AdminCleanup";
 import AdminExport from "@/pages/AdminExport";
 import { base44 } from "@/api/base44Client";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/admin/demipAdmin.css";
 
 export default function Admin() {
+  const { viewMode } = useViewMode();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,5 +47,7 @@ export default function Admin() {
       { value: "export", label: "Export Dat", icon: Database, component: AdminExport },
     ] : []),
   ];
-  return <SectionTabs title="Administrace" sections={sections} />;
+  return <div className={viewMode === "demip" ? "demip-admin" : undefined}>
+    <SectionTabs title="Administrace" sections={sections} />
+  </div>;
 }

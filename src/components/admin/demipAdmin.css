@@ -1,0 +1,60 @@
+/* Administration only, on mobile in DEMIP mode. */
+@media (max-width: 767px) {
+  .demip-admin { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+  .demip-admin > div { padding: 12px; }
+  .demip-admin :where(div, header, section) { min-width: 0; }
+  .demip-admin h1 { font-size: 20px; line-height: 1.3; }
+  .demip-admin h2 { font-size: 16px; line-height: 1.4; }
+  .demip-admin h3 { font-size: 14px; line-height: 1.4; }
+  .demip-admin p, .demip-admin li { font-size: 12px; line-height: 1.45; }
+  .demip-admin [class~="mb-8"], .demip-admin [class~="mb-6"] { margin-bottom: 12px; }
+  .demip-admin [class~="mb-4"] { margin-bottom: 8px; }
+  .demip-admin [class~="gap-6"], .demip-admin [class~="gap-4"] { gap: 8px; }
+  .demip-admin [class~="space-y-6"] > :not([hidden]) ~ :not([hidden]),
+  .demip-admin [class~="space-y-4"] > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+  .demip-admin [class~="p-6"], .demip-admin [class~="p-4"] { padding: 12px; }
+  .demip-admin [class~="p-8"], .demip-admin [class~="p-12"] { padding: 20px 12px; }
+  .demip-admin [class~="rounded-xl"][class~="border"] { border-radius: 8px; box-shadow: none; }
+  .demip-admin [role="tablist"] {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%; height: auto; gap: 4px; padding: 4px;
+  }
+  .demip-admin [role="tab"] {
+    min-width: 0; min-height: 34px; height: auto; padding: 6px;
+    font-size: 11px; line-height: 1.3; white-space: normal; gap: 4px;
+  }
+  .demip-admin [role="tab"] svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .demip-admin [role="tabpanel"] { min-width: 0; margin-top: 8px; }
+  .demip-admin button:not([role="tab"]):not([role="switch"]):not([role="checkbox"]) {
+    min-height: 34px; height: auto; font-size: 12px; line-height: 1.3; white-space: normal;
+  }
+  .demip-admin button[class~="px-4"], .demip-admin button[class~="px-3"] {
+    padding-left: 10px; padding-right: 10px;
+  }
+  .demip-admin input:not([type="checkbox"]), .demip-admin textarea {
+    min-width: 0; font-size: 16px;
+  }
+  .demip-admin input:not([type="checkbox"]) { height: 36px; }
+  .demip-admin .flex[class~="justify-between"] { flex-wrap: wrap; gap: 8px; }
+  .demip-admin .admin-company-entry > .flex { flex-direction: column; align-items: stretch; }
+  .demip-admin .admin-company-entry > .flex > .flex:first-child { gap: 8px; }
+  .demip-admin .admin-company-entry [class~="w-12"][class~="h-12"] {
+    width: 34px; height: 34px; border-radius: 8px; box-shadow: none;
+  }
+  .demip-admin .admin-company-entry [class~="w-12"] svg { width: 20px; height: 20px; }
+  .demip-admin .admin-company-entry .text-sm.flex { flex-wrap: wrap; gap: 4px 8px; font-size: 12px; }
+  .demip-admin .admin-company-entry > .flex > .flex:last-child {
+    justify-content: flex-end; gap: 4px;
+  }
+  .demip-admin .admin-company-entry button[class~="w-9"] { width: 34px; height: 34px; }
+  .demip-admin .admin-user-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .demip-admin .admin-user-stats .flex { gap: 8px; }
+  .demip-admin .admin-user-stats [class~="w-12"] { width: 30px; height: 30px; flex-shrink: 0; }
+  .demip-admin .admin-user-stats svg { width: 16px; height: 16px; }
+  .demip-admin .admin-user-stats p[class~="text-2xl"] { font-size: 20px; line-height: 1.2; }
+  .demip-admin table { font-size: 12px; overflow-wrap: normal; }
+  .demip-admin th, .demip-admin td { padding: 8px; }
+  .demip-admin table .rounded-full { width: 28px; height: 28px; flex-shrink: 0; }
+  .demip-admin table [class~="gap-3"] { gap: 6px; }
+  .demip-admin table [class~="inline-flex"][class~="border"] { font-size: 11px; padding: 2px 6px; }
+}

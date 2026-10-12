@@ -254,7 +254,7 @@ export default function AdminCompanies({ embedded = false }) {
                   key={company.id}
                   className="hover:shadow-lg transition-all border-2 border-slate-200 hover:border-slate-300"
                 >
-                  <CardContent className="p-6">
+                  <CardContent className="admin-company-entry p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4 flex-1">
                         <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
