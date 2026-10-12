@@ -758,11 +758,11 @@ function LayoutContent({ children }) {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div className={`${viewMode === 'demip' ? '' : 'lg:hidden'} fixed inset-0 z-[60] bg-foreground/30`} onClick={() => setMobileOpen(false)}>
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-card overflow-y-auto p-4 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between"><span className="font-bold text-lg">HCMS</span><button aria-label="Zavřít menu" onClick={() => setMobileOpen(false)} className="p-3"><X className="w-5 h-5" /></button></div>
+          <div className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-card overflow-y-auto ${viewMode === 'demip' ? 'p-3 space-y-1' : 'p-4 space-y-4'}`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between"><span className={`font-bold ${viewMode === 'demip' ? 'text-base' : 'text-lg'}`}>HCMS</span><button aria-label="Zavřít menu" onClick={() => setMobileOpen(false)} className="p-3"><X className="w-5 h-5" /></button></div>
             {/* Hide Toggle for Technicians if forced DEMIP */}
             {demipEnabled && !(user?.user_type === 'technician' && userCompany?.force_technician_demip_mobile) && (
-            <div className="mb-6">
+            <div className={viewMode === 'demip' ? 'pb-2' : 'mb-6'}>
                <Button
                  onClick={() => {
                    toggleViewMode();
@@ -803,7 +803,7 @@ function LayoutContent({ children }) {
                 key={item.title}
                 to={item.url}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center justify-between p-4 rounded-xl transition-all ${
+                className={`flex items-center justify-between transition-all ${viewMode === 'demip' ? 'min-h-11 px-3 py-2 rounded-lg text-sm' : 'p-4 rounded-xl'} ${
                   item.highlight
                     ? "text-white shadow-lg"
                     : location.pathname === item.url
@@ -814,12 +814,12 @@ function LayoutContent({ children }) {
                   background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)'
                 } : {}}
               >
-                <div className="flex items-center gap-3">
-                  <item.icon className="w-5 h-5" />
+                <div className={`flex items-center ${viewMode === 'demip' ? 'gap-2' : 'gap-3'}`}>
+                  <item.icon className={viewMode === 'demip' ? 'w-4 h-4 shrink-0' : 'w-5 h-5'} />
                   <span className="font-medium">{item.title}</span>
                 </div>
                 {item.badge > 0 && (
-                  <span className="px-2 py-1 text-xs font-bold bg-orange-600 text-white rounded-full">
+                  <span className={`${viewMode === 'demip' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} font-bold bg-orange-600 text-white rounded-full`}>
                     {item.badge}
                   </span>
                 )}
@@ -827,7 +827,7 @@ function LayoutContent({ children }) {
             ))}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-100 text-red-600 mt-6"
+              className={`w-full flex items-center hover:bg-slate-100 text-red-600 ${viewMode === 'demip' ? 'gap-2 min-h-11 px-3 py-2 rounded-lg text-sm border-t border-border' : 'gap-3 p-4 rounded-xl mt-6'}`}
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">Odhlásit se</span>
