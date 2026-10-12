@@ -453,15 +453,11 @@ export default function ControlPoint() {
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-slate-600 mb-6 flex-wrap">
           <Building2 className="w-4 h-4" />
-          <button
-            onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}`))}
-            className="hover:text-slate-900 transition-colors"
-          >
-            {company?.name || "Podnik"}
-          </button>
+          <span>{company?.name || "Podnik"}</span>
           <ChevronRight className="w-4 h-4 text-slate-400" />
           <button
-            onClick={() => navigate(createPageUrl(`Lines?company=${company?.id}&line=${line?.id}`))}
+            onClick={() => navigate(`/LineDetail?id=${line.id}&company=${line.company_id}`)}
+            disabled={!line?.id}
             className="hover:text-slate-900 transition-colors"
           >
             {line?.name || "Linka"}
