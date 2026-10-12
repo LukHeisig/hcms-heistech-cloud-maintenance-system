@@ -92,7 +92,7 @@ function AlertCard({ alert, onAcknowledge, serviceBoard }) {
           <div className="mt-2 flex flex-wrap gap-3 text-sm">
             <div>
               <span className="text-slate-500 text-xs">{alert.metric_label}: </span>
-              <span className={`font-bold font-mono ${isActive ? sev.text : "text-slate-500"}`}>
+              <span className={`font-bold font-sans ${isActive ? sev.text : "text-slate-500"}`}>
                 {formatValue(alert.value, alert.metric_unit)}
               </span>
             </div>
@@ -284,7 +284,7 @@ export default function VibrationAlertsPanel({ user, visibleMachineIds = null, s
             <div className="space-y-3">
               <div className="bg-slate-50 rounded-lg p-3 text-sm">
                 <p className="font-semibold text-slate-900">{ackDialog.machine_name} — {ackDialog.measurement_point}</p>
-                <p className="text-slate-600">{ackDialog.metric_label}: <span className="font-mono font-bold">{ackDialog.value?.toFixed(2)} {ackDialog.metric_unit}</span></p>
+                <p className="text-slate-600">{ackDialog.metric_label}: <span className="font-sans font-bold">{ackDialog.value?.toFixed(2)} {ackDialog.metric_unit}</span></p>
                 <p className="text-xs text-slate-400 mt-1">Pásmo {ackDialog.severity}</p>
               </div>
               <div>
