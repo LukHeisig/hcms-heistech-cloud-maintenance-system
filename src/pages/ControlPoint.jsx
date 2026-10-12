@@ -52,6 +52,8 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useOffline } from "@/components/OfflineProvider";
 import IssueDepartmentSelect from "@/components/issues/IssueDepartmentSelect";
+import { getControlPointStatus, getControlPointDueDate } from "@/lib/controlPointIntervals";
+import useLatestControlChecks from "@/hooks/useLatestControlChecks";
 
 export default function ControlPoint() {
   const navigate = useNavigate();
@@ -96,7 +98,7 @@ export default function ControlPoint() {
     staleTime: 60000,
   });
 
-  const { data: machine } = useQuery({
+  const { data: machine, isLoading: machineLoading } = useQuery({
     queryKey: ["machine", point?.machine_id],
     queryFn: async () => {
       if (!point?.machine_id) return null;
@@ -107,7 +109,7 @@ export default function ControlPoint() {
     staleTime: 60000,
   });
 
-  const { data: line } = useQuery({
+  const { data: line, isLoading: lineLoading } = useQuery({
     queryKey: ["line", machine?.line_id],
     queryFn: async () => {
       if (!machine?.line_id) return null;
@@ -118,7 +120,7 @@ export default function ControlPoint() {
     staleTime: 60000,
   });
 
-  const { data: company } = useQuery({
+  const { data: company, isLoading: companyLoading } = useQuery({
     queryKey: ["company", line?.company_id],
     queryFn: async () => {
       if (!line?.company_id) return null;
@@ -163,6 +165,12 @@ export default function ControlPoint() {
     },
   });
 
+  const intervalPointIds = useMemo(() => isOnline && pointId ? [pointId] : [], [isOnline, pointId]);
+  const { latestChecks, loading: latestChecksLoading } = useLatestControlChecks(intervalPointIds, pointId);
+  const latestPerformedAt = isOnline ? latestChecks[pointId] : [...records]
+    .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at))[0]?.performed_at;
+  const intervalsLoading = isOnline && (latestChecksLoading || machineLoading || lineLoading || companyLoading);
+
   const { data: issues = [] } = useQuery({
     queryKey: ["issues", pointId],
     queryFn: () =>
@@ -194,6 +202,7 @@ export default function ControlPoint() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["records"] });
+      queryClient.invalidateQueries({ queryKey: ["pointRecords", pointId] });
       setIsProcessing(false);
     },
     onError: () => {
@@ -286,52 +295,11 @@ export default function ControlPoint() {
     },
   });
 
-  const getPointStatus = () => {
-    const vizType = company?.overdue_visualization_type || "two_colors";
-    const tolerance = company?.overdue_tolerance_percent || 4;
-    const interval = point?.interval_hours || 0;
+  const getPointStatus = () =>
+    getControlPointStatus(point, latestPerformedAt, company, line?.excluded_days);
 
-    let lastPerformed;
-    if (records.length > 0) {
-        lastPerformed = new Date(records[0].performed_at);
-    } else if (point?.first_confirmation_date) {
-        lastPerformed = new Date(point.first_confirmation_date);
-    } else {
-         return vizType === "traffic_light" ? "critical" : "warning";
-    }
-
-    const now = new Date();
-    const hoursSince = (now - lastPerformed) / (1000 * 60 * 60);
-
-    if (hoursSince <= interval) return "ok";
-
-    if (vizType === "two_colors") {
-        return "warning";
-    } else {
-        const overduePercent = ((hoursSince - interval) / interval) * 100;
-        if (overduePercent <= tolerance) {
-            return "warning";
-        } else {
-            return "critical";
-        }
-    }
-  };
-
-  const getNextControlDate = () => {
-    if (!point?.interval_hours) return null;
-    
-    let lastPerformed;
-    if (records.length > 0) {
-        lastPerformed = new Date(records[0].performed_at);
-    } else if (point?.first_confirmation_date) {
-        lastPerformed = new Date(point.first_confirmation_date);
-    } else {
-        return null;
-    }
-
-    const nextDate = new Date(lastPerformed.getTime() + point.interval_hours * 60 * 60 * 1000);
-    return nextDate;
-  };
+  const getNextControlDate = () =>
+    getControlPointDueDate(point, latestPerformedAt, line?.excluded_days);
 
   const handleConfirmRecord = async () => {
     if (!point) return;
@@ -409,7 +377,7 @@ export default function ControlPoint() {
   };
 
 
-  if (!point) {
+  if (!point || intervalsLoading) {
     return (
       <div className="p-8">
         <div className="max-w-7xl mx-auto">

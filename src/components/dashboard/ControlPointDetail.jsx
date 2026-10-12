@@ -97,7 +97,7 @@ export default function ControlPointDetail({
   const issuePhotoInputRef = useRef(null);
   const issueCameraInputRef = useRef(null);
 
-  const isOverdue = status === "overdue";
+  const isOverdue = ["warning", "critical", "overdue"].includes(status);
   const canEdit = user?.user_type === "manager" || user?.user_type === "admin" || user?.user_type === "superAdmin";
   const manualConfirmationAllowed = activeCompanySettings?.allow_manual_confirmation !== false;
 
@@ -307,10 +307,10 @@ export default function ControlPointDetail({
             <div className="grid min-w-0 grid-cols-2 items-start gap-3 py-2">
               <span className="text-xs leading-relaxed text-muted-foreground">Datum další kontroly:</span>
               <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 text-right">
-                <span className={`text-sm font-semibold ${isOverdue ? "text-status-danger" : "text-status-success"}`}>
+                <span className={`text-sm font-semibold ${status === "warning" ? "text-status-warning" : isOverdue ? "text-status-danger" : "text-status-success"}`}>
                   {nextDate ? format(nextDate, "d.M.yyyy", { locale: cs }) : "-"}
                 </span>
-                {isOverdue && <Badge className="bg-destructive px-1.5 text-xs text-destructive-foreground">Po termínu</Badge>}
+                {isOverdue && <Badge className={status === "warning" ? "bg-status-warning px-1.5 text-xs text-destructive-foreground" : "bg-destructive px-1.5 text-xs text-destructive-foreground"}>Po termínu</Badge>}
               </div>
             </div>
             <div className="min-w-0 border-t border-border py-2">
