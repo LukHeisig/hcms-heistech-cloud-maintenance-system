@@ -19,14 +19,14 @@ export default function DashboardVibration({ user, companies, lines, machines, v
   ];
   const monitored = machines.filter(machine => machine.vibration_source === "vse" || machine.monitor_vibration || vib.byMachine[machine.id]);
   return <>
-    <DashboardSummary items={items} />
     <OfflineSensorsDialog open={offlineOpen} onOpenChange={setOfflineOpen} sensors={vib.offlineSensors || []} machines={machines} />
     <OfflineSensorsDialog variant="battery" open={batteryOpen} onOpenChange={setBatteryOpen} sensors={vib.lowBatterySensors || []} machines={machines} />
     <MonitoredMachinesDialog open={machinesOpen} onOpenChange={setMachinesOpen} machines={monitored} lines={lines} companies={companies} loading={loading || vib.isLoading} />
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mb-6">
-      <section className="lg:col-span-2 bg-card border border-border rounded-xl shadow-sm min-w-0">
-        <h2 className="text-xl font-semibold p-4 md:p-6 border-b border-border">Sledované stroje</h2>
-        <div className="p-4 md:p-6 space-y-6">
+    <div className="op-layout">
+      <DashboardSummary items={items} />
+      <section className="op-work">
+        <div className="op-wh"><h2>Sledované stroje</h2></div>
+        <div className="op-companies">
           {loading || vib.isLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" aria-label="Načítání vibrací" /> : monitored.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">Zatím nejsou žádné sledované stroje.</p> : companies.map(company => {
             const companyLines = lines.filter(line => line.company_id === company.id && monitored.some(machine => machine.line_id === line.id));
             if (!companyLines.length) return null;
@@ -34,8 +34,10 @@ export default function DashboardVibration({ user, companies, lines, machines, v
           })}
         </div>
       </section>
+    </div>
+    <div className="op-pair">
+      <VibrationAlarmFrequencyChart user={user} machines={machines} lines={lines} companies={companies} />
       <RecentVibrationAlerts alerts={vib.recentAlerts} />
     </div>
-    <VibrationAlarmFrequencyChart user={user} machines={machines} lines={lines} companies={companies} />
   </>;
 }

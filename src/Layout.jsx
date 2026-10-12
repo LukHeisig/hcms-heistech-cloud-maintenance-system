@@ -663,7 +663,7 @@ function LayoutContent({ children }) {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="app-layout min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <UpdateBanner />
       <style>{`
         :root {
@@ -831,7 +831,7 @@ function LayoutContent({ children }) {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex fixed inset-y-0 left-0 z-30 w-72 flex-col bg-white border-r border-slate-200">
+      <div className="op-sidebar hidden lg:flex fixed inset-y-0 left-0 z-30 w-72 flex-col bg-white border-r border-slate-200">
         {/* Sidebar Header */}
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-3 mb-6">
@@ -914,9 +914,9 @@ function LayoutContent({ children }) {
       </div>
 
       {/* Main Content Wrapper */}
-      <div className="pl-14 lg:pl-72">
+      <div className="op-main-wrapper pl-14 lg:pl-72">
         {/* Desktop Header (optional, for notifications etc) */}
-        <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
+        <div className="op-notifications hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
            <RevisionTasksBell tasks={revisionTasks} />
            {(vibrationEnabled) && (
            <button

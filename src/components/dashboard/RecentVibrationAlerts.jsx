@@ -11,7 +11,7 @@ const toDate = (d) => new Date(/[Zz]$|[+-]\d{2}:\d{2}$/.test(String(d)) ? d : d 
 
 export default function RecentVibrationAlerts({ alerts }) {
   return (
-    <Card className="border-none shadow-lg">
+    <Card className="op-recent border-none shadow-lg">
       <CardHeader className="border-b border-slate-100">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Bell className="w-5 h-5 text-slate-600" /> Poslední alarmy
@@ -24,9 +24,9 @@ export default function RecentVibrationAlerts({ alerts }) {
           <div className="space-y-2">
             {alerts.map(a => (
               <Link key={a.id} to={createPageUrl(`Machine?id=${a.machine_id}#alerts`)}
-                className="block p-3 rounded-lg border border-slate-100 hover:bg-slate-50">
+                className="op-alert">
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${SEV[a.severity] || SEV.B}`}>{a.severity}</span>
+                  <span className={`sev-${a.severity || "B"} text-xs font-bold px-1.5 py-0.5 rounded ${SEV[a.severity] || SEV.B}`}>{a.severity}</span>
                   <span className="text-sm font-medium text-slate-900 truncate flex-1">{a.machine_name} · {a.measurement_point}</span>
                 </div>
                 <p className="text-xs text-slate-600 mt-1">

@@ -115,7 +115,7 @@ export default function VibrationAlarmFrequencyChart({ user, machines = [], line
   };
 
   return (
-    <Card className="border-none shadow-lg">
+    <Card className="op-chart border-none shadow-lg">
       <CardHeader className="border-b border-slate-100 pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -146,7 +146,7 @@ export default function VibrationAlarmFrequencyChart({ user, machines = [], line
             data={chartData}
             layout="vertical"
             margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
-            barSize={18}
+            barSize={24}
           >
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
             <XAxis
@@ -168,7 +168,7 @@ export default function VibrationAlarmFrequencyChart({ user, machines = [], line
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
             <Bar
               dataKey="total"
-              radius={[0, 4, 4, 0]}
+              radius={[0, 0, 0, 0]}
               cursor="pointer"
               onClick={(data) => {
                 const machine = machines.find(m => m.id === data.machineId || m.name === data.name);
@@ -176,14 +176,14 @@ export default function VibrationAlarmFrequencyChart({ user, machines = [], line
               }}
             >
               {chartData.map((entry, idx) => (
-                <Cell key={idx} fill={getBarColor(entry)} />
+                <Cell key={idx} className={`op-bar-${entry.D > 0 ? "D" : entry.C > 0 ? "C" : "B"}`} fill={getBarColor(entry)} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
 
         {/* Legenda */}
-        <div className="flex items-center gap-4 mt-2 justify-end text-xs text-slate-500">
+        <div className="op-leg flex items-center gap-4 mt-2 justify-end text-xs text-slate-500">
           {["D", "C", "B"].map(sev => (
             <span key={sev} className="flex items-center gap-1.5">
               <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: SEVERITY_COLORS[sev] }} />

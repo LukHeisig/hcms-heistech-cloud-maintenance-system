@@ -13,7 +13,7 @@ export default function DashboardDemipCompany({ company, lines, machines, points
       {admin && <Link to="/Admin" onClick={event => event.stopPropagation()} className="text-sm text-dashboard-accent shrink-0">Spravovat</Link>}
       {collapsible && <ChevronDown className="dashboard-company-chevron w-4 h-4 shrink-0 text-muted-foreground" />}
     </Heading>
-    <div className="space-y-3">
+    <div className="op-lines">
       {companyLines.length === 0 && <p className="text-sm text-muted-foreground">Zatím nejsou žádné linky.</p>}
       {companyLines.map(line => {
         const lineMachines = machines.filter(machine => machine.line_id === line.id && points.some(point => point.machine_id === machine.id));
