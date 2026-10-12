@@ -8,7 +8,7 @@ export default function ServiceBoardCompany({ company, lines, expanded, isSuperO
     return sensor?.last_seen && Date.now() - new Date(sensor.last_seen).getTime() < 12 * 3600000;
   }).length, 0);
   return <section className="sb-company">
-    <div className="sb-company-bar" onClick={() => isSuperOrAdmin && toggleCompany(company.id)}>
+    <div className={`sb-company-bar${isSuperOrAdmin ? " cursor-pointer" : ""}`} onClick={() => isSuperOrAdmin && toggleCompany(company.id)}>
       <h2>{company.name}</h2><span>{totalMachines} strojů · {onlineCount} online</span>
       {isSuperOrAdmin && <button aria-label={expanded ? "Sbalit podnik" : "Rozbalit podnik"} aria-expanded={expanded}>{expanded ? <ChevronUp /> : <ChevronDown />}</button>}
     </div>
