@@ -7,6 +7,8 @@ import AlertRecipients from "@/pages/AlertRecipients";
 import AdminThermo from "@/pages/AdminThermo";
 import MqttSensors from "@/pages/MqttSensors";
 import VseUnits from "@/pages/VseUnits";
+import { useViewMode } from "@/components/ViewModeContext";
+import "@/components/settings/demipSettings.css";
 
 const sections = [
   { value: "vibration", label: "Vibrodiagnostika", icon: Activity, component: AdminVibrations },
@@ -18,5 +20,8 @@ const sections = [
 ];
 
 export default function Settings() {
-  return <SectionTabs title="Nastavení" description="Konfigurace systému a číselníků" sections={sections} />;
+  const { viewMode } = useViewMode();
+  return <div className={viewMode === "demip" ? "demip-settings" : undefined}>
+    <SectionTabs title="Nastavení" description="Konfigurace systému a číselníků" sections={sections} />
+  </div>;
 }

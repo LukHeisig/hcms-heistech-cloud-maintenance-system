@@ -382,7 +382,7 @@ export default function AdminVibrations({ embedded = false }) {
             <div className="grid gap-4">
               {standards.map((std) => (
                 <Card key={std.id}>
-                  <CardContent className="p-6 flex justify-between items-center">
+                  <CardContent className="settings-catalog-entry p-6 flex justify-between items-center">
                     <div>
                       <h3 className="font-bold text-lg">{std.name}</h3>
                       <p className="text-sm text-slate-500 mb-2">{std.description}</p>
@@ -478,7 +478,7 @@ export default function AdminVibrations({ embedded = false }) {
             <div className="grid gap-4">
               {templates.map((tmpl) => (
                 <Card key={tmpl.id}>
-                  <CardContent className="p-6 flex justify-between items-center">
+                  <CardContent className="settings-catalog-entry p-6 flex justify-between items-center">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-bold text-lg">{tmpl.title}</h3>

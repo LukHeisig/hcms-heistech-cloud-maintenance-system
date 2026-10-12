@@ -237,7 +237,7 @@ export default function AdminBearings({ embedded = false }) {
               <p>Pro „{query}" nebylo nic nalezeno.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="settings-bearing-list divide-y divide-slate-100">
               <div className="hidden md:grid grid-cols-[2fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_auto] gap-0 bg-slate-50 border-b px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 <div>Označení / Výrobce</div>
                 <div className="text-center">Typ</div>

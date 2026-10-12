@@ -21,7 +21,7 @@ export default function SchemaList({ schemas, onEdit, onDelete, emptyText, items
         try { rowsCount = JSON.parse(sch.rows_definition).length; } catch (e) {}
         return (
           <Card key={sch.id}>
-            <CardContent className="p-6 flex justify-between items-center">
+            <CardContent className="settings-catalog-entry p-6 flex justify-between items-center">
               <div>
                 <h3 className="font-bold text-lg">{sch.name}</h3>
                 <p className="text-sm text-slate-500">{sch.description}</p>
