@@ -3,11 +3,6 @@
 @tailwind utilities;
 
 :root, .dark {
-  --op-bg: #171B19; --op-surface: #1d221f; --op-panel: #272E29;
-  --op-border: #2f3831; --op-strong-border: #3a463d; --op-ink: #EDF2E8;
-  --op-muted: #9aa595; --op-secondary: #c4cdbf; --op-accent: #D6F06A;
-  --op-danger: #ff6b5e; --op-warning: #f0c040; --op-ok: #7fd96a;
-  --op-alarm: #f0883e; --op-ok-border: #3d6a37; --op-warning-border: #7a6320;
   --sb-bg: #f8fafc; --sb-ink: #0f172a; --sb-muted: #64748b;
   --sb-surface: #ffffff; --sb-border: #cbd5e1; --sb-primary: #2563eb;
   --sb-hover: #1d4ed8; --sb-pressed: #1e40af; --sb-tint: #eff6ff;

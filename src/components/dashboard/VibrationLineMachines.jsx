@@ -13,14 +13,13 @@ export default function VibrationLineMachines({ machines, byMachine, loading }) 
   const rows = machines;
   if (rows.length === 0) return null;
   return (
-    <div className="op-vibration-list mt-3 divide-y divide-slate-100 border-t border-slate-100">
+    <div className="mt-3 divide-y divide-slate-100 border-t border-slate-100">
       {rows.map(m => {
         const s = byMachine[m.id] || {};
         return (
-          <div key={m.id} role="link" tabIndex={0}
-            onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.currentTarget.click(); } }}
+          <div key={m.id}
             onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`Machine?id=${m.id}#vibration`)); }}
-            className="op-vibration-row py-2 px-1 text-sm hover:bg-slate-50 rounded cursor-pointer">
+            className="py-2 px-1 text-sm hover:bg-slate-50 rounded cursor-pointer">
             <div className="flex flex-wrap items-center gap-3">
              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[s.zone] || "bg-slate-300"}`} title={s.zone ? `Aktuální pásmo ${s.zone}` : "Bez vyhodnocení"} />
             <span className="font-medium text-slate-800 min-w-0 break-words">{m.name}</span>

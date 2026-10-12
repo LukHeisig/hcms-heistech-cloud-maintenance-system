@@ -13,20 +13,20 @@ export default function DashboardDemip({ companies, lines, machines, points, rec
     { label: "Záznamů tento měsíc", value: monthlyRecords, icon: ClipboardCheck },
   ];
   return <>
-    <div className="op-layout">
-      <DashboardSummary items={summaries} />
-      <section className="op-work">
-        <header className="op-wh">
+    <DashboardSummary items={summaries} />
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <section className="lg:col-span-2 bg-card border border-border rounded-xl shadow-sm min-w-0">
+        <header className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-6 border-b border-border">
           <h2 className="text-xl font-semibold">Přehled výroby - Linky</h2>
           {superAdmin && <Link to="/Admin" className="text-sm font-medium text-dashboard-accent">Správa struktury</Link>}
         </header>
-        <div className="op-companies">
+        <div className="p-4 md:p-6 space-y-6">
           {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" aria-label="Načítání linek" /> : companies.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">Žádné aktivní podniky s modulem DEMIP.</p> : companies.map(company => (
             <DashboardDemipCompany key={company.id} company={company} lines={lines} machines={machines} points={points} getPointStatus={getPointStatus} admin={admin} collapsible={companies.length > 1} />
           ))}
         </div>
       </section>
+      <DashboardActivity records={records} issues={issues} points={points} getUserDisplayName={getUserDisplayName} />
     </div>
-    <DashboardActivity records={records} issues={issues} points={points} getUserDisplayName={getUserDisplayName} />
   </>;
 }
