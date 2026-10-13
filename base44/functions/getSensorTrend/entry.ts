@@ -40,7 +40,25 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { sensor_id, days, limit = 200, is_temperature = false, trend_only = false, from_date = null } = await req.json();
+    const body = await req.json();
+    // Dávkový režim: trendy více senzorů v jednom volání
+    if (Array.isArray(body.sensor_ids)) {
+      const trends = {};
+      await Promise.all(body.sensor_ids.map(async (sid) => {
+        const res = await run(base44, user, { ...body, sensor_id: sid, sensor_ids: undefined });
+        trends[sid] = (await res.json()).trends || {};
+      }));
+      return Response.json({ trends });
+    }
+    return await run(base44, user, body);
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+async function run(base44, user, params) {
+  try {
+    const { sensor_id, days, limit = 200, is_temperature = false, trend_only = false, from_date = null } = params;
     if (!sensor_id) return Response.json({ error: 'sensor_id required' }, { status: 400 });
     const cutoffSec = days != null ? (Date.now() / 1000) - (days * 86400) : null;
     // Spodní mez času přímo v dotazu (od data historie i rozsah dní)

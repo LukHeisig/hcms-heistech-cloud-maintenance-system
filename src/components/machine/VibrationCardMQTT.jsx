@@ -948,17 +948,13 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
     queryKey: ["allSensorTrends", assignedSensorIds.join(","), machine?.vibration_history_from],
     queryFn: async () => {
       if (assignedSensorIds.length === 0) return {};
-      const result = {};
-      await Promise.all(assignedSensorIds.map(async (sid) => {
-        const res = await throttled(() => base44.functions.invoke("getSensorTrend", {
-          sensor_id: sid,
-          limit: 10,
-          trend_only: true,
-          from_date: machine?.vibration_history_from || null,
-        }));
-        result[sid] = res.data?.trends || {};
+      const res = await throttled(() => base44.functions.invoke("getSensorTrend", {
+        sensor_ids: assignedSensorIds,
+        limit: 10,
+        trend_only: true,
+        from_date: machine?.vibration_history_from || null,
       }));
-      return result;
+      return res.data?.trends || {};
     },
     enabled: assignedSensorIds.length > 0,
     staleTime: 120000,
