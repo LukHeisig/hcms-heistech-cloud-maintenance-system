@@ -147,7 +147,7 @@ export default function Revisions() {
 
       <ReportImportDialog open={importOpen} onOpenChange={setImportOpen} companyId={companyId} user={user} onSaved={refresh} />
       {openReport && (
-        <ReportEditDialog report={openReport} defects={defects} users={users} user={user} canEdit={canEdit} canDelete={user?.user_type === "superAdmin"}
+        <ReportEditDialog report={openReport} defects={defects} users={users} user={user} canEdit={canEdit} canDelete={canEdit}
           onClose={() => setOpenReport(null)}
           onOpenDefect={(d) => { setOpenReport(null); setOpenDefect(d); }} />
       )}
