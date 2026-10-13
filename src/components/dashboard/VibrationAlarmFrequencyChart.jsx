@@ -27,7 +27,8 @@ export default function VibrationAlarmFrequencyChart({ user, machines = [], line
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["vibrationAlerts", "all", periodDays],
-    queryFn: () => throttled(() => moduleData.list("VibrationAlert", "-created_date", 1000)),
+    queryFn: () => throttled(() => moduleData.filter("VibrationAlert",
+      { created_date: { $gte: subDays(new Date(), periodDays).toISOString() } }, "-created_date", 1000)),
     enabled: !!user,
     staleTime: 120000,
   });
