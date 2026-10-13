@@ -10,7 +10,7 @@ import { Loader2, Plus, AlertTriangle, ShieldCheck } from "lucide-react";
 import RevisionStats from "@/components/revisions/RevisionStats";
 import UpcomingRevisions from "@/components/revisions/UpcomingRevisions";
 import DefectsTable from "@/components/revisions/DefectsTable";
-import ReportsTable from "@/components/revisions/ReportsTable";
+import ReportsSearch from "@/components/revisions/ReportsSearch";
 import ReportImportDialog from "@/components/revisions/ReportImportDialog";
 import ReportEditDialog from "@/components/revisions/ReportEditDialog";
 import DefectDetailDialog from "@/components/revisions/DefectDetailDialog";
@@ -139,7 +139,7 @@ export default function Revisions() {
             </TabsContent>
 
             <TabsContent value="reports" className="mt-4">
-              <ReportsTable reports={reports} defects={defects} onOpen={setOpenReport} />
+              <ReportsSearch reports={reports} defects={defects} onOpen={setOpenReport} />
             </TabsContent>
           </Tabs>
         )}
