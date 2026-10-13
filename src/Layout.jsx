@@ -448,6 +448,18 @@ function LayoutContent({ children }) {
     }
   }, [modulesLoaded, demipEnabled, viewMode]);
 
+  // Při otevření aplikace na telefonu vždy spustit režim DEMIP
+  const mobileDemipAppliedRef = useRef(false);
+  useEffect(() => {
+    if (mobileDemipAppliedRef.current || !modulesLoaded) return;
+    mobileDemipAppliedRef.current = true;
+    const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+    if (isMobile && demipEnabled && viewMode !== 'demip') {
+      toggleViewMode();
+      navigate(createPageUrl("Dashboard"), { replace: true });
+    }
+  }, [modulesLoaded, demipEnabled, viewMode]);
+
   const revisionTasks = useMyRevisionTasks(user, user?.user_type === "superAdmin" || revisionsEnabled);
 
   // Force DEMIP mode for technicians on mobile if configured
