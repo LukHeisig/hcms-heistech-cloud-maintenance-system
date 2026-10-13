@@ -1,3 +1,4 @@
+import { countInChunks } from "@/lib/countInChunks";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -342,9 +343,8 @@ export default function Dashboard() {
   const nextMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString();
   const { data: totalRecordsThisMonthCount } = useQuery({
     queryKey: ["allRecords", "monthlyCount", user?.id, activePointIds, monthStart],
-    queryFn: () => throttled(() => base44.entities.ControlRecord.count({
-      control_point_id: { $in: activePointIds }, performed_at: { $gte: monthStart, $lt: nextMonthStart },
-    })),
+    queryFn: () => countInChunks(base44.entities.ControlRecord, "control_point_id", activePointIds,
+      { performed_at: { $gte: monthStart, $lt: nextMonthStart } }),
     enabled: activePointIds.length > 0,
     staleTime: 60000,
   });

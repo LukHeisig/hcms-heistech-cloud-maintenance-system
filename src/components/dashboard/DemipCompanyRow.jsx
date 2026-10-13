@@ -2,20 +2,17 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, ChevronRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { throttled } from "@/lib/requestQueue";
+import { countInChunks } from "@/lib/countInChunks";
 
 export default function DemipCompanyRow({ company, lines, machines, onSelect }) {
   const lineIds = lines.filter(line => line.company_id === company.id).map(line => line.id);
   const machineIds = machines.filter(machine => lineIds.includes(machine.line_id)).map(machine => machine.id);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["demipCompanyCounts", company.id, machineIds],
-    queryFn: async () => {
-      const [lineCount, pointCount] = await Promise.all([
-        throttled(() => base44.entities.Line.count({ company_id: company.id })),
-        machineIds.length ? throttled(() => base44.entities.ControlPoint.count({ machine_id: { $in: machineIds } })) : Promise.resolve(0),
-      ]);
-      return { lineCount, pointCount };
-    },
+    queryFn: async () => ({
+      lineCount: lineIds.length,
+      pointCount: await countInChunks(base44.entities.ControlPoint, "machine_id", machineIds),
+    }),
     staleTime: 300000,
   });
   return (
