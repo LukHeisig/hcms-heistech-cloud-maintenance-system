@@ -998,7 +998,8 @@ function LayoutContent({ children }) {
             onOverview={() => navigate(createPageUrl("Dashboard"))}
             onMenu={() => setMobileOpen(true)}
             onOrders={() => navigate(createPageUrl("MobileHome?tab=orders"))}
-            onBack={() => navigate(-1)} />
+            onBack={() => navigate(-1)}
+            onScan={handleNfcQuickScan} />
         )}
 
         <Dialog open={showNfcScanDialog} onOpenChange={setShowNfcScanDialog}>
