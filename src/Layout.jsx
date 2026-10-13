@@ -57,7 +57,6 @@ import useMyRevisionTasks from "@/hooks/useMyRevisionTasks";
 import RevisionTasksBell from "@/components/revisions/RevisionTasksBell";
 import { userHasModule } from "@/lib/companyModules";
 import { moduleData } from "@/lib/moduleData";
-import LeftMobileNavigation from "@/components/dashboard/LeftMobileNavigation";
 import DemipBottomNavigation from "@/components/dashboard/DemipBottomNavigation";
 
 function LayoutContent({ children }) {
@@ -678,11 +677,15 @@ function LayoutContent({ children }) {
         }
       `}</style>
 
-      {viewMode !== 'demip' && <LeftMobileNavigation items={navigationItems} pathname={location.pathname} onOpen={() => setMobileOpen(true)} />}
       {/* Mobile Header */}
-      <header className={`lg:hidden ${viewMode === 'demip' ? '' : 'ml-14'} bg-white border-b border-slate-200 px-3 py-3 sticky top-0 z-40`}>
+      <header className="lg:hidden bg-white border-b border-slate-200 px-3 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {viewMode !== 'demip' && (
+              <button aria-label="Otevřít menu" onClick={() => setMobileOpen(true)} className="p-2 -ml-1 rounded-lg hover:bg-slate-100">
+                <Menu className="w-6 h-6 text-slate-700" />
+              </button>
+            )}
             <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #2150D8 0%, #1a40b0 100%)' }}>
               <span className="text-white font-bold text-lg">H</span>
             </div>
@@ -922,7 +925,7 @@ function LayoutContent({ children }) {
       </div>
 
       {/* Main Content Wrapper */}
-      <div className={viewMode === 'demip' ? '' : 'pl-14 lg:pl-72'}>
+      <div className={viewMode === 'demip' ? '' : 'lg:pl-72'}>
         {/* Desktop Header (optional, for notifications etc) */}
         <div className="hidden lg:flex h-16 items-center justify-end px-8 bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-20">
            <RevisionTasksBell tasks={revisionTasks} />
