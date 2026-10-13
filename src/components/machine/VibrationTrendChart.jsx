@@ -116,13 +116,20 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     staleTime: 120000,
   });
 
+  const [runningOnly, setRunningOnly] = useState(false);
+
   const allChartData = useMemo(() => {
-    return historyData.map(r => {
+    const points = historyData.map(r => {
       const point = { ts: r.ts, sensor_data_id: r.sensor_data_id };
       metricDef.lines.forEach(l => { point[l.key] = r[l.key]; });
       return point;
     });
-  }, [historyData, metricDef]);
+    if (!runningOnly || isTemperature) return points;
+    // Skrytí měření ze stojícího stroje: všechny osy pod 10 % maxima období
+    const peak = (p) => Math.max(...metricDef.lines.map(l => p[l.key] ?? 0));
+    const threshold = Math.max(0, ...points.map(peak)) * 0.1;
+    return points.filter(p => peak(p) > threshold);
+  }, [historyData, metricDef, runningOnly, isTemperature]);
 
   // Aplikace zoomu
   const chartData = useMemo(() => {
@@ -255,6 +262,18 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
               isDisabled={(v) => v === "limit" && !limits?.cd}
             />
           </div>
+          {!isTemperature && (
+            <button
+              onClick={() => { setRunningOnly(v => !v); resetZoom(); }}
+              title="Skrýt měření, kdy stroj stál (hodnoty pod 10 % maxima období)"
+              className={`px-2 py-0.5 rounded border text-xs font-medium transition-colors whitespace-nowrap ${
+                runningOnly ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-slate-500 border-slate-300 hover:border-blue-400 hover:text-blue-600"
+              }`}
+            >
+              Jen chod stroje
+            </button>
+          )}
           {/* Zoom reset */}
           {zoomedRange && (
             <button
