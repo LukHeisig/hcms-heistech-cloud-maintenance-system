@@ -88,6 +88,11 @@
       "default": 1,
       "description": "Zpo\u017ed\u011bn\u00ed alarmu vibrodiagnostiky \u2014 po\u010det po sob\u011b jdouc\u00edch m\u011b\u0159en\u00ed, kter\u00e1 mus\u00ed p\u0159ekro\u010dit limit, aby se alarm aktivoval (1 = bez zpo\u017ed\u011bn\u00ed)"
     },
+    "idle_threshold_percent": {
+      "type": "number",
+      "default": 10,
+      "description": "Pr\u00e1h klidu stroje v % maxima obdob\u00ed \u2014 m\u011b\u0159en\u00ed pod touto hodnotou se v trendu skryj\u00ed p\u0159i volb\u011b 'Jen chod stroje'"
+    },
     "vibration_history_from": {
       "type": "string",
       "format": "date-time",

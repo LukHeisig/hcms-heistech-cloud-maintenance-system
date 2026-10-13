@@ -260,6 +260,7 @@ export default function AdminMachines() {
         vibration_source: machine.vibration_source || "aissens",
         vibration_schema_id: machine.vibration_schema_id || null,
         alarm_delay_count: machine.alarm_delay_count || 1,
+        idle_threshold_percent: machine.idle_threshold_percent ?? 10,
         vibration_history_from: machine.vibration_history_from ? format(new Date(machine.vibration_history_from), "yyyy-MM-dd'T'HH:mm") : "",
         photo_url: machine.photo_url || "",
         parent_id: machine.parent_id || null,
@@ -278,6 +279,7 @@ export default function AdminMachines() {
         vibration_source: "aissens",
         vibration_schema_id: null,
         alarm_delay_count: 1,
+        idle_threshold_percent: 10,
         vibration_history_from: "",
         photo_url: "",
         parent_id: null,
@@ -317,6 +319,7 @@ export default function AdminMachines() {
       vibration_source: formData.vibration_source || "aissens",
       vibration_schema_id: formData.vibration_schema_id || null,
       alarm_delay_count: Math.max(1, parseInt(formData.alarm_delay_count) || 1),
+      idle_threshold_percent: Math.min(100, Math.max(0, parseFloat(formData.idle_threshold_percent) || 10)),
       vibration_history_from: formData.vibration_history_from ? new Date(formData.vibration_history_from).toISOString() : null,
       photo_url: formData.photo_url || null,
       parent_id: formData.parent_id === "none" ? null : formData.parent_id,
@@ -815,6 +818,20 @@ export default function AdminMachines() {
                     />
                     <p className="text-xs text-slate-500 mt-1">
                         Limit musí být překročen v tolika po sobě jdoucích měřeních, aby se alarm aktivoval. 1 = alarm ihned při prvním překročení.
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="idle_threshold_percent">Práh klidu stroje v trendu (%)</Label>
+                    <Input
+                        id="idle_threshold_percent"
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={formData.idle_threshold_percent ?? 10}
+                        onChange={(e) => setFormData({ ...formData, idle_threshold_percent: e.target.value })}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                        Při volbě „Jen chod stroje“ se skryjí měření pod tímto % maxima zvoleného období.
                     </p>
                   </div>
                 </div>

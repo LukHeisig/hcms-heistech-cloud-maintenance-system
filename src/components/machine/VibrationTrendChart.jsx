@@ -84,7 +84,7 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 };
 
 // limits: { ab, bc, cd } — hodnoty limitů pro zobrazení v grafu (nepovinné)
-export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits, historyFrom }) {
+export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits, historyFrom, idleThresholdPercent = 10 }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
   const [yScaleMode, setYScaleMode] = useState("auto");
   const [rangeDays, setRangeDays] = useState(3); // null = vše, default = 3 dny
@@ -125,11 +125,11 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
       return point;
     });
     if (!runningOnly || isTemperature) return points;
-    // Skrytí měření ze stojícího stroje: všechny osy pod 10 % maxima období
+    // Skrytí měření ze stojícího stroje: všechny osy pod prahem (% maxima období)
     const peak = (p) => Math.max(...metricDef.lines.map(l => p[l.key] ?? 0));
-    const threshold = Math.max(0, ...points.map(peak)) * 0.1;
+    const threshold = Math.max(0, ...points.map(peak)) * (idleThresholdPercent / 100);
     return points.filter(p => peak(p) > threshold);
-  }, [historyData, metricDef, runningOnly, isTemperature]);
+  }, [historyData, metricDef, runningOnly, isTemperature, idleThresholdPercent]);
 
   // Aplikace zoomu
   const chartData = useMemo(() => {
@@ -265,7 +265,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
           {!isTemperature && (
             <button
               onClick={() => { setRunningOnly(v => !v); resetZoom(); }}
-              title="Skrýt měření, kdy stroj stál (hodnoty pod 10 % maxima období)"
+              title={`Skrýt měření, kdy stroj stál (hodnoty pod ${idleThresholdPercent} % maxima období)`}
               className={`px-2 py-0.5 rounded border text-xs font-medium transition-colors whitespace-nowrap ${
                 runningOnly ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-slate-500 border-slate-300 hover:border-blue-400 hover:text-blue-600"

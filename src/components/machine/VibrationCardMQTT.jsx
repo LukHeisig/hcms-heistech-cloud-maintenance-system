@@ -1507,6 +1507,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
             metricKey={activeTrendMetric}
             sensorLabel={trendLabel}
             limits={trendLimits}
+            idleThresholdPercent={machine?.idle_threshold_percent ?? 10}
             onSelectRecord={(sensorDataId) => {
               setTrendSelectedSensorDataId(sensorDataId);
               const rowIdx = Object.entries(rowSensors).find(([, sid]) => sid === activeTrendSensorId)?.[0];
