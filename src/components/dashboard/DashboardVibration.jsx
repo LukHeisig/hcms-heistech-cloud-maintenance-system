@@ -27,7 +27,7 @@ export default function DashboardVibration({ user, companies, lines, machines, v
       <section className="lg:col-span-2 bg-card border border-border rounded-xl shadow-sm min-w-0">
         <h2 className="text-xl font-semibold p-4 md:p-6 border-b border-border">Sledované stroje</h2>
         <div className="p-4 md:p-6 space-y-6">
-          {loading || vib.isLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" aria-label="Načítání vibrací" /> : monitored.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">Zatím nejsou žádné sledované stroje.</p> : companies.map(company => {
+          {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" aria-label="Načítání vibrací" /> : monitored.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">Zatím nejsou žádné sledované stroje.</p> : companies.map(company => {
             const companyLines = lines.filter(line => line.company_id === company.id && monitored.some(machine => machine.line_id === line.id));
             if (!companyLines.length) return null;
             return <DashboardVibrationCompany key={company.id} company={company} lines={companyLines} machines={monitored} byMachine={vib.byMachine} loading={vib.isLoading} />;
