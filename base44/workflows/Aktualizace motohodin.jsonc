@@ -1,13 +1,13 @@
 {
   "name": "Aktualizace motohodin",
-  "description": "Ka\u017ed\u00fdch 15 minut p\u0159i\u010dte motohodiny stroj\u016f z nov\u00fdch m\u011b\u0159en\u00ed vibrac\u00ed",
+  "description": "Jednou za hodinu p\u0159i\u010dte motohodiny stroj\u016f z nov\u00fdch m\u011b\u0159en\u00ed vibrac\u00ed",
   "trigger": {
     "condition": null,
     "config": {
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "*/15 * * * *",
+      "cron_expression": "20 * * * *",
       "one_time_date": null,
       "timezone": "Europe/Prague",
       "interval_value": null,
