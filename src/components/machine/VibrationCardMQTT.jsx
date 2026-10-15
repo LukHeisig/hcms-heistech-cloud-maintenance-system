@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile, resolveFileUrl } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { moduleData } from "@/lib/moduleData";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -201,7 +203,7 @@ function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignme
     setScanningPhoto(true);
     setScanError(null);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await resolveFileUrl(await uploadPrivateFile(file));
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `Na tomto obrázku je štítek nebo potisk vibračního senzoru Aissens. 
 Najdi ID senzoru — typicky vypadá takto: začíná "S9IMP" nebo "S9" a následují čísla a písmena, celkem cca 15-20 znaků (např. S9IMP600001265H).
@@ -1118,7 +1120,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
             <div className="hidden md:flex items-stretch gap-3">
               {/* Foto stroje */}
               {machine?.photo_url && (
-                <img
+                <PrivateImage
                   src={machine.photo_url}
                   alt={machine.name}
                   className="h-20 w-32 object-cover rounded-lg border border-slate-200 shadow-sm flex-shrink-0"

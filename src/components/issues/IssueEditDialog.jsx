@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -26,8 +28,7 @@ export default function IssueEditDialog({ open, onOpenChange, issue, onSave, isS
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-    setPhotoUrl(file_url);
+    setPhotoUrl(await uploadPrivateFile(file));
     setUploading(false);
   };
 
@@ -48,7 +49,7 @@ export default function IssueEditDialog({ open, onOpenChange, issue, onSave, isS
             <Label>Fotografie</Label>
             {photoUrl ? (
               <div className="relative inline-block mt-1">
-                <img src={photoUrl} alt="Fotografie závady" className="w-32 h-32 object-cover rounded-lg border" />
+                <PrivateImage src={photoUrl} alt="Fotografie závady" className="w-32 h-32 object-cover rounded-lg border" />
                 <button type="button" onClick={() => setPhotoUrl("")} className="absolute -top-2 -right-2 bg-white border rounded-full p-1 shadow">
                   <X className="w-3 h-3" />
                 </button>

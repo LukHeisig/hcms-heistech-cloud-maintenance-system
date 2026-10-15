@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useFileUrl } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -47,6 +49,7 @@ const bandColors = {
 
 export default function VibrationCard({ machine, jobs = [] }) {
     const queryClient = useQueryClient();
+    const photoUrl = useFileUrl(machine.photo_url);
     const [selectedJobId, setSelectedJobId] = useState(null);
     const [selectedYear, setSelectedYear] = useState(null);
     const [trendDialogState, setTrendDialogState] = useState({ open: false, pointLabel: null });
@@ -184,9 +187,9 @@ export default function VibrationCard({ machine, jobs = [] }) {
                         </div>` : ''}
                     </div>
 
-                    ${machine.photo_url ? `
+                    ${photoUrl ? `
                     <div style="width: 80mm; display: flex; align-items: flex-start; justify-content: center;">
-                        <img src="${machine.photo_url}" style="max-height: 60mm; max-width: 100%; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 6px;" crossorigin="anonymous" />
+                        <img src="${photoUrl}" style="max-height: 60mm; max-width: 100%; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 6px;" crossorigin="anonymous" />
                     </div>` : ''}
                 </div>
 
@@ -492,7 +495,7 @@ export default function VibrationCard({ machine, jobs = [] }) {
                                 {/* Machine Photo */}
                                 <div className="flex-1 min-h-[300px] bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center relative overflow-hidden group">
                                     {machine.photo_url ? (
-                                        <img 
+                                        <PrivateImage 
                                             src={machine.photo_url} 
                                             alt={machine.name} 
                                             className="w-full h-full object-contain mix-blend-multiply"

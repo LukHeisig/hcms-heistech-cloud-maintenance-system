@@ -1,4 +1,6 @@
 import React from "react";
+import { openFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { Users } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -33,8 +35,8 @@ export default function LineIssueRow({ issue, machineName, pointName, reporterNa
         </div>
         {issue.photo_url ? <button type="button" aria-label="Otevřít fotografii závady" onKeyDown={event => event.stopPropagation()} onClick={event => {
           event.stopPropagation();
-          window.open(issue.photo_url, "_blank", "noopener,noreferrer");
-        }}><img src={issue.photo_url} alt="Foto závady" className="w-8 h-8 object-cover rounded border border-border hover:opacity-80 transition-opacity" /></button> : <div className="w-8 h-8" />}
+          openFile(issue.photo_url);
+        }}><PrivateImage src={issue.photo_url} alt="Foto závady" className="w-8 h-8 object-cover rounded border border-border hover:opacity-80 transition-opacity" /></button> : <div className="w-8 h-8" />}
       </div>
     </div>
   );

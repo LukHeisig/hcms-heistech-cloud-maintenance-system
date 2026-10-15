@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile, resolveFileUrl } from "@/lib/privateFiles";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, Sparkles, FilePlus } from "lucide-react";
@@ -27,10 +28,10 @@ export default function ReportImportDialog({ open, onOpenChange, companyId, user
     if (!file) return;
     setError("");
     setBusy("Nahrávám PDF...");
-    const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+    const file_url = await uploadPrivateFile(file);
     setBusy("AI vytěžuje data z revizní zprávy...");
     try {
-      const x = await extractRevisionReport(file_url);
+      const x = await extractRevisionReport(await resolveFileUrl(file_url));
       const found = x.revision_date_to || x.revision_date_from;
       const interval = x.interval_months || CATEGORIES[x.category]?.months || null;
       const next = x.next_revision_month

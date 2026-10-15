@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile } from "@/lib/privateFiles";
 import { useToast } from "@/components/ui/use-toast";
 import { Wifi, WifiOff, RefreshCw } from "lucide-react";
 
@@ -110,8 +111,7 @@ export function OfflineProvider({ children }) {
             if (issuePayload.photo && issuePayload.photo._isOfflineFile) {
               try {
                 const file = await base64ToFile(issuePayload.photo.content, issuePayload.photo.name);
-                const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                issuePayload.photo_url = file_url;
+                issuePayload.photo_url = await uploadPrivateFile(file);
               } catch (uploadError) {
                 console.error("Failed to upload offline photo:", uploadError);
                 // Continue creating issue but without photo if upload fails

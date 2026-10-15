@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { openFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -242,8 +244,8 @@ export default function IssueDetail() {
               <Card className="issue-detail-card">
                  <CardContent className="issue-detail-summary p-4">
                     {issue.photo_url ? (
-                       <div className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 mb-4 cursor-pointer" onClick={() => window.open(issue.photo_url, '_blank')}>
-                          <img src={issue.photo_url} alt="Závada" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                       <div className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 mb-4 cursor-pointer" onClick={() => openFile(issue.photo_url)}>
+                          <PrivateImage src={issue.photo_url} alt="Závada" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                        </div>
                     ) : (
                        <div className="aspect-square rounded-lg bg-slate-100 border border-slate-200 mb-4 flex items-center justify-center text-slate-400">

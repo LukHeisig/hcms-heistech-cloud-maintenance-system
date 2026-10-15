@@ -1,4 +1,5 @@
 import React from "react";
+import PrivateImage from "@/components/PrivateImage";
 import { Link } from "react-router-dom";
 import { Activity, AlertTriangle, Droplet, ClipboardCheck } from "lucide-react";
 import { format } from "date-fns";
@@ -28,7 +29,7 @@ export default function DashboardActivity({ records, issues, points, getUserDisp
         const point = points.find(p => p.id === issue.control_point_id);
         return <div key={issue.id} className="rounded-lg p-3 bg-dashboard-background border border-border">
           <p className="text-sm font-medium mb-1">{point?.name || "Neznámý bod"}</p><p className="text-xs text-muted-foreground line-clamp-2">{issue.description}</p>
-          {issue.photo_url && <img src={issue.photo_url} alt="Závada" className="max-h-20 object-contain rounded-md mt-2" />}
+          {issue.photo_url && <PrivateImage src={issue.photo_url} alt="Závada" className="max-h-20 object-contain rounded-md mt-2" />}
           <p className="text-xs text-muted-foreground mt-2 break-words">{format(new Date(issue.created_date), "d. M. yyyy", { locale: cs })} · {getUserDisplayName(issue.created_by)}</p>
         </div>;
       })}{issues.length > 3 && <Link to="/IssueApproval" className="block text-center text-sm text-dashboard-accent font-medium mt-4">Zobrazit všechny závady →</Link>}</div>

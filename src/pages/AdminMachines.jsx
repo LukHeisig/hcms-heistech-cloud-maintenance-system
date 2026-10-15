@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -307,7 +309,7 @@ export default function AdminMachines() {
     
     setUploadingPhoto(true);
     try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const file_url = await uploadPrivateFile(file);
         setFormData(prev => ({ ...prev, photo_url: file_url }));
     } catch (error) {
         console.error("Upload failed", error);
@@ -763,7 +765,7 @@ export default function AdminMachines() {
                 <Label>Fotografie stroje (pro vibrační kartu)</Label>
                 <div className="flex items-center gap-4 mt-2">
                   {formData.photo_url && (
-                      <img src={formData.photo_url} alt="Preview" className="h-20 w-20 object-cover rounded border" />
+                      <PrivateImage src={formData.photo_url} alt="Preview" className="h-20 w-20 object-cover rounded border" />
                   )}
                   <Input 
                       type="file" 

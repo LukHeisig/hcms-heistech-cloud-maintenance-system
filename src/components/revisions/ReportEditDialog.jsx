@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { openFile } from "@/lib/privateFiles";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -51,9 +52,9 @@ export default function ReportEditDialog({ report, defects, users, user, canEdit
         </DialogHeader>
         <div className="max-h-[68vh] overflow-y-auto space-y-6 px-1">
           {report.pdf_url && (
-            <a href={report.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-blue-700 hover:underline">
+            <button type="button" onClick={() => openFile(report.pdf_url)} className="inline-flex items-center gap-2 text-sm text-blue-700 hover:underline">
               <FileText className="w-4 h-4" /> Otevřít PDF revizní zprávy
-            </a>
+            </button>
           )}
           <ReportForm value={form} onChange={setForm} disabled={!canEdit} />
           <div>

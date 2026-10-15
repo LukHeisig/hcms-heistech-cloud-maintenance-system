@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
+import { openFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -612,11 +614,11 @@ export default function IssueApproval() {
             {/* Left side - Photo */}
             {issue.photo_url && (
               <div className="flex-shrink-0">
-                <img
+                <PrivateImage
                   src={issue.photo_url}
                   alt="Fotografie závady"
                   className="w-24 h-24 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
-                  onClick={() => window.open(issue.photo_url, "_blank")}
+                  onClick={() => openFile(issue.photo_url)}
                 />
               </div>
             )}

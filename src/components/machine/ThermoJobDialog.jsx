@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,7 +153,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
     try {
       const newImages = [...images];
       for (const file of files) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const file_url = await uploadPrivateFile(file);
         newImages.push({
           url: file_url,
           description: "",
@@ -376,7 +378,7 @@ export default function ThermoJobDialog({ machine, open, onOpenChange, job = nul
               {images.map((img, idx) => (
                 <div key={idx} className="relative group border rounded-lg p-2 space-y-2 bg-white shadow-sm">
                   <div className="aspect-square bg-slate-100 rounded overflow-hidden relative">
-                    <img src={img.url} alt={`Termo ${idx + 1}`} className="w-full h-full object-contain" />
+                    <PrivateImage src={img.url} alt={`Termo ${idx + 1}`} className="w-full h-full object-contain" />
                     <button 
                       onClick={() => handleRemoveImage(idx)}
                       className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"

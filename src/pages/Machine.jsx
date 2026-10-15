@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile, openFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useAuth } from "@/lib/AuthContext";
 import { cachedRecord } from "@/components/data/cachedRecord";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -395,7 +397,7 @@ export default function Machine() {
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {documentation.filter(doc => doc.category === category).map((doc) => (
         <div key={doc.id} className="group relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 hover:border-indigo-400 transition-all cursor-pointer bg-slate-50 flex items-center justify-center" onClick={() => { setSelectedDocPreview(doc); setShowDocPreviewDialog(true); }}>
-          {doc.file_type === "photo" ? (<img src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover" />) : (<div className="flex flex-col items-center p-4 text-center">{getFileIcon(doc.file_type)}<p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p></div>)}
+          {doc.file_type === "photo" ? (<PrivateImage src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover" />) : (<div className="flex flex-col items-center p-4 text-center">{getFileIcon(doc.file_type)}<p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p></div>)}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center"><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white" onClick={(e) => { e.stopPropagation(); setDeleteDocId(doc.id); }}><X className="w-5 h-5" /></Button></div>
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2"><p className="text-xs text-white truncate">{doc.file_name}</p><p className="text-xs text-white/70">{format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}</p></div>
         </div>
@@ -444,7 +446,7 @@ export default function Machine() {
 
     setIsUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: selectedUploadFile });
+      const file_url = await uploadPrivateFile(selectedUploadFile);
       
       let detectedFileType = "other_file";
       if (selectedUploadFile.type.startsWith("image/")) {
@@ -1089,7 +1091,7 @@ export default function Machine() {
                             }}
                           >
                             {doc.file_type === "photo" ? (
-                              <img
+                              <PrivateImage
                                 src={doc.file_url}
                                 alt={doc.file_name}
                                 className="w-full h-full object-cover"
@@ -1766,13 +1768,13 @@ export default function Machine() {
                 </DialogHeader>
                 <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50 rounded-md">
                     {selectedDocPreview?.file_type === "photo" ? (
-                        <img
+                        <PrivateImage
                             src={selectedDocPreview.file_url}
                             alt={selectedDocPreview.file_name}
                             className="max-w-full max-h-full object-contain"
                         />
-                    ) : selectedDocPreview?.file_type === "document" && selectedDocPreview.file_url.endsWith(".pdf") ? (
-                        <iframe
+                    ) : selectedDocPreview?.file_type === "document" && selectedDocPreview.file_name?.toLowerCase().endsWith(".pdf") ? (
+                        <PrivateImage as="iframe"
                             src={selectedDocPreview.file_url}
                             title={selectedDocPreview.file_name}
                             className="w-full h-full border-none"
@@ -1788,7 +1790,7 @@ export default function Machine() {
                 <DialogFooter>
                     <Button
                         variant="outline"
-                        onClick={() => window.open(selectedDocPreview?.file_url, "_blank")}
+                        onClick={() => openFile(selectedDocPreview?.file_url)}
                     >
                         Otevřít v nové záložce
                     </Button>

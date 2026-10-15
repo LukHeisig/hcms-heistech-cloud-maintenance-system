@@ -1,4 +1,5 @@
 import React from "react";
+import PrivateImage from "@/components/PrivateImage";
 import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
@@ -17,7 +18,7 @@ export default function ControlPointActiveIssues({ issues, getUserDisplayName })
         {issues.map(issue => (
           <div key={issue.id} className="rounded-lg border border-status-warning/30 bg-card p-3">
             <p className="mb-1 whitespace-pre-wrap text-sm text-foreground">{issue.description}</p>
-            {issue.photo_url && <div className="mt-2"><img src={issue.photo_url} alt="Závada" className="max-h-24 rounded-md object-contain" /></div>}
+            {issue.photo_url && <div className="mt-2"><PrivateImage src={issue.photo_url} alt="Závada" className="max-h-24 rounded-md object-contain" /></div>}
             <p className="mt-2 text-xs text-muted-foreground">{format(new Date(issue.created_date), "d.M.yyyy HH:mm", { locale: cs })} • {getUserDisplayName(issue.created_by)}</p>
           </div>
         ))}

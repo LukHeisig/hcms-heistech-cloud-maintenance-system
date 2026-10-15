@@ -1,5 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile, openFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -228,8 +230,7 @@ export default function ControlPoint() {
       // Online flow
       let photoUrl = null;
       if (data.photo) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: data.photo });
-        photoUrl = file_url;
+        photoUrl = await uploadPrivateFile(data.photo);
       }
       
       return base44.entities.Issue.create({
@@ -255,7 +256,7 @@ export default function ControlPoint() {
 
   const uploadDocumentMutation = useMutation({ // Změněno z uploadPhotoMutation
     mutationFn: async (file) => {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await uploadPrivateFile(file);
       
       let detectedFileType = "other_file";
       if (file.type.startsWith("image/")) {
@@ -862,7 +863,7 @@ export default function ControlPoint() {
                       }}
                     >
                       {doc.file_type === "photo" ? (
-                        <img
+                        <PrivateImage
                           src={doc.file_url}
                           alt={doc.file_name}
                           className="w-full h-full object-cover"
@@ -900,13 +901,13 @@ export default function ControlPoint() {
             </DialogHeader>
             <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50 rounded-md">
               {selectedDocPreview?.file_type === "photo" ? (
-                <img
+                <PrivateImage
                   src={selectedDocPreview.file_url}
                   alt={selectedDocPreview.file_name}
                   className="max-w-full max-h-full object-contain"
                 />
-              ) : selectedDocPreview?.file_type === "document" && selectedDocPreview.file_url.endsWith(".pdf") ? (
-                <iframe
+              ) : selectedDocPreview?.file_type === "document" && selectedDocPreview.file_name?.toLowerCase().endsWith(".pdf") ? (
+                <PrivateImage as="iframe"
                   src={selectedDocPreview.file_url}
                   title={selectedDocPreview.file_name}
                   className="w-full h-full border-none"
@@ -922,7 +923,7 @@ export default function ControlPoint() {
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => window.open(selectedDocPreview?.file_url, "_blank")}
+                onClick={() => openFile(selectedDocPreview?.file_url)}
               >
                 Otevřít v nové záložce
               </Button>

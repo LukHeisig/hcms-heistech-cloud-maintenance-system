@@ -1,5 +1,7 @@
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile, openFile } from "@/lib/privateFiles";
+import PrivateImage from "@/components/PrivateImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -167,7 +169,7 @@ export default function ControlPointDetail({
 
   const uploadDocumentMutation = useMutation({
     mutationFn: async ({ file, pointId }) => {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await uploadPrivateFile(file);
       let detectedFileType = "other_file";
       if (file.type.startsWith("image/")) detectedFileType = "photo";
       else if (file.type === "application/pdf") detectedFileType = "document";
@@ -195,8 +197,7 @@ export default function ControlPointDetail({
     mutationFn: async (data) => {
       let photoUrl = null;
       if (data.photo) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: data.photo });
-        photoUrl = file_url;
+        photoUrl = await uploadPrivateFile(data.photo);
       }
       return base44.entities.Issue.create({
         control_point_id: data.control_point_id || null,
@@ -396,7 +397,7 @@ export default function ControlPointDetail({
                 {documentation.map((doc) => (
                   <div key={doc.id} className="relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-400 transition-all cursor-pointer" onClick={() => { setSelectedDocPreview(doc); setShowDocPreviewDialog(true); }}>
                     {doc.file_type === "photo" && !imageErrors[doc.id] ? (
-                      <img src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover" loading="lazy" onError={() => setImageErrors(p => ({ ...p, [doc.id]: true }))} />
+                      <PrivateImage src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover" loading="lazy" onError={() => setImageErrors(p => ({ ...p, [doc.id]: true }))} />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full bg-slate-100 p-2">
                         <FileText className="w-8 h-8 text-slate-400 mb-1" />
@@ -428,13 +429,13 @@ export default function ControlPointDetail({
           </DialogHeader>
           <div className="flex-1 flex items-center justify-center overflow-auto p-4 bg-slate-50">
             {selectedDocPreview?.file_type === "photo" ? (
-              <img src={selectedDocPreview.file_url} alt={selectedDocPreview.file_name} className="max-w-full max-h-full object-contain" />
+              <PrivateImage src={selectedDocPreview.file_url} alt={selectedDocPreview.file_name} className="max-w-full max-h-full object-contain" />
             ) : (
               <div className="text-center"><FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" /><p className="text-slate-600">Náhled není dostupný</p></div>
             )}
           </div>
           <DialogFooter className="p-4 border-t">
-            <Button variant="outline" onClick={() => selectedDocPreview?.file_url && window.open(selectedDocPreview.file_url, "_blank")}>Otevřít v nové záložce</Button>
+            <Button variant="outline" onClick={() => selectedDocPreview?.file_url && openFile(selectedDocPreview.file_url)}>Otevřít v nové záložce</Button>
             {canEdit && (
               <Button variant="destructive" onClick={() => { setShowDocPreviewDialog(false); setDeleteDocId(selectedDocPreview?.id); }}>
                 <X className="w-4 h-4 mr-2" />Smazat
