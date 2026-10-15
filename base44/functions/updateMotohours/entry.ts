@@ -30,24 +30,28 @@ async function processMachine(db, m, recompute) {
   let running = m.motohours_running ?? null;
   let newestTs = 0;
 
+  // Sloučená časová osa všech snímačů: každé měření určuje stav od předchozího měření
+  // libovolného snímače (max. interval vlastního snímače) — přesnější kolem rozběhu/zastavení
+  const timeline = [];
+  let prevAny = null;
   for (const sid of sensorIds) {
     const prev = await db.SensorTrendPoint.filter({ sensor_id: sid, timestamp_unix: { $lte: lastTs } }, '-timestamp_unix', 20);
     const pts = await loadPoints(db, sid, lastTs);
+    if (prev.length) prevAny = Math.max(prevAny ?? 0, prev[0].timestamp_unix);
     if (!pts.length) continue;
     const all = [...prev.reverse(), ...pts].map((p) => p.timestamp_unix);
-    const gaps = all.slice(1).map((t, i) => t - all[i]).filter((g) => g > 0);
+    const gaps = all.slice(1).map((t, i) => t - all[i]).filter((g) => g > 60);
     const interval = median(gaps) || 600;
-    let prevTs = prev.length ? prev[prev.length - 1].timestamp_unix : null;
-    for (const p of pts) {
-      const ts = p.timestamp_unix;
-      const gap = prevTs != null ? ts - prevTs : interval;
-      const dur = gap > 0 && gap <= 2 * interval ? gap : interval;
-      if (vel(p) > thr) segments.push([ts - dur, ts]);
-      prevTs = ts;
-      if (ts > maxTs) maxTs = ts;
-    }
-    const last = pts[pts.length - 1];
-    if (last.timestamp_unix >= newestTs) { newestTs = last.timestamp_unix; running = vel(last) > thr; }
+    for (const p of pts) timeline.push({ ts: p.timestamp_unix, run: vel(p) > thr, interval });
+  }
+  timeline.sort((a, b) => a.ts - b.ts);
+  for (const p of timeline) {
+    const gap = prevAny != null ? p.ts - prevAny : p.interval;
+    const dur = Math.min(gap > 0 ? gap : 0, p.interval);
+    if (p.run && dur > 0) segments.push([p.ts - dur, p.ts]);
+    prevAny = p.ts;
+    if (p.ts > maxTs) maxTs = p.ts;
+    if (p.ts >= newestTs) { newestTs = p.ts; running = p.run; }
   }
 
   // Sjednocení úseků (více snímačů = jeden chod) a rozdělení po dnech
