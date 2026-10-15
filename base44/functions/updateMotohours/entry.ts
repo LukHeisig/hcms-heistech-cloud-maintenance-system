@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { isServiceCaller } from '../../shared/access.ts';
 
 const DAY = 86400;
+const FIELDS = ['timestamp_unix', 'vel_rms_x_mm_s', 'vel_rms_y_mm_s', 'vel_rms_z_mm_s'];
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const vel = (p) => Math.max(p.vel_rms_x_mm_s || 0, p.vel_rms_y_mm_s || 0, p.vel_rms_z_mm_s || 0);
 
@@ -9,9 +10,9 @@ async function loadPoints(db, sid, afterTs) {
   const out = [];
   let cursorTs = afterTs;
   while (true) {
-    const page = await db.SensorTrendPoint.filter({ sensor_id: sid, timestamp_unix: { $gt: cursorTs } }, 'timestamp_unix', 5000);
+    const page = await db.SensorTrendPoint.filter({ sensor_id: sid, timestamp_unix: { $gt: cursorTs } }, 'timestamp_unix', 2000, 0, FIELDS);
     out.push(...page);
-    if (page.length < 5000) break;
+    if (page.length < 2000) break;
     cursorTs = page[page.length - 1].timestamp_unix;
   }
   return out;
@@ -35,7 +36,7 @@ async function processMachine(db, m, recompute) {
   const timeline = [];
   let prevAny = null;
   for (const sid of sensorIds) {
-    const prev = await db.SensorTrendPoint.filter({ sensor_id: sid, timestamp_unix: { $lte: lastTs } }, '-timestamp_unix', 20);
+    const prev = await db.SensorTrendPoint.filter({ sensor_id: sid, timestamp_unix: { $lte: lastTs } }, '-timestamp_unix', 20, 0, ['timestamp_unix']);
     const pts = await loadPoints(db, sid, lastTs);
     if (prev.length) prevAny = Math.max(prevAny ?? 0, prev[0].timestamp_unix);
     if (!pts.length) continue;
@@ -105,7 +106,11 @@ export default async function(req) {
       ? await db.Machine.filter({ id: machine_id, motohours_enabled: true }, null, 1)
       : await db.Machine.filter({ motohours_enabled: true }, null, 1000);
     const results = [];
-    for (const m of machines) results.push(await processMachine(db, m, recompute));
+    for (const m of machines) {
+      try { results.push(await processMachine(db, m, recompute)); }
+      catch (e) { console.error(`Machine ${m.id} failed:`, e.message); results.push({ machine_id: m.id, error: e.message }); }
+    }
+    // Neúspěch jednoho stroje nezastaví úlohu; doběhne v příštím běhu
     return Response.json({ results });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
