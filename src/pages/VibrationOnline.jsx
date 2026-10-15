@@ -164,7 +164,7 @@ export default function VibrationOnline() {
       if (allAssignedSensorIds.length === 0) return {};
       return moduleData.latestSensorData(allAssignedSensorIds, [
         "sensor_id", "vel_rms_x_mm_s", "vel_rms_y_mm_s", "vel_rms_z_mm_s",
-        "rms_z_g", "oa_acc_z", "env_rms_z",
+        "rms_z_g", "oa_acc_z", "env_rms_z", "timestamp_unix", "recorded_at",
       ]);
     },
     enabled: !!user && activeTab === "sensors" && allAssignedSensorIds.length > 0,
