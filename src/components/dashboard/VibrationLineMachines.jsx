@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
 import { Bell, Timer } from "lucide-react";
 import MachineDiagnosticStatus from "@/components/dashboard/MachineDiagnosticStatus";
+import { isMachineStopped } from "@/lib/machineRunState";
 
 const DOT = { D: "bg-red-500", C: "bg-orange-500", B: "bg-green-500", A: "bg-green-500" };
 
@@ -23,7 +24,7 @@ export default function VibrationLineMachines({ machines, byMachine, loading }) 
             <div className="flex flex-wrap items-center gap-3">
              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[s.zone] || "bg-slate-300"}`} title={s.zone ? `Aktuální pásmo ${s.zone}` : "Bez vyhodnocení"} />
             <span className="font-medium text-slate-800 min-w-0 break-words">{m.name}</span>
-            <MachineDiagnosticStatus status={s} loading={loading} />
+            <MachineDiagnosticStatus status={s} loading={loading} stopped={isMachineStopped(m, s.data)} />
             {s.alerts > 0 && (
               <span title="Zobrazit alarmy"
                 onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`Machine?id=${m.id}#alerts`)); }}

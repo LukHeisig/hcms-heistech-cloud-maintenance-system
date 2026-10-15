@@ -68,6 +68,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
       m.sensors++;
       const d = latest[a.sensor_id];
       if (d) {
+        (m.data ||= []).push(d);
         const v = Math.max(d.vel_rms_x_mm_s || 0, d.vel_rms_y_mm_s || 0, d.vel_rms_z_mm_s || 0);
         m.vel = Math.max(m.vel ?? 0, v);
         const vs = stdById[a.vel_standard_id];

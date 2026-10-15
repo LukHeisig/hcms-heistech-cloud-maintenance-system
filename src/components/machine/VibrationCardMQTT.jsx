@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
 import SensorDSPPanel from "@/components/machine/SensorDSPPanel";
+import { isMachineStopped, STOPPED_LABEL, STOPPED_DETAIL } from "@/lib/machineRunState";
 import { throttled } from "@/lib/requestQueue";
 
 // Zobrazujeme created_date (UTC ISO z DB) v pražském čase (CEST/CET).
@@ -1154,6 +1155,15 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                 const bearSt = bearingLevel >= 0 ? { label: BEAR_LABELS[bearingLevel], detail: BEAR_DETAILS[bearingLevel], ...STATUS_DEFS[bearingLevel] } : noBear;
 
                 const showAIBtn = enablePredictive && (velLevel >= 2 || bearingLevel >= 2);
+                if (isMachineStopped(machine, latestSensorData.filter(d => assignedSensorIds.includes(d.sensor_id)))) return (
+                  <div className={`flex-1 flex flex-col justify-center gap-0.5 rounded-lg border px-3 py-2 ${noData.bg} ${noData.border}`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${noData.dot}`} />
+                      <span className={`font-semibold text-xs ${noData.text}`}>{STOPPED_LABEL}</span>
+                    </div>
+                    <p className={`text-[11px] ${noData.text} opacity-75 pl-4`}>{STOPPED_DETAIL}</p>
+                  </div>
+                );
                 return (
                   <div className="flex-1 flex flex-col gap-2">
                     {/* Stav vibrací — rychlost */}

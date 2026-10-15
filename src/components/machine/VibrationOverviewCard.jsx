@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { moduleData } from "@/lib/moduleData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Loader2 } from "lucide-react";
+import { isMachineStopped, STOPPED_LABEL, STOPPED_DETAIL } from "@/lib/machineRunState";
 
 const STYLES = [
   { dot: "bg-green-500", bg: "bg-green-50", border: "border-green-300", text: "text-green-800" },
@@ -73,7 +74,8 @@ export default function VibrationOverviewCard({ machine }) {
 
   const velLevel = Math.max(-1, ...rows.map(r => r.velL));
   const bearLevel = Math.max(-1, ...rows.map(r => r.bearL));
-  const statusRows = [
+  const stopped = isMachineStopped(machine, sensorIds.map(id => latest[id]));
+  const statusRows = stopped ? [{ label: STOPPED_LABEL, detail: STOPPED_DETAIL, ...NO_DATA }] : [
     velLevel >= 0 ? { label: VEL_LABELS[velLevel], detail: VEL_DETAILS[velLevel], ...STYLES[velLevel] } : { label: "Stav vibrací neznámý", detail: "Není přiřazena norma pro rychlost nebo zatím nejsou data.", ...NO_DATA },
     bearLevel >= 0 ? { label: BEAR_LABELS[bearLevel], detail: BEAR_DETAILS[bearLevel], ...STYLES[bearLevel] } : { label: "Stav ložisek neznámý", detail: "Není přiřazena norma pro zrychlení nebo zatím nejsou data.", ...NO_DATA },
   ];

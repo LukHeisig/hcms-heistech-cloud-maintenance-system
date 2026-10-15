@@ -9,7 +9,7 @@ export default function ServiceBoardMachine({ machine, company, line, sensors, b
   const labels = { unknown: "Neznámý", online: "Online", recent: "Nedávno", offline: "Offline" };
   return <article className="sb-sheet">
     <header className={`sb-machine-head sb-head-${state}`}><div><h3>{formatMachineName(machine)}</h3><div className="sb-org">{company.name} <i>›</i> {line.name}</div>{machine.location && <div className="sb-org">{machine.location}</div>}</div><span className={`sb-status sb-status-${state}`}>{labels[state]}</span></header>
-    <ServiceBoardDiagnostics assignments={assignments} standards={standards} latest={latest} getLimitLevel={getLimitLevel} />
+    <ServiceBoardDiagnostics machine={machine} assignments={assignments} standards={standards} latest={latest} getLimitLevel={getLimitLevel} />
     <hr className="sb-perforation" />
     <div className="sb-sensors">{sensors.length ? sensors.map(sensor => <ServiceBoardSensor key={sensor.id} sensor={sensor} />) : <p className="sb-axes">Senzor nepřiřazen</p>}</div>
     <button className="sb-open" onClick={onOpen}>Otevřít <ChevronRight size={22} strokeWidth={3} /></button>

@@ -1,6 +1,7 @@
 import React from "react";
 import DashboardMachineRow from "@/components/dashboard/DashboardMachineRow";
 import MachineDiagnosticStatus from "@/components/dashboard/MachineDiagnosticStatus";
+import { isMachineStopped } from "@/lib/machineRunState";
 
 const zones = ["A", "B", "C", "D"];
 const zoneOf = (value, ab, bc, cd) => {
@@ -31,7 +32,8 @@ export default function LineDiagnosticMachineRow({ machine, type, assignments = 
   return (
     <DashboardMachineRow machine={machine} status={dot} showPoints={false} targetUrl={`/Machine?id=${machine.id}#${type}`}
       statusDescription={loading ? "Načítání diagnostiky" : worst ? `Diagnostika: pásmo ${worst}` : "Diagnostický stav není vyhodnocen"} {...rowProps}>
-      {type === "vibration" && <MachineDiagnosticStatus status={status} loading={loading} />}
+      {type === "vibration" && <MachineDiagnosticStatus status={status} loading={loading}
+        stopped={isMachineStopped(machine, assignments.filter(a => a.machine_id === machine.id).map(a => latest[a.sensor_id]))} />}
     </DashboardMachineRow>
   );
 }

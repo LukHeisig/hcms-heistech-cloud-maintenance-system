@@ -1,4 +1,5 @@
 import React from "react";
+import { STOPPED_LABEL } from "@/lib/machineRunState";
 
 const TONES = {
   A: "bg-status-success/5 border-status-success/40 text-status-success",
@@ -19,7 +20,12 @@ const BEARING_DETAILS = {
   D: "Možné poškození",
 };
 
-export default function MachineDiagnosticStatus({ status, loading }) {
+export default function MachineDiagnosticStatus({ status, loading, stopped }) {
+  if (stopped && !loading) return (
+    <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] leading-tight bg-muted border-border text-muted-foreground">
+      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" /><span className="font-medium">{STOPPED_LABEL}</span>
+    </span>
+  );
   const rows = [["Vibrace", status?.velocityZone, VIBRATION_DETAILS], ["Ložiska", status?.bearingZone, BEARING_DETAILS]];
   return (
     <div className="flex flex-wrap items-center gap-1">
