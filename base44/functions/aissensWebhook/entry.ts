@@ -678,8 +678,18 @@ export default async function(req) {
     return Response.json({ error: "Parse failed" }, { status: 422 });
   }
 
-  const tsValid = parsed.timestamp_unix > 1500000000 && parsed.timestamp_unix < nowSec + 86400;
-  const tsUnix = tsValid ? parsed.timestamp_unix : nowSec;
+  // Senzory posílají pražský místní čas zakódovaný jako UTC → převod na skutečné UTC
+  const pragueOffsetSec = (ts: number) => {
+    const d = new Date(ts * 1000);
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+      timeZone: "Europe/Prague", hourCycle: "h23", year: "numeric", month: "2-digit",
+      day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+    }).formatToParts(d).map((x) => [x.type, x.value]));
+    return (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(ts) * 1000) / 1000;
+  };
+  const sensorTs = parsed.timestamp_unix ? parsed.timestamp_unix - pragueOffsetSec(parsed.timestamp_unix) : 0;
+  const tsValid = sensorTs > 1500000000 && sensorTs < nowSec + 86400;
+  const tsUnix = tsValid ? sensorTs : nowSec;
   const recordTimestamp = new Date(tsUnix * 1000).toISOString();
   if (!tsValid && parsed.timestamp_unix) {
     console.log(`[TS] nedůvěryhodný timestamp ze senzoru (${parsed.timestamp_unix}), používám čas serveru`);
