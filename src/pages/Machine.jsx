@@ -569,7 +569,7 @@ export default function Machine() {
               )}
             </div>
             {/* Mini statistiky v headeru */}
-            <div className="hidden sm:flex gap-3 flex-wrap">
+            {controlPoints.length > 0 && <div className="hidden sm:flex gap-3 flex-wrap">
               <div className="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-2">
                 <Droplet className="w-4 h-4 text-blue-200" />
                 <div>
@@ -598,7 +598,7 @@ export default function Machine() {
                   <p className="text-xl font-bold leading-tight text-green-300">{okPoints.length}</p>
                 </div>
               </div>
-            </div>
+            </div>}
           </div>
         </div>
       </div>
