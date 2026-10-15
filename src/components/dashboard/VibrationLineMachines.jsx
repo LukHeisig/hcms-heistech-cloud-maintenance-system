@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { formatDistanceToNow } from "date-fns";
 import { cs } from "date-fns/locale";
-import { Bell } from "lucide-react";
+import { Bell, Timer } from "lucide-react";
 import MachineDiagnosticStatus from "@/components/dashboard/MachineDiagnosticStatus";
 
 const DOT = { D: "bg-red-500", C: "bg-orange-500", B: "bg-green-500", A: "bg-green-500" };
@@ -29,6 +29,12 @@ export default function VibrationLineMachines({ machines, byMachine, loading }) 
                 onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`Machine?id=${m.id}#alerts`)); }}
                 className="flex items-center gap-1 text-xs text-red-600 font-semibold px-1.5 py-0.5 rounded hover:bg-red-50">
                 <Bell className="w-3.5 h-3.5" />{s.alerts}
+              </span>
+            )}
+            {m.motohours_enabled && (
+              <span className="flex items-center gap-1 text-xs text-slate-600" title={m.motohours_running ? "Motohodiny – stroj běží" : "Motohodiny – stroj stojí"}>
+                <Timer className={`w-3.5 h-3.5 ${m.motohours_running ? "text-green-600" : "text-slate-400"}`} />
+                {Math.round((m.motohours_initial || 0) + (m.motohours_accumulated || 0)).toLocaleString("cs-CZ")} h
               </span>
             )}
             <span className="ml-auto text-xs text-slate-400 text-right" title="Poslední příjem dat">
