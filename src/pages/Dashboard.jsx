@@ -330,12 +330,13 @@ export default function Dashboard() {
   }, [activeControlPoints, getPointStatus]);
 
   const activePointIds = useMemo(() => activeControlPoints.map(point => point.id), [activeControlPoints]);
+  const onVibrationTab = viewMode !== "demip" && urlParams.get("module") === "vibration";
   const { data: records = [] } = useQuery({
     queryKey: ["allRecords", "recent", user?.id, activePointIds],
     queryFn: () => throttled(() => base44.entities.ControlRecord.filter(
       { control_point_id: { $in: activePointIds } }, { sort: "-performed_at", limit: 5 }
     )).then(page => page.items),
-    enabled: activePointIds.length > 0,
+    enabled: activePointIds.length > 0 && !onVibrationTab,
     staleTime: 60000,
   });
   const activeRecords = records;
@@ -345,7 +346,7 @@ export default function Dashboard() {
     queryKey: ["allRecords", "monthlyCount", user?.id, activePointIds, monthStart],
     queryFn: () => countInChunks(base44.entities.ControlRecord, "control_point_id", activePointIds,
       { performed_at: { $gte: monthStart, $lt: nextMonthStart } }),
-    enabled: activePointIds.length > 0,
+    enabled: activePointIds.length > 0 && !onVibrationTab,
     staleTime: 60000,
   });
 
