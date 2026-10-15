@@ -23,7 +23,7 @@ HCMS je cloudový systém pro komplexní správu údržby průmyslových zaříz
 ## STRÁNKY A SEKCE
 - Dashboard (/Dashboard) — Všichni: rozcestník, navigace podnik → linka → stroj → kontrolní bod; pro techniky DEMIP zjednodušený přehled s NFC skenováním a manuálním potvrzením.
 - Pracovní příkazy (/WorkOrders) — Všichni: seznam plánované údržby přiřazené uživatelům, termíny, stav (přiřazeno/po termínu), notifikace v hlavičce.
-- Vibrace online (/VibrationOnline) — Všichni: přehled strojů s vibračním monitoringem dle podniku a linky; stav senzoru (Online <12h / Nedávno 12–24h / Offline >24h), baterie, teplota, signál, semafor vibrací (A/B zelená, C žlutá, D červená); záložka Alarmy s kvitováním; řízeno aktivací modulu vibrací.
+- Vibrace online (/VibrationOnline) — Všichni: přehled strojů s vibračním monitoringem dle podniku a linky; stav senzoru (Online <12h / Nedávno 12–24h / Offline >24h), baterie, teplota, signál, semafor vibrací (A/B zelená, C žlutá, D červená); záložka Alarmy s kvitováním; řízeno aktivací modulu vibrací. Motohodiny: výpočet doby chodu z vibrací každých 15 min (práh mm/s, výchozí 0,3), denní historie v grafu na kartě stroje, stav „Stroj stojí“, zapíná se v administraci stroje.
 - Správa závad (/IssueApproval) — Manager/Admin/SuperAdmin: workflow schvalování závad (stav reported → schválit/zamítnout), odznak s počtem čekajících.
 - Audit Log (/AuditLog) — Manager/Admin/SuperAdmin: historie aktivit (kdo, co, kdy), statistiky kontrol a aktivita uživatelů.
 - Administrace (/Admin) — Manager/Admin/SuperAdmin: podniky a aktivace modulů (DEMIP, Údržba, Náhradní díly, Vibrace, Termo, Tribo, AI prediktivní analýza), linky, stroje, kontrolní body, vibrační normy, schémata měření, ložiska, termodiagnostika, kontroly linek, export a úklid dat.

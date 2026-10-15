@@ -228,7 +228,7 @@ export default function About() {
                   Online vibrační diagnostika
                 </h3>
                 <p className="text-sm text-slate-600">
-                  Online měření a analýza vibrací strojů s využitím AI diagnostiky pro odhalování závad ložisek a sledování trendů.
+                  Online měření a analýza vibrací strojů s využitím AI diagnostiky pro odhalování závad ložisek a sledování trendů. Z vibrací se automaticky počítají i motohodiny strojů s denní historií.
                 </p>
               </div>
 

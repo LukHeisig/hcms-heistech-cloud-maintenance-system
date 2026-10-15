@@ -177,6 +177,7 @@ export default function AppDocumentation() {
             <PageBlock icon={Radio} title="Vibrace online" route="/VibrationOnline" roles={["Všichni"]}>
               <p>Přehled strojů s aktivním vibračním monitoringem seskupený podle podniku a linky. Karty strojů ukazují stav senzoru (Online &lt; 12 h / Nedávno 12–24 h / Offline &gt; 24 h), baterii, teplotu, sílu signálu a barevný semafor stavu vibrací (A/B zelená, C žlutá, D červená).</p>
               <p>Záložka <strong>Alarmy</strong> zobrazuje aktivní vibrační výstrahy s možností kvitování. Viditelnost se řídí aktivací modulu vibrací u podniku.</p>
+              <p><strong>Motohodiny:</strong> z vibrací se každých 15 minut počítá doba chodu stroje (práh v mm/s, výchozí 0,3). Denní historie je v grafu na kartě stroje. Když stroj neběží a snímače jsou online, zobrazí se stav „Stroj stojí“. Zapíná se v administraci stroje.</p>
             </PageBlock>
 
             <PageBlock icon={AlertTriangle} title="Správa závad" route="/IssueApproval" roles={["Manager", "Admin", "SuperAdmin"]}>
