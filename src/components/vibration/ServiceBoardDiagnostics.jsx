@@ -15,7 +15,7 @@ export default function ServiceBoardDiagnostics({ machine, assignments, standard
     { label: "Ložiska", zone: bearingZone, value: bearing.length ? Math.max(...bearing) : null, unit: "g", detail: `RMS Z ${valueText(bearing.length ? Math.max(...bearing) : null)} · Obálka ${valueText(envelopes.length ? Math.max(...envelopes) : null)} g` },
   ];
   return <>
-    {stopped && <div className="sb-axes" style={{ padding: "8px 0 0" }}><strong>{STOPPED_LABEL}</strong> · {STOPPED_DETAIL}</div>}
+    {stopped && <div className="sb-axes" style={{ padding: "12px 20px 0" }}><strong>{STOPPED_LABEL}</strong> · {STOPPED_DETAIL}</div>}
     <div className="sb-diagnostics">{cells.map(cell => <div className="sb-cell" key={cell.label}>
     <div className="sb-label">{cell.label}</div>
     <div className="sb-bands" aria-label={cell.zone < 0 ? "Bez dat nebo normy" : `Pásmo ${"ABCD"[cell.zone]}`}>{["A", "B", "C", "D"].map((band, index) => <span key={band} className={!stopped && cell.zone === index ? `sb-band-${band}` : ""}>{band}</span>)}</div>
