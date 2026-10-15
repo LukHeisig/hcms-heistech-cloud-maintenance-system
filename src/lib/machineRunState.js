@@ -3,6 +3,8 @@ const ONLINE_MS = 12 * 3600 * 1000;
 
 const tsOf = d => d.timestamp_unix ? d.timestamp_unix * 1000 : d.recorded_at ? new Date(d.recorded_at).getTime() : 0;
 
+export const isDataOnline = d => !!d && Date.now() - tsOf(d) <= ONLINE_MS;
+
 export function isMachineStopped(machine, dataList = []) {
   const now = Date.now();
   const online = dataList.filter(d => d && now - tsOf(d) <= ONLINE_MS);
