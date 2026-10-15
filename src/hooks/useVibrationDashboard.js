@@ -35,7 +35,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
   });
   const { data: latest = {}, isLoading: loadingLatest } = useQuery({
     queryKey: ["dashVibLatest", sensorIds],
-    queryFn: () => moduleData.latestSensorData(sensorIds, ["sensor_id", "vel_rms_x_mm_s", "vel_rms_y_mm_s", "vel_rms_z_mm_s", "rms_z_g", "oa_acc_z", "env_rms_z"]),
+    queryFn: () => moduleData.latestSensorData(sensorIds, ["sensor_id", "timestamp_unix", "recorded_at", "vel_rms_x_mm_s", "vel_rms_y_mm_s", "vel_rms_z_mm_s", "rms_z_g", "oa_acc_z", "env_rms_z"]),
     enabled: on && sensorIds.length > 0, staleTime: 300000,
   });
   const { data: standards = [], isLoading: loadingStandards } = useQuery({

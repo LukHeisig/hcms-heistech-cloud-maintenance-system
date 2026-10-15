@@ -17,14 +17,15 @@ export default function VibrationLineMachines({ machines, byMachine, loading }) 
     <div className="mt-3 divide-y divide-slate-100 border-t border-slate-100">
       {rows.map(m => {
         const s = byMachine[m.id] || {};
+        const stopped = isMachineStopped(m, s.data);
         return (
           <div key={m.id}
             onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`Machine?id=${m.id}#vibration`)); }}
             className="py-2 px-1 text-sm hover:bg-slate-50 rounded cursor-pointer">
             <div className="flex flex-wrap items-center gap-3">
-             <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DOT[s.zone] || "bg-slate-300"}`} title={s.zone ? `Aktuální pásmo ${s.zone}` : "Bez vyhodnocení"} />
+             <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${stopped ? "bg-slate-400" : DOT[s.zone] || "bg-slate-300"}`} title={stopped ? "Stroj nejede" : s.zone ? `Aktuální pásmo ${s.zone}` : "Bez vyhodnocení"} />
             <span className="font-medium text-slate-800 min-w-0 break-words">{m.name}</span>
-            <MachineDiagnosticStatus status={s} loading={loading} stopped={isMachineStopped(m, s.data)} />
+            <MachineDiagnosticStatus status={s} loading={loading} stopped={stopped} />
             {s.alerts > 0 && (
               <span title="Zobrazit alarmy"
                 onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`Machine?id=${m.id}#alerts`)); }}
