@@ -93,6 +93,39 @@
       "default": 10,
       "description": "Pr\u00e1h klidu stroje v % maxima obdob\u00ed \u2014 m\u011b\u0159en\u00ed pod touto hodnotou se v trendu skryj\u00ed p\u0159i volb\u011b 'Jen chod stroje'"
     },
+    "motohours_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Po\u010d\u00edtat motohodiny z vibrac\u00ed"
+    },
+    "motohours_initial": {
+      "type": "number",
+      "default": 0,
+      "description": "Po\u010d\u00e1te\u010dn\u00ed stav po\u010d\u00edtadla motohodin (h)"
+    },
+    "motohours_from": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Od kdy po\u010d\u00edtat motohodiny"
+    },
+    "motohours_threshold_mm_s": {
+      "type": "number",
+      "default": 0.3,
+      "description": "Pr\u00e1h chodu stroje (rychlost vibrac\u00ed mm/s)"
+    },
+    "motohours_accumulated": {
+      "type": "number",
+      "default": 0,
+      "description": "Napo\u010d\u00edtan\u00e9 motohodiny z vibrac\u00ed (h)"
+    },
+    "motohours_last_ts": {
+      "type": "number",
+      "description": "Unix \u010das posledn\u00edho zpracovan\u00e9ho m\u011b\u0159en\u00ed"
+    },
+    "motohours_running": {
+      "type": "boolean",
+      "description": "Stroj podle posledn\u00edho m\u011b\u0159en\u00ed b\u011b\u017e\u00ed"
+    },
     "vibration_history_from": {
       "type": "string",
       "format": "date-time",

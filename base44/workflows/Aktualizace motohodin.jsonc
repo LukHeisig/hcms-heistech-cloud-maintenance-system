@@ -1,0 +1,44 @@
+{
+  "name": "Aktualizace motohodin",
+  "description": "Ka\u017ed\u00fdch 15 minut p\u0159i\u010dte motohodiny stroj\u016f z nov\u00fdch m\u011b\u0159en\u00ed vibrac\u00ed",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/15 * * * *",
+      "one_time_date": null,
+      "timezone": "Europe/Prague",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "aktualizace_motohodin",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "update_motohours": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "updateMotohours",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "P\u0159epo\u010det motohodin"
+          }
+        }
+      }
+    ]
+  }
+}

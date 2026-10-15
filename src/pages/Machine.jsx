@@ -64,6 +64,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { throttled } from "@/lib/requestQueue";
 import { isModuleEnabled } from "@/lib/companyModules";
 import VibrationOverviewCard from "@/components/machine/VibrationOverviewCard";
+import MotohoursCard from "@/components/machine/MotohoursCard";
 import { useViewMode } from "@/components/ViewModeContext";
 import { getControlPointStatus, getControlPointDueDate } from "@/lib/controlPointIntervals";
 import useLatestControlChecks from "@/hooks/useLatestControlChecks";
@@ -697,6 +698,7 @@ export default function Machine() {
             {showVibration && machine?.vibration_source !== "vse" && (
               <VibrationOverviewCard machine={machine} />
             )}
+            {showVibration && machine?.motohours_enabled && <MotohoursCard machine={machine} />}
             {(isModuleEnabled(company, "enable_demip") || isModuleEnabled(company, "enable_maintenance")) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Nejbližší plánované úkony */}

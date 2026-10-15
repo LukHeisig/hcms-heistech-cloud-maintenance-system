@@ -1,0 +1,42 @@
+{
+  "name": "MachineRunDay",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Den (YYYY-MM-DD)"
+    },
+    "hours": {
+      "type": "number",
+      "default": 0,
+      "description": "Motohodiny za den"
+    }
+  },
+  "required": [
+    "machine_id",
+    "date"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "data.user_type": "superAdmin"
+      }
+    }
+  }
+}

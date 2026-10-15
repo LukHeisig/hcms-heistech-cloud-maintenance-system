@@ -55,6 +55,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useViewMode } from "@/components/ViewModeContext";
 import "@/components/admin/demipAdmin.css";
+import MotohoursSettings from "@/components/admin/MotohoursSettings";
 import "@/components/admin/demipAdminStructure.css";
 
 export default function AdminMachines() {
@@ -171,6 +172,11 @@ export default function AdminMachines() {
     mutationFn: ({ id, data }) => base44.entities.Machine.update(id, data),
     onSuccess: async (updatedMachine, variables) => {
       const oldMachine = machines.find(m => m.id === variables.id);
+      const mhKeys = ["motohours_enabled", "motohours_from", "motohours_threshold_mm_s"];
+      if (updatedMachine.motohours_enabled && mhKeys.some(k => oldMachine?.[k] !== updatedMachine[k])) {
+        base44.functions.invoke("updateMotohours", { machine_id: updatedMachine.id, recompute: true })
+          .then(() => queryClient.invalidateQueries({ queryKey: ["machines"] }));
+      }
       const changes = [];
       if (oldMachine && oldMachine.name !== updatedMachine.name) changes.push(`název na "${updatedMachine.name}"`);
       if (oldMachine && oldMachine.inventory_number !== updatedMachine.inventory_number) changes.push(`inventární číslo na "${updatedMachine.inventory_number || "null"}"`);
@@ -261,6 +267,10 @@ export default function AdminMachines() {
         vibration_schema_id: machine.vibration_schema_id || null,
         alarm_delay_count: machine.alarm_delay_count || 1,
         idle_threshold_percent: machine.idle_threshold_percent ?? 10,
+        motohours_enabled: machine.motohours_enabled || false,
+        motohours_initial: machine.motohours_initial ?? 0,
+        motohours_from: machine.motohours_from ? format(new Date(machine.motohours_from), "yyyy-MM-dd'T'HH:mm") : "",
+        motohours_threshold_mm_s: machine.motohours_threshold_mm_s ?? 0.3,
         vibration_history_from: machine.vibration_history_from ? format(new Date(machine.vibration_history_from), "yyyy-MM-dd'T'HH:mm") : "",
         photo_url: machine.photo_url || "",
         parent_id: machine.parent_id || null,
@@ -320,6 +330,10 @@ export default function AdminMachines() {
       vibration_schema_id: formData.vibration_schema_id || null,
       alarm_delay_count: Math.max(1, parseInt(formData.alarm_delay_count) || 1),
       idle_threshold_percent: Math.min(100, Math.max(0, parseFloat(formData.idle_threshold_percent) || 10)),
+      motohours_enabled: !!formData.motohours_enabled,
+      motohours_initial: Math.max(0, parseFloat(formData.motohours_initial) || 0),
+      motohours_from: formData.motohours_from ? new Date(formData.motohours_from).toISOString() : (formData.motohours_enabled ? new Date().toISOString() : null),
+      motohours_threshold_mm_s: Math.max(0, parseFloat(formData.motohours_threshold_mm_s) || 0.3),
       vibration_history_from: formData.vibration_history_from ? new Date(formData.vibration_history_from).toISOString() : null,
       photo_url: formData.photo_url || null,
       parent_id: formData.parent_id === "none" ? null : formData.parent_id,
@@ -835,6 +849,7 @@ export default function AdminMachines() {
                     </p>
                   </div>
                 </div>
+                <MotohoursSettings formData={formData} setFormData={setFormData} />
               </div>
             </div>
             <DialogFooter>
