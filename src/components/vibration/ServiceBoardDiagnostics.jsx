@@ -1,8 +1,8 @@
 import React from "react";
-import { isMachineStopped, STOPPED_LABEL, STOPPED_DETAIL } from "@/lib/machineRunState";
+import { isMachineStopped, isDataOnline, STOPPED_LABEL, STOPPED_DETAIL } from "@/lib/machineRunState";
 const valueText = value => value == null ? "—" : value.toFixed(3);
 export default function ServiceBoardDiagnostics({ machine, assignments, standards, latest, getLimitLevel }) {
-  const points = assignments.map(a => ({ data: latest[a.sensor_id], vel: standards.find(s => s.id === a.vel_standard_id), acc: standards.find(s => s.id === a.acc_standard_id) })).filter(p => p.data);
+  const points = assignments.map(a => ({ data: latest[a.sensor_id], vel: standards.find(s => s.id === a.vel_standard_id), acc: standards.find(s => s.id === a.acc_standard_id) })).filter(p => isDataOnline(p.data));
   if (isMachineStopped(machine, points.map(p => p.data))) return <div className="sb-diagnostics"><div className="sb-cell">
     <div className="sb-label">Stav stroje</div><div className="sb-value">{STOPPED_LABEL}</div><div className="sb-axes">{STOPPED_DETAIL}</div>
   </div></div>;
