@@ -1,5 +1,5 @@
 import React from "react";
-import { Radio, Gauge, Bell, BrainCircuit, Cpu } from "lucide-react";
+import { Radio, Gauge, Bell, BrainCircuit, Cpu, Timer } from "lucide-react";
 import { InfoSection, Bullets } from "@/components/about/revisions/InfoSection";
 
 export default function VibrationModuleInfo() {
@@ -34,6 +34,20 @@ export default function VibrationModuleInfo() {
           ["Databáze ložisek:", "katalog cca 31 tisíc ložisek s poruchovými frekvencemi BPFO, BPFI, BSF a FTF."],
           ["Kurzory poruchových frekvencí:", "ve spektru lze kliknutím zapnout značky frekvencí ložiska i jejich harmonických (výchozí stav vypnuto)."],
           ["Jednotky ifm VSE:", "data přes OPC UA bridge, přiřazení proměnných k měřicím místům a SCADA vizualizace stavů."],
+        ]} />
+      </InfoSection>
+
+      <InfoSection icon={Timer} iconClass="text-emerald-600" title="Motohodiny z vibrací">
+        <p>
+          Aplikace automaticky počítá dobu chodu stroje z naměřených vibrací. Výpočet běží na serveru každých 15 minut
+          a výsledky se ukládají po dnech.
+        </p>
+        <Bullets items={[
+          ["Zapnutí:", "v administraci stroje se zapíná počítání motohodin a nastavuje počáteční stav počítadla a datum, od kdy se počítá."],
+          ["Práh chodu:", "stroj se považuje za běžící, když rychlost vibrací překročí nastavený práh v mm/s (výchozí 0,3 mm/s)."],
+          ["Výpadky dat:", "mezery v měření se porovnávají napříč všemi snímači stroje, aby se výpadek nezapočítal jako chod."],
+          ["Denní historie:", "graf motohodin po dnech na kartě stroje."],
+          ["Stav „Stroj stojí“:", "když vibrace klesnou pod práh a snímače jsou online, zobrazí se tento stav na dashboardu, na kartě stroje i ve Vibracích online."],
         ]} />
       </InfoSection>
 
