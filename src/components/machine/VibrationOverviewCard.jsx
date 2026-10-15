@@ -44,6 +44,13 @@ export default function VibrationOverviewCard({ machine }) {
     queryFn: () => base44.entities.VibrationStandard.list(null, 500),
     staleTime: 300000,
   });
+  const { data: schema } = useQuery({
+    queryKey: ["vibrationSchema", machine.vibration_schema_id],
+    queryFn: async () => (await base44.entities.VibrationSchema.filter({ id: machine.vibration_schema_id }))[0] || null,
+    enabled: !!machine.vibration_schema_id,
+    staleTime: 600000,
+  });
+  const schemaRows = useMemo(() => { try { return JSON.parse(schema?.rows_definition || "[]"); } catch { return []; } }, [schema]);
   const sensorIds = [...new Set(assignments.map(a => a.sensor_id).filter(Boolean))];
   const { data: latest = {} } = useQuery({
     queryKey: ["vibOverviewData", sensorIds.join(",")],
@@ -76,13 +83,18 @@ export default function VibrationOverviewCard({ machine }) {
   const bearLevel = Math.max(-1, ...rows.map(r => r.bearL));
   const stopped = isMachineStopped(machine, sensorIds.map(id => latest[id]));
   const offlineIds = sensorIds.filter(id => !isDataOnline(latest[id]));
+  const pointOf = id => {
+    const idx = assignments.filter(a => a.sensor_id === id).map(a => a.schema_row_index);
+    const names = idx.map(i => { const r = schemaRows[i]; return r ? [r.label, r.name].filter(Boolean).join(" – ") : `bod ${i + 1}`; });
+    return names.length ? `${id} (${names.join(", ")})` : id;
+  };
   const baseRows = stopped ? [{ label: STOPPED_LABEL, detail: STOPPED_DETAIL, ...NO_DATA }] : [
     velLevel >= 0 ? { label: VEL_LABELS[velLevel], detail: VEL_DETAILS[velLevel], ...STYLES[velLevel] } : { label: "Stav vibrací neznámý", detail: "Není přiřazena norma pro rychlost nebo zatím nejsou data.", ...NO_DATA },
     bearLevel >= 0 ? { label: BEAR_LABELS[bearLevel], detail: BEAR_DETAILS[bearLevel], ...STYLES[bearLevel] } : { label: "Stav ložisek neznámý", detail: "Není přiřazena norma pro zrychlení nebo zatím nejsou data.", ...NO_DATA },
   ];
   const statusRows = offlineIds.length ? [{
     label: `Offline snímače: ${offlineIds.length} z ${sensorIds.length}`,
-    detail: `Bez dat déle než 12 h: ${offlineIds.join(", ")}`,
+    detail: `Bez dat déle než 12 h: ${offlineIds.map(pointOf).join("; ")}`,
     dot: "bg-orange-500", bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-800",
   }, ...baseRows] : baseRows;
 
