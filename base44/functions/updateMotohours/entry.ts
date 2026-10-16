@@ -106,9 +106,13 @@ export default async function(req) {
       ? await db.Machine.filter({ id: machine_id, motohours_enabled: true }, null, 1)
       : await db.Machine.filter({ motohours_enabled: true }, null, 1000);
     const results = [];
-    for (const m of machines) {
-      try { results.push(await processMachine(db, m, recompute)); }
-      catch (e) { console.error(`Machine ${m.id} failed:`, e.message); results.push({ machine_id: m.id, error: e.message }); }
+    // Stroje zpracujeme po skupinách paralelně, aby úloha nepřekročila časový limit
+    for (let i = 0; i < machines.length; i += 4) {
+      results.push(...await Promise.all(machines.slice(i, i + 4).map((m) =>
+        processMachine(db, m, recompute).catch((e) => {
+          console.error(`Machine ${m.id} failed:`, e.message);
+          return { machine_id: m.id, error: e.message };
+        }))));
     }
     // Neúspěch jednoho stroje nezastaví úlohu; doběhne v příštím běhu
     return Response.json({ results });
