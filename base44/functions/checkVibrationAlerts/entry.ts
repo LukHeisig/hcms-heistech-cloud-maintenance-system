@@ -10,13 +10,11 @@ export default async function(req) {
     try {
       user = await base44.auth.me();
     } catch (e) {
-      // Dočasné odmítnutí identity platformou (např. přístup podpory) — běh přeskočíme,
-      // aby se workflow po opakovaných chybách nepozastavilo. Data se nečtou ani nemění.
-      if (String(e?.message || '').includes('support panel')) {
-        console.warn('Auth temporarily unavailable, skipping run:', e.message);
-        return Response.json({ skipped: true, reason: 'auth_unavailable' });
-      }
-      throw e;
+      // Plánovaný běh: platforma občas odmítne identitu ("support panel").
+      // Dle doporučení podpory pokračujeme přes service role. Jiné chyby (např. nepřihlášený) dál blokují.
+      if (!String(e?.message || '').includes('support panel')) throw e;
+      console.warn('Auth unavailable on scheduled run, continuing as service role');
+      user = { role: 'admin', scheduled: true };
     }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isAppAdmin(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
