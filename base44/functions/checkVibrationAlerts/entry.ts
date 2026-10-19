@@ -6,7 +6,18 @@ export default async function(req) {
     const base44 = createClientFromRequest(req);
 
     // Spouští workflow (identita vlastníka aplikace) nebo správce — nikdo jiný
-    const user = await base44.auth.me();
+    let user;
+    try {
+      user = await base44.auth.me();
+    } catch (e) {
+      // Dočasné odmítnutí identity platformou (např. přístup podpory) — běh přeskočíme,
+      // aby se workflow po opakovaných chybách nepozastavilo. Data se nečtou ani nemění.
+      if (String(e?.message || '').includes('support panel')) {
+        console.warn('Auth temporarily unavailable, skipping run:', e.message);
+        return Response.json({ skipped: true, reason: 'auth_unavailable' });
+      }
+      throw e;
+    }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isAppAdmin(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
