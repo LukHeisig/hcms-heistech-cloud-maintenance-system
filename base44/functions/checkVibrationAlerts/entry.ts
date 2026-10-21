@@ -50,7 +50,7 @@ export default async function(req) {
     const linesById = Object.fromEntries(lines.map(l => [l.id, l]));
 
     // Helper: najde příjemce pro daný stroj a závažnost
-    const findRecipients = (machineId, severity) => {
+    const findRecipients = (machineId, severity, alertType) => {
       const machine = machinesById[machineId];
       if (!machine) return [];
       const line = linesById[machine.line_id];
@@ -59,8 +59,12 @@ export default async function(req) {
 
       return alertRecipients.filter(r => {
         // Kontrola závažnosti
-        if (severity === "C" && !r.notify_severity_c) return false;
-        if (severity === "D" && !r.notify_severity_d) return false;
+        if (alertType === "unbalance") {
+          if (!r.notify_unbalance) return false;
+        } else {
+          if (severity === "C" && !r.notify_severity_c) return false;
+          if (severity === "D" && !r.notify_severity_d) return false;
+        }
 
         // Kontrola rozsahu (null = wildcard)
         if (r.machine_id && r.machine_id !== machineId) return false;
@@ -74,7 +78,7 @@ export default async function(req) {
     const sentEmails = new Set(); // deduplikace: email|sensor|metric
 
     const sendAlertEmails = async (alertDef, machineId, machineName, measurementPoint) => {
-      const recipients = findRecipients(machineId, alertDef.severity);
+      const recipients = findRecipients(machineId, alertDef.severity, alertDef.alert_type);
       if (!recipients.length) return;
 
       const machine = machinesById[machineId];

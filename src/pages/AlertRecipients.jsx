@@ -54,6 +54,7 @@ export default function AlertRecipients({ embedded = false }) {
     machine_id: "",
     notify_severity_c: false,
     notify_severity_d: true,
+    notify_unbalance: false,
   });
 
   const { data: recipients = [] } = useQuery({
@@ -106,7 +107,7 @@ export default function AlertRecipients({ embedded = false }) {
 
   const resetForm = () => {
     setEditingId(null);
-    setForm({ user_id: "", company_id: "", line_id: "", machine_id: "", notify_severity_c: false, notify_severity_d: true });
+    setForm({ user_id: "", company_id: "", line_id: "", machine_id: "", notify_severity_c: false, notify_severity_d: true, notify_unbalance: false });
   };
 
   const handleEdit = (r) => {
@@ -118,6 +119,7 @@ export default function AlertRecipients({ embedded = false }) {
       machine_id: r.machine_id || "",
       notify_severity_c: !!r.notify_severity_c,
       notify_severity_d: !!r.notify_severity_d,
+      notify_unbalance: !!r.notify_unbalance,
     });
     setShowDialog(true);
   };
@@ -140,6 +142,7 @@ export default function AlertRecipients({ embedded = false }) {
       machine_id: form.machine_id || null,
       notify_severity_c: form.notify_severity_c,
       notify_severity_d: form.notify_severity_d,
+      notify_unbalance: form.notify_unbalance,
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
@@ -253,7 +256,10 @@ export default function AlertRecipients({ embedded = false }) {
                             Pásmo D
                           </Badge>
                         )}
-                        {!r.notify_severity_c && !r.notify_severity_d && (
+                        {r.notify_unbalance && (
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-300">Nevývaha</Badge>
+                        )}
+                        {!r.notify_severity_c && !r.notify_severity_d && !r.notify_unbalance && (
                           <Badge variant="outline" className="text-slate-400">Žádné</Badge>
                         )}
                       </div>
@@ -385,6 +391,17 @@ export default function AlertRecipients({ embedded = false }) {
                     <p className="text-xs text-red-700 mt-0.5">Email při překročení limitu C/D</p>
                   </div>
                 </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50">
+                  <Checkbox
+                    id="unb"
+                    checked={form.notify_unbalance}
+                    onCheckedChange={(v) => setForm(f => ({ ...f, notify_unbalance: !!v }))}
+                  />
+                  <div>
+                    <Label htmlFor="unb" className="font-medium text-blue-800 cursor-pointer">Nevývaha</Label>
+                    <p className="text-xs text-blue-700 mt-0.5">Email při překročení prahu míry nevývahy</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -393,7 +410,7 @@ export default function AlertRecipients({ embedded = false }) {
             <Button variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>Zrušit</Button>
             <Button
               onClick={handleSave}
-              disabled={!form.user_id || (!form.notify_severity_c && !form.notify_severity_d) || createMutation.isPending || updateMutation.isPending}
+              disabled={!form.user_id || (!form.notify_severity_c && !form.notify_severity_d && !form.notify_unbalance) || createMutation.isPending || updateMutation.isPending}
             >
               Uložit
             </Button>

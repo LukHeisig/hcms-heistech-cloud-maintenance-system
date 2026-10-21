@@ -35,6 +35,11 @@
       "type": "boolean",
       "default": true,
       "description": "Zas\u00edlat notifikace pro p\u00e1smo D (V\u00fdstraha/Kritick\u00e9)"
+    },
+    "notify_unbalance": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zas\u00edlat notifikace o p\u0159ekro\u010den\u00ed m\u00edry nev\u00fdvahy"
     }
   },
   "required": [
