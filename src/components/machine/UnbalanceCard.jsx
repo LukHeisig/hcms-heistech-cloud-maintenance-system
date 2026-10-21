@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
+import UnbalanceTrendDialog from "@/components/machine/UnbalanceTrendDialog";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Scale, Loader2 } from "lucide-react";
+import { Scale, Loader2, TrendingUp } from "lucide-react";
 
 const color = (p) => (p >= 100 ? "bg-red-500" : p >= 70 ? "bg-yellow-500" : "bg-green-500");
 
 export default function UnbalanceCard({ machine, rowLabels = [] }) {
+  const [trend, setTrend] = useState(null);
   const { data, isLoading } = useQuery({
     queryKey: ["unbalance", machine.id],
     queryFn: async () => (await base44.functions.invoke("getUnbalance", { machineId: machine.id })).data,
@@ -30,6 +32,11 @@ export default function UnbalanceCard({ machine, rowLabels = [] }) {
                 <span>{it.running ? `${it.amp} mm/s @ ${it.freq} Hz (${it.rpm} ot/min, osa ${it.axis})` : "Stroj stojí"}</span>
               ) : <span>bez dat</span>}
             </div>
+            {it.has_data && (
+              <button className="text-xs text-blue-600 hover:underline flex items-center gap-1" onClick={() => setTrend(it)}>
+                <TrendingUp className="w-3 h-3" /> Trend a predikce čištění
+              </button>
+            )}
             {it.has_data && it.running && (
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded bg-slate-100 overflow-hidden">
@@ -40,6 +47,8 @@ export default function UnbalanceCard({ machine, rowLabels = [] }) {
             )}
           </div>
         ))}
+        <UnbalanceTrendDialog open={!!trend} onOpenChange={(o) => !o && setTrend(null)} machine={machine}
+          sensorId={trend?.sensor_id} label={trend ? (rowLabels[trend.schema_row_index] || `Bod ${trend.schema_row_index + 1}`) : ""} />
       </CardContent>
     </Card>
   );
