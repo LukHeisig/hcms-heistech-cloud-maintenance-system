@@ -21,7 +21,7 @@ import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/Vibration
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
 import SensorDSPPanel from "@/components/machine/SensorDSPPanel";
 import UnbalanceCard from "@/components/machine/UnbalanceCard";
-import { axisDirection } from "@/lib/sensorOrientation";
+import { axisDirection, effectiveOrientation, normalizeOrientation, ORIENTATION_OPTIONS } from "@/lib/sensorOrientation";
 import { isMachineStopped, STOPPED_LABEL, STOPPED_DETAIL } from "@/lib/machineRunState";
 import { throttled } from "@/lib/requestQueue";
 
@@ -179,14 +179,14 @@ function BearingPicker({ value, onChange }) {
 
 
 // Dialog pro přiřazení senzoru + normy k řádku
-function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignment, onAssign }) {
+function AssignSensorDialog({ open, onClose, rowIndex, rowLabel, currentAssignment, onAssign, perPointOrientation }) {
   const current = currentAssignment || {};
   const [selectedSensor, setSelectedSensor] = useState(current.sensorId || "");
   const [selectedVelStandard, setSelectedVelStandard] = useState(current.velStandardId || "");
   const [selectedAccStandard, setSelectedAccStandard] = useState(current.accStandardId || "");
   const [selectedTempStandard, setSelectedTempStandard] = useState(current.tempStandardId || "");
   const [selectedBearing, setSelectedBearing] = useState(current.bearingId || "");
-  const [orientation, setOrientation] = useState(current.orientation || "x_vert_y_axial");
+  const [orientation, setOrientation] = useState(normalizeOrientation(current.orientation));
   const [scanningPhoto, setScanningPhoto] = useState(false);
   const [scanError, setScanError] = useState(null);
   const cameraInputRef = useRef(null);
@@ -241,7 +241,7 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
       setSelectedAccStandard(current.accStandardId || "");
       setSelectedTempStandard(current.tempStandardId || "");
       setSelectedBearing(current.bearingId || "");
-      setOrientation(current.orientation || "x_vert_y_axial");
+      setOrientation(normalizeOrientation(current.orientation));
       setBearingSearchInput("");
       setBearingSearchResult(null);
       setBearingSearchError(null);
@@ -626,19 +626,18 @@ Vrať POUZE samotné ID senzoru bez jakéhokoliv jiného textu. Pokud ID nenajde
             </Select>
           </div>
 
-          {/* Orientace snímače */}
+          {/* Orientace snímače — jen při nastavení stroje „každý jinak“ */}
+          {perPointOrientation && (
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
-              Orientace snímače <span className="normal-case font-normal text-slate-500">(Z je vždy horizontální)</span>
-            </label>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Orientace snímače</label>
             <Select value={orientation} onValueChange={setOrientation}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="x_vert_y_axial">X – vertikální, Y – axiální</SelectItem>
-                <SelectItem value="x_axial_y_vert">X – axiální, Y – vertikální</SelectItem>
+                {ORIENTATION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+          )}
 
           {/* Typ ložiska */}
           <div>
@@ -811,7 +810,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
         accStandardId: rec.acc_standard_id || null,
         tempStandardId: rec.temp_standard_id || null,
         bearingId: rec.bearing_id || null,
-        orientation: rec.orientation || "x_vert_y_axial",
+        orientation: rec.orientation || null,
         _dbId: rec.id,
       };
     }
@@ -837,7 +836,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
       acc_standard_id: assignment.accStandardId || null,
       temp_standard_id: assignment.tempStandardId || null,
       bearing_id: assignment.bearingId || null,
-      orientation: assignment.orientation || "x_vert_y_axial",
+      orientation: normalizeOrientation(assignment.orientation),
     };
     if (existing?._dbId) {
       await moduleData.update("VibrationSensorAssignment", existing._dbId, payload);
@@ -950,6 +949,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
   const [trendSelectedSensorDataId, setTrendSelectedSensorDataId] = useState(null);
 
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
+  const perPoint = machine?.sensor_orientation_mode === "per_point";
   const [showTrend, setShowTrend] = useState(false);
 
   // Automatické otevření trendu z URL parametru (z kliknutí na alarm)
@@ -1233,9 +1233,11 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
            <div className="hidden lg:grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 bg-slate-100 border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 uppercase tracking-wide">
              <div>Místo</div>
              <div>ID senzoru / čas měření</div>
-             <div className="text-center">Vel X<br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
-             <div className="text-center">Vel Y<br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
-             <div className="text-center">Vel Z<br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
+             {["vel_x", "vel_y", "vel_z"].map(k => (
+               <div key={k} className="text-center">Vel {k.slice(-1).toUpperCase()}
+                 {!perPoint && <><br/><span className="text-[10px] normal-case font-normal text-slate-500">{axisDirection(k, machine?.sensor_orientation)}</span></>}
+                 <br/><span className="text-xs normal-case font-normal">[mm/s]</span></div>
+             ))}
              <div className="text-center">Acc Z<br/><span className="text-xs normal-case font-normal">[g]</span></div>
              <div className="text-center">Obálka Z<br/><span className="text-xs normal-case font-normal">[g]</span></div>
              <div className="text-center">Teplota<br/><span className="text-xs normal-case font-normal">[°C]</span></div>
@@ -1246,6 +1248,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
 
           {schemaRows.map((row, idx) => {
             const assignment = rowAssignments[idx] || {};
+            const orient = effectiveOrientation(machine, assignment.orientation);
             const sensorId = assignment.sensorId || null;
             const sensorTrends = sensorId ? (allSensorTrends[sensorId] || {}) : {};
             const velStd = standardsById[assignment.velStandardId];
@@ -1365,8 +1368,8 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                         {value != null
                           ? <span className={colorClass || fallbackColor}>{value.toFixed(2)}<TrendArrow direction={sensorTrends[trendKey]} /></span>
                           : <span className="text-slate-300">—</span>}
-                        {sensorId && axisDirection(metricKey, assignment.orientation) && (
-                          <span className="font-sans text-[10px] text-slate-400 lowercase">{axisDirection(metricKey, assignment.orientation)}</span>
+                        {perPoint && sensorId && axisDirection(metricKey, orient) && (
+                          <span className="font-sans text-[10px] text-slate-400 lowercase">{axisDirection(metricKey, orient)}</span>
                         )}
                         {value != null && getBandPill(level)}
                       </div>
@@ -1440,8 +1443,8 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                           onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey }); }}
                         >
                           <div className="text-[9px] text-slate-400 font-semibold uppercase">{mLabel}</div>
-                          {axisDirection(metricKey, assignment.orientation) && (
-                            <div className="text-[9px] text-slate-400 lowercase">{axisDirection(metricKey, assignment.orientation)}</div>
+                          {axisDirection(metricKey, orient) && (
+                            <div className="text-[9px] text-slate-400 lowercase">{axisDirection(metricKey, orient)}</div>
                           )}
                           <div className="text-[10px] text-slate-300 mb-0.5">[{unit}]</div>
                           <div className="font-mono text-sm font-bold">
@@ -1599,6 +1602,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
           rowLabel={assignDialog.rowLabel}
           currentAssignment={rowAssignments[assignDialog.rowIndex] || {}}
           onAssign={assignSensor}
+          perPointOrientation={perPoint}
         />
       )}
     </div>

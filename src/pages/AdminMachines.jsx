@@ -59,6 +59,7 @@ import { useViewMode } from "@/components/ViewModeContext";
 import "@/components/admin/demipAdmin.css";
 import MotohoursSettings from "@/components/admin/MotohoursSettings";
 import UnbalanceSettings from "@/components/admin/UnbalanceSettings";
+import SensorOrientationSettings from "@/components/admin/SensorOrientationSettings";
 import "@/components/admin/demipAdminStructure.css";
 
 export default function AdminMachines() {
@@ -277,6 +278,8 @@ export default function AdminMachines() {
         unbalance_enabled: machine.unbalance_enabled || false,
         unbalance_threshold_mm_s: machine.unbalance_threshold_mm_s ?? 2.8,
         unbalance_trend_alarm_days: machine.unbalance_trend_alarm_days ?? 3,
+        sensor_orientation_mode: machine.sensor_orientation_mode || "same",
+        sensor_orientation: machine.sensor_orientation || "VAH",
         vibration_history_from: machine.vibration_history_from ? format(new Date(machine.vibration_history_from), "yyyy-MM-dd'T'HH:mm") : "",
         photo_url: machine.photo_url || "",
         parent_id: machine.parent_id || null,
@@ -343,6 +346,8 @@ export default function AdminMachines() {
       unbalance_enabled: !!formData.unbalance_enabled,
       unbalance_threshold_mm_s: Math.max(0.01, parseFloat(formData.unbalance_threshold_mm_s) || 2.8),
       unbalance_trend_alarm_days: Math.max(0, parseInt(formData.unbalance_trend_alarm_days ?? 3, 10) || 0),
+      sensor_orientation_mode: formData.sensor_orientation_mode || "same",
+      sensor_orientation: formData.sensor_orientation || "VAH",
       vibration_history_from: formData.vibration_history_from ? new Date(formData.vibration_history_from).toISOString() : null,
       photo_url: formData.photo_url || null,
       parent_id: formData.parent_id === "none" ? null : formData.parent_id,
@@ -860,6 +865,7 @@ export default function AdminMachines() {
                 </div>
                 <MotohoursSettings formData={formData} setFormData={setFormData} />
                 <UnbalanceSettings formData={formData} setFormData={setFormData} />
+                <SensorOrientationSettings formData={formData} setFormData={setFormData} />
               </div>
             </div>
             <DialogFooter>

@@ -25,12 +25,8 @@
     },
     "orientation": {
       "type": "string",
-      "enum": [
-        "x_vert_y_axial",
-        "x_axial_y_vert"
-      ],
-      "default": "x_vert_y_axial",
-      "description": "Orientace sn\u00edma\u010de: X vertik\u00e1ln\u00ed/Y axi\u00e1ln\u00ed nebo X axi\u00e1ln\u00ed/Y vertik\u00e1ln\u00ed. Z je v\u017edy horizont\u00e1ln\u00ed."
+      "default": "VAH",
+      "description": "Orientace os X,Y,Z (V=vertik\u00e1ln\u00ed, A=axi\u00e1ln\u00ed, H=horizont\u00e1ln\u00ed), nap\u0159. VAH. Pou\u017eije se jen p\u0159i re\u017eimu stroje 'ka\u017ed\u00fd jinak'."
     }
   },
   "required": [

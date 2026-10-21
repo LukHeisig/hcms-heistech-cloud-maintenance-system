@@ -141,6 +141,20 @@
       "default": 3,
       "description": "Alarm podle trendu: upozornit, pokud trend p\u0159edpov\u00edd\u00e1 dosa\u017een\u00ed prahu do tolika dn\u00ed (0 = vypnuto)"
     },
+    "sensor_orientation_mode": {
+      "type": "string",
+      "enum": [
+        "same",
+        "per_point"
+      ],
+      "default": "same",
+      "description": "Orientace sn\u00edma\u010d\u016f: same = v\u0161echny stejn\u011b (glob\u00e1ln\u011b pro stroj), per_point = ka\u017ed\u00fd jinak (u m\u011b\u0159ic\u00edho m\u00edsta)"
+    },
+    "sensor_orientation": {
+      "type": "string",
+      "default": "VAH",
+      "description": "Glob\u00e1ln\u00ed orientace os X,Y,Z (V=vertik\u00e1ln\u00ed, A=axi\u00e1ln\u00ed, H=horizont\u00e1ln\u00ed), nap\u0159. VAH"
+    },
     "vibration_history_from": {
       "type": "string",
       "format": "date-time",
