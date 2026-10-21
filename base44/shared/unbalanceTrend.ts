@@ -1,3 +1,13 @@
+// Vážený medián: hodnoty seřazené od nejstarší po nejnovější, váha 1..n (nejnovější = n).
+export function weightedMedian(values: number[]) {
+  if (!values.length) return 0;
+  const items = values.map((v, i) => ({ v, w: i + 1 })).sort((a, b) => a.v - b.v);
+  const half = items.reduce((s, x) => s + x.w, 0) / 2;
+  let acc = 0;
+  for (const x of items) { acc += x.w; if (acc >= half) return x.v; }
+  return items[items.length - 1].v;
+}
+
 // Lineární regrese míry nevývahy (%) v čase → odhad data dosažení 100 %.
 // Vyžaduje alespoň 7 dní dat za chodu stroje.
 export function predictUnbalance(points: { t: number; percent: number }[]) {
@@ -17,10 +27,9 @@ export function predictUnbalance(points: { t: number; percent: number }[]) {
   const intercept = my - slope * mx;
   const nowX = (Date.now() / 1000 - t0) / 86400;
   const fit = intercept + slope * nowX;
-  // Aktuální úroveň = medián posledních 10 měření (robustní vůči jednotlivým špičkám).
+  // Aktuální úroveň = vážený medián posledních 6 měření (novější mají větší váhu).
   // Pokud je vyšší než hodnota přímky, má přednost — přímka přes celé období reaguje pomalu.
-  const recent = ys.slice(-6).sort((a, b) => a - b);
-  const recentMedian = recent[Math.floor(recent.length / 2)];
+  const recentMedian = weightedMedian(ys.slice(-6));
   const current = Math.max(fit, recentMedian);
 
   const base = { slope_per_day: +slope.toFixed(3), current_fit: Math.round(fit), recent_median: Math.round(recentMedian), points: n, t0, intercept: +intercept.toFixed(3) };

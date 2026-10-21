@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { isAppAdmin } from '../../shared/access.ts';
 import { computeUnbalance } from '../../shared/unbalance.ts';
+import { predictUnbalance, weightedMedian } from '../../shared/unbalanceTrend.ts';
 
 export default async function(req) {
   try {
@@ -297,23 +298,28 @@ export default async function(req) {
         }
       }
 
-      // Míra nevývahy — medián posledních 6 měření za chodu (C od 90 %, D od 150 % prahu)
+      // Míra nevývahy — vážený medián posledních 6 měření za chodu (C od 90 %, D od 150 % prahu)
+      // + alarm C, pokud trend (posledních 5 dní) předpovídá dosažení prahu do 3 dnů
       if (machine.unbalance_enabled) {
         const thr = machine.unbalance_threshold_mm_s || 2.8;
+        const from = Math.floor(Date.now() / 1000) - 5 * 86400;
         const ffts = await base44.asServiceRole.entities.SensorFFTData.filter(
-          { sensor_id: assignment.sensor_id }, '-timestamp_unix', 20
+          { sensor_id: assignment.sensor_id, timestamp_unix: { $gte: from } }, '-timestamp_unix', 400
         );
-        const results = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3))
-          .filter(r => r && r.running).slice(0, 6);
+        const allRunning = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3))
+          .filter(r => r && r.running);
+        const results = allRunning.slice(0, 6);
         const cur = results[0];
-        const sorted = results.map(r => r.amp).sort((a, b) => a - b);
-        const median = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+        const median = weightedMedian(results.map(r => r.amp).reverse());
         const limC = thr * 0.9;
-        if (cur && results.length >= 6 && median >= limC) {
+        const pred = predictUnbalance(allRunning.slice().reverse().map(r => ({ t: r.timestamp_unix, percent: r.percent })));
+        const trendHit = pred.status === 'rising' && pred.days_left <= 3;
+        if (cur && results.length >= 6 && (median >= limC || trendHit)) {
+          const reason = median >= limC ? `vážený medián 6 měření` : `trend: práh za ${pred.days_left} dní`;
           await createAlert({
             alert_type: "unbalance",
             metric_key: "unbalance_1x",
-            metric_label: `Míra nevývahy (medián 6 měření, 1× ${cur.freq} Hz, osa ${cur.axis}, ${Math.round(median / thr * 100)} %)`,
+            metric_label: `Míra nevývahy (${reason}, 1× ${cur.freq} Hz, osa ${cur.axis}, ${Math.round(median / thr * 100)} %)`,
             metric_unit: "mm/s",
             value: +median.toFixed(3),
             limit_bc: +limC.toFixed(3),
