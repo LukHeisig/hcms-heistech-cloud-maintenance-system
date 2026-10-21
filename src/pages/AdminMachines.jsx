@@ -58,6 +58,7 @@ import { createPageUrl } from "@/utils";
 import { useViewMode } from "@/components/ViewModeContext";
 import "@/components/admin/demipAdmin.css";
 import MotohoursSettings from "@/components/admin/MotohoursSettings";
+import UnbalanceSettings from "@/components/admin/UnbalanceSettings";
 import "@/components/admin/demipAdminStructure.css";
 
 export default function AdminMachines() {
@@ -273,6 +274,8 @@ export default function AdminMachines() {
         motohours_initial: machine.motohours_initial ?? 0,
         motohours_from: machine.motohours_from ? format(new Date(machine.motohours_from), "yyyy-MM-dd'T'HH:mm") : "",
         motohours_threshold_mm_s: machine.motohours_threshold_mm_s ?? 0.3,
+        unbalance_enabled: machine.unbalance_enabled || false,
+        unbalance_threshold_mm_s: machine.unbalance_threshold_mm_s ?? 2.8,
         vibration_history_from: machine.vibration_history_from ? format(new Date(machine.vibration_history_from), "yyyy-MM-dd'T'HH:mm") : "",
         photo_url: machine.photo_url || "",
         parent_id: machine.parent_id || null,
@@ -336,6 +339,8 @@ export default function AdminMachines() {
       motohours_initial: Math.max(0, parseFloat(formData.motohours_initial) || 0),
       motohours_from: formData.motohours_from ? new Date(formData.motohours_from).toISOString() : (formData.motohours_enabled ? new Date().toISOString() : null),
       motohours_threshold_mm_s: Math.max(0, parseFloat(formData.motohours_threshold_mm_s) || 0.3),
+      unbalance_enabled: !!formData.unbalance_enabled,
+      unbalance_threshold_mm_s: Math.max(0.01, parseFloat(formData.unbalance_threshold_mm_s) || 2.8),
       vibration_history_from: formData.vibration_history_from ? new Date(formData.vibration_history_from).toISOString() : null,
       photo_url: formData.photo_url || null,
       parent_id: formData.parent_id === "none" ? null : formData.parent_id,
@@ -852,6 +857,7 @@ export default function AdminMachines() {
                   </div>
                 </div>
                 <MotohoursSettings formData={formData} setFormData={setFormData} />
+                <UnbalanceSettings formData={formData} setFormData={setFormData} />
               </div>
             </div>
             <DialogFooter>

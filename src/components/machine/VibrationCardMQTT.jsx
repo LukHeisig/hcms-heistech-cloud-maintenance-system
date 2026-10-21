@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
 import SensorDSPPanel from "@/components/machine/SensorDSPPanel";
+import UnbalanceCard from "@/components/machine/UnbalanceCard";
 import { isMachineStopped, STOPPED_LABEL, STOPPED_DETAIL } from "@/lib/machineRunState";
 import { throttled } from "@/lib/requestQueue";
 
@@ -1466,6 +1467,10 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
           })}
         </CardContent>
       </Card>
+
+      {machine?.unbalance_enabled && (
+        <UnbalanceCard machine={machine} rowLabels={schemaRows.map(r => r?.label || r?.name)} />
+      )}
 
       {/* AI Diagnostická analýza — zobrazí se jen při stavu C/D a po kliknutí na tlačítko */}
       {showAI && aiSensorDataId && (

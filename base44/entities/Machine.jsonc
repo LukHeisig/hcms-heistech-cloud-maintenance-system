@@ -126,6 +126,16 @@
       "type": "boolean",
       "description": "Stroj podle posledn\u00edho m\u011b\u0159en\u00ed b\u011b\u017e\u00ed"
     },
+    "unbalance_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sledovat m\u00edru nev\u00fdvahy (amplituda 1\u00d7 z FFT rychlosti)"
+    },
+    "unbalance_threshold_mm_s": {
+      "type": "number",
+      "default": 2.8,
+      "description": "Prahov\u00e1 hodnota amplitudy 1\u00d7 (mm/s) = 100 % m\u00edry nev\u00fdvahy"
+    },
     "vibration_history_from": {
       "type": "string",
       "format": "date-time",

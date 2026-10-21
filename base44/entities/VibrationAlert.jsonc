@@ -21,7 +21,8 @@
         "acceleration",
         "envelope",
         "temperature",
-        "battery"
+        "battery",
+        "unbalance"
       ]
     },
     "metric_key": {

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { isAppAdmin } from '../../shared/access.ts';
+import { computeUnbalance } from '../../shared/unbalance.ts';
 
 export default async function(req) {
   try {
@@ -288,6 +289,29 @@ export default async function(req) {
             limit_bc: tempStd.temp_limit_bc,
             limit_cd: tempStd.temp_limit_cd,
             severity: tempSeverity,
+          });
+        }
+      }
+
+      // Míra nevývahy — amplituda 1× vůči prahu (C při 100 %, D při 150 %), jen za chodu stroje
+      if (machine.unbalance_enabled) {
+        const thr = machine.unbalance_threshold_mm_s || 2.8;
+        const ffts = await base44.asServiceRole.entities.SensorFFTData.filter(
+          { sensor_id: assignment.sensor_id }, '-timestamp_unix', delayCount
+        );
+        const results = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3)).filter(Boolean);
+        const cur = results[0];
+        if (cur && results.length >= delayCount && results.every(r => r.running && r.amp >= thr)) {
+          await createAlert({
+            alert_type: "unbalance",
+            metric_key: "unbalance_1x",
+            metric_label: `Míra nevývahy (1× ${cur.freq} Hz, osa ${cur.axis}, ${cur.percent} %)`,
+            metric_unit: "mm/s",
+            value: cur.amp,
+            limit_bc: thr,
+            limit_cd: +(thr * 1.5).toFixed(3),
+            severity: cur.amp >= thr * 1.5 ? "D" : "C",
+            sensor_data_id: cur.sensor_data_id,
           });
         }
       }
