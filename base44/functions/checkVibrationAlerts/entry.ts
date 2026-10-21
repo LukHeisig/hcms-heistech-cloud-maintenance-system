@@ -313,7 +313,8 @@ export default async function(req) {
         const median = weightedMedian(results.map(r => r.amp).reverse());
         const limC = thr * 0.9;
         const pred = predictUnbalance(allRunning.slice().reverse().map(r => ({ t: r.timestamp_unix, percent: r.percent })));
-        const trendHit = pred.status === 'rising' && pred.days_left <= 3;
+        const trendDays = machine.unbalance_trend_alarm_days ?? 3;
+        const trendHit = trendDays > 0 && pred.status === 'rising' && pred.days_left <= trendDays;
         if (cur && results.length >= 6 && (median >= limC || trendHit)) {
           const reason = median >= limC ? `vážený medián 6 měření` : `trend: práh za ${pred.days_left} dní`;
           await createAlert({

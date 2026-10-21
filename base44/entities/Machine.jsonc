@@ -136,6 +136,11 @@
       "default": 2.8,
       "description": "Prahov\u00e1 hodnota amplitudy 1\u00d7 (mm/s) = 100 % m\u00edry nev\u00fdvahy"
     },
+    "unbalance_trend_alarm_days": {
+      "type": "number",
+      "default": 3,
+      "description": "Alarm podle trendu: upozornit, pokud trend p\u0159edpov\u00edd\u00e1 dosa\u017een\u00ed prahu do tolika dn\u00ed (0 = vypnuto)"
+    },
     "vibration_history_from": {
       "type": "string",
       "format": "date-time",

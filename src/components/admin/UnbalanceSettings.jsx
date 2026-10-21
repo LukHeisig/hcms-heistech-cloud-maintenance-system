@@ -20,7 +20,11 @@ export default function UnbalanceSettings({ formData, setFormData }) {
             <Label htmlFor="unbalance_threshold_mm_s">Prahová hodnota 1× (mm/s)</Label>
             <Input id="unbalance_threshold_mm_s" type="number" min={0} step="0.1" value={formData.unbalance_threshold_mm_s ?? 2.8} onChange={(e) => set("unbalance_threshold_mm_s", e.target.value)} />
           </div>
-          <p className="md:col-span-2 text-xs text-slate-500 self-end">Práh = 100 %. Alarm „Upozornění“ při 100 %, „Výstraha“ při 150 %. Platí zpoždění alarmu stroje a měří se jen za chodu (práh chodu z motohodin).</p>
+          <div>
+            <Label htmlFor="unbalance_trend_alarm_days">Alarm podle trendu (dní před prahem)</Label>
+            <Input id="unbalance_trend_alarm_days" type="number" min={0} step="1" value={formData.unbalance_trend_alarm_days ?? 3} onChange={(e) => set("unbalance_trend_alarm_days", e.target.value)} />
+          </div>
+          <p className="text-xs text-slate-500 self-end">Práh = 100 %. „Upozornění“ při váženém mediánu 6 měření ≥ 90 % nebo když trend předpovídá dosažení prahu do zadaného počtu dní (0 = vypnuto), „Výstraha“ při 150 %. Měří se jen za chodu.</p>
         </div>
       )}
     </div>
