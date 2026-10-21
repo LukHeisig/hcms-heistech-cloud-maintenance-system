@@ -301,15 +301,11 @@ export default async function(req) {
       if (machine.unbalance_enabled) {
         const thr = machine.unbalance_threshold_mm_s || 2.8;
         const ffts = await base44.asServiceRole.entities.SensorFFTData.filter(
-          { sensor_id: assignment.sensor_id }, '-timestamp_unix', 30
+          { sensor_id: assignment.sensor_id }, '-timestamp_unix', delayCount
         );
-        // Medián posledních 10 měření za chodu — odolné vůči kolísání kolem prahu
-        const results = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3))
-          .filter(r => r && r.running).slice(0, 10);
-        const sorted = results.map(r => r.amp).sort((a, b) => a - b);
-        const med = sorted.length ? (sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) : 0;
-        const cur = results[0] && { ...results[0], amp: +med.toFixed(3), percent: Math.round(med / thr * 100) };
-        if (cur && results.length >= 5 && med >= thr) {
+        const results = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3)).filter(Boolean);
+        const cur = results[0];
+        if (cur && results.length >= delayCount && results.every(r => r.running && r.amp >= thr)) {
           await createAlert({
             alert_type: "unbalance",
             metric_key: "unbalance_1x",
