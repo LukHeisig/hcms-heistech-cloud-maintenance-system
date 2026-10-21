@@ -22,6 +22,15 @@
     },
     "bearing_id": {
       "type": "string"
+    },
+    "orientation": {
+      "type": "string",
+      "enum": [
+        "x_vert_y_axial",
+        "x_axial_y_vert"
+      ],
+      "default": "x_vert_y_axial",
+      "description": "Orientace sn\u00edma\u010de: X vertik\u00e1ln\u00ed/Y axi\u00e1ln\u00ed nebo X axi\u00e1ln\u00ed/Y vertik\u00e1ln\u00ed. Z je v\u017edy horizont\u00e1ln\u00ed."
     }
   },
   "required": [
