@@ -297,24 +297,28 @@ export default async function(req) {
         }
       }
 
-      // Míra nevývahy — amplituda 1× vůči prahu (C při 100 %, D při 150 %), jen za chodu stroje
+      // Míra nevývahy — medián posledních 6 měření za chodu (C od 90 %, D od 150 % prahu)
       if (machine.unbalance_enabled) {
         const thr = machine.unbalance_threshold_mm_s || 2.8;
         const ffts = await base44.asServiceRole.entities.SensorFFTData.filter(
-          { sensor_id: assignment.sensor_id }, '-timestamp_unix', delayCount
+          { sensor_id: assignment.sensor_id }, '-timestamp_unix', 20
         );
-        const results = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3)).filter(Boolean);
+        const results = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3))
+          .filter(r => r && r.running).slice(0, 6);
         const cur = results[0];
-        if (cur && results.length >= delayCount && results.every(r => r.running && r.amp >= thr)) {
+        const sorted = results.map(r => r.amp).sort((a, b) => a - b);
+        const median = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+        const limC = thr * 0.9;
+        if (cur && results.length >= 6 && median >= limC) {
           await createAlert({
             alert_type: "unbalance",
             metric_key: "unbalance_1x",
-            metric_label: `Míra nevývahy (1× ${cur.freq} Hz, osa ${cur.axis}, ${cur.percent} %)`,
+            metric_label: `Míra nevývahy (medián 6 měření, 1× ${cur.freq} Hz, osa ${cur.axis}, ${Math.round(median / thr * 100)} %)`,
             metric_unit: "mm/s",
-            value: cur.amp,
-            limit_bc: thr,
+            value: +median.toFixed(3),
+            limit_bc: +limC.toFixed(3),
             limit_cd: +(thr * 1.5).toFixed(3),
-            severity: cur.amp >= thr * 1.5 ? "D" : "C",
+            severity: median >= thr * 1.5 ? "D" : "C",
             sensor_data_id: cur.sensor_data_id,
           });
         }

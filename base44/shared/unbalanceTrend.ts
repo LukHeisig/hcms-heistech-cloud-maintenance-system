@@ -19,7 +19,7 @@ export function predictUnbalance(points: { t: number; percent: number }[]) {
   const fit = intercept + slope * nowX;
   // Aktuální úroveň = medián posledních 10 měření (robustní vůči jednotlivým špičkám).
   // Pokud je vyšší než hodnota přímky, má přednost — přímka přes celé období reaguje pomalu.
-  const recent = ys.slice(-10).sort((a, b) => a - b);
+  const recent = ys.slice(-6).sort((a, b) => a - b);
   const recentMedian = recent[Math.floor(recent.length / 2)];
   const current = Math.max(fit, recentMedian);
 
