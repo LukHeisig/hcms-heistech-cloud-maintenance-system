@@ -2,54 +2,44 @@ import React, { useState } from "react";
 import UnbalanceTrendDialog from "@/components/machine/UnbalanceTrendDialog";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Scale, Loader2, TrendingUp } from "lucide-react";
+import { Scale, Loader2 } from "lucide-react";
 
-const color = (p) => (p >= 100 ? "bg-red-500" : p >= 70 ? "bg-yellow-500" : "bg-green-500");
+const tone = (p) => (p >= 100 ? "bg-red-50 border-red-300 text-red-800" : p >= 70 ? "bg-yellow-50 border-yellow-300 text-yellow-800" : "bg-green-50 border-green-300 text-green-800");
 
 export default function UnbalanceCard({ machine, rowLabels = [] }) {
-  const [trend, setTrend] = useState(null);
+  const [open, setOpen] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["unbalance", machine.id],
     queryFn: async () => (await base44.functions.invoke("getUnbalance", { machineId: machine.id })).data,
     refetchInterval: 5 * 60 * 1000,
   });
 
+  const items = (data?.items || []).filter((i) => i.has_data);
+  const running = items.filter((i) => i.running);
+  const top = running.length ? running.reduce((a, b) => (b.percent > a.percent ? b : a)) : items[0];
+  const label = top ? (rowLabels[top.schema_row_index] || `Bod ${top.schema_row_index + 1}`) : "";
+  const cls = top?.running ? tone(top.percent) : "bg-slate-50 border-slate-200 text-slate-500";
+
   return (
-    <Card className="border-none shadow-lg">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-          <Scale className="w-4 h-4 text-blue-600" /> Míra nevývahy
-          {data?.threshold && <span className="text-xs font-normal text-slate-500">práh {data.threshold} mm/s = 100 %</span>}
+    <>
+      <button type="button" disabled={!top} onClick={() => setOpen(true)}
+        className={`w-40 flex-shrink-0 rounded-lg border px-3 py-2 text-left transition hover:shadow-md disabled:cursor-default ${cls}`}
+        title="Trend a predikce čištění">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+          <Scale className="w-3.5 h-3.5" /> Míra nevývahy
         </div>
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
-        {!isLoading && !data?.items?.length && <p className="text-xs text-slate-500">Žádná FFT data z přiřazených snímačů.</p>}
-        {data?.items?.map((it) => (
-          <div key={it.sensor_id + it.schema_row_index} className="space-y-1">
-            <div className="flex justify-between text-xs text-slate-600 gap-2">
-              <span className="truncate">{rowLabels[it.schema_row_index] || `Bod ${it.schema_row_index + 1}`}</span>
-              {it.has_data ? (
-                <span>{it.running ? `${it.amp} mm/s @ ${it.freq} Hz (${it.rpm} ot/min, osa ${it.axis})` : "Stroj stojí"}</span>
-              ) : <span>bez dat</span>}
-            </div>
-            {it.has_data && (
-              <button className="text-xs text-blue-600 hover:underline flex items-center gap-1" onClick={() => setTrend(it)}>
-                <TrendingUp className="w-3 h-3" /> Trend a predikce čištění
-              </button>
-            )}
-            {it.has_data && it.running && (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 rounded bg-slate-100 overflow-hidden">
-                  <div className={`h-full ${color(it.percent)}`} style={{ width: `${Math.min(100, it.percent)}%` }} />
-                </div>
-                <span className="text-xs font-semibold w-12 text-right">{it.percent} %</span>
-              </div>
-            )}
-          </div>
-        ))}
-        <UnbalanceTrendDialog open={!!trend} onOpenChange={(o) => !o && setTrend(null)} machine={machine}
-          sensorId={trend?.sensor_id} label={trend ? (rowLabels[trend.schema_row_index] || `Bod ${trend.schema_row_index + 1}`) : ""} />
-      </CardContent>
-    </Card>
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mt-2" /> : !top ? (
+          <p className="text-[11px] mt-1">Bez FFT dat</p>
+        ) : top.running ? (
+          <>
+            <div className="text-2xl font-bold leading-tight">{top.percent} %</div>
+            <div className="text-[11px] opacity-80">{label}</div>
+            <div className="text-[11px] opacity-80">{top.amp} mm/s · {top.rpm} ot/min · osa {top.axis}</div>
+          </>
+        ) : <p className="text-xs font-semibold mt-1">Stroj stojí</p>}
+      </button>
+      <UnbalanceTrendDialog open={open} onOpenChange={setOpen} machine={machine}
+        sensorId={top?.sensor_id} label={label} />
+    </>
   );
 }

@@ -1200,6 +1200,9 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                   </div>
                 );
               })()}
+              {machine?.unbalance_enabled && (
+                <UnbalanceCard machine={machine} rowLabels={schemaRows.map(r => r?.label || r?.name)} />
+              )}
             </div>
           )}
         </CardHeader>
@@ -1467,10 +1470,6 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
           })}
         </CardContent>
       </Card>
-
-      {machine?.unbalance_enabled && (
-        <UnbalanceCard machine={machine} rowLabels={schemaRows.map(r => r?.label || r?.name)} />
-      )}
 
       {/* AI Diagnostická analýza — zobrazí se jen při stavu C/D a po kliknutí na tlačítko */}
       {showAI && aiSensorDataId && (
