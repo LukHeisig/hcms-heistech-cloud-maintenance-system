@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { canAccessSensor } from '../../shared/access.ts';
 import { computeUnbalance } from '../../shared/unbalance.ts';
-import { predictUnbalance } from '../../shared/unbalanceTrend.ts';
+import { predictUnbalance, weightedMedian } from '../../shared/unbalanceTrend.ts';
 
 // Vrátí aktuální míru nevývahy pro všechna ložiska (přiřazené snímače) stroje
 export default async function(req) {
@@ -43,9 +43,16 @@ export default async function(req) {
 
     const items = [];
     for (const a of assignments) {
-      const fft = (await db.SensorFFTData.filter({ sensor_id: a.sensor_id }, '-timestamp_unix', 1))[0];
+      const from5 = Math.floor(Date.now() / 1000) - 5 * 86400;
+      const recent = await db.SensorFFTData.filter({ sensor_id: a.sensor_id, timestamp_unix: { $gte: from5 } }, '-timestamp_unix', 300);
+      const fft = recent[0] || (await db.SensorFFTData.filter({ sensor_id: a.sensor_id }, '-timestamp_unix', 1))[0];
       const r = fft ? computeUnbalance(fft, threshold, runThr) : null;
-      items.push({ sensor_id: a.sensor_id, schema_row_index: a.schema_row_index, ...(r || {}), has_data: !!r });
+      const run = recent.slice().reverse().map((f) => computeUnbalance(f, threshold, runThr)).filter((x) => x && x.running)
+        .map((x) => ({ t: x.timestamp_unix, percent: x.percent }));
+      const median = run.length ? Math.round(weightedMedian(run.slice(-6).map((p) => p.percent))) : null;
+      const pred = predictUnbalance(run);
+      items.push({ sensor_id: a.sensor_id, schema_row_index: a.schema_row_index, ...(r || {}), has_data: !!r,
+        median, median_count: Math.min(6, run.length), days_left: pred.status === 'rising' ? pred.days_left : null });
     }
     return Response.json({ enabled: true, threshold, items });
   } catch (error) {
