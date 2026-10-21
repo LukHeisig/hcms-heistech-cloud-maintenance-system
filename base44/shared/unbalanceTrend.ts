@@ -3,7 +3,7 @@
 export function predictUnbalance(points: { t: number; percent: number }[]) {
   if (points.length < 3) return { status: 'insufficient' };
   const span = (points[points.length - 1].t - points[0].t) / 86400;
-  if (span < 7) return { status: 'insufficient', span_days: +span.toFixed(1) };
+  if (span < 5) return { status: 'insufficient', span_days: +span.toFixed(1) };
 
   const t0 = points[0].t;
   const xs = points.map((p) => (p.t - t0) / 86400);

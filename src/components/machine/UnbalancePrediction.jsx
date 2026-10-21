@@ -4,7 +4,7 @@ export default function UnbalancePrediction({ prediction: p }) {
   if (!p) return null;
   const box = "rounded-lg p-3 text-sm";
   if (p.status === "insufficient")
-    return <div className={`${box} bg-slate-50 text-slate-600`}>Málo dat pro predikci – potřeba alespoň 7 dní měření za chodu.</div>;
+    return <div className={`${box} bg-slate-50 text-slate-600`}>Málo dat pro predikci – potřeba alespoň 5 dní měření za chodu.</div>;
   if (p.status === "exceeded")
     return <div className={`${box} bg-red-50 text-red-700 font-medium`}>Práh je již překročen (medián posledních 10 měření {p.recent_median} %) – doporučeno čištění / vyvážení co nejdříve.</div>;
   if (p.status === "stable")
