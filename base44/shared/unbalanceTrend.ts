@@ -16,9 +16,14 @@ export function predictUnbalance(points: { t: number; percent: number }[]) {
   const slope = den ? num / den : 0; // % za den
   const intercept = my - slope * mx;
   const nowX = (Date.now() / 1000 - t0) / 86400;
-  const current = intercept + slope * nowX;
+  const fit = intercept + slope * nowX;
+  // Aktuální úroveň = medián posledních 10 měření (robustní vůči jednotlivým špičkám).
+  // Pokud je vyšší než hodnota přímky, má přednost — přímka přes celé období reaguje pomalu.
+  const recent = ys.slice(-10).sort((a, b) => a - b);
+  const recentMedian = recent[Math.floor(recent.length / 2)];
+  const current = Math.max(fit, recentMedian);
 
-  const base = { slope_per_day: +slope.toFixed(3), current_fit: Math.round(current), t0, intercept: +intercept.toFixed(3) };
+  const base = { slope_per_day: +slope.toFixed(3), current_fit: Math.round(fit), recent_median: Math.round(recentMedian), points: n, t0, intercept: +intercept.toFixed(3) };
   if (current >= 100) return { ...base, status: 'exceeded' };
   if (slope <= 0.01) return { ...base, status: 'stable' };
   const days = (100 - current) / slope;
