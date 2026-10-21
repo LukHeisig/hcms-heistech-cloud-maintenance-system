@@ -31,14 +31,14 @@ export default async function(req) {
     // Trend jednoho snímače + predikce (7–90 dní)
     if (sensorId) {
       if (!assignments.some((a) => a.sensor_id === sensorId)) return Response.json({ error: 'Forbidden' }, { status: 403 });
-      const d = Math.min(90, Math.max(7, Number(days) || 30));
+      const d = Math.min(30, Math.max(7, Number(days) || 30));
       let from = Math.floor(Date.now() / 1000) - d * 86400;
       if (machine.vibration_history_from) from = Math.max(from, Math.floor(new Date(machine.vibration_history_from).getTime() / 1000));
       const ffts = await db.SensorFFTData.filter({ sensor_id: sensorId, timestamp_unix: { $gte: from } }, '-timestamp_unix', 400);
       ffts.reverse();
       const points = ffts.map((f) => computeUnbalance(f, threshold, runThr)).filter((r) => r && r.running)
         .map((r) => ({ t: r.timestamp_unix, amp: r.amp, percent: r.percent }));
-      return Response.json({ threshold, days: d, points, prediction: predictUnbalance(points) });
+      return Response.json({ threshold, days: d, points, prediction: predictUnbalance(points.filter((p) => p.t >= Date.now() / 1000 - 5 * 86400)) });
     }
 
     const items = [];

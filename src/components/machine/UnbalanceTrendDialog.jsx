@@ -24,7 +24,7 @@ export default function UnbalanceTrendDialog({ open, onOpenChange, machine, sens
       <DialogContent className="max-w-3xl">
         <DialogHeader><DialogTitle>Trend míry nevývahy – {label}</DialogTitle></DialogHeader>
         <div className="flex gap-2">
-          {[7, 30, 90].map((d) => (
+          {[7, 14, 30].map((d) => (
             <Button key={d} size="sm" variant={days === d ? "default" : "outline"} onClick={() => setDays(d)}>{d} dní</Button>
           ))}
         </div>
