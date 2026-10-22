@@ -24,13 +24,6 @@ export default function DefectArchive({ defects, reports, users, onOpen }) {
             {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={vtz} onValueChange={setVtz}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Všechny typy VTZ</SelectItem>
-            {Object.entries(VTZ_TYPES).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
-          </SelectContent>
-        </Select>
       </div>
       <DefectsTable defects={filtered} reports={reports} users={users} onOpen={onOpen} />
     </div>
