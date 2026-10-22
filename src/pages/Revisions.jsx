@@ -79,6 +79,8 @@ export default function Revisions() {
   const archivedReports = useMemo(() => reports.filter((r) => r.is_archived), [reports]);
   const archivedIds = useMemo(() => new Set(archivedReports.map((r) => r.id)), [archivedReports]);
   const activeDefects = useMemo(() => defects.filter((d) => !archivedIds.has(d.report_id)), [defects, archivedIds]);
+  const currentDefects = useMemo(() => activeDefects.filter((d) => d.status !== "closed"), [activeDefects]);
+  const closedDefects = useMemo(() => activeDefects.filter((d) => d.status === "closed"), [activeDefects]);
   const archivedDefects = useMemo(() => defects.filter((d) => archivedIds.has(d.report_id)), [defects, archivedIds]);
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["revisionReports"] });
@@ -118,7 +120,8 @@ export default function Revisions() {
           <Tabs defaultValue="overview">
             <TabsList>
               <TabsTrigger value="overview">Přehled</TabsTrigger>
-              <TabsTrigger value="defects">Revizní závady ({activeDefects.length})</TabsTrigger>
+              <TabsTrigger value="defects">Revizní závady ({currentDefects.length})</TabsTrigger>
+              <TabsTrigger value="closedDefects">Ukončené závady ({closedDefects.length})</TabsTrigger>
               <TabsTrigger value="reports">Revizní zprávy ({activeReports.length})</TabsTrigger>
               <TabsTrigger value="archive">Archiv zpráv ({archivedReports.length})</TabsTrigger>
               <TabsTrigger value="defectArchive">Archiv závad ({archivedDefects.length})</TabsTrigger>
@@ -142,7 +145,11 @@ export default function Revisions() {
             </TabsContent>
 
             <TabsContent value="defects" className="mt-4">
-              <DefectsTable defects={activeDefects} reports={reports} users={users} onOpen={setOpenDefect} />
+              <DefectsTable defects={currentDefects} reports={reports} users={users} onOpen={setOpenDefect} />
+            </TabsContent>
+
+            <TabsContent value="closedDefects" className="mt-4">
+              <DefectsTable defects={closedDefects} reports={reports} users={users} onOpen={setOpenDefect} />
             </TabsContent>
 
             <TabsContent value="reports" className="mt-4">
