@@ -233,12 +233,16 @@ export default function MachineAlertsHistory({ machineId }) {
                     <span>
                       {alert.metric_label || alert.metric_key}: <strong>{alert.value?.toFixed(3)} {alert.metric_unit}</strong>
                     </span>
+                    {alert.alert_type === "unbalance" ? (alert.limit_bc && (
+                      <span className="text-slate-500">Práh nevývahy (100 %): {+(alert.limit_bc / 0.9).toFixed(2)} {alert.metric_unit}</span>
+                    )) : <>
                     {alert.limit_bc && (
                       <span className="text-slate-500">Limit C: {alert.limit_bc} {alert.metric_unit}</span>
                     )}
                     {alert.limit_cd && (
                       <span className="text-slate-500">Limit D: {alert.limit_cd} {alert.metric_unit}</span>
                     )}
+                    </>}
                   </div>
                   {alert.status === "acknowledged" && (
                     <div className="mt-2 flex items-start gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
