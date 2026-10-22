@@ -24,6 +24,7 @@ const ALERT_TYPE_CONFIG = {
   envelope: { label: "Obálka vibrací", icon: Activity, color: "text-violet-600" },
   temperature: { label: "Teplota", icon: Thermometer, color: "text-red-600" },
   battery: { label: "Baterie", icon: Battery, color: "text-slate-600" },
+  unbalance: { label: "Nevývaha", icon: Activity, color: "text-amber-600" },
 };
 
 const STATUS_CONFIG = {
@@ -154,6 +155,7 @@ export default function MachineAlertsHistory({ machineId }) {
                 <SelectItem value="envelope">Obálka vibrací</SelectItem>
                 <SelectItem value="temperature">Teplota</SelectItem>
                 <SelectItem value="battery">Baterie</SelectItem>
+                <SelectItem value="unbalance">Nevývaha</SelectItem>
               </SelectContent>
             </Select>
 

@@ -339,7 +339,7 @@ ${u.trend ? "<p>Hodnota zatím limit nepřekročila, ale podle trendu za posledn
         const trendDays = machine.unbalance_trend_alarm_days ?? 3;
         const trendHit = trendDays > 0 && pred.status === 'rising' && pred.days_left <= trendDays;
         if (cur && results.length >= 6 && (median >= limC || trendHit)) {
-          const reason = median >= limC ? `vážený medián 6 měření` : `trend: práh za ${pred.days_left} dní`;
+          const reason = median >= limC ? `překročení limitu, vážený medián 6 měření` : `předpověď trendu: práh ${pred.days_left < 1 ? "dnes" : `do ${pred.days_left} dní`}`;
           await createAlert({
             alert_type: "unbalance",
             metric_key: "unbalance_1x",
