@@ -85,8 +85,31 @@ export default async function(req) {
       const machine = machinesById[machineId];
       const line = linesById[machine?.line_id];
       const severityLabel = alertDef.severity === "D" ? "🔴 Výstraha (pásmo D)" : "🟡 Upozornění (pásmo C)";
-      const subject = `HCMS Alarm: ${severityLabel} — ${machineName} / ${measurementPoint}`;
-      const body = `
+      const u = alertDef.unbalance;
+      const row = (k, v) => `<tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">${k}</td><td style="padding:6px 12px">${v}</td></tr>`;
+      const subject = u
+        ? `HCMS Alarm: ${alertDef.severity === "D" ? "🔴" : "🟡"} Nevývaha – ${u.trend ? `předpověď trendu (pásmo ${alertDef.severity})` : `pásmo ${alertDef.severity}`} — ${machineName} / ${measurementPoint}`
+        : `HCMS Alarm: ${severityLabel} — ${machineName} / ${measurementPoint}`;
+      const body = u ? `
+<p>Dobrý den,</p>
+<p>${u.trend ? "Byl detekován rostoucí trend nevývahy" : "Bylo detekováno překročení limitu nevývahy"} na stroji <strong>${machineName}</strong>.</p>
+<table style="border-collapse:collapse;width:100%;max-width:500px">
+  ${row("Stroj", machineName)}
+  ${row("Měřicí bod", measurementPoint)}
+  ${line ? row("Linka", line.name) : ''}
+  ${row("Typ alarmu", `<strong>Nevývaha – ${u.trend ? "předpověď trendu" : "překročení limitu"}</strong>`)}
+  ${row("Aktuální míra nevývahy", `<strong>${alertDef.value?.toFixed(2)} mm/s (${u.percent} % prahu)</strong> – vážený medián 6 měření`)}
+  ${row("Práh nevývahy (100 %)", `${u.threshold} mm/s`)}
+  ${u.trend
+    ? row("Předpověď", `<strong>Práh bude dosažen ${u.days_left < 1 ? "dnes" : `do ${u.days_left} ${u.days_left === 1 ? "dne" : "dní"}`}</strong>`)
+    : row("Překročený limit", alertDef.severity === "D" ? `${alertDef.limit_cd} mm/s (150 % prahu)` : `${alertDef.limit_bc} mm/s (90 % prahu)`)}
+  ${row("Otáčková frekvence", `1× ${u.freq} Hz (${u.rpm} ot/min), osa ${u.axis}`)}
+  <tr><td style="padding:6px 12px;background:#f1f5f9;font-weight:bold">Závažnost</td><td style="padding:6px 12px;color:${alertDef.severity === "D" ? "#dc2626" : "#d97706"}"><strong>${severityLabel}</strong></td></tr>
+</table>
+${u.trend ? "<p>Hodnota zatím limit nepřekročila, ale podle trendu za posledních 5 dní roste. Doporučujeme zkontrolovat vyvážení a upevnění.</p>" : ""}
+<p>Přihlaste se do aplikace HCMS a zkontrolujte stav stroje.</p>
+<p style="color:#888;font-size:12px;">Tato zpráva byla vygenerována automaticky systémem HCMS.</p>
+      `.trim() : `
 <p>Dobrý den,</p>
 <p>Byl detekován vibrační alarm na stroji <strong>${machineName}</strong>.</p>
 <table style="border-collapse:collapse;width:100%;max-width:500px">
@@ -327,6 +350,15 @@ export default async function(req) {
             limit_cd: +(thr * 1.5).toFixed(3),
             severity: median >= thr * 1.5 ? "D" : "C",
             sensor_data_id: cur.sensor_data_id,
+            unbalance: {
+              trend: median < limC,
+              percent: Math.round(median / thr * 100),
+              threshold: thr,
+              days_left: pred.days_left,
+              freq: cur.freq,
+              rpm: cur.rpm ?? Math.round(cur.freq * 60),
+              axis: cur.axis,
+            },
           });
         }
       }
