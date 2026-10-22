@@ -4,16 +4,19 @@ import { openFile } from "@/lib/privateFiles";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Trash2 } from "lucide-react";
+import { FileText, Loader2, Trash2, Archive } from "lucide-react";
+import ArchiveReportDialog from "./ArchiveReportDialog";
+import ReportLinks from "./ReportLinks";
 import ReportForm from "./ReportForm";
 import ChangeHistory from "./ChangeHistory";
 import DefectsTable from "./DefectsTable";
 import { logChanges } from "./revisionLog";
 
-export default function ReportEditDialog({ report, defects, users, user, canEdit, canDelete, onClose, onOpenDefect }) {
+export default function ReportEditDialog({ report, reports = [], defects, users, user, canEdit, canDelete, onClose, onOpenDefect, onOpenReport }) {
   const qc = useQueryClient();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => { setForm(report ? { ...report } : null); }, [report]);
   if (!report || !form) return null;
@@ -56,6 +59,7 @@ export default function ReportEditDialog({ report, defects, users, user, canEdit
               <FileText className="w-4 h-4" /> Otevřít PDF revizní zprávy
             </button>
           )}
+          <ReportLinks report={report} reports={reports} onOpenReport={onOpenReport} />
           <ReportForm value={form} onChange={setForm} disabled={!canEdit} />
           <div>
             <h3 className="font-semibold mb-2">Závady ze zprávy ({own.length})</h3>
@@ -69,6 +73,11 @@ export default function ReportEditDialog({ report, defects, users, user, canEdit
               <Trash2 className="w-4 h-4" /> Smazat
             </Button>
           )}
+          {canEdit && !report.is_archived && (
+            <Button variant="outline" onClick={() => setArchiving(true)} disabled={saving} className="gap-2">
+              <Archive className="w-4 h-4" /> Archivovat revizi
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>Zavřít</Button>
           {canEdit && (
             <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
@@ -76,6 +85,10 @@ export default function ReportEditDialog({ report, defects, users, user, canEdit
             </Button>
           )}
         </DialogFooter>
+        {archiving && (
+          <ArchiveReportDialog report={report} reports={reports} user={user}
+            onClose={() => setArchiving(false)} onDone={() => { refresh(); onClose(); }} />
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -102,6 +102,36 @@
     },
     "notes": {
       "type": "string"
+    },
+    "is_archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Zpr\u00e1va je archivov\u00e1na (nahrazena novou reviz\u00ed)"
+    },
+    "archived_at": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum archivace = datum nov\u00e9 revize"
+    },
+    "archived_by": {
+      "type": "string",
+      "description": "Email u\u017eivatele, kter\u00fd archivoval"
+    },
+    "successor_report_id": {
+      "type": "string",
+      "description": "ID navazuj\u00edc\u00ed (nov\u00e9) revizn\u00ed zpr\u00e1vy"
+    },
+    "successor_report_number": {
+      "type": "string",
+      "description": "\u010c\u00edslo navazuj\u00edc\u00ed revizn\u00ed zpr\u00e1vy"
+    },
+    "predecessor_report_id": {
+      "type": "string",
+      "description": "ID p\u0159edchoz\u00ed (archivovan\u00e9) revizn\u00ed zpr\u00e1vy"
+    },
+    "predecessor_report_number": {
+      "type": "string",
+      "description": "\u010c\u00edslo p\u0159edchoz\u00ed revizn\u00ed zpr\u00e1vy"
     }
   },
   "required": [

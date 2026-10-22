@@ -75,6 +75,11 @@ export default function Revisions() {
   }, [params, defects]);
 
   const reportOf = (d) => reports.find((r) => r.id === d?.report_id);
+  const activeReports = useMemo(() => reports.filter((r) => !r.is_archived), [reports]);
+  const archivedReports = useMemo(() => reports.filter((r) => r.is_archived), [reports]);
+  const archivedIds = useMemo(() => new Set(archivedReports.map((r) => r.id)), [archivedReports]);
+  const activeDefects = useMemo(() => defects.filter((d) => !archivedIds.has(d.report_id)), [defects, archivedIds]);
+  const archivedDefects = useMemo(() => defects.filter((d) => archivedIds.has(d.report_id)), [defects, archivedIds]);
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["revisionReports"] });
     qc.invalidateQueries({ queryKey: ["revisionDefects"] });
@@ -113,12 +118,14 @@ export default function Revisions() {
           <Tabs defaultValue="overview">
             <TabsList>
               <TabsTrigger value="overview">Přehled</TabsTrigger>
-              <TabsTrigger value="defects">Revizní závady ({defects.length})</TabsTrigger>
-              <TabsTrigger value="reports">Revizní zprávy ({reports.length})</TabsTrigger>
+              <TabsTrigger value="defects">Revizní závady ({activeDefects.length})</TabsTrigger>
+              <TabsTrigger value="reports">Revizní zprávy ({activeReports.length})</TabsTrigger>
+              <TabsTrigger value="archive">Archiv zpráv ({archivedReports.length})</TabsTrigger>
+              <TabsTrigger value="defectArchive">Archiv závad ({archivedDefects.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 mt-4">
-              <RevisionStats reports={reports} defects={defects} />
+              <RevisionStats reports={activeReports} defects={activeDefects} />
               <div className="grid lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2">
                   <CardHeader className="pb-3">
@@ -127,19 +134,27 @@ export default function Revisions() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <DefectsTable defects={defects} reports={reports} users={users} onOpen={setOpenDefect} initialStatus="open" />
+                    <DefectsTable defects={activeDefects} reports={reports} users={users} onOpen={setOpenDefect} initialStatus="open" />
                   </CardContent>
                 </Card>
-                <UpcomingRevisions reports={reports} onOpen={setOpenReport} />
+                <UpcomingRevisions reports={activeReports} onOpen={setOpenReport} />
               </div>
             </TabsContent>
 
             <TabsContent value="defects" className="mt-4">
-              <DefectsTable defects={defects} reports={reports} users={users} onOpen={setOpenDefect} />
+              <DefectsTable defects={activeDefects} reports={reports} users={users} onOpen={setOpenDefect} />
             </TabsContent>
 
             <TabsContent value="reports" className="mt-4">
-              <ReportsSearch reports={reports} defects={defects} onOpen={setOpenReport} />
+              <ReportsSearch reports={activeReports} defects={defects} onOpen={setOpenReport} />
+            </TabsContent>
+
+            <TabsContent value="archive" className="mt-4">
+              <ReportsSearch reports={archivedReports} defects={defects} onOpen={setOpenReport} />
+            </TabsContent>
+
+            <TabsContent value="defectArchive" className="mt-4">
+              <DefectsTable defects={archivedDefects} reports={reports} users={users} onOpen={setOpenDefect} />
             </TabsContent>
           </Tabs>
         )}
@@ -147,7 +162,7 @@ export default function Revisions() {
 
       <ReportImportDialog open={importOpen} onOpenChange={setImportOpen} companyId={companyId} user={user} onSaved={refresh} />
       {openReport && (
-        <ReportEditDialog report={openReport} defects={defects} users={users} user={user} canEdit={canEdit} canDelete={canEdit}
+        <ReportEditDialog key={openReport.id} report={openReport} reports={reports} onOpenReport={setOpenReport} defects={defects} users={users} user={user} canEdit={canEdit} canDelete={canEdit}
           onClose={() => setOpenReport(null)}
           onOpenDefect={(d) => { setOpenReport(null); setOpenDefect(d); }} />
       )}
