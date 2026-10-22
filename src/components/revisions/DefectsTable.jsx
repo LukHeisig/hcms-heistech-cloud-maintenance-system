@@ -12,6 +12,8 @@ const STATUS_FILTERS = {
   ...Object.fromEntries(Object.entries(STATUSES).map(([k, v]) => [k, v.label])),
 };
 
+const norm = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 export default function DefectsTable({ defects, reports, users, onOpen, initialStatus = "all" }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState(initialStatus);
@@ -30,13 +32,14 @@ export default function DefectsTable({ defects, reports, users, onOpen, initialS
         if (vtz !== "all" && d.vtz_type !== vtz) return false;
         if (s) {
           const r = reportMap[d.report_id];
-          const hay = [d.defect_number, d.description, d.location, d.responsible, r?.subject, r?.report_number].join(" ").toLowerCase();
-          if (!hay.includes(s)) return false;
+          const assignee = d.assigned_to ? `${userName(users, d.assigned_to)} ${d.assigned_to}` : "";
+          const hay = [d.defect_number, d.description, d.location, d.responsible, assignee, r?.subject, r?.report_number].join(" ");
+          if (!norm(hay).includes(norm(s))) return false;
         }
         return true;
       })
       .sort((a, b) => (isDefectOverdue(b) - isDefectOverdue(a)) || (a.due_date || "9").localeCompare(b.due_date || "9"));
-  }, [defects, q, status, cls, vtz, reportMap]);
+  }, [defects, q, status, cls, vtz, reportMap, users]);
 
   return (
     <div className="space-y-4">
