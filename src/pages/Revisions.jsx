@@ -12,6 +12,7 @@ import UpcomingRevisions from "@/components/revisions/UpcomingRevisions";
 import DefectsTable from "@/components/revisions/DefectsTable";
 import ReportsSearch from "@/components/revisions/ReportsSearch";
 import ReportImportDialog from "@/components/revisions/ReportImportDialog";
+import DefectArchive from "@/components/revisions/DefectArchive";
 import ReportEditDialog from "@/components/revisions/ReportEditDialog";
 import DefectDetailDialog from "@/components/revisions/DefectDetailDialog";
 
@@ -161,7 +162,7 @@ export default function Revisions() {
             </TabsContent>
 
             <TabsContent value="defectArchive" className="mt-4">
-              <DefectsTable defects={archivedDefects} reports={reports} users={users} onOpen={setOpenDefect} />
+              <DefectArchive defects={archivedDefects} reports={reports} users={users} onOpen={setOpenDefect} />
             </TabsContent>
           </Tabs>
         )}
