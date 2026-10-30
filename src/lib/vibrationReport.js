@@ -46,8 +46,10 @@ export async function buildReport({ machine, points, from, to }) {
     const daily = {};
     for (const r of rows) {
       const d = new Date(r.ts_unix * 1000).toISOString().slice(0, 10);
-      daily[d] = Math.max(daily[d] || 0, vmax(r));
+      const e = daily[d] || (daily[d] = { x: 0, y: 0, z: 0 });
+      for (const k of ["x", "y", "z"]) e[k] = Math.max(e[k], r[`vel_rms_${k}_mm_s`] || 0);
     }
+    const axisNames = Object.fromEntries(["x", "y", "z"].map((k) => [k, `${k.toUpperCase()} (${axisDirection(`vel_${k}`, p.orientation) || "?"})`]));
     const s = p.velStd || {};
     const a = p.accStd || {};
     const accMax = max(rows.map((r) => r.oa_acc_z).filter((v) => v != null));
@@ -62,7 +64,9 @@ export async function buildReport({ machine, points, from, to }) {
       trend: trendOf(rows.map(vmax)),
       limits: { ab: s.limit_ab, bc: s.limit_bc, cd: s.limit_cd },
       standardName: s.name || null,
-      chart: Object.entries(daily).sort().map(([d, v]) => ({ d: d.slice(5).split("-").reverse().join("."), v: Math.round(v * 100) / 100 })),
+      axisNames,
+      chart: Object.entries(daily).sort().map(([d, v]) => ({ d: d.slice(5).split("-").reverse().join("."),
+        x: Math.round(v.x * 100) / 100, y: Math.round(v.y * 100) / 100, z: Math.round(v.z * 100) / 100 })),
       worstSensorDataId: worstRow?.sensor_data_id, velStd: p.velStd, accStd: p.accStd, bearing: p.bearing,
     });
   }

@@ -1,5 +1,5 @@
 import React from "react";
-import { LineChart, Line, XAxis, YAxis, ReferenceLine, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, ReferenceLine, CartesianGrid, Legend } from "recharts";
 
 // Denní maxima rychlosti vibrací s hranicemi pásem (pevná velikost kvůli tisku)
 export default function ReportTrendChart({ point }) {
@@ -14,7 +14,10 @@ export default function ReportTrendChart({ point }) {
         {ab != null && <ReferenceLine y={ab} stroke="#16a34a" strokeDasharray="4 3" />}
         {bc != null && <ReferenceLine y={bc} stroke="#eab308" strokeDasharray="4 3" />}
         {cd != null && <ReferenceLine y={cd} stroke="#dc2626" strokeDasharray="4 3" />}
-        <Line type="monotone" dataKey="v" stroke="#1e293b" dot={false} strokeWidth={1.5} isAnimationActive={false} />
+        {[["x", "#2563eb"], ["y", "#f97316"], ["z", "#16a34a"]].map(([k, c]) => (
+          <Line key={k} type="monotone" dataKey={k} name={point.axisNames?.[k] || k.toUpperCase()} stroke={c} dot={false} strokeWidth={1.5} isAnimationActive={false} />
+        ))}
+        <Legend wrapperStyle={{ fontSize: 9 }} iconSize={8} />
       </LineChart>
     </div>
   );
