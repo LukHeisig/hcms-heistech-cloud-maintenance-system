@@ -17,6 +17,7 @@ import {
 import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus, Sparkles, Search, Plus, CheckCircle, Download, FileText } from "lucide-react";
 import VibrationReportDialog from "@/components/machine/report/VibrationReportDialog";
 import VibrationExportDialog from "@/components/machine/VibrationExportDialog";
+import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
@@ -955,6 +956,8 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
   const [showTrend, setShowTrend] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const { user: authUser } = useAuth();
+  const isAdminPlus = ["admin", "superAdmin"].includes(authUser?.user_type);
   const exportPoints = useMemo(() => schemaRows
     .map((r, idx) => ({ idx, label: r?.label || r?.name || `Bod ${idx + 1}`, sensorId: rowSensors[idx] }))
     .filter((p) => p.sensorId), [schemaRows, rowSensors]);
@@ -1139,6 +1142,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                 <BarChart2 className="w-3 h-3" />
                 <span className="hidden sm:inline">Spektrum</span>
               </Button>
+              {isAdminPlus && <>
               <Button variant="outline" size="sm" className="gap-1 text-xs h-7 px-2 text-slate-600 hover:text-blue-600"
                 disabled={exportPoints.length === 0} onClick={() => setShowExport(true)}>
                 <Download className="w-3 h-3" />
@@ -1149,6 +1153,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                 <FileText className="w-3 h-3" />
                 <span className="hidden sm:inline">Zpráva</span>
               </Button>
+              </>}
               {showReport && <VibrationReportDialog open onClose={() => setShowReport(false)} machine={machine}
                 points={exportPoints.map((p) => { const a = rowAssignments[p.idx] || {}; return { ...p,
                   velStd: standardsById[a.velStandardId], accStd: standardsById[a.accStandardId],
