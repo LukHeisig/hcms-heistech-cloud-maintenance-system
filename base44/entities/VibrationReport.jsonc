@@ -1,0 +1,124 @@
+{
+  "name": "VibrationReport",
+  "type": "object",
+  "properties": {
+    "machine_id": {
+      "type": "string"
+    },
+    "machine_name": {
+      "type": "string"
+    },
+    "period_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "period_to": {
+      "type": "string",
+      "format": "date"
+    },
+    "author": {
+      "type": "string",
+      "description": "Zpracoval"
+    },
+    "overall_band": {
+      "type": "string",
+      "description": "Nejhor\u0161\u00ed p\u00e1smo A-D"
+    },
+    "conclusion": {
+      "type": "string"
+    },
+    "recommendation": {
+      "type": "string"
+    },
+    "data_json": {
+      "type": "string",
+      "description": "Data zpr\u00e1vy (m\u00edsta, trendy, FFT, alarmy)"
+    }
+  },
+  "required": [
+    "machine_id",
+    "period_from",
+    "period_to"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    }
+  }
+}
