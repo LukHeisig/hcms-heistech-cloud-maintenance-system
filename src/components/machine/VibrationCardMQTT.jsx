@@ -14,7 +14,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceArea
 } from "recharts";
-import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus, Sparkles, Search, Plus, CheckCircle } from "lucide-react";
+import { Activity, RefreshCw, ZoomOut, Settings2, Camera, Loader2, TrendingUp, BarChart2, ArrowUp, ArrowDown, Minus, Sparkles, Search, Plus, CheckCircle, Download } from "lucide-react";
+import VibrationExportDialog from "@/components/machine/VibrationExportDialog";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import VibrationTrendChart, { METRIC_DEFS } from "@/components/machine/VibrationTrendChart";
@@ -951,6 +952,10 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
   const [assignDialog, setAssignDialog] = useState(null); // { rowIndex, rowLabel }
   const perPoint = machine?.sensor_orientation_mode === "per_point";
   const [showTrend, setShowTrend] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const exportPoints = useMemo(() => schemaRows
+    .map((r, idx) => ({ label: r?.label || r?.name || `Bod ${idx + 1}`, sensorId: rowSensors[idx] }))
+    .filter((p) => p.sensorId), [schemaRows, rowSensors]);
 
   // Automatické otevření trendu z URL parametru (z kliknutí na alarm)
   useEffect(() => {
@@ -1132,6 +1137,12 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                 <BarChart2 className="w-3 h-3" />
                 <span className="hidden sm:inline">Spektrum</span>
               </Button>
+              <Button variant="outline" size="sm" className="gap-1 text-xs h-7 px-2 text-slate-600 hover:text-blue-600"
+                disabled={exportPoints.length === 0} onClick={() => setShowExport(true)}>
+                <Download className="w-3 h-3" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
+              {showExport && <VibrationExportDialog open onClose={() => setShowExport(false)} machineName={machine?.name} points={exportPoints} />}
               <Badge variant="outline" className="text-xs hidden sm:inline-flex">{schemaRows.length} míst</Badge>
             </div>
           </div>

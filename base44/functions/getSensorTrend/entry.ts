@@ -116,6 +116,7 @@ async function run(base44, user, params) {
 
     const data = records.map(r => ({
       ts: formatTs(r.timestamp_unix),
+      ts_unix: r.timestamp_unix,
       sensor_data_id: r.sensor_data_id,
       vel_rms_x_mm_s: r.vel_rms_x_mm_s,
       vel_rms_y_mm_s: r.vel_rms_y_mm_s,
