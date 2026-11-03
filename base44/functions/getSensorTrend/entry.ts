@@ -99,6 +99,11 @@ async function run(base44, user, params) {
           ts: formatTs(r.timestamp_unix),
           sensor_data_id: r.sensor_data_id,
           temperature: r.temperature,
+          vel_rms_x_mm_s: r.vel_rms_x_mm_s,
+          vel_rms_y_mm_s: r.vel_rms_y_mm_s,
+          vel_rms_z_mm_s: r.vel_rms_z_mm_s,
+          oa_acc_z: r.rms_z_g,
+          env_rms_z: r.env_rms_z,
         }))
       });
     }
@@ -123,6 +128,7 @@ async function run(base44, user, params) {
       vel_rms_z_mm_s: r.vel_rms_z_mm_s,
       oa_acc_z: r.rms_z_g,
       env_rms_z: r.env_rms_z,
+      temperature: (r.temperature != null && r.temperature !== 28.0 && r.temperature > 0) ? r.temperature : null,
     }));
 
     if (trend_only) {

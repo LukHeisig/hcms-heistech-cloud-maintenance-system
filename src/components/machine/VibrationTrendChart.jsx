@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { TrendingUp, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
 import { format } from "date-fns";
+import TrendCompareSelect, { COMPARE_OPTIONS } from "@/components/machine/TrendCompareSelect";
 
 // Mapování metrik na SensorFFTData pole
 const METRIC_DEFS = {
@@ -117,11 +118,14 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
   });
 
   const [runningOnly, setRunningOnly] = useState(false);
+  const [compareKey, setCompareKey] = useState(null);
+  const compareDef = metricDef.lines.some(l => l.key === compareKey) ? null : COMPARE_OPTIONS.find(o => o.key === compareKey);
 
   const allChartData = useMemo(() => {
     const points = historyData.map(r => {
       const point = { ts: r.ts, sensor_data_id: r.sensor_data_id };
       metricDef.lines.forEach(l => { point[l.key] = r[l.key]; });
+      if (compareDef) point.__cmp = r[compareDef.key] ?? null;
       return point;
     });
     if (!runningOnly || isTemperature) return points;
@@ -129,7 +133,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     const peak = (p) => Math.max(...metricDef.lines.map(l => p[l.key] ?? 0));
     const threshold = Math.max(0, ...points.map(peak)) * (idleThresholdPercent / 100);
     return points.filter(p => peak(p) > threshold);
-  }, [historyData, metricDef, runningOnly, isTemperature, idleThresholdPercent]);
+  }, [historyData, metricDef, runningOnly, isTemperature, idleThresholdPercent, compareDef]);
 
   // Aplikace zoomu
   const chartData = useMemo(() => {
@@ -274,6 +278,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
               Jen chod stroje
             </button>
           )}
+          <TrendCompareSelect value={compareKey} onChange={setCompareKey} excludeKeys={metricDef.lines.map(l => l.key)} />
           {/* Zoom reset */}
           {zoomedRange && (
             <button
@@ -329,8 +334,15 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
                 width={50}
                 label={yDomain.yMax !== "auto" ? { value: yDomain.yMaxLabel, angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 9, fill: "#94a3b8" } } : undefined}
               />
+              {compareDef && (
+                <YAxis yAxisId="cmp" orientation="right" tick={{ fontSize: 10, fill: compareDef.color }} width={45} domain={[0, "auto"]} />
+              )}
               <Tooltip content={<CUSTOM_TOOLTIP />} />
-              {metricDef.lines.length > 1 && <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />}
+              {(metricDef.lines.length > 1 || compareDef) && <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />}
+              {compareDef && (
+                <Line yAxisId="cmp" type="monotone" dataKey="__cmp" name={compareDef.name} stroke={compareDef.color}
+                  strokeWidth={1.5} strokeDasharray="4 2" dot={false} isAnimationActive={false} connectNulls />
+              )}
 
               {/* Limity dle normy */}
               {limits?.ab != null && (
