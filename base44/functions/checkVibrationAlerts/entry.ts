@@ -131,10 +131,12 @@ ${u.trend ? "<p>Hodnota zatím limit nepřekročila, ale podle trendu za posledn
         if (sentEmails.has(dedupeKey)) continue;
         sentEmails.add(dedupeKey);
         try {
-          await base44.asServiceRole.functions.invoke('sendSmtpEmail', {
+          await base44.asServiceRole.integrations.Core.SendEmail({
             to: recipient.user_email,
             subject,
-            html: body,
+            body,
+            from_name: 'HCMS',
+            category: 'transactional',
           });
         } catch (emailErr) {
           console.error('Email send error:', emailErr.message);
