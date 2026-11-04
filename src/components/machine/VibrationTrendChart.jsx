@@ -6,9 +6,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, ReferenceArea
 } from "recharts";
-import { TrendingUp, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
+import { TrendingUp, RefreshCw, ZoomIn, ZoomOut, Plus } from "lucide-react";
 import { format } from "date-fns";
-import TrendCompareSelect, { COMPARE_OPTIONS } from "@/components/machine/TrendCompareSelect";
+import TrendCompareSelect, { COMPARE_OPTIONS, COMPARE_COLORS } from "@/components/machine/TrendCompareSelect";
 import useTrendCompareData, { nearestValue } from "@/hooks/useTrendCompareData";
 
 // Mapování metrik na SensorFFTData pole
@@ -119,20 +119,23 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
   });
 
   const [runningOnly, setRunningOnly] = useState(false);
-  const [compare, setCompare] = useState(null); // { sensorId, key }
-  const [cmpSensorId, setCmpSensorId] = useState(null);
-  const cmpSame = !compare || compare.sensorId === sensorId;
-  const compareDef = compare && !(cmpSame && metricDef.lines.some(l => l.key === compare.key)) && !(compare.key === "unbalance" && !machineId)
-    ? COMPARE_OPTIONS.find(o => o.key === compare.key) : null;
-  const cmpSensorLabel = compareSensors.find(s => s.id === compare?.sensorId)?.label;
-  const compareName = compareDef ? (cmpSame ? compareDef.name : `${compareDef.name} · ${cmpSensorLabel || compare.sensorId}`) : "";
-  const { data: compareSeries = [], isFetching: cmpLoading } = useTrendCompareData(compareDef ? compare : null, { rangeDays, historyFrom, machineId });
+  const [compares, setCompares] = useState([]); // [{ sensorId, key }]
+  const activeCmps = compares.map((c, i) => {
+    const def = COMPARE_OPTIONS.find(o => o.key === c.key);
+    const same = c.sensorId === sensorId;
+    if (!def || (same && metricDef.lines.some(l => l.key === c.key)) || (c.key === "unbalance" && !machineId)) return null;
+    const label = compareSensors.find(s => s.id === c.sensorId)?.label || c.sensorId;
+    return { ...c, idx: i, color: COMPARE_COLORS[i % COMPARE_COLORS.length], name: same ? def.name : `${def.name} · ${label}` };
+  }).filter(Boolean);
+  const cmpQueries = useTrendCompareData(activeCmps, { rangeDays, historyFrom, machineId });
+  const cmpLoading = cmpQueries.some(q => q.isFetching);
+  const cmpSeriesKey = cmpQueries.map(q => q.dataUpdatedAt).join(",") + activeCmps.map(c => c.sensorId + c.key).join(",");
 
   const allChartData = useMemo(() => {
     const points = historyData.map(r => {
       const point = { ts: r.ts, sensor_data_id: r.sensor_data_id };
       metricDef.lines.forEach(l => { point[l.key] = r[l.key]; });
-      if (compareDef) point.__cmp = nearestValue(compareSeries, r.ts_unix);
+      activeCmps.forEach((c, i) => { point[`__cmp${c.idx}`] = nearestValue(cmpQueries[i]?.data, r.ts_unix); });
       return point;
     });
     if (!runningOnly || isTemperature) return points;
@@ -140,7 +143,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     const peak = (p) => Math.max(...metricDef.lines.map(l => p[l.key] ?? 0));
     const threshold = Math.max(0, ...points.map(peak)) * (idleThresholdPercent / 100);
     return points.filter(p => peak(p) > threshold);
-  }, [historyData, metricDef, runningOnly, isTemperature, idleThresholdPercent, compareDef, compareSeries]);
+  }, [historyData, metricDef, runningOnly, isTemperature, idleThresholdPercent, cmpSeriesKey]);
 
   // Aplikace zoomu
   const chartData = useMemo(() => {
@@ -285,11 +288,19 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
               Jen chod stroje
             </button>
           )}
-          <TrendCompareSelect
-            value={compare || (cmpSensorId ? { sensorId: cmpSensorId, key: null } : null)}
-            onChange={(v, sid) => { setCompare(v); setCmpSensorId(sid); }}
-            sensorId={sensorId} sensors={compareSensors} unbalanceEnabled={!!machineId}
-            excludeKeys={metricDef.lines.map(l => l.key)} />
+          <span className="text-slate-400 whitespace-nowrap">Porovnat s:</span>
+          {compares.map((c, i) => (
+            <TrendCompareSelect key={i} value={c} color={COMPARE_COLORS[i % COMPARE_COLORS.length]}
+              onChange={(v) => setCompares(arr => arr.map((x, j) => (j === i ? v : x)))}
+              onRemove={() => setCompares(arr => arr.filter((_, j) => j !== i))}
+              sensorId={sensorId} sensors={compareSensors} unbalanceEnabled={!!machineId}
+              excludeKeys={metricDef.lines.map(l => l.key)} />
+          ))}
+          <button onClick={() => setCompares(arr => [...arr, { sensorId, key: null }])}
+            className="flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium bg-white text-slate-500 border-slate-300 hover:border-blue-400 hover:text-blue-600"
+            title="Přidat parametr do porovnání">
+            <Plus className="w-3 h-3" />Přidat
+          </button>
           {cmpLoading && <RefreshCw className="w-3 h-3 animate-spin text-slate-400" />}
           {/* Zoom reset */}
           {zoomedRange && (
@@ -346,15 +357,15 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
                 width={50}
                 label={yDomain.yMax !== "auto" ? { value: yDomain.yMaxLabel, angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 9, fill: "#94a3b8" } } : undefined}
               />
-              {compareDef && (
-                <YAxis yAxisId="cmp" orientation="right" tick={{ fontSize: 10, fill: compareDef.color }} width={45} domain={[0, "auto"]} />
-              )}
+              {activeCmps.map(c => (
+                <YAxis key={`ax${c.idx}`} yAxisId={`cmp${c.idx}`} orientation="right" tick={{ fontSize: 10, fill: c.color }} width={40} domain={[0, "auto"]} />
+              ))}
               <Tooltip content={<CUSTOM_TOOLTIP />} />
-              {(metricDef.lines.length > 1 || compareDef) && <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />}
-              {compareDef && (
-                <Line yAxisId="cmp" type="monotone" dataKey="__cmp" name={compareName} stroke={compareDef.color}
+              {(metricDef.lines.length > 1 || activeCmps.length > 0) && <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />}
+              {activeCmps.map(c => (
+                <Line key={`cmp${c.idx}`} yAxisId={`cmp${c.idx}`} type="monotone" dataKey={`__cmp${c.idx}`} name={c.name} stroke={c.color}
                   strokeWidth={1.5} strokeDasharray="4 2" dot={false} isAnimationActive={false} connectNulls />
-              )}
+              ))}
 
               {/* Limity dle normy */}
               {limits?.ab != null && (

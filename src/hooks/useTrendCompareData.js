@@ -1,23 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
-// Načte řadu {t, v} pro porovnávaný parametr (libovolný snímač stroje / míra nevývahy)
-export default function useTrendCompareData(compare, { rangeDays, historyFrom, machineId }) {
-  return useQuery({
-    queryKey: ["trendCompare", compare?.sensorId, compare?.key, rangeDays, historyFrom, machineId],
-    enabled: !!compare?.key,
-    staleTime: 120000,
-    queryFn: async () => {
-      if (compare.key === "unbalance") {
-        const res = await base44.functions.invoke("getUnbalance", { machineId, sensorId: compare.sensorId, days: rangeDays ?? 30 });
-        return (res.data?.points || []).map(p => ({ t: p.t, v: p.percent }));
-      }
-      const res = await base44.functions.invoke("getSensorTrend", {
-        sensor_id: compare.sensorId, days: rangeDays, limit: 2000,
-        is_temperature: compare.key === "temperature", from_date: historyFrom || null,
-      });
-      return (res.data?.data || []).filter(r => r[compare.key] != null).map(r => ({ t: r.ts_unix, v: r[compare.key] }));
-    },
+// Načte řady {t, v} pro všechna porovnání (libovolný snímač stroje / míra nevývahy)
+export default function useTrendCompareData(compares, { rangeDays, historyFrom, machineId }) {
+  return useQueries({
+    queries: compares.map(compare => ({
+      queryKey: ["trendCompare", compare.sensorId, compare.key, rangeDays, historyFrom, machineId],
+      enabled: !!compare.key,
+      staleTime: 120000,
+      queryFn: async () => {
+        if (compare.key === "unbalance") {
+          const res = await base44.functions.invoke("getUnbalance", { machineId, sensorId: compare.sensorId, days: rangeDays ?? 30 });
+          return (res.data?.points || []).map(p => ({ t: p.t, v: p.percent }));
+        }
+        const res = await base44.functions.invoke("getSensorTrend", {
+          sensor_id: compare.sensorId, days: rangeDays, limit: 2000,
+          is_temperature: compare.key === "temperature", from_date: historyFrom || null,
+        });
+        return (res.data?.data || []).filter(r => r[compare.key] != null).map(r => ({ t: r.ts_unix, v: r[compare.key] }));
+      },
+    })),
   });
 }
 
