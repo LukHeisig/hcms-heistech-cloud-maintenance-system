@@ -9,6 +9,7 @@ export const COMPARE_OPTIONS = [
   { key: "vel_rms_z_mm_s", name: "Vel Z [mm/s]" },
   { key: "oa_acc_z", name: "Acc Z [g]" },
   { key: "env_rms_z", name: "Obálka Z [g]" },
+  { key: "battery_level", name: "Baterie [0-4]" },
   { key: "unbalance", name: "Míra nevývahy [%]", unbalance: true },
 ];
 

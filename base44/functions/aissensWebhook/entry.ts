@@ -755,6 +755,8 @@ export default async function(req) {
         rms_z_g: parsed.rms_z_g ?? null,
         env_rms_z: parsed.env_rms_z ?? null,
         temperature: parsed.temperature ?? null,
+        battery_level: parsed.battery_level ?? null,
+        battery_voltage: parsed.battery_voltage ?? null,
       });
     } catch (e) {
       console.error("[Storage] SensorTrendPoint write failed:", e.message);

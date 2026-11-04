@@ -44,6 +44,8 @@ Deno.serve(async (req) => {
         rms_z_g: r.rms_z_g ?? null,
         env_rms_z: r.env_rms_z ?? null,
         temperature: r.temperature ?? null,
+        battery_level: r.battery_level ?? null,
+        battery_voltage: r.battery_voltage ?? null,
       });
       created++;
 

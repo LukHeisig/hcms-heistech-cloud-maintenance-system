@@ -1408,7 +1408,9 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                     {temp != null ? <span className={tempClass || "text-purple-700"}>{temp.toFixed(1)}°<TrendArrow direction={sensorTrends["temperature"]} /></span> : <span className="text-slate-300">—</span>}
                     {temp != null && getBandPill(getLimitLevel(temp, tempStd?.temp_limit_ab, tempStd?.temp_limit_bc, tempStd?.temp_limit_cd))}
                   </div>
-                  <div className="text-center font-mono text-sm font-semibold">
+                  <div className={`text-center font-mono text-sm font-semibold rounded ${sensorId ? "cursor-pointer hover:bg-blue-100" : ""} ${sensorId && activeTrendSensorId === sensorId && activeTrendMetric === "battery" ? "bg-blue-100 ring-1 ring-blue-400" : ""}`}
+                    onClick={(e) => { e.stopPropagation(); if (sensorId) setTrendConfig({ sensorId, metricKey: "battery" }); }}
+                    title={sensorId ? "Zobrazit trend: Stav baterie" : ""}>
                     {batteryLevel != null ? <span className={batteryColor}>{batteryLevel}/4</span> : <span className="text-slate-300">—</span>}
                   </div>
                   <div className="text-center font-mono text-sm font-semibold">

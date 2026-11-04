@@ -31,6 +31,14 @@
     },
     "temperature": {
       "type": "number"
+    },
+    "battery_level": {
+      "type": "number",
+      "description": "Stav baterie 0-4"
+    },
+    "battery_voltage": {
+      "type": "number",
+      "description": "Nap\u011bt\u00ed baterie"
     }
   },
   "required": [

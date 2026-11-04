@@ -41,6 +41,10 @@ const METRIC_DEFS = {
     label: "Obálka Z [g]",
     lines: [{ key: "env_rms_z", fftKey: "oa_acc_z", name: "Obálka Z", color: "#f97316" }],
   },
+  battery: {
+    label: "Stav baterie [0-4]",
+    lines: [{ key: "battery_level", name: "Baterie", color: "#16a34a" }],
+  },
   temperature: {
     label: "Teplota [°C]",
     lines: [{ key: "temperature", name: "Teplota", color: "#a855f7" }],

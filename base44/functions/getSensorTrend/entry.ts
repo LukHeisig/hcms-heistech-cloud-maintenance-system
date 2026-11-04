@@ -105,6 +105,7 @@ async function run(base44, user, params) {
           vel_rms_z_mm_s: r.vel_rms_z_mm_s,
           oa_acc_z: r.rms_z_g,
           env_rms_z: r.env_rms_z,
+          battery_level: r.battery_level,
         }))
       });
     }
@@ -129,6 +130,7 @@ async function run(base44, user, params) {
       vel_rms_z_mm_s: r.vel_rms_z_mm_s,
       oa_acc_z: r.rms_z_g,
       env_rms_z: r.env_rms_z,
+      battery_level: r.battery_level,
       temperature: (r.temperature != null && r.temperature !== 28.0 && r.temperature > 0) ? r.temperature : null,
     }));
 
