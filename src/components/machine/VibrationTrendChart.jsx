@@ -9,6 +9,7 @@ import {
 import { TrendingUp, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
 import { format } from "date-fns";
 import TrendCompareSelect, { COMPARE_OPTIONS } from "@/components/machine/TrendCompareSelect";
+import useTrendCompareData, { nearestValue } from "@/hooks/useTrendCompareData";
 
 // Mapování metrik na SensorFFTData pole
 const METRIC_DEFS = {
@@ -85,7 +86,7 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }) => {
 };
 
 // limits: { ab, bc, cd } — hodnoty limitů pro zobrazení v grafu (nepovinné)
-export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits, historyFrom, idleThresholdPercent = 10 }) {
+export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, onSelectRecord, selectedSensorDataId, limits, historyFrom, idleThresholdPercent = 10, machineId, compareSensors = [] }) {
   const metricDef = METRIC_DEFS[metricKey] || METRIC_DEFS.vel_xyz;
   const [yScaleMode, setYScaleMode] = useState("auto");
   const [rangeDays, setRangeDays] = useState(3); // null = vše, default = 3 dny
@@ -118,14 +119,20 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
   });
 
   const [runningOnly, setRunningOnly] = useState(false);
-  const [compareKey, setCompareKey] = useState(null);
-  const compareDef = metricDef.lines.some(l => l.key === compareKey) ? null : COMPARE_OPTIONS.find(o => o.key === compareKey);
+  const [compare, setCompare] = useState(null); // { sensorId, key }
+  const [cmpSensorId, setCmpSensorId] = useState(null);
+  const cmpSame = !compare || compare.sensorId === sensorId;
+  const compareDef = compare && !(cmpSame && metricDef.lines.some(l => l.key === compare.key)) && !(compare.key === "unbalance" && !machineId)
+    ? COMPARE_OPTIONS.find(o => o.key === compare.key) : null;
+  const cmpSensorLabel = compareSensors.find(s => s.id === compare?.sensorId)?.label;
+  const compareName = compareDef ? (cmpSame ? compareDef.name : `${compareDef.name} · ${cmpSensorLabel || compare.sensorId}`) : "";
+  const { data: compareSeries = [], isFetching: cmpLoading } = useTrendCompareData(compareDef ? compare : null, { rangeDays, historyFrom, machineId });
 
   const allChartData = useMemo(() => {
     const points = historyData.map(r => {
       const point = { ts: r.ts, sensor_data_id: r.sensor_data_id };
       metricDef.lines.forEach(l => { point[l.key] = r[l.key]; });
-      if (compareDef) point.__cmp = r[compareDef.key] ?? null;
+      if (compareDef) point.__cmp = nearestValue(compareSeries, r.ts_unix);
       return point;
     });
     if (!runningOnly || isTemperature) return points;
@@ -133,7 +140,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
     const peak = (p) => Math.max(...metricDef.lines.map(l => p[l.key] ?? 0));
     const threshold = Math.max(0, ...points.map(peak)) * (idleThresholdPercent / 100);
     return points.filter(p => peak(p) > threshold);
-  }, [historyData, metricDef, runningOnly, isTemperature, idleThresholdPercent, compareDef]);
+  }, [historyData, metricDef, runningOnly, isTemperature, idleThresholdPercent, compareDef, compareSeries]);
 
   // Aplikace zoomu
   const chartData = useMemo(() => {
@@ -278,7 +285,12 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
               Jen chod stroje
             </button>
           )}
-          <TrendCompareSelect value={compareKey} onChange={setCompareKey} excludeKeys={metricDef.lines.map(l => l.key)} />
+          <TrendCompareSelect
+            value={compare || (cmpSensorId ? { sensorId: cmpSensorId, key: null } : null)}
+            onChange={(v, sid) => { setCompare(v); setCmpSensorId(sid); }}
+            sensorId={sensorId} sensors={compareSensors} unbalanceEnabled={!!machineId}
+            excludeKeys={metricDef.lines.map(l => l.key)} />
+          {cmpLoading && <RefreshCw className="w-3 h-3 animate-spin text-slate-400" />}
           {/* Zoom reset */}
           {zoomedRange && (
             <button
@@ -340,7 +352,7 @@ export default function VibrationTrendChart({ sensorId, metricKey, sensorLabel, 
               <Tooltip content={<CUSTOM_TOOLTIP />} />
               {(metricDef.lines.length > 1 || compareDef) && <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />}
               {compareDef && (
-                <Line yAxisId="cmp" type="monotone" dataKey="__cmp" name={compareDef.name} stroke={compareDef.color}
+                <Line yAxisId="cmp" type="monotone" dataKey="__cmp" name={compareName} stroke={compareDef.color}
                   strokeWidth={1.5} strokeDasharray="4 2" dot={false} isAnimationActive={false} connectNulls />
               )}
 

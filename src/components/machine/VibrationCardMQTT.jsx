@@ -1583,6 +1583,8 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
             }}
             selectedSensorDataId={trendSelectedSensorDataId}
             historyFrom={machine?.vibration_history_from}
+            machineId={machine?.unbalance_enabled ? machine.id : null}
+            compareSensors={Object.entries(rowSensors).filter(([, sid]) => sid).map(([idx, sid]) => ({ id: sid, label: schemaRows[idx]?.label || schemaRows[idx]?.name || sid }))}
           />
         );
       })()}
