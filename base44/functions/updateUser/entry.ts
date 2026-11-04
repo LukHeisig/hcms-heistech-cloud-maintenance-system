@@ -62,6 +62,24 @@ export default async function(req) {
     }
 
     const updated = await base44.asServiceRole.entities.User.update(userId, payload);
+
+    // Aktivační email — poprvé přiřazen podnik
+    const hadCompany = !!target.company_id || (target.assigned_company_ids || []).length > 0;
+    const newCompanyId = payload.company_id || (payload.assigned_company_ids || [])[0];
+    if (!hadCompany && newCompanyId && target.email) {
+      const companies = await base44.asServiceRole.entities.Company.filter({ id: newCompanyId });
+      const roleLabels = { superAdmin: 'Super administrátor', admin: 'Administrátor', manager: 'Vedoucí', technician: 'Technik' };
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: target.email,
+        template_name: 'AccountActivated',
+        category: 'transactional',
+        variables: {
+          first_name: target.custom_display_name || target.full_name || '',
+          company_name: companies[0]?.name || '',
+          role_label: roleLabels[payload.user_type || target.user_type] || 'Technik',
+        },
+      });
+    }
     return Response.json({ success: true, user: updated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
