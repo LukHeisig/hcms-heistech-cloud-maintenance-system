@@ -31,7 +31,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
   const { data: sensors = [] } = useQuery({
     queryKey: ["dashVibSensors", sensorIds],
     queryFn: () => moduleData.filter("AissensSensor", { sensor_id: { $in: sensorIds } }, null, 1000),
-    enabled: on && sensorIds.length > 0, staleTime: 120000,
+    enabled: on && sensorIds.length > 0, staleTime: 120000, refetchInterval: 300000,
   });
   const { data: latest = {}, isLoading: loadingLatest } = useQuery({
     queryKey: ["dashVibLatest", sensorIds],
@@ -40,7 +40,7 @@ export default function useVibrationDashboard(machineIds, enabled) {
       Object.values(map).forEach(d => { d.recorded_at = d.timestamp_unix ? new Date(d.timestamp_unix * 1000).toISOString() : d.created_date; });
       return map;
     },
-    enabled: on && sensorIds.length > 0, staleTime: 300000,
+    enabled: on && sensorIds.length > 0, staleTime: 60000, refetchInterval: 120000,
   });
   const { data: standards = [], isLoading: loadingStandards } = useQuery({
     queryKey: ["vibrationStandards"],
