@@ -1,3 +1,4 @@
+import LayoutImageField from "@/components/admin/LayoutImageField";
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -203,7 +204,8 @@ export default function AdminLines() {
         name: line.name, 
         description: line.description || "",
         responsible_person_email: line.responsible_person_email || "",
-        excluded_days: line.excluded_days || []
+        excluded_days: line.excluded_days || [],
+        layout_image_url: line.layout_image_url || ""
       });
     } else {
       setEditingLine(null);
@@ -554,6 +556,7 @@ export default function AdminLines() {
                   </SelectContent>
                 </Select>
               </div>
+              <LayoutImageField value={formData.layout_image_url} onChange={(v) => setFormData((f) => ({ ...f, layout_image_url: v }))} />
               {company?.enable_demip !== false && (
               <div>
                 <Label>Dny započítávané do intervalů (DEMIP)</Label>

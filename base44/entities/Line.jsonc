@@ -30,6 +30,10 @@
       "type": "number",
       "description": "Po\u0159ad\u00ed zobrazen\u00ed",
       "default": 0
+    },
+    "layout_image_url": {
+      "type": "string",
+      "description": "Obr\u00e1zek layoutu linky pro dashboard"
     }
   },
   "required": [

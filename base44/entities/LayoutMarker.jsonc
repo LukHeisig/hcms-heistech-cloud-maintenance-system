@@ -1,0 +1,122 @@
+{
+  "name": "LayoutMarker",
+  "type": "object",
+  "properties": {
+    "scope_type": {
+      "type": "string",
+      "enum": [
+        "company",
+        "line"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "description": "Layout podniku nebo linky"
+    },
+    "scope_id": {
+      "type": "string",
+      "description": "ID podniku nebo linky"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "ID podniku"
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "ID stroje, ze kter\u00e9ho se bere stav vibrac\u00ed"
+    },
+    "x": {
+      "type": "number",
+      "description": "Pozice X v % \u0161\u00ed\u0159ky obr\u00e1zku"
+    },
+    "y": {
+      "type": "number",
+      "description": "Pozice Y v % v\u00fd\u0161ky obr\u00e1zku"
+    }
+  },
+  "required": [
+    "scope_type",
+    "scope_id",
+    "company_id",
+    "machine_id",
+    "x",
+    "y"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "data.company_id": "{{user.data.company_id}}"
+        },
+        {
+          "data.company_id": {
+            "$in": "{{user.data.assigned_company_ids}}"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "data.user_type": "superAdmin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "data.user_type": "manager"
+          }
+        }
+      ]
+    }
+  }
+}

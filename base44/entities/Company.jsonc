@@ -90,6 +90,10 @@
       "default": null,
       "description": "Minim\u00e1ln\u00ed \u010dasov\u00e9 okno v minut\u00e1ch pro \u017elutou barvu u kr\u00e1tk\u00fdch interval\u016f. Pokud je (interval * tolerance%) < t\u00e9to hodnoty, pou\u017eije se tato hodnota."
     },
+    "layout_image_url": {
+      "type": "string",
+      "description": "Obr\u00e1zek layoutu podniku pro dashboard"
+    },
     "is_active": {
       "type": "boolean",
       "default": true

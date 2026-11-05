@@ -1,3 +1,4 @@
+import LayoutImageField from "@/components/admin/LayoutImageField";
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -168,6 +169,7 @@ export default function AdminCompanies({ embedded = false }) {
         overdue_visualization_type: company.overdue_visualization_type || "two_colors",
         overdue_tolerance_percent: company.overdue_tolerance_percent || 4,
         min_yellow_window_minutes: company.min_yellow_window_minutes ?? null,
+        layout_image_url: company.layout_image_url || "",
       });
     } else {
       setEditingCompany(null);
@@ -389,6 +391,8 @@ export default function AdminCompanies({ embedded = false }) {
                   />
                 </div>
               </div>
+
+              <LayoutImageField value={formData.layout_image_url} onChange={(v) => setFormData((f) => ({ ...f, layout_image_url: v }))} />
 
               {currentUser?.user_type === "superAdmin" && (
               <div className="border p-4 rounded-lg bg-slate-50 space-y-4">

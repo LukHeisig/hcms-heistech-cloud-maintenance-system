@@ -380,7 +380,7 @@ export default function Dashboard() {
     const lineIds = allLines.filter(l => companyIds.includes(l.company_id)).map(l => l.id);
     return machines.filter(m => lineIds.includes(m.line_id)).map(m => m.id);
   }, [machines, isCompanyUser, activeCompanies, allLines]);
-  const vib = useVibrationDashboard(vibMachineIds, modVibration && viewMode !== "demip" && (urlParams.get("module") === "vibration" || !modDemip));
+  const vib = useVibrationDashboard(vibMachineIds, modVibration && viewMode !== "demip" && (["vibration", "layout"].includes(urlParams.get("module")) || !modDemip));
   const machinesLabel = (n) => `${n} ${n === 1 ? "stroj" : n >= 2 && n <= 4 ? "stroje" : "strojů"}`;
 
   const demipCompanies = (user?.user_type === "admin" || user?.user_type === "superAdmin")
