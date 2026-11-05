@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import useSensorLocations from "@/hooks/useSensorLocations";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -355,6 +356,8 @@ export default function MqttSensors({ embedded = false }) {
     staleTime: 300000,
   });
 
+  const locate = useSensorLocations(machines);
+
   const saveMutation = useMutation({
     mutationFn: async (data) => {
       if (editSensor) {
@@ -536,7 +539,7 @@ export default function MqttSensors({ embedded = false }) {
                   </thead>
                   <tbody>
                     {sensors.map((sensor) => {
-                      const machine = machines.find(m => m.id === sensor.machine_id);
+                      const loc = locate(sensor);
                       return (
                         <tr key={sensor.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="p-4">
@@ -544,12 +547,14 @@ export default function MqttSensors({ embedded = false }) {
                             {sensor.model && <p className="text-xs text-slate-400 mt-0.5">{sensor.model}</p>}
                           </td>
                           <td className="p-4">
-                            <p className="font-medium text-slate-900 text-sm">{sensor.name || sensor.sensor_id}</p>
-                            {machine && (
+                            <p className="font-medium text-slate-900 text-sm">{sensor.name || loc?.machine.name || sensor.sensor_id}</p>
+                            {loc ? (
                               <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                <LinkIcon className="w-3 h-3" />
-                                {machine.name}
+                                <LinkIcon className="w-3 h-3 shrink-0" />
+                                {[loc.company?.name, loc.line?.name, loc.machine.name].filter(Boolean).join(" / ")}
                               </p>
+                            ) : (
+                              <p className="text-xs text-slate-400 mt-0.5">Nepřiřazeno</p>
                             )}
                           </td>
                           <td className="p-4 text-sm text-slate-600">
