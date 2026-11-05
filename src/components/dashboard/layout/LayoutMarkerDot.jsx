@@ -13,12 +13,13 @@ export function markerZone(stats) {
 }
 
 // Kolečko stroje na layoutu
-export default function LayoutMarkerDot({ marker, machine, stats, editing, onOpen, onDelete }) {
+export default function LayoutMarkerDot({ marker, machine, stats, editing, onOpen, onDelete, onDragStart }) {
   const zone = markerZone(stats);
   return (
     <div className="absolute -translate-x-1/2 -translate-y-1/2 group" style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
       onClick={(e) => e.stopPropagation()}>
-      <button type="button" onClick={() => !editing && onOpen(machine)} title={`${machine?.name || "Neznámý stroj"}${zone ? ` — pásmo ${zone}` : " — bez dat"}`}
+      <button type="button" onPointerDown={(e) => { if (editing) { e.preventDefault(); onDragStart(); } }}
+        style={editing ? { cursor: "grab" } : undefined} onClick={() => !editing && onOpen(machine)} title={`${machine?.name || "Neznámý stroj"}${zone ? ` — pásmo ${zone}` : " — bez dat"}`}
         className={`w-7 h-7 rounded-full border-2 border-card shadow-lg ${zone ? COLORS[zone] : "bg-muted-foreground"}`} />
       <span className="absolute left-1/2 -translate-x-1/2 top-8 whitespace-nowrap rounded bg-card/90 px-1.5 py-0.5 text-[10px] font-semibold shadow">
         {machine?.name || "?"}{zone ? ` · ${zone}` : ""}
