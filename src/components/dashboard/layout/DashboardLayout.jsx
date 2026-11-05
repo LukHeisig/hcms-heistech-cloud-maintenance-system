@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Pencil, Check, ImageOff } from "lucide-react";
 import LayoutCanvas from "./LayoutCanvas";
+import LayoutLegend from "./LayoutLegend";
 
 // Záložka Layout — celkový stav vibrací strojů na obrázku podniku / linky
 export default function DashboardLayout({ user, companies = [], lines = [], machines = [], vib }) {
@@ -43,6 +44,7 @@ export default function DashboardLayout({ user, companies = [], lines = [], mach
       </div>
       <LayoutCanvas key={current.key} scopeType={current.type} scopeId={current.id} companyId={current.companyId}
         image={current.image} machines={scopeMachines} vib={vib} editing={editing} />
+      <LayoutLegend />
     </div>
   );
 }
