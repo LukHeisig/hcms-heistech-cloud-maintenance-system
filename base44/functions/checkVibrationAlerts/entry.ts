@@ -41,7 +41,8 @@ export default async function(req) {
     // Načteme aktivní alarmy pro deduplikaci (sensor_id + metric_key + status=active)
     const activeAlerts = await base44.asServiceRole.entities.VibrationAlert.filter({ status: "active" }, null, 5000);
     // Klíč pro kontrolu duplicity: sensor_id|metric_key
-    const activeAlertKeys = new Set(activeAlerts.map(a => `${a.sensor_id}|${a.metric_key}`));
+    // Klíč obsahuje i stroj — alarm snímače z předchozího umístění neblokuje alarm na novém stroji
+    const activeAlertKeys = new Set(activeAlerts.map(a => `${a.machine_id}|${a.sensor_id}|${a.metric_key}`));
 
     // Načteme příjemce notifikací
     const alertRecipients = await base44.asServiceRole.entities.VibrationAlertRecipient.list(null, 500);
@@ -198,7 +199,7 @@ ${u.trend ? "<p>Hodnota zatím limit nepřekročila, ale podle trendu za posledn
       const tempStd = standardsById[assignment.temp_standard_id];
 
       const createAlert = async (alertDef) => {
-        const key = `${assignment.sensor_id}|${alertDef.metric_key}`;
+        const key = `${assignment.machine_id}|${assignment.sensor_id}|${alertDef.metric_key}`;
         if (activeAlertKeys.has(key)) return; // Deduplication — aktivní alarm stejného typu již existuje
         activeAlertKeys.add(key); // optimistická přidání pro tento run
 
@@ -367,7 +368,7 @@ ${u.trend ? "<p>Hodnota zatím limit nepřekročila, ale podle trendu za posledn
 
       // Kontrola baterie — debounce: alarm až po 3 po sobě jdoucích nízkých čteních (level <= 1)
       if (sensor && sensor.last_battery_level != null && sensor.last_battery_level <= 1) {
-        const key = `${assignment.sensor_id}|battery_level`;
+        const key = `${assignment.machine_id}|${assignment.sensor_id}|battery_level`;
         if (!activeAlertKeys.has(key)) {
           // Ověření: poslední 3 platná čtení baterie musí být všechna <= 1
           const recentBattery = await base44.asServiceRole.entities.SensorData.filter(
