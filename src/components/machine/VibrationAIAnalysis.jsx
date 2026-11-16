@@ -41,7 +41,7 @@ const ANALYSIS_STEPS = [
   { label: "Volám AI model pro diagnostiku…",          duration: 99999 }, // čeká na odpověď
 ];
 
-export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing }) {
+export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing, rpmRange }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -76,7 +76,7 @@ export default function VibrationAIAnalysis({ sensorDataId, velStandard, accStan
     setDetectingSpeed(true);
     try {
       const res = await base44.functions.invoke("analyzeVibrationAI", {
-        sensorDataId, action: "detectSpeed",
+        sensorDataId, action: "detectSpeed", rpmMin: rpmRange?.min ?? null, rpmMax: rpmRange?.max ?? null,
       });
       setDetectedSpeed(res.data?.detected || null);
       setRpmDialogOpen(true);

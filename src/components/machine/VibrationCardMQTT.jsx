@@ -742,6 +742,7 @@ function BearingFreqBadge({ bearing }) {
 export default function VibrationCardMQTT({ machine, enablePredictive, canConfigure = false }) {
   const machineId = machine?.id;
   const queryClient = useQueryClient();
+  const rpmRange = useMemo(() => ({ min: machine?.rpm_min ?? null, max: machine?.rpm_max ?? null }), [machine?.rpm_min, machine?.rpm_max]);
 
   // Real-time subscribe — při nových datech ze senzorů okamžitě invalidujeme cache
   useEffect(() => {
@@ -1540,6 +1541,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
               tempStandard={standardsById[rowAssignments[aiRowIdx]?.tempStandardId]}
               bearing={bearingsById[rowAssignments[aiRowIdx]?.bearingId]}
               machineName={machine?.name}
+              rpmRange={rpmRange}
               measurementPoint={(() => { const r = schemaRows[aiRowIdx]; if (!r) return `Bod ${aiRowIdx + 1}`; const l = r.label || ""; const n = r.name || ""; return l && n && l !== n ? `${l} — ${n}` : (l || n || `Bod ${aiRowIdx + 1}`); })()}
             />
           </CardContent>
@@ -1617,6 +1619,7 @@ export default function VibrationCardMQTT({ machine, enablePredictive, canConfig
                 temperature={getSensorById(activeSensorId)?.last_temperature}
                 machineName={machine?.name}
                 historyFrom={machine?.vibration_history_from}
+                rpmRange={rpmRange}
                 measurementPoint={(() => { const r = schemaRows[activeRowIdx]; if (!r) return `Bod ${activeRowIdx + 1}`; const l = r.label || ""; const n = r.name || ""; return l && n && l !== n ? `${l} — ${n}` : (l || n || `Bod ${activeRowIdx + 1}`); })()}
               />
             </CardContent>

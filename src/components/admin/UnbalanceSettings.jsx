@@ -10,7 +10,7 @@ export default function UnbalanceSettings({ formData, setFormData }) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <Label>Sledovat míru nevývahy</Label>
-          <p className="text-xs text-slate-500">Amplituda na otáčkové frekvenci (1×) z FFT rychlosti, otáčky se detekují automaticky.</p>
+          <p className="text-xs text-slate-500">Amplituda na otáčkové frekvenci (1×) z FFT rychlosti, otáčky se detekují automaticky v nastaveném rozsahu otáček.</p>
         </div>
         <Switch checked={!!formData.unbalance_enabled} onCheckedChange={(v) => set("unbalance_enabled", v)} />
       </div>

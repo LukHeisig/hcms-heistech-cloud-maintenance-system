@@ -59,6 +59,7 @@ import { useViewMode } from "@/components/ViewModeContext";
 import "@/components/admin/demipAdmin.css";
 import MotohoursSettings from "@/components/admin/MotohoursSettings";
 import UnbalanceSettings from "@/components/admin/UnbalanceSettings";
+import RpmRangeSettings from "@/components/admin/RpmRangeSettings";
 import SensorOrientationSettings from "@/components/admin/SensorOrientationSettings";
 import "@/components/admin/demipAdminStructure.css";
 
@@ -278,6 +279,8 @@ export default function AdminMachines() {
         unbalance_enabled: machine.unbalance_enabled || false,
         unbalance_threshold_mm_s: machine.unbalance_threshold_mm_s ?? 2.8,
         unbalance_trend_alarm_days: machine.unbalance_trend_alarm_days ?? 3,
+        rpm_min: machine.rpm_min ?? "",
+        rpm_max: machine.rpm_max ?? "",
         sensor_orientation_mode: machine.sensor_orientation_mode || "same",
         sensor_orientation: machine.sensor_orientation || "VAH",
         vibration_history_from: machine.vibration_history_from ? format(new Date(machine.vibration_history_from), "yyyy-MM-dd'T'HH:mm") : "",
@@ -346,6 +349,8 @@ export default function AdminMachines() {
       unbalance_enabled: !!formData.unbalance_enabled,
       unbalance_threshold_mm_s: Math.max(0.01, parseFloat(formData.unbalance_threshold_mm_s) || 2.8),
       unbalance_trend_alarm_days: Math.max(0, parseInt(formData.unbalance_trend_alarm_days ?? 3, 10) || 0),
+      rpm_min: parseFloat(formData.rpm_min) > 0 ? parseFloat(formData.rpm_min) : null,
+      rpm_max: parseFloat(formData.rpm_max) > 0 ? parseFloat(formData.rpm_max) : null,
       sensor_orientation_mode: formData.sensor_orientation_mode || "same",
       sensor_orientation: formData.sensor_orientation || "VAH",
       vibration_history_from: formData.vibration_history_from ? new Date(formData.vibration_history_from).toISOString() : null,
@@ -864,6 +869,7 @@ export default function AdminMachines() {
                   </div>
                 </div>
                 <MotohoursSettings formData={formData} setFormData={setFormData} />
+                <RpmRangeSettings formData={formData} setFormData={setFormData} />
                 <UnbalanceSettings formData={formData} setFormData={setFormData} />
                 <SensorOrientationSettings formData={formData} setFormData={setFormData} />
               </div>

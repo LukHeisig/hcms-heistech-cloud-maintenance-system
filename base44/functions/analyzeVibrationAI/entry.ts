@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { canAccessSensor } from '../../shared/access.ts';
+import { rpmBandBins } from '../../shared/rpmBand.ts';
 
 export default async function(req) {
   try {
@@ -8,7 +9,7 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing, action, operatingSpeedHz } = body;
+    const { sensorDataId, velStandard, accStandard, tempStandard, machineName, measurementPoint, bearing, action, operatingSpeedHz, rpmMin, rpmMax } = body;
 
     if (!sensorDataId) return Response.json({ error: 'Missing sensorDataId' }, { status: 400 });
 
@@ -43,12 +44,11 @@ export default async function(req) {
     const accZ = fft.acc_z_json ? JSON.parse(fft.acc_z_json) : [];
     const envZ = fft.env_z_json ? JSON.parse(fft.env_z_json) : [];
 
-    // Autodetekce otáčkové frekvence (1X) z FFT rychlosti v pásmu 6–80 Hz
+    // Autodetekce otáčkové frekvence (1X) z FFT rychlosti v pásmu 6–80 Hz nebo v rozsahu otáček stroje
     const detectSpeed = () => {
       const spectra = [velX, velY, velZ].filter(s => s && s.length > 0);
       if (spectra.length === 0) return null;
-      const minBin = Math.max(1, Math.ceil(6 / freqRes));
-      const maxBin = Math.min(Math.floor(80 / freqRes), spectra[0].length - 1);
+      const { minBin, maxBin } = rpmBandBins(freqRes, spectra[0].length, Number(rpmMin) || null, Number(rpmMax) || null);
       let maxAmp = -1, bin = -1;
       for (let i = minBin; i <= maxBin; i++) {
         const avgAmp = spectra.reduce((s, sp) => s + (sp[i] || 0), 0) / spectra.length;

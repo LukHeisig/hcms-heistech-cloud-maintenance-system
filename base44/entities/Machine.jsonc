@@ -126,6 +126,14 @@
       "type": "boolean",
       "description": "Stroj podle posledn\u00edho m\u011b\u0159en\u00ed b\u011b\u017e\u00ed"
     },
+    "rpm_min": {
+      "type": "number",
+      "description": "Minim\u00e1ln\u00ed ot\u00e1\u010dky stroje (ot/min) \u2014 doln\u00ed mez p\u00e1sma pro hled\u00e1n\u00ed ot\u00e1\u010dkov\u00e9 frekvence ve spektru. Pr\u00e1zdn\u00e9 = 360 (6 Hz)."
+    },
+    "rpm_max": {
+      "type": "number",
+      "description": "Maxim\u00e1ln\u00ed ot\u00e1\u010dky stroje (ot/min) \u2014 horn\u00ed mez p\u00e1sma pro hled\u00e1n\u00ed ot\u00e1\u010dkov\u00e9 frekvence ve spektru. Pr\u00e1zdn\u00e9 = 4800 (80 Hz)."
+    },
     "unbalance_enabled": {
       "type": "boolean",
       "default": false,

@@ -332,7 +332,7 @@ ${u.trend ? "<p>Hodnota zatím limit nepřekročila, ale podle trendu za posledn
         const ffts = await base44.asServiceRole.entities.SensorFFTData.filter(
           { sensor_id: assignment.sensor_id, timestamp_unix: { $gte: from } }, '-timestamp_unix', 400
         );
-        const allRunning = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3))
+        const allRunning = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3, { min: machine.rpm_min, max: machine.rpm_max }))
           .filter(r => r && r.running);
         const results = allRunning.slice(0, 6);
         const cur = results[0];

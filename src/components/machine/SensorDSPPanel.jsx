@@ -12,6 +12,7 @@ import {
 import { Activity, RefreshCw, ZoomOut, Maximize2, X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import VibrationAIAnalysis, { LimitEvaluationPanel } from "@/components/machine/VibrationAIAnalysis";
+import { detectRpmFromSpectrum } from "@/lib/rpmBand";
 
 // Barvy ložiskových frekvencí
 const BEARING_FREQ_COLORS = {
@@ -48,22 +49,11 @@ function getBearingCoefs(b) {
   return calcBearingDefectCoefs(b.nb, b.bd, b.pd, b.contact_angle_deg || 0);
 }
 
-function detectRpmFromSpectrum(specVel, freqRes) {
-  if (!specVel || specVel.length === 0) return null;
-  let maxAmp = 0, maxIdx = -1;
-  for (let i = 0; i < specVel.length; i++) {
-    const f = i * freqRes;
-    if (f < 5 || f > 200) continue;
-    const amp = Math.max(specVel[i]?.x || 0, specVel[i]?.y || 0, specVel[i]?.z || 0);
-    if (amp > maxAmp) { maxAmp = amp; maxIdx = i; }
-  }
-  if (maxIdx < 0 || maxAmp === 0) return null;
-  return Math.round(maxIdx * freqRes * 60);
-}
+
 
 // Panel pro nastavení ložiskových překryvů
-function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visibleFreqs, onToggleFreq, showHarmonics, onToggleHarmonics, bearingHarmonics, onToggleBearingHarmonics }) {
-  const autoRpm = useMemo(() => detectRpmFromSpectrum(specVel, freqRes), [specVel, freqRes]);
+function BearingOverlayPanel({ bearing, specVel, freqRes, rpmRange, rpm, onRpmChange, visibleFreqs, onToggleFreq, showHarmonics, onToggleHarmonics, bearingHarmonics, onToggleBearingHarmonics }) {
+  const autoRpm = useMemo(() => detectRpmFromSpectrum(specVel, freqRes, rpmRange), [specVel, freqRes, rpmRange]);
   const [manualMode, setManualMode] = useState(false);
   const [inputVal, setInputVal] = useState("");
 
@@ -179,8 +169,8 @@ function BearingOverlayPanel({ bearing, specVel, freqRes, rpm, onRpmChange, visi
 }
 
 // Standalone panel pro otáčkovou frekvenci (bez ložiska)
-function RotationalFreqPanel({ specVel, freqRes, rpm, onRpmChange, showHarmonics, onToggleHarmonics }) {
-  const autoRpm = useMemo(() => detectRpmFromSpectrum(specVel, freqRes), [specVel, freqRes]);
+function RotationalFreqPanel({ specVel, freqRes, rpmRange, rpm, onRpmChange, showHarmonics, onToggleHarmonics }) {
+  const autoRpm = useMemo(() => detectRpmFromSpectrum(specVel, freqRes, rpmRange), [specVel, freqRes, rpmRange]);
   const [manualMode, setManualMode] = useState(false);
   const [inputVal, setInputVal] = useState("");
 
@@ -274,7 +264,7 @@ function renderBearingRefLines(freqLines, visibleFreqs, harmonics = false) {
 export default function SensorDSPPanel({
   sensorId, initialRecordId,
   velStandard, accStandard, tempStandard, temperature,
-  machineName, measurementPoint, bearing, historyFrom
+  machineName, measurementPoint, bearing, historyFrom, rpmRange
 }) {
   const { data: records = [], isLoading } = useQuery({
     queryKey: ["sensorDataWithFFT", sensorId, historyFrom],
@@ -434,7 +424,7 @@ export default function SensorDSPPanel({
   const bearingFreqLines = useMemo(() => {
     if (!bearing || !dsp) return null;
     const coefs = getBearingCoefs(bearing);
-    const autoRpm = detectRpmFromSpectrum(dsp.specVel, dsp.freqRes);
+    const autoRpm = detectRpmFromSpectrum(dsp.specVel, dsp.freqRes, rpmRange);
     const rpm = bearingRpm ?? autoRpm ?? 1500;
     const fr = rpm / 60;
     return {
@@ -443,13 +433,13 @@ export default function SensorDSPPanel({
       BSF:  +(coefs.bsf  * fr).toFixed(2),
       FTF:  +(coefs.ftf  * fr).toFixed(2),
     };
-  }, [bearing, dsp, bearingRpm]);
+  }, [bearing, dsp, bearingRpm, rpmRange]);
 
   // Otáčková frekvence a harmonické
   const autoRpmFromSpec = useMemo(() => {
     if (!dsp) return null;
-    return detectRpmFromSpectrum(dsp.specVel, dsp.freqRes);
-  }, [dsp]);
+    return detectRpmFromSpectrum(dsp.specVel, dsp.freqRes, rpmRange);
+  }, [dsp, rpmRange]);
   const effectiveRpm = bearingRpm ?? autoRpmFromSpec ?? null;
   const fr = effectiveRpm ? effectiveRpm / 60 : null;
   const rotRefLines = useMemo(() => {
@@ -514,6 +504,7 @@ export default function SensorDSPPanel({
               bearing={bearing}
               specVel={dsp.specVel}
               freqRes={dsp.freqRes}
+              rpmRange={rpmRange}
               rpm={bearingRpm}
               onRpmChange={setBearingRpm}
               visibleFreqs={visibleFreqs}
@@ -528,6 +519,7 @@ export default function SensorDSPPanel({
             <RotationalFreqPanel
               specVel={dsp.specVel}
               freqRes={dsp.freqRes}
+              rpmRange={rpmRange}
               rpm={bearingRpm}
               onRpmChange={setBearingRpm}
               showHarmonics={showHarmonics}
@@ -684,7 +676,7 @@ export default function SensorDSPPanel({
 
           {/* Fullscreen dialog */}
           {!!fullscreenChart && dsp && (() => {
-            const fsAutoRpm = detectRpmFromSpectrum(dsp.specVel, dsp.freqRes);
+            const fsAutoRpm = detectRpmFromSpectrum(dsp.specVel, dsp.freqRes, rpmRange);
             const fsEffectiveRpm = fsRpm ?? fsAutoRpm ?? null;
             const fsFr = fsEffectiveRpm ? fsEffectiveRpm / 60 : null;
             const fsRotLines = fsFr ? [
@@ -998,6 +990,7 @@ export default function SensorDSPPanel({
             machineName={machineName}
             measurementPoint={measurementPoint}
             bearing={bearing}
+            rpmRange={rpmRange}
           />
         </>
       )}
