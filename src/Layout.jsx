@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeContext";
 import { OfflineProvider } from "@/components/OfflineProvider";
 import { DebugProvider } from "@/components/DebugContext";
@@ -62,6 +62,7 @@ import DemipBottomNavigation from "@/components/dashboard/DemipBottomNavigation"
 function LayoutContent({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user: authenticatedUser } = useAuth();
   const [user, setUser] = useState(authenticatedUser);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -136,12 +137,13 @@ function LayoutContent({ children }) {
       await ndef.scan({ signal: abortController.signal });
       log("Skenování spuštěno, přiložte čip.");
 
-      const timeoutId = setTimeout(() => {
+      const startTimeout = () => setTimeout(() => {
         abortController.abort();
         log("Časový limit vypršel (10s).");
         setIsNfcScanning(false);
         saveNfcLogToDb("timeout", "timeout");
       }, 10000);
+      let timeoutId = startTimeout();
 
       ndef.addEventListener("reading", async ({ serialNumber }) => {
         clearTimeout(timeoutId);
@@ -154,7 +156,9 @@ function LayoutContent({ children }) {
           log(`Hledám kontrolní body pro ID: ${serialNumber}`);
           
           // Najít všechny kontrolní body s tímto NFC ID
-          const points = await base44.entities.ControlPoint.filter({ nfc_chip_id: serialNumber }, null, 1000);
+          // Nejdřív hledáme v již načtených datech, server jen když tam čip není
+          let points = (queryClient.getQueryData(["allControlPoints"]) || []).filter(p => p.nfc_chip_id === serialNumber);
+          if (points.length === 0) points = await base44.entities.ControlPoint.filter({ nfc_chip_id: serialNumber }, null, 1000);
           log(`Nalezeno bodů v DB: ${points.length}`);
 
           let validPointFound = false;
@@ -162,16 +166,16 @@ function LayoutContent({ children }) {
           // Projít všechny nalezené body a najít ten, který má platnou vazbu na stroj a linku
           for (const point of points) {
               log(`Kontrola bodu: ${point.name} (ID: ${point.id})`);
-              const machines = await base44.entities.Machine.filter({ id: point.machine_id }, null, 1000);
-              const machine = machines[0];
+              const machine = (queryClient.getQueryData(["allMachines"]) || []).find(m => m.id === point.machine_id)
+                || (await base44.entities.Machine.filter({ id: point.machine_id }))[0];
 
               if (!machine) {
                   log(`❌ Stroj nenalezen (ID: ${point.machine_id})`);
                   continue;
               }
 
-              const lines = await base44.entities.Line.filter({ id: machine.line_id }, null, 1000);
-              const line = lines[0];
+              const line = (queryClient.getQueryData(["allLines"]) || []).find(l => l.id === machine.line_id)
+                || (await base44.entities.Line.filter({ id: machine.line_id }))[0];
 
               if (!line) {
                   log(`⚠️ Linka nenalezena (ID: ${machine.line_id}) - přeskakuji sirotka`);
@@ -199,7 +203,7 @@ function LayoutContent({ children }) {
               }
               
               log(`Přesměrování...`);
-              await saveNfcLogToDb(serialNumber, "success");
+              saveNfcLogToDb(serialNumber, "success");
               navigate(createPageUrl(url));
               validPointFound = true;
               setShowNfcScanDialog(false);
@@ -226,13 +230,13 @@ function LayoutContent({ children }) {
         }
       }, { signal: abortController.signal });
 
-      ndef.addEventListener("readingerror", async (event) => {
+      ndef.addEventListener("readingerror", (event) => {
+        // Snímání běží dál, stačí čip přiložit znovu
         clearTimeout(timeoutId);
+        timeoutId = startTimeout();
         console.error("NFC reading error:", event);
-        log(`Chyba čtení NFC (ReadingError)`);
-        setIsNfcScanning(false);
-        abortController.abort();
-        await saveNfcLogToDb("error", "reading_error");
+        log(`Chyba čtení NFC (ReadingError), přiložte čip znovu.`);
+        saveNfcLogToDb("error", "reading_error");
       }, { signal: abortController.signal });
 
     } catch (error) {
