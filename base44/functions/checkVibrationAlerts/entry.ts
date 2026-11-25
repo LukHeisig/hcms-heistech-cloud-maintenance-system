@@ -330,7 +330,8 @@ ${u.trend ? "<p>Hodnota zatím limit nepřekročila, ale podle trendu za posledn
         const thr = machine.unbalance_threshold_mm_s || 2.8;
         const from = Math.floor(Date.now() / 1000) - 5 * 86400;
         const ffts = await base44.asServiceRole.entities.SensorFFTData.filter(
-          { sensor_id: assignment.sensor_id, timestamp_unix: { $gte: from } }, '-timestamp_unix', 400
+          // $lte: vadné záznamy snímače s časem v budoucnosti se nepočítají
+          { sensor_id: assignment.sensor_id, timestamp_unix: { $gte: from, $lte: Math.floor(Date.now() / 1000) + 3600 } }, '-timestamp_unix', 400
         );
         const allRunning = ffts.map(f => computeUnbalance(f, thr, machine.motohours_threshold_mm_s ?? 0.3, { min: machine.rpm_min, max: machine.rpm_max }))
           .filter(r => r && r.running);
