@@ -373,7 +373,7 @@ export default function ControlPointDetail({
                 <FileText className="h-4 w-4 shrink-0 text-demip-brand" />
                 Dokumentace
               </CardTitle>
-              <div className="flex gap-2">
+              <div className={canEdit ? "flex gap-2" : "hidden"}>
                 <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setIsUploading(true); uploadDocumentMutation.mutate({ file: f, pointId: selectedPoint }); }}} className="hidden" />
                 <Button variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()} disabled={isUploading} className="h-8 px-2 md:px-3">
                   <Camera className="w-4 h-4 md:mr-1" /><span className="hidden md:inline">Vyfotit</span>

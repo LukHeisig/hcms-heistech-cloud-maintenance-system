@@ -798,7 +798,7 @@ export default function ControlPoint() {
                     Dokumentace
                   </h3>
                 </div>
-                <div className="flex gap-2">
+                <div className={canDelete ? "flex gap-2" : "hidden"}>
                   <input
                     ref={cameraInputRef}
                     type="file"

@@ -784,6 +784,11 @@ export default function AdminMachines() {
                   {formData.photo_url && (
                       <PrivateImage src={formData.photo_url} alt="Preview" className="h-20 w-20 object-cover rounded border" />
                   )}
+                  {formData.photo_url && (
+                      <Button type="button" variant="outline" size="sm" className="shrink-0 text-red-600" onClick={() => setFormData(prev => ({ ...prev, photo_url: "" }))}>
+                        <Trash2 className="w-4 h-4" />Odebrat fotku
+                      </Button>
+                  )}
                   <Input 
                       type="file" 
                       accept="image/*" 

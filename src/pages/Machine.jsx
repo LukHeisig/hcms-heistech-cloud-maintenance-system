@@ -277,6 +277,7 @@ export default function Machine() {
   });
 
   const canDeletePredictions = currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'superAdmin');
+  const canManageDocs = ["manager", "admin", "superAdmin"].includes(currentUser?.user_type);
 
 
 
@@ -398,7 +399,7 @@ export default function Machine() {
       {documentation.filter(doc => doc.category === category).map((doc) => (
         <div key={doc.id} className="group relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 hover:border-indigo-400 transition-all cursor-pointer bg-slate-50 flex items-center justify-center" onClick={() => { setSelectedDocPreview(doc); setShowDocPreviewDialog(true); }}>
           {doc.file_type === "photo" ? (<PrivateImage src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover" />) : (<div className="flex flex-col items-center p-4 text-center">{getFileIcon(doc.file_type)}<p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p></div>)}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center"><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white" onClick={(e) => { e.stopPropagation(); setDeleteDocId(doc.id); }}><X className="w-5 h-5" /></Button></div>
+          <div className={canManageDocs ? "absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center" : "hidden"}><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white" onClick={(e) => { e.stopPropagation(); setDeleteDocId(doc.id); }}><X className="w-5 h-5" /></Button></div>
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2"><p className="text-xs text-white truncate">{doc.file_name}</p><p className="text-xs text-white/70">{format(new Date(doc.created_date), "d. M. yyyy", { locale: cs })}</p></div>
         </div>
       ))}
@@ -1041,7 +1042,7 @@ export default function Machine() {
                     <FileText className="w-5 h-5 text-indigo-600" />
                     Dokumentace stroje
                   </CardTitle>
-                  <div className="flex gap-2">
+                  <div className={canManageDocs ? "flex gap-2" : "hidden"}>
                     <Button
                       variant="outline"
                       size="sm"
@@ -1102,7 +1103,7 @@ export default function Machine() {
                                     <p className="text-xs text-slate-600 mt-2 truncate max-w-full">{doc.file_name}</p>
                                 </div>
                             )}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center">
+                            <div className={canManageDocs ? "absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center" : "hidden"}>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1796,6 +1797,7 @@ export default function Machine() {
                     </Button>
                     <Button
                         variant="destructive"
+                        className={canManageDocs ? "" : "hidden"}
                         onClick={() => {
                             setShowDocPreviewDialog(false);
                             setDeleteDocId(selectedDocPreview?.id);
